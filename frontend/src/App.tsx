@@ -16,12 +16,13 @@ const WAITING_MESSAGES = [
 ];
 const CHAT_REQUEST_TIMEOUT_MS = 35000;
 const CHAT_MAX_RETRIES = 1;
-type AppProfile = UserProfile & { id?: number | string };
 
+type AppProfile = UserProfile & { id?: number | string };
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const RETRYABLE_API_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+const PERSIAN_PHONE_REGEX = /^09[0-9]{9}$/;
 
 const postChatWithRetry = async (payload: {
   message: string;
@@ -73,7 +74,34 @@ const buildRequestErrorMessage = async (response: Response) => {
   if (response.status === 401 || response.status === 403) {
     return 'احراز هویت API نامعتبر است. لطفاً کلید API را در بک اند بررسی کن.';
   }
+
   return 'پاسخ سرور دریافت نشد.';
+};
+
+const sendVerificationCode = async (phone: string): Promise<void> => {
+  const response = await fetch('/api/send-verification-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  });
+
+  if (!response.ok) {
+    const errorMessage = await buildRequestErrorMessage(response);
+    throw new Error(errorMessage || 'ارسال کد تایید انجام نشد.');
+  }
+};
+
+const verifyCode = async (phone: string, code: string): Promise<void> => {
+  const response = await fetch('/api/verify-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, code })
+  });
+
+  if (!response.ok) {
+    const errorMessage = await buildRequestErrorMessage(response);
+    throw new Error(errorMessage || 'تایید کد انجام نشد.');
+  }
 };
 
 const createConversation = (): Conversation => {
@@ -110,10 +138,15 @@ const generateUniqueId = () => Date.now() + Math.floor(Math.random() * 10000);
 
 function App() {
   const [profile, setProfile] = useState<AppProfile | null>(null);
+
+  const [registrationStep, setRegistrationStep] = useState<1 | 2 | 3>(1);
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState<UserProfile['gender'] | ''>('');
-  const [errors, setErrors] = useState<{ name?: string; age?: string; gender?: string }>({});
+  const [phone, setPhone] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string; age?: string; phone?: string; code?: string }>({});
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string>('');
@@ -121,7 +154,6 @@ function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileFormName, setProfileFormName] = useState('');
   const [profileFormAge, setProfileFormAge] = useState('');
-  const [profileFormGender, setProfileFormGender] = useState<UserProfile['gender']>('female');
   const [profileFormErrors, setProfileFormErrors] = useState<{ name?: string; age?: string }>({});
 
   const [inputValue, setInputValue] = useState('');
@@ -138,6 +170,8 @@ function App() {
   const keepRecordingRef = useRef(false);
   const sendMessageRef = useRef<(value?: string) => Promise<void>>(async () => {});
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
+  const botMessageRef = useRef<HTMLDivElement | null>(null);
+  const prevIsSendingRef = useRef(false);
   const messagesContainerRef = useRef<HTMLElement | null>(null);
   const inputAreaRef = useRef<HTMLElement | null>(null);
 
@@ -147,16 +181,35 @@ function App() {
   );
 
   const orderedConversations = useMemo(() => sortConversations(conversations), [conversations]);
+  const lastAssistantMessageIndex = useMemo(
+    () => (activeConversation ? activeConversation.messages.map((item) => item.role).lastIndexOf('assistant') : -1),
+    [activeConversation]
+  );
 
   useEffect(() => {
     try {
       const rawProfile = localStorage.getItem(PROFILE_KEY);
       const rawConversations = localStorage.getItem(CONVERSATIONS_KEY);
+      const savedActiveConversationId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
 
       if (rawProfile) {
         const parsedProfile = JSON.parse(rawProfile) as AppProfile;
-        if (parsedProfile.gender === 'female' || parsedProfile.gender === 'male') {
-          setProfile(parsedProfile);
+        if (
+          parsedProfile &&
+          typeof parsedProfile.name === 'string' &&
+          Number.isFinite(Number(parsedProfile.age))
+        ) {
+          const normalizedProfile: AppProfile = {
+            ...parsedProfile,
+            age: Number(parsedProfile.age),
+            phone:
+              typeof parsedProfile.phone === 'string' && PERSIAN_PHONE_REGEX.test(parsedProfile.phone.trim())
+                ? parsedProfile.phone.trim()
+                : undefined,
+            id: parsedProfile.id ?? generateUniqueId()
+          };
+          setProfile(normalizedProfile);
+          localStorage.setItem(PROFILE_KEY, JSON.stringify(normalizedProfile));
         } else {
           localStorage.removeItem(PROFILE_KEY);
         }
@@ -167,7 +220,11 @@ function App() {
         if (parsedConversations.length > 0) {
           const sorted = sortConversations(parsedConversations);
           setConversations(sorted);
-          setActiveConversationId(sorted[0].id);
+          const validActiveConversation =
+            savedActiveConversationId && sorted.some((item) => item.id === savedActiveConversationId)
+              ? savedActiveConversationId
+              : sorted[0].id;
+          setActiveConversationId(validActiveConversation);
           return;
         }
       }
@@ -176,6 +233,7 @@ function App() {
       setConversations([initialConversation]);
       setActiveConversationId(initialConversation.id);
       localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify([initialConversation]));
+      localStorage.setItem(ACTIVE_CONVERSATION_KEY, initialConversation.id);
     } catch {
       const fallbackConversation = createConversation();
       setConversations([fallbackConversation]);
@@ -187,15 +245,16 @@ function App() {
     if (!profile || !showProfileModal) {
       return;
     }
+
     let nextProfile = profile;
     if (!profile.id) {
       nextProfile = { ...profile, id: generateUniqueId() };
       setProfile(nextProfile);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
     }
+
     setProfileFormName(nextProfile.name);
     setProfileFormAge(String(nextProfile.age));
-    setProfileFormGender(nextProfile.gender);
     setProfileFormErrors({});
   }, [profile, showProfileModal]);
 
@@ -232,25 +291,36 @@ function App() {
       return;
     }
 
-    const scrollToBottom = () => {
+    const runScroll = () => {
+      const justReceivedBotReply =
+        prevIsSendingRef.current &&
+        !isSending &&
+        activeConversation?.messages[lastAssistantMessageIndex]?.role === 'assistant';
+
+      if (justReceivedBotReply) {
+        botMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        inputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        prevIsSendingRef.current = isSending;
+        return;
+      }
+
       container.scrollTo({
         top: container.scrollHeight + 24,
         behavior: 'smooth'
       });
       lastMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
       inputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      prevIsSendingRef.current = isSending;
     };
 
     const frameId = window.requestAnimationFrame(() => {
-      scrollToBottom();
+      window.setTimeout(runScroll, 50);
     });
-    const timeoutId = window.setTimeout(scrollToBottom, 80);
 
     return () => {
       window.cancelAnimationFrame(frameId);
-      window.clearTimeout(timeoutId);
     };
-  }, [activeConversationId, activeConversation?.messages.length, isSending]);
+  }, [activeConversationId, activeConversation?.messages.length, isSending, lastAssistantMessageIndex, activeConversation]);
 
   useEffect(() => {
     const SpeechRecognitionApi = window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -336,19 +406,18 @@ function App() {
     return created;
   };
 
-  const handleRegister = (event: FormEvent) => {
+  const handleRegisterStepOne = (event: FormEvent) => {
     event.preventDefault();
-    const nextErrors: { name?: string; age?: string; gender?: string } = {};
+
+    const nextErrors: { name?: string; age?: string } = {};
     const numericAge = Number(age);
 
     if (!name.trim()) {
       nextErrors.name = 'اسم خودت را بنویس تا با هم آشنا شویم.';
     }
+
     if (!age || Number.isNaN(numericAge) || numericAge < 8 || numericAge > 18) {
       nextErrors.age = 'سن باید بین 8 تا 18 سال باشد.';
-    }
-    if (!gender) {
-      nextErrors.gender = 'لطفا جنسیت خودت را انتخاب کن.';
     }
 
     setErrors(nextErrors);
@@ -356,15 +425,81 @@ function App() {
       return;
     }
 
-    const payload: AppProfile = {
-      name: name.trim(),
-      age: numericAge,
-      gender,
-      id: generateUniqueId()
-    };
+    setRegistrationStep(2);
+  };
 
-    setProfile(payload);
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
+  const handleRegisterStepTwo = async (event: FormEvent) => {
+    event.preventDefault();
+
+    const trimmedPhone = phone.trim();
+    const nextErrors: { phone?: string } = {};
+
+    if (!PERSIAN_PHONE_REGEX.test(trimmedPhone)) {
+      nextErrors.phone = 'شماره موبایل باید با 09 شروع شود و 11 رقم باشد.';
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    setIsSendingVerification(true);
+
+    try {
+      await sendVerificationCode(trimmedPhone);
+
+      setVerificationCode('');
+      setErrors({});
+      setRegistrationStep(3);
+    } catch (error) {
+      setErrors({
+        phone:
+          error instanceof Error && error.message.trim()
+            ? error.message
+            : 'ارسال کد تایید با خطا مواجه شد. لطفاً دوباره تلاش کن.'
+      });
+    } finally {
+      setIsSendingVerification(false);
+    }
+  };
+
+  const handleVerifyCode = async (event: FormEvent) => {
+    event.preventDefault();
+
+    const trimmedPhone = phone.trim();
+    const trimmedCode = verificationCode.trim();
+    const nextErrors: { code?: string } = {};
+
+    if (!/^[0-9]{6}$/.test(trimmedCode)) {
+      nextErrors.code = 'کد تایید باید 6 رقم باشد.';
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    setIsVerifyingCode(true);
+
+    try {
+      await verifyCode(trimmedPhone, trimmedCode);
+
+      const payload: AppProfile = {
+        name: name.trim(),
+        age: Number(age),
+        phone: trimmedPhone,
+        id: generateUniqueId()
+      };
+
+      setProfile(payload);
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
+    } catch (error) {
+      setErrors({
+        code: error instanceof Error && error.message.trim() ? error.message : 'کد نادرست است'
+      });
+    } finally {
+      setIsVerifyingCode(false);
+    }
   };
 
   const handleSendMessage = async (value?: string) => {
@@ -516,6 +651,12 @@ function App() {
     localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
 
     setProfile(null);
+    setRegistrationStep(1);
+    setName('');
+    setAge('');
+    setPhone('');
+    setVerificationCode('');
+    setErrors({});
     setConversations([]);
     setActiveConversationId('');
     setSidebarOpen(false);
@@ -565,14 +706,18 @@ function App() {
     if (!profile) {
       return;
     }
+
     const nextErrors: { name?: string; age?: string } = {};
     const numericAge = Number(profileFormAge);
+
     if (!profileFormName.trim()) {
       nextErrors.name = 'نام نمی‌تواند خالی باشد.';
     }
+
     if (!profileFormAge || Number.isNaN(numericAge) || numericAge < 8 || numericAge > 18) {
       nextErrors.age = 'سن باید بین 8 تا 18 سال باشد.';
     }
+
     setProfileFormErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       return;
@@ -582,9 +727,9 @@ function App() {
       ...profile,
       name: profileFormName.trim(),
       age: numericAge,
-      gender: profileFormGender,
       id: profile.id ?? generateUniqueId()
     };
+
     setProfile(nextProfile);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
     setShowProfileModal(false);
@@ -598,72 +743,128 @@ function App() {
         <div className="bg-blob blob-yellow" />
         <div className="bg-blob blob-purple" />
 
-        <form className="register-card" onSubmit={handleRegister}>
-          <h1>
-            سلام رفیق! <span>✨</span>
-          </h1>
-          <p className="subtitle">دانوآ، همون دوستی که همیشه برات می‌مونه!</p>
-          <p className="helper onboarding-help">فقط سه مرحله ساده: نام، سن و جنسیت ✨</p>
+        {registrationStep === 1 ? (
+          <form className="register-card" onSubmit={handleRegisterStepOne}>
+            <h1>
+              سلام رفیق! <span>✨</span>
+            </h1>
+            <p className="subtitle">دانوآ، همون دوستی که همیشه برات می‌مونه!</p>
+            <p className="helper onboarding-help">مرحله 1 از 3: نام و سن را وارد کن ✨</p>
 
-          <label>
-            نام
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="مثلا:علی,ابولفضل,و..."
-              type="text"
-              autoComplete="name"
-            />
-            {errors.name ? <small className="error">{errors.name}</small> : null}
-          </label>
+            <label>
+              نام
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="مثلا: علی"
+                type="text"
+                autoComplete="name"
+              />
+              {errors.name ? <small className="error">{errors.name}</small> : null}
+            </label>
 
-          <label>
-            سن
-            <input
-              value={age}
-              onChange={(event) => setAge(event.target.value)}
-              placeholder="فقط عدد"
-              type="number"
-              min={8}
-              max={18}
-              inputMode="numeric"
-            />
-            <small className="hint">محدوده سنی مجاز: 8 تا 18 سال</small>
-            <small className="helper">
-              عالیه! ما برای سنین 8 تا 18 سال طراحی شدیم. لطفاً سن خود را در این بازه وارد کنید.
-            </small>
-            {errors.age ? <small className="error">{errors.age}</small> : null}
-          </label>
+            <label>
+              سن
+              <input
+                value={age}
+                onChange={(event) => setAge(event.target.value)}
+                placeholder="فقط عدد"
+                type="number"
+                min={8}
+                max={18}
+                inputMode="numeric"
+              />
+              <small className="hint">محدوده سنی مجاز: 8 تا 18 سال</small>
+              {errors.age ? <small className="error">{errors.age}</small> : null}
+            </label>
 
-          <label>
-            جنسیت
-            <div className="gender-buttons">
+            <button type="submit" className="start-btn">
+              ادامه
+            </button>
+          </form>
+        ) : registrationStep === 2 ? (
+          <form className="register-card" onSubmit={handleRegisterStepTwo}>
+            <h1>
+              تقریبا تمومه! <span>📱</span>
+            </h1>
+            <p className="subtitle">مرحله 2 از 3: شماره موبایل را وارد کن</p>
+            <p className="helper onboarding-help">
+              یک کد 6 رقمی شبیه سازی شده در کنسول بک اند لاگ می شود.
+            </p>
+
+            <label>
+              شماره موبایل
+              <input
+                value={phone}
+                onChange={(event) => setPhone(event.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="09123456789"
+                type="tel"
+                inputMode="numeric"
+                maxLength={11}
+                autoComplete="tel"
+              />
+              <small className="hint">فرمت معتبر: 09XXXXXXXXX</small>
+              {errors.phone ? <small className="error">{errors.phone}</small> : null}
+            </label>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 type="button"
-                className={`gender-btn ${gender === 'female' ? 'selected' : ''}`}
-                aria-label="انتخاب جنسیت دختر"
-                onClick={() => setGender('female')}
+                className="danger"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  setRegistrationStep(1);
+                  setErrors({});
+                }}
               >
-                <span aria-hidden="true">👧</span>
-                دختر
+                بازگشت
               </button>
-              <button
-                type="button"
-                className={`gender-btn ${gender === 'male' ? 'selected' : ''}`}
-                aria-label="انتخاب جنسیت پسر"
-                onClick={() => setGender('male')}
-              >
-                <span aria-hidden="true">👦</span>
-                پسر
+              <button type="submit" className="start-btn" style={{ flex: 2 }} disabled={isSendingVerification}>
+                {isSendingVerification ? 'در حال ارسال...' : 'ادامه'}
               </button>
             </div>
-            {errors.gender ? <small className="error">{errors.gender}</small> : null}
-          </label>
+          </form>
+        ) : (
+          <form className="register-card" onSubmit={handleVerifyCode}>
+            <h1>
+              کد را وارد کن <span>✅</span>
+            </h1>
+            <p className="subtitle">مرحله 3 از 3: کد 6 رقمی تأیید</p>
+            <p className="helper onboarding-help">کد در کنسول بک‌اند ثبت شده است.</p>
 
-          <button type="submit" className="start-btn">
-            شروع گفتگو
-          </button>
-        </form>
+            <label>
+              کد تایید
+              <input
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="123456"
+                type="tel"
+                inputMode="numeric"
+                maxLength={6}
+                autoComplete="one-time-code"
+              />
+              {errors.code ? <small className="error">{errors.code}</small> : null}
+            </label>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                className="danger"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  setRegistrationStep(2);
+                  setVerificationCode('');
+                  setErrors({});
+                }}
+              >
+                تغییر شماره
+              </button>
+              <button type="submit" className="start-btn" style={{ flex: 2 }} disabled={isVerifyingCode}>
+                {isVerifyingCode ? 'در حال بررسی...' : 'تأیید'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     );
   }
@@ -812,23 +1013,9 @@ function App() {
               </label>
 
               <label>
-                جنسیت
-                <div className="gender-buttons">
-                  <button
-                    type="button"
-                    className={`gender-btn ${profileFormGender === 'female' ? 'selected' : ''}`}
-                    onClick={() => setProfileFormGender('female')}
-                  >
-                    دختر
-                  </button>
-                  <button
-                    type="button"
-                    className={`gender-btn ${profileFormGender === 'male' ? 'selected' : ''}`}
-                    onClick={() => setProfileFormGender('male')}
-                  >
-                    پسر
-                  </button>
-                </div>
+                شماره موبایل
+                <input type="text" value={profile.phone || '-'} readOnly />
+                <small className="helper">شماره موبایل فقط هنگام ثبت نام تعیین می شود.</small>
               </label>
 
               <div className="profile-id-box">
@@ -858,7 +1045,14 @@ function App() {
               <div
                 key={`${message.timestamp}-${index}`}
                 className={`message-row ${message.role}`}
-                ref={index === activeConversation.messages.length - 1 ? lastMessageRef : null}
+                ref={(node) => {
+                  if (index === activeConversation.messages.length - 1) {
+                    lastMessageRef.current = node;
+                  }
+                  if (message.role === 'assistant' && index === lastAssistantMessageIndex) {
+                    botMessageRef.current = node;
+                  }
+                }}
               >
                 {message.role === 'assistant' ? (
                   <span className="bot-avatar">

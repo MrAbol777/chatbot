@@ -1,0 +1,755 @@
+{
+  "users": [
+    {
+      "user_id": "1777719881717-57251",
+      "name": "ذان",
+      "age": 9,
+      "gender": "male",
+      "registered_at": "2026-05-02T11:04:41.716Z",
+      "last_active": "2026-05-02T11:04:41.720Z"
+    },
+    {
+      "user_id": "1777719882728-618695",
+      "name": "ذان",
+      "age": 9,
+      "gender": "male",
+      "registered_at": "2026-05-02T11:04:42.728Z",
+      "last_active": "2026-05-02T11:04:42.731Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "name": "🍓فروزان امیری🎀",
+      "age": 12,
+      "phone": "09162603037",
+      "registered_at": "2026-05-03T07:21:28.251Z",
+      "last_active": "2026-05-03T09:15:22.183Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "name": "ابولفضل",
+      "age": 16,
+      "phone": "09926638344",
+      "registered_at": "2026-05-03T07:27:46.292Z",
+      "last_active": "2026-05-03T09:21:33.283Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "name": "ابولفضل",
+      "age": 8,
+      "phone": "09926638344",
+      "registered_at": "2026-05-03T08:44:02.874Z",
+      "last_active": "2026-05-03T08:44:39.406Z"
+    }
+  ],
+  "events": [
+    {
+      "user_id": "1777719881717-57251",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moo8inld-mycawg\"}",
+      "created_at": "2026-05-02T11:04:41.720Z"
+    },
+    {
+      "user_id": "1777719882728-618695",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moo8iodi-m381w5\"}",
+      "created_at": "2026-05-02T11:04:42.731Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopfzfsi-mxjncd\"}",
+      "created_at": "2026-05-03T07:21:28.255Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopfzgdv-s53mry\"}",
+      "created_at": "2026-05-03T07:21:29.013Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopg7jhs-w5qca7\"}",
+      "created_at": "2026-05-03T07:27:46.297Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":77,\"requestId\":\"mopg7jhs-w5qca7\"}",
+      "created_at": "2026-05-03T07:27:47.682Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopg84k0-k26mwn\"}",
+      "created_at": "2026-05-03T07:28:13.593Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":56,\"requestId\":\"mopg84k0-k26mwn\"}",
+      "created_at": "2026-05-03T07:28:14.761Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"mopg8bxl-8gdv71\"}",
+      "created_at": "2026-05-03T07:28:23.150Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":109,\"requestId\":\"mopg8bxl-8gdv71\"}",
+      "created_at": "2026-05-03T07:28:24.472Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopg8r53-ptlx1f\"}",
+      "created_at": "2026-05-03T07:28:42.858Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":99,\"requestId\":\"mopg8r53-ptlx1f\"}",
+      "created_at": "2026-05-03T07:28:44.701Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":30,\"requestId\":\"mopg97f8-gy8c6k\"}",
+      "created_at": "2026-05-03T07:29:03.958Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":132,\"requestId\":\"mopg97f8-gy8c6k\"}",
+      "created_at": "2026-05-03T07:29:05.430Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":73,\"requestId\":\"mopga0a3-ymnbwl\"}",
+      "created_at": "2026-05-03T07:29:41.357Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1209,\"requestId\":\"mopga0a3-ymnbwl\"}",
+      "created_at": "2026-05-03T07:29:44.630Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":64,\"requestId\":\"mopgbkge-83a2bb\"}",
+      "created_at": "2026-05-03T07:30:54.165Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":664,\"requestId\":\"mopgbkge-83a2bb\"}",
+      "created_at": "2026-05-03T07:30:57.016Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":82,\"requestId\":\"mopgeu88-wwi5uq\"}",
+      "created_at": "2026-05-03T07:33:26.794Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":973,\"requestId\":\"mopgeu88-wwi5uq\"}",
+      "created_at": "2026-05-03T07:33:30.786Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopgg3lg-c237fa\"}",
+      "created_at": "2026-05-03T07:34:25.592Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":864,\"requestId\":\"mopgg3lg-c237fa\"}",
+      "created_at": "2026-05-03T07:34:28.603Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":29,\"requestId\":\"mopgh4v8-z5u862\"}",
+      "created_at": "2026-05-03T07:35:13.908Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopgh68q-nxtdy1\"}",
+      "created_at": "2026-05-03T07:35:15.678Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":920,\"requestId\":\"mopgh4v8-z5u862\"}",
+      "created_at": "2026-05-03T07:35:19.422Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":206,\"requestId\":\"mopgh68q-nxtdy1\"}",
+      "created_at": "2026-05-03T07:35:19.427Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopha360-xdxrgd\"}",
+      "created_at": "2026-05-03T07:57:44.717Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":163,\"requestId\":\"mopha360-xdxrgd\"}",
+      "created_at": "2026-05-03T07:57:46.370Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopha4ve-cnv2rr\"}",
+      "created_at": "2026-05-03T07:57:46.927Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":204,\"requestId\":\"mopha4ve-cnv2rr\"}",
+      "created_at": "2026-05-03T07:57:48.308Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"mopha6kp-6lm7ng\"}",
+      "created_at": "2026-05-03T07:57:49.135Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":192,\"requestId\":\"mopha6kp-6lm7ng\"}",
+      "created_at": "2026-05-03T07:57:50.056Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"mopha9di-in8k5l\"}",
+      "created_at": "2026-05-03T07:57:52.760Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":201,\"requestId\":\"mopha9di-in8k5l\"}",
+      "created_at": "2026-05-03T07:57:54.799Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mophacpd-dvuxtc\"}",
+      "created_at": "2026-05-03T07:57:57.078Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":344,\"requestId\":\"mophacpd-dvuxtc\"}",
+      "created_at": "2026-05-03T07:57:58.379Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":17,\"requestId\":\"mophaifj-rtxhdl\"}",
+      "created_at": "2026-05-03T07:58:04.500Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":575,\"requestId\":\"mophaifj-rtxhdl\"}",
+      "created_at": "2026-05-03T07:58:07.275Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":19,\"requestId\":\"mophatnl-j9o6zv\"}",
+      "created_at": "2026-05-03T07:58:19.045Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1991,\"requestId\":\"mophatnl-j9o6zv\"}",
+      "created_at": "2026-05-03T07:58:24.146Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":12,\"requestId\":\"mophfcxk-pk11ts\"}",
+      "created_at": "2026-05-03T08:01:50.652Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1892,\"requestId\":\"mophfcxk-pk11ts\"}",
+      "created_at": "2026-05-03T08:01:55.721Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopidtqu-khj6t3\"}",
+      "created_at": "2026-05-03T08:28:38.751Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":46,\"requestId\":\"mopidtqu-khj6t3\"}",
+      "created_at": "2026-05-03T08:28:49.744Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":28,\"requestId\":\"mopietzh-uop6kh\"}",
+      "created_at": "2026-05-03T08:29:25.713Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":959,\"requestId\":\"mopietzh-uop6kh\"}",
+      "created_at": "2026-05-03T08:29:40.061Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":24,\"requestId\":\"mopigk71-scje92\"}",
+      "created_at": "2026-05-03T08:30:46.339Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":1015,\"requestId\":\"mopigk71-scje92\"}",
+      "created_at": "2026-05-03T08:30:50.428Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":77,\"requestId\":\"mopihz7e-c1u079\"}",
+      "created_at": "2026-05-03T08:31:52.453Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":77,\"requestId\":\"mopiiqik-kloor5\"}",
+      "created_at": "2026-05-03T08:32:27.847Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopij8yb-9ifpqx\"}",
+      "created_at": "2026-05-03T08:32:51.733Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":46,\"requestId\":\"mopij8yb-9ifpqx\"}",
+      "created_at": "2026-05-03T08:32:53.149Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":77,\"requestId\":\"mopijj81-acbyi3\"}",
+      "created_at": "2026-05-03T08:33:05.050Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":932,\"requestId\":\"mopijj81-acbyi3\"}",
+      "created_at": "2026-05-03T08:33:24.619Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopil0vk-qlz98y\"}",
+      "created_at": "2026-05-03T08:34:14.581Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopils65-vb6g29\"}",
+      "created_at": "2026-05-03T08:34:49.953Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopinxyx-d7a0z6\"}",
+      "created_at": "2026-05-03T08:36:30.794Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopiop9n-1k9950\"}",
+      "created_at": "2026-05-03T08:37:06.169Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopiuiag-kvqqzu\"}",
+      "created_at": "2026-05-03T08:41:37.052Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":129,\"requestId\":\"mopiuiag-kvqqzu\"}",
+      "created_at": "2026-05-03T08:41:39.910Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopiv6ji-pvf5bd\"}",
+      "created_at": "2026-05-03T08:42:08.492Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":982,\"requestId\":\"mopiv6ji-pvf5bd\"}",
+      "created_at": "2026-05-03T08:42:12.203Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopiwhij-ve9gj8\"}",
+      "created_at": "2026-05-03T08:43:09.359Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":39,\"requestId\":\"mopiwj7a-mcoces\"}",
+      "created_at": "2026-05-03T08:43:11.550Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":144,\"requestId\":\"mopiwhij-ve9gj8\"}",
+      "created_at": "2026-05-03T08:43:13.731Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1146,\"requestId\":\"mopiwj7a-mcoces\"}",
+      "created_at": "2026-05-03T08:43:17.016Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":25,\"requestId\":\"mopixmt6-s5591l\"}",
+      "created_at": "2026-05-03T08:44:02.876Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":579,\"requestId\":\"mopixmt6-s5591l\"}",
+      "created_at": "2026-05-03T08:44:06.012Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":25,\"requestId\":\"mopiycif-rfpn2i\"}",
+      "created_at": "2026-05-03T08:44:36.187Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":525,\"requestId\":\"mopiycif-rfpn2i\"}",
+      "created_at": "2026-05-03T08:44:39.406Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":153,\"requestId\":\"mopiz7n0-zsvpdv\"}",
+      "created_at": "2026-05-03T08:45:16.534Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1523,\"requestId\":\"mopiz7n0-zsvpdv\"}",
+      "created_at": "2026-05-03T08:45:21.766Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"mopj166k-0q6siw\"}",
+      "created_at": "2026-05-03T08:46:47.952Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":105,\"requestId\":\"mopj166k-0q6siw\"}",
+      "created_at": "2026-05-03T08:46:49.395Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopjhj1q-qlyo76\"}",
+      "created_at": "2026-05-03T08:59:31.148Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":137,\"requestId\":\"mopjhj1q-qlyo76\"}",
+      "created_at": "2026-05-03T08:59:33.132Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopji4bh-ss21ng\"}",
+      "created_at": "2026-05-03T08:59:58.691Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":126,\"requestId\":\"mopji4bh-ss21ng\"}",
+      "created_at": "2026-05-03T09:00:00.557Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopjiosg-ldy4u5\"}",
+      "created_at": "2026-05-03T09:00:25.222Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":310,\"requestId\":\"mopjiosg-ldy4u5\"}",
+      "created_at": "2026-05-03T09:00:26.859Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":20,\"requestId\":\"mopjixbd-3zda81\"}",
+      "created_at": "2026-05-03T09:00:36.269Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1149,\"requestId\":\"mopjixbd-3zda81\"}",
+      "created_at": "2026-05-03T09:00:40.198Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopjjm04-jiywrf\"}",
+      "created_at": "2026-05-03T09:01:08.264Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":1179,\"requestId\":\"mopjjm04-jiywrf\"}",
+      "created_at": "2026-05-03T09:01:18.265Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopjjubn-hgrigr\"}",
+      "created_at": "2026-05-03T09:01:19.048Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":418,\"requestId\":\"mopjjubn-hgrigr\"}",
+      "created_at": "2026-05-03T09:01:23.145Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopjnm39-yvu8b3\"}",
+      "created_at": "2026-05-03T09:04:15.001Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":130,\"requestId\":\"mopjnm39-yvu8b3\"}",
+      "created_at": "2026-05-03T09:04:16.235Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"mopjx8qf-55zcs3\"}",
+      "created_at": "2026-05-03T09:11:44.253Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":544,\"requestId\":\"mopjx8qf-55zcs3\"}",
+      "created_at": "2026-05-03T09:11:46.321Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":46,\"requestId\":\"mopjxxvk-nfo3wt\"}",
+      "created_at": "2026-05-03T09:12:16.840Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":494,\"requestId\":\"mopjxxvk-nfo3wt\"}",
+      "created_at": "2026-05-03T09:12:19.157Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":18,\"requestId\":\"mopk1u7z-zbn1hj\"}",
+      "created_at": "2026-05-03T09:15:18.726Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":587,\"requestId\":\"mopk1u7z-zbn1hj\"}",
+      "created_at": "2026-05-03T09:15:22.183Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopk9u0l-80lcq1\"}",
+      "created_at": "2026-05-03T09:21:31.709Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":112,\"requestId\":\"mopk9u0l-80lcq1\"}",
+      "created_at": "2026-05-03T09:21:33.283Z"
+    }
+  ],
+  "errors": [
+    {
+      "error_type": "gapgpt_503",
+      "endpoint": "/chat/completions",
+      "status_code": 503,
+      "details": "{\"error\":{\"code\":\"model_not_found\",\"message\":\"no available channel for model gpt-4o-mini in group default (request id: 20260503120230983115864WZG5OYQb)\",\"type\":\"api_provider_error\"}}",
+      "created_at": "2026-05-03T08:32:29.665Z"
+    },
+    {
+      "error_type": "gapgpt_timeout",
+      "endpoint": "/chat/completions",
+      "status_code": 504,
+      "details": "This operation was aborted",
+      "created_at": "2026-05-03T08:35:45.822Z"
+    },
+    {
+      "error_type": "gapgpt_timeout",
+      "endpoint": "/chat/completions",
+      "status_code": 504,
+      "details": "This operation was aborted",
+      "created_at": "2026-05-03T08:36:21.433Z"
+    },
+    {
+      "error_type": "auth_failed",
+      "endpoint": "/chat/completions",
+      "status_code": 401,
+      "details": "{\"error\":{\"code\":\"\",\"message\":\"no token provided (request id: 20260503120738308660474orWFURZU)\",\"type\":\"api_provider_error\"}}",
+      "created_at": "2026-05-03T08:37:36.963Z"
+    },
+    {
+      "error_type": "gapgpt_timeout",
+      "endpoint": "/chat/completions",
+      "status_code": 504,
+      "details": "This operation was aborted",
+      "created_at": "2026-05-03T08:38:02.063Z"
+    }
+  ]
+}

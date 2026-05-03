@@ -3,7 +3,7 @@
 export interface UserProfile {
   name: string;
   age: number;
-  gender: 'female' | 'male';
+  phone?: string;
 }
 
 export interface ChatMessage {

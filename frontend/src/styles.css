@@ -137,43 +137,9 @@ select {
   box-shadow: 0 0 0 4px rgba(255, 154, 60, 0.23);
 }
 
-.gender-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
-}
 
-.gender-btn {
-  flex: 1 0 auto;
-  background: #fff9ef;
-  border: 1px solid #ffd6aa;
-  border-radius: 48px;
-  min-height: 48px;
-  padding: 12px 20px;
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #3b2a1f;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
 
-.gender-btn:hover {
-  background: #ffe0b5;
-  transform: scale(1.02);
-}
 
-.gender-btn.selected {
-  background: #ff9a3c;
-  border-color: #ff9a3c;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(255, 154, 60, 0.3);
-}
 
 .hint,
 .helper,
@@ -355,6 +321,10 @@ select {
 
 .sidebar-footer .danger {
   color: #b3261e;
+}
+
+.danger {
+  border-radius: 40px;
 }
 
 .modal-overlay {
@@ -877,13 +847,7 @@ select:focus-visible {
     min-width: 0;
   }
 
-  .gender-buttons {
-    flex-direction: column;
-  }
 
-  .gender-btn {
-    justify-content: center;
-  }
 
   .modal-buttons {
     flex-direction: column;

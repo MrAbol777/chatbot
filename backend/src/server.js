@@ -4,10 +4,13 @@ const compression = require('compression');
 const dotenv = require('dotenv');
 const http = require('http');
 const https = require('https');
+const { ensureUserExists, logEvent, logError, getStats } = require('../db');
 
 dotenv.config();
 
 const app = express();
+const verificationStore = new Map();
+const VERIFICATION_TTL_MS = 5 * 60 * 1000;
 
 const now = () => new Date().toISOString();
 const log = (scope, message, meta) => {
@@ -20,10 +23,12 @@ const log = (scope, message, meta) => {
 
 const port = Number(process.env.PORT || 3001);
 const gapBaseUrl = process.env.GAPGPT_BASE_URL || 'https://api.gapgpt.app/v1';
-const gapModel = process.env.GAPGPT_MODEL || 'gpt-4o';
+const gapModel = process.env.GAPGPT_MODEL || 'gpt-4o-mini';
 const gapApiKey = typeof process.env.GAPGPT_API_KEY === 'string' ? process.env.GAPGPT_API_KEY.trim() : '';
 const upstreamTimeoutMs = Number(process.env.GAPGPT_TIMEOUT_MS || 30000);
 const maxUpstreamRetries = Number(process.env.GAPGPT_MAX_RETRIES || 2);
+const adminApiKey = typeof process.env.ADMIN_API_KEY === 'string' ? process.env.ADMIN_API_KEY.trim() : '';
+
 const httpAgent = new http.Agent({
   keepAlive: true,
   timeout: upstreamTimeoutMs
@@ -32,8 +37,10 @@ const httpsAgent = new https.Agent({
   keepAlive: true,
   timeout: upstreamTimeoutMs
 });
+
 const RETRYABLE_UPSTREAM_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const AUTH_ERROR_STATUSES = new Set([401, 403]);
+
 const authHeaderCandidates = gapApiKey
   ? [
       { Authorization: `Bearer ${gapApiKey}` },
@@ -49,8 +56,6 @@ const getRetryDelayMs = (attemptIndex, retryAfterHeader) => {
   if (Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 1) {
     return Math.min(parsedRetryAfter * 1000, 8000);
   }
-
-  // Exponential backoff with a small ceiling to keep chat responses snappy.
   return Math.min(400 * 2 ** attemptIndex, 2500);
 };
 
@@ -58,6 +63,7 @@ const isRetryableError = (error) => {
   if (!error || typeof error !== 'object') {
     return false;
   }
+
   return (
     error.name === 'AbortError' ||
     error.code === 'UND_ERR_CONNECT_TIMEOUT' ||
@@ -125,12 +131,14 @@ const callUpstreamWithRetry = async (messages) => {
         break;
       } catch (error) {
         lastError = error;
+
         log('UPSTREAM', 'attempt_failed_error', {
           attempt: attempt + 1,
           authVariant: authIndex + 1,
           errorName: error && typeof error === 'object' ? error.name : 'unknown',
           errorCode: error && typeof error === 'object' ? error.code : 'unknown'
         });
+
         if (!isRetryableError(error) || attempt >= maxUpstreamRetries) {
           throw error;
         }
@@ -146,6 +154,14 @@ const callUpstreamWithRetry = async (messages) => {
 
   throw lastError || new Error('unknown_upstream_error');
 };
+
+function detectCategory(msg) {
+  const lower = typeof msg === 'string' ? msg.toLowerCase() : '';
+  if (/ریاضی|علم|فرمول|معادله|چرا|چگونه|درس|مدرسه|فیزیک|شیمی|زیست/.test(lower)) return 'academic';
+  if (/احساس|ناراحت|غمگین|ترس|استرس|خجالت|دعوا|دوست|رابطه|دوستی|مامان|بابا/.test(lower)) return 'emotional';
+  if (/داستان|قصه|ایده|شخصیت|بنویس|نوشتن|خلاقیت|ماجراجویی/.test(lower)) return 'creative';
+  return 'general';
+}
 
 app.use(cors());
 app.use(compression());
@@ -177,32 +193,23 @@ app.use((req, res, next) => {
 const buildSystemPrompt = (profile) => {
   const safeName = typeof profile?.name === 'string' && profile.name.trim() ? profile.name.trim() : 'دوست من';
   const safeAge = Number(profile?.age);
-  const safeGender = profile?.gender === 'female' || profile?.gender === 'male' ? profile.gender : null;
   const ageText = Number.isFinite(safeAge) ? `${safeAge}` : 'نامشخص';
-  const genderText = safeGender === 'female' ? 'دختر' : safeGender === 'male' ? 'پسر' : 'نامشخص';
   const ageStyle =
     Number.isFinite(safeAge) && safeAge <= 12
       ? 'جمله ها ساده، کوتاه و خیلی روشن باشند.'
       : 'توضیح ها دقیق تر باشند ولی همچنان صمیمی و روان بمانند.';
-  const genderStyle =
-    safeGender === 'female'
-      ? 'در خطاب مستقیم از لحن مناسب برای کاربر دختر استفاده کن.'
-      : safeGender === 'male'
-        ? 'در خطاب مستقیم از لحن مناسب برای کاربر پسر استفاده کن.'
-        : 'اگر جنسیت مشخص نبود، لحن کاملا خنثی نگه دار.';
 
   return `تو «همراز» هستی؛ یک همراه امن، مهربان و آموزشی برای نوجوانان.
 
 مشخصات کاربر:
 - نام: ${safeName}
 - سن: ${ageText}
-- جنسیت: ${genderText}
 
 قوانین اصلی:
 1) پاسخ ها همیشه فارسی و مناسب راست به چپ باشند.
 2) لحن باید امن، محترمانه و دوستانه باشد.
 3) ${ageStyle}
-4) ${genderStyle}
+4) اگر اطلاعات کاربر ناقص بود، از لحن خنثی و محترمانه استفاده کن.
 5) پاسخ کوتاه و مفید باشد، اما اگر سوال آموزشی است مرحله بندی واضح داشته باشد.
 
 قواعد The Mom Test:
@@ -233,24 +240,82 @@ const buildSystemPrompt = (profile) => {
 مهم: پاسخ نمونه از پیش نوشته نده؛ فقط بر اساس قوانین بالا پاسخ پویا تولید کن.`;
 };
 
+app.post('/api/send-verification-code', (req, res) => {
+  try {
+    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+
+    if (!/^09[0-9]{9}$/.test(phone)) {
+      return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = Date.now() + VERIFICATION_TTL_MS;
+    verificationStore.set(phone, { code, expiresAt });
+    console.log(`[VERIFICATION CODE] ${phone} -> ${code}`);
+
+    return res.json({ success: true });
+  } catch (error) {
+    logError('verification_code_failed', '/api/send-verification-code', 500, error instanceof Error ? error.message : 'unknown');
+    return res.status(500).json({ error: 'ارسال کد با خطا مواجه شد.' });
+  }
+});
+
+app.post('/api/verify-code', (req, res) => {
+  try {
+    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+    const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+
+    if (!/^09[0-9]{9}$/.test(phone) || !/^[0-9]{6}$/.test(code)) {
+      return res.status(400).json({ success: false, error: 'کد منقضی شده یا نامعتبر است' });
+    }
+
+    const stored = verificationStore.get(phone);
+    if (!stored || Date.now() > stored.expiresAt) {
+      verificationStore.delete(phone);
+      return res.status(400).json({ success: false, error: 'کد منقضی شده یا نامعتبر است' });
+    }
+
+    if (stored.code !== code) {
+      return res.status(400).json({ success: false, error: 'کد نادرست است' });
+    }
+
+    verificationStore.delete(phone);
+    return res.json({ success: true });
+  } catch (error) {
+    logError('verify_code_failed', '/api/verify-code', 500, error instanceof Error ? error.message : 'unknown');
+    return res.status(500).json({ success: false, error: 'تأیید کد با خطا مواجه شد.' });
+  }
+});
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, profile, history } = req.body || {};
     const requestId = res.locals.requestId;
+    const trimmedMessage = typeof message === 'string' ? message.trim() : '';
+
     log('CHAT', 'incoming_message', {
       requestId,
       hasProfile: Boolean(profile),
       historyCount: Array.isArray(history) ? history.length : 0,
-      messageLength: typeof message === 'string' ? message.trim().length : 0
+      messageLength: trimmedMessage.length
     });
 
     if (!gapApiKey) {
+      logError('api_key_missing', '/api/chat', 500, 'GAPGPT_API_KEY is missing');
       return res.status(500).json({ error: 'کلید API تنظیم نشده است.' });
     }
 
-    if (typeof message !== 'string' || !message.trim()) {
+    if (typeof message !== 'string' || !trimmedMessage) {
       return res.status(400).json({ error: 'پیام معتبر ارسال نشده است.' });
     }
+
+    const userId = ensureUserExists(profile || {});
+    const category = detectCategory(trimmedMessage);
+
+    logEvent(userId, 'message_sent', category, {
+      messageLength: trimmedMessage.length,
+      requestId
+    });
 
     const normalizedHistory = Array.isArray(history)
       ? history
@@ -264,8 +329,8 @@ app.post('/api/chat', async (req, res) => {
           .map((item) => ({ role: item.role, content: item.content.trim() }))
       : [];
 
-    if (normalizedHistory.length === 0 || normalizedHistory[normalizedHistory.length - 1].content !== message.trim()) {
-      normalizedHistory.push({ role: 'user', content: message.trim() });
+    if (normalizedHistory.length === 0 || normalizedHistory[normalizedHistory.length - 1].content !== trimmedMessage) {
+      normalizedHistory.push({ role: 'user', content: trimmedMessage });
     }
 
     const messages = [
@@ -276,17 +341,20 @@ app.post('/api/chat', async (req, res) => {
       ...normalizedHistory
     ];
 
-    let response;
-    response = await callUpstreamWithRetry(messages);
+    const response = await callUpstreamWithRetry(messages);
 
     if (!response.ok) {
       const errorText = await response.text();
-      if (response.status === 401 || response.status === 403) {
+      const errorType = AUTH_ERROR_STATUSES.has(response.status) ? 'auth_failed' : `gapgpt_${response.status}`;
+      logError(errorType, '/chat/completions', response.status, errorText);
+
+      if (AUTH_ERROR_STATUSES.has(response.status)) {
         return res.status(response.status).json({
           error: 'احراز هویت سرویس مدل نامعتبر است. GAPGPT_API_KEY را بررسی کن.',
           details: errorText.slice(0, 400)
         });
       }
+
       return res.status(response.status).json({ error: 'خطا در ارتباط با مدل', details: errorText.slice(0, 400) });
     }
 
@@ -294,21 +362,44 @@ app.post('/api/chat', async (req, res) => {
     const reply = data?.choices?.[0]?.message?.content;
 
     if (typeof reply !== 'string' || !reply.trim()) {
+      logError('invalid_upstream_response', '/chat/completions', 502, 'Empty or invalid reply content');
       return res.status(502).json({ error: 'پاسخ نامعتبر از مدل دریافت شد.' });
     }
+
+    logEvent(userId, 'message_received', category, {
+      responseLength: reply.trim().length,
+      requestId
+    });
 
     return res.json({ reply: reply.trim() });
   } catch (error) {
     if (error && typeof error === 'object' && error.name === 'AbortError') {
+      logError('gapgpt_timeout', '/chat/completions', 504, error.message);
       return res.status(504).json({
         error: 'زمان پاسخ مدل طولانی شد. لطفاً دوباره تلاش کن.'
       });
     }
+
+    logError('unknown', '/chat/completions', null, error instanceof Error ? error.stack || error.message : 'unknown_error');
+
     return res.status(500).json({
       error: 'مشکلی در سرور پیش آمد.',
       details: error instanceof Error ? error.message : 'unknown_error'
     });
   }
+});
+
+app.get('/api/admin/stats', (req, res) => {
+  if (!adminApiKey) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const authHeader = typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
+  if (authHeader !== `Bearer ${adminApiKey}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  return res.json(getStats());
 });
 
 app.get('/api/health', (_req, res) => {

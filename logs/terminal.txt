@@ -1,0 +1,77 @@
+(node:11852) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[12:29:00] FRONTEND 
+[12:29:00] FRONTEND > hemraz-frontend@1.0.0 dev
+[12:29:00] FRONTEND > vite
+[12:29:00] FRONTEND 
+[12:29:01] BACKEND 
+[12:29:01] BACKEND > hemraz-backend@1.0.0 dev
+[12:29:01] BACKEND > nodemon --config nodemon.json src/server.js
+[12:29:01] BACKEND 
+[12:29:01] BACKEND [33m[nodemon] 3.1.14[39m
+[12:29:01] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[12:29:01] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[12:29:01] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[12:29:01] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[12:29:01] FRONTEND 
+[12:29:01] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m285[22m[2m[0m ms[22m
+[12:29:01] FRONTEND 
+[12:29:01] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[12:29:01] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.122:[1m5173[22m/[39m
+[12:29:01] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[12:29:01] BACKEND [2026-05-03T08:59:01.437Z] [BOOT] backend_started {"port":3001,"model":"gpt-4o-mini","baseUrl":"https://api.gapgpt.app/v1","timeoutMs":30000,"retries":2}
+[12:29:31] BACKEND [2026-05-03T08:59:31.118Z] [HTTP] request_started {"requestId":"mopjhj1q-qlyo76","method":"POST","path":"/api/chat"}
+[12:29:31] BACKEND [2026-05-03T08:59:31.121Z] [CHAT] incoming_message {"requestId":"mopjhj1q-qlyo76","hasProfile":true,"historyCount":8,"messageLength":4}
+[12:29:31] BACKEND [2026-05-03T08:59:31.170Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:29:33] BACKEND [2026-05-03T08:59:33.090Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:29:33] BACKEND [2026-05-03T08:59:33.149Z] [HTTP] request_finished {"requestId":"mopjhj1q-qlyo76","method":"POST","path":"/api/chat","status":200,"durationMs":2031}
+[12:29:58] BACKEND [2026-05-03T08:59:58.685Z] [HTTP] request_started {"requestId":"mopji4bh-ss21ng","method":"POST","path":"/api/chat"}
+[12:29:58] BACKEND [2026-05-03T08:59:58.685Z] [CHAT] incoming_message {"requestId":"mopji4bh-ss21ng","hasProfile":true,"historyCount":8,"messageLength":4}
+[12:29:58] BACKEND [2026-05-03T08:59:58.693Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:30:00] BACKEND [2026-05-03T09:00:00.544Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:30:00] BACKEND [2026-05-03T09:00:00.570Z] [HTTP] request_finished {"requestId":"mopji4bh-ss21ng","method":"POST","path":"/api/chat","status":200,"durationMs":1885}
+[12:30:25] BACKEND [2026-05-03T09:00:25.216Z] [HTTP] request_started {"requestId":"mopjiosg-ldy4u5","method":"POST","path":"/api/chat"}
+[12:30:25] BACKEND [2026-05-03T09:00:25.216Z] [CHAT] incoming_message {"requestId":"mopjiosg-ldy4u5","hasProfile":true,"historyCount":8,"messageLength":10}
+[12:30:25] BACKEND [2026-05-03T09:00:25.224Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:30:26] BACKEND [2026-05-03T09:00:26.844Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:30:26] BACKEND [2026-05-03T09:00:26.868Z] [HTTP] request_finished {"requestId":"mopjiosg-ldy4u5","method":"POST","path":"/api/chat","status":200,"durationMs":1652}
+[12:30:36] BACKEND [2026-05-03T09:00:36.265Z] [HTTP] request_started {"requestId":"mopjixbd-3zda81","method":"POST","path":"/api/chat"}
+[12:30:36] BACKEND [2026-05-03T09:00:36.265Z] [CHAT] incoming_message {"requestId":"mopjixbd-3zda81","hasProfile":true,"historyCount":8,"messageLength":20}
+[12:30:36] BACKEND [2026-05-03T09:00:36.270Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:30:40] BACKEND [2026-05-03T09:00:40.193Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:30:40] BACKEND [2026-05-03T09:00:40.211Z] [HTTP] request_finished {"requestId":"mopjixbd-3zda81","method":"POST","path":"/api/chat","status":200,"durationMs":3946}
+[12:31:08] BACKEND [2026-05-03T09:01:08.260Z] [HTTP] request_started {"requestId":"mopjjm04-jiywrf","method":"POST","path":"/api/chat"}
+[12:31:08] BACKEND [2026-05-03T09:01:08.260Z] [CHAT] incoming_message {"requestId":"mopjjm04-jiywrf","hasProfile":true,"historyCount":8,"messageLength":8}
+[12:31:08] BACKEND [2026-05-03T09:01:08.266Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:31:18] BACKEND [2026-05-03T09:01:18.262Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:31:18] BACKEND [2026-05-03T09:01:18.274Z] [HTTP] request_finished {"requestId":"mopjjm04-jiywrf","method":"POST","path":"/api/chat","status":200,"durationMs":10014}
+[12:31:19] BACKEND [2026-05-03T09:01:19.043Z] [HTTP] request_started {"requestId":"mopjjubn-hgrigr","method":"POST","path":"/api/chat"}
+[12:31:19] BACKEND [2026-05-03T09:01:19.043Z] [CHAT] incoming_message {"requestId":"mopjjubn-hgrigr","hasProfile":true,"historyCount":8,"messageLength":8}
+[12:31:19] BACKEND [2026-05-03T09:01:19.048Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:31:23] BACKEND [2026-05-03T09:01:23.136Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:31:23] BACKEND [2026-05-03T09:01:23.147Z] [HTTP] request_finished {"requestId":"mopjjubn-hgrigr","method":"POST","path":"/api/chat","status":200,"durationMs":4104}
+[12:34:14] BACKEND [2026-05-03T09:04:14.997Z] [HTTP] request_started {"requestId":"mopjnm39-yvu8b3","method":"POST","path":"/api/chat"}
+[12:34:14] BACKEND [2026-05-03T09:04:14.997Z] [CHAT] incoming_message {"requestId":"mopjnm39-yvu8b3","hasProfile":true,"historyCount":1,"messageLength":4}
+[12:34:15] BACKEND [2026-05-03T09:04:15.002Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:34:16] BACKEND [2026-05-03T09:04:16.219Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:34:16] BACKEND [2026-05-03T09:04:16.248Z] [HTTP] request_finished {"requestId":"mopjnm39-yvu8b3","method":"POST","path":"/api/chat","status":200,"durationMs":1251}
+[12:41:44] BACKEND [2026-05-03T09:11:44.247Z] [HTTP] request_started {"requestId":"mopjx8qf-55zcs3","method":"POST","path":"/api/chat"}
+[12:41:44] BACKEND [2026-05-03T09:11:44.247Z] [CHAT] incoming_message {"requestId":"mopjx8qf-55zcs3","hasProfile":true,"historyCount":8,"messageLength":16}
+[12:41:44] BACKEND [2026-05-03T09:11:44.255Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:41:46] BACKEND [2026-05-03T09:11:46.318Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:41:46] BACKEND [2026-05-03T09:11:46.325Z] [HTTP] request_finished {"requestId":"mopjx8qf-55zcs3","method":"POST","path":"/api/chat","status":200,"durationMs":2078}
+[12:42:16] BACKEND [2026-05-03T09:12:16.832Z] [HTTP] request_started {"requestId":"mopjxxvk-nfo3wt","method":"POST","path":"/api/chat"}
+[12:42:16] BACKEND [2026-05-03T09:12:16.832Z] [CHAT] incoming_message {"requestId":"mopjxxvk-nfo3wt","hasProfile":true,"historyCount":8,"messageLength":46}
+[12:42:16] BACKEND [2026-05-03T09:12:16.843Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:42:19] BACKEND [2026-05-03T09:12:19.149Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:42:19] BACKEND [2026-05-03T09:12:19.160Z] [HTTP] request_finished {"requestId":"mopjxxvk-nfo3wt","method":"POST","path":"/api/chat","status":200,"durationMs":2328}
+[12:45:18] BACKEND [2026-05-03T09:15:18.720Z] [HTTP] request_started {"requestId":"mopk1u7z-zbn1hj","method":"POST","path":"/api/chat"}
+[12:45:18] BACKEND [2026-05-03T09:15:18.720Z] [CHAT] incoming_message {"requestId":"mopk1u7z-zbn1hj","hasProfile":true,"historyCount":8,"messageLength":18}
+[12:45:18] BACKEND [2026-05-03T09:15:18.727Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:45:22] BACKEND [2026-05-03T09:15:22.176Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:45:22] BACKEND [2026-05-03T09:15:22.191Z] [HTTP] request_finished {"requestId":"mopk1u7z-zbn1hj","method":"POST","path":"/api/chat","status":200,"durationMs":3472}
+[12:51:31] BACKEND [2026-05-03T09:21:31.701Z] [HTTP] request_started {"requestId":"mopk9u0l-80lcq1","method":"POST","path":"/api/chat"}
+[12:51:31] BACKEND [2026-05-03T09:21:31.702Z] [CHAT] incoming_message {"requestId":"mopk9u0l-80lcq1","hasProfile":true,"historyCount":3,"messageLength":4}
+[12:51:31] BACKEND [2026-05-03T09:21:31.711Z] [UPSTREAM] attempt_started {"attempt":1,"maxAttempts":3,"authVariant":1}
+[12:51:33] BACKEND [2026-05-03T09:21:33.272Z] [UPSTREAM] attempt_succeeded {"attempt":1,"authVariant":1,"status":200}
+[12:51:33] BACKEND [2026-05-03T09:21:33.294Z] [HTTP] request_finished {"requestId":"mopk9u0l-80lcq1","method":"POST","path":"/api/chat","status":200,"durationMs":1593}
