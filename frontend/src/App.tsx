@@ -10,7 +10,6 @@ const DEFAULT_TITLE = 'گفتگوی جدید';
 const WAITING_MESSAGES = [
   'در حال یافتن پاسخ',
   'در حال بررسی سوال شما',
-  'در حال جستجوی هوشمندانه',
   'نزدیک به پایان',
   'لحظاتی دیگر پاسخ می دهم'
 ];
@@ -28,6 +27,7 @@ const postChatWithRetry = async (payload: {
   message: string;
   profile: UserProfile;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
+  conversationId?: string;
 }) => {
   for (let attempt = 0; attempt <= CHAT_MAX_RETRIES; attempt += 1) {
     const controller = new AbortController();
@@ -174,6 +174,7 @@ function App() {
   const prevIsSendingRef = useRef(false);
   const messagesContainerRef = useRef<HTMLElement | null>(null);
   const inputAreaRef = useRef<HTMLElement | null>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === activeConversationId) ?? null,
@@ -536,7 +537,7 @@ function App() {
     setIsSending(true);
 
     try {
-      const history = updatedMessages.slice(-8).map((msg) => ({
+      const history = updatedMessages.map((msg) => ({
         role: msg.role,
         content: msg.content
       }));
@@ -544,7 +545,8 @@ function App() {
       const response = await postChatWithRetry({
         message: content,
         profile,
-        history
+        history,
+        conversationId: currentConversation.id
       });
 
       if (!response.ok) {
@@ -590,6 +592,15 @@ function App() {
   useEffect(() => {
     sendMessageRef.current = handleSendMessage;
   }, [handleSendMessage]);
+
+  useEffect(() => {
+    const textarea = messageInputRef.current;
+    if (!textarea) {
+      return;
+    }
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [inputValue]);
 
   const handleCreateConversation = () => {
     const fresh = createConversation();
@@ -1103,12 +1114,14 @@ function App() {
           </div>
 
           <div className="input-row">
-            <input
+            <textarea
+              ref={messageInputRef}
+              rows={1}
               value={inputValue}
               disabled={isRecording}
               onChange={(event) => setInputValue(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter') {
+                if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
                   void handleSendMessage();
                 }

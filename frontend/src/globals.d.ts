@@ -1,8 +1,43 @@
 declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
+  interface SpeechRecognitionEvent extends Event {
+    readonly resultIndex: number;
+    readonly results: SpeechRecognitionResultList;
   }
+
+  interface SpeechRecognitionResultList {
+    readonly length: number;
+    [index: number]: SpeechRecognitionResult;
+    item(index: number): SpeechRecognitionResult;
+    [Symbol.iterator](): IterableIterator<SpeechRecognitionResult>;
+  }
+
+  interface SpeechRecognitionResult {
+    readonly isFinal: boolean;
+    readonly length: number;
+    [index: number]: SpeechRecognitionAlternative;
+    item(index: number): SpeechRecognitionAlternative;
+    [Symbol.iterator](): IterableIterator<SpeechRecognitionAlternative>;
+  }
+
+  interface SpeechRecognitionAlternative {
+    readonly transcript: string;
+    readonly confidence: number;
+  }
+
+  interface SpeechRecognitionErrorEvent extends Event {
+    readonly error: SpeechRecognitionErrorCode;
+    readonly message: string;
+  }
+
+  type SpeechRecognitionErrorCode =
+    | 'no-speech'
+    | 'aborted'
+    | 'audio-capture'
+    | 'network'
+    | 'not-allowed'
+    | 'service-not-allowed'
+    | 'bad-grammar'
+    | 'language-not-supported';
 
   interface SpeechRecognition extends EventTarget {
     continuous: boolean;
@@ -17,32 +52,9 @@ declare global {
     onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
   }
 
-  interface SpeechRecognitionEvent extends Event {
-    readonly resultIndex: number;
-    readonly results: SpeechRecognitionResultList;
-  }
-
-  interface SpeechRecognitionResultList {
-    readonly length: number;
-    [index: number]: SpeechRecognitionResult;
-    item(index: number): SpeechRecognitionResult;
-  }
-
-  interface SpeechRecognitionResult {
-    readonly isFinal: boolean;
-    readonly length: number;
-    [index: number]: SpeechRecognitionAlternative;
-    item(index: number): SpeechRecognitionAlternative;
-  }
-
-  interface SpeechRecognitionAlternative {
-    readonly transcript: string;
-    readonly confidence: number;
-  }
-
-  interface SpeechRecognitionErrorEvent extends Event {
-    readonly error: string;
-    readonly message: string;
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
   }
 }
 

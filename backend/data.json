@@ -30,7 +30,7 @@
       "age": 16,
       "phone": "09926638344",
       "registered_at": "2026-05-03T07:27:46.292Z",
-      "last_active": "2026-05-03T09:21:33.283Z"
+      "last_active": "2026-05-03T13:24:47.897Z"
     },
     {
       "user_id": "1777797844720",
@@ -38,7 +38,71 @@
       "age": 8,
       "phone": "09926638344",
       "registered_at": "2026-05-03T08:44:02.874Z",
-      "last_active": "2026-05-03T08:44:39.406Z"
+      "last_active": "2026-05-03T12:31:29.435Z"
+    },
+    {
+      "user_id": "1777800962469",
+      "name": "علی",
+      "age": 11,
+      "phone": "09134515518",
+      "registered_at": "2026-05-03T09:36:33.987Z",
+      "last_active": "2026-05-03T09:36:36.447Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "name": "علی",
+      "age": 11,
+      "phone": "09134515518",
+      "registered_at": "2026-05-03T09:37:28.539Z",
+      "last_active": "2026-05-03T10:28:20.708Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "name": "علی",
+      "age": 10,
+      "phone": "09134515518",
+      "registered_at": "2026-05-03T12:33:36.866Z",
+      "last_active": "2026-05-03T12:38:54.636Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "name": "شادی",
+      "age": 11,
+      "phone": "09138492070",
+      "registered_at": "2026-05-03T16:15:31.175Z",
+      "last_active": "2026-05-03T16:34:33.198Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "name": "ابولفضل",
+      "age": 16,
+      "phone": "09926638344",
+      "registered_at": "2026-05-03T16:35:56.946Z",
+      "last_active": "2026-05-03T16:39:01.078Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "name": "مهدیار",
+      "age": 12,
+      "phone": "09930218781",
+      "registered_at": "2026-05-03T18:03:05.686Z",
+      "last_active": "2026-05-03T18:07:37.265Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "name": "محیا",
+      "age": 17,
+      "phone": "09220708758",
+      "registered_at": "2026-05-03T18:12:38.098Z",
+      "last_active": "2026-05-03T18:19:49.608Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "name": "ابولفضب",
+      "age": 16,
+      "phone": "09926638344",
+      "registered_at": "2026-05-04T06:50:02.578Z",
+      "last_active": "2026-05-04T07:16:13.935Z"
     }
   ],
   "events": [
@@ -713,6 +777,1427 @@
       "category": "general",
       "metadata": "{\"responseLength\":112,\"requestId\":\"mopk9u0l-80lcq1\"}",
       "created_at": "2026-05-03T09:21:33.283Z"
+    },
+    {
+      "user_id": "1777800962469",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":29,\"requestId\":\"mopkt682-gzpwth\"}",
+      "created_at": "2026-05-03T09:36:33.988Z"
+    },
+    {
+      "user_id": "1777800962469",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":451,\"requestId\":\"mopkt682-gzpwth\"}",
+      "created_at": "2026-05-03T09:36:36.447Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":32,\"requestId\":\"mopkucbd-exuri8\"}",
+      "created_at": "2026-05-03T09:37:28.540Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":652,\"requestId\":\"mopkucbd-exuri8\"}",
+      "created_at": "2026-05-03T09:37:31.826Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"mopl6drw-nb6ten\"}",
+      "created_at": "2026-05-03T09:46:50.318Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":166,\"requestId\":\"mopl6drw-nb6ten\"}",
+      "created_at": "2026-05-03T09:46:52.275Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moplz89f-7bl5i1\"}",
+      "created_at": "2026-05-03T10:09:16.191Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moplz8m9-t4ce7m\"}",
+      "created_at": "2026-05-03T10:09:16.654Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm3blk-hbnpfv\"}",
+      "created_at": "2026-05-03T10:12:27.169Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm3kc7-35otxs\"}",
+      "created_at": "2026-05-03T10:12:38.475Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm407g-ngb03r\"}",
+      "created_at": "2026-05-03T10:12:59.027Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm48r7-oy2dj2\"}",
+      "created_at": "2026-05-03T10:13:10.112Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm5z83-gipls7\"}",
+      "created_at": "2026-05-03T10:14:31.066Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm67r6-oq9smb\"}",
+      "created_at": "2026-05-03T10:14:42.130Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm7vd3-9qy5h8\"}",
+      "created_at": "2026-05-03T10:15:59.379Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm84b8-kldvkz\"}",
+      "created_at": "2026-05-03T10:16:11.038Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm8snv-wqna95\"}",
+      "created_at": "2026-05-03T10:16:42.531Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm91hm-tlbhde\"}",
+      "created_at": "2026-05-03T10:16:53.971Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopmn13k-d6v0ed\"}",
+      "created_at": "2026-05-03T10:27:46.652Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopmn9nu-aiirg6\"}",
+      "created_at": "2026-05-03T10:27:57.745Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"mopmnip6-1m9olg\"}",
+      "created_at": "2026-05-03T10:28:09.454Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"mopmnrcw-thr23t\"}",
+      "created_at": "2026-05-03T10:28:20.708Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopmv50i-2xyg26\"}",
+      "created_at": "2026-05-03T10:34:05.022Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopmveal-yvib72\"}",
+      "created_at": "2026-05-03T10:34:17.020Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn1ta0-fe7k3k\"}",
+      "created_at": "2026-05-03T10:39:16.353Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn228a-yrk44k\"}",
+      "created_at": "2026-05-03T10:39:27.950Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn2857-7j6ycj\"}",
+      "created_at": "2026-05-03T10:39:35.618Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn2gnm-qkvdl3\"}",
+      "created_at": "2026-05-03T10:39:46.646Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn7ixq-x3b83z\"}",
+      "created_at": "2026-05-03T10:43:42.889Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn7s9c-qz60kp\"}",
+      "created_at": "2026-05-03T10:43:54.978Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopne911-ud7j5i\"}",
+      "created_at": "2026-05-03T10:48:56.648Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnehsn-jr9xhz\"}",
+      "created_at": "2026-05-03T10:49:08.015Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnfvyp-9prk6p\"}",
+      "created_at": "2026-05-03T10:50:13.045Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopng4rv-y8d1jw\"}",
+      "created_at": "2026-05-03T10:50:24.458Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnriko-s0pnzz\"}",
+      "created_at": "2026-05-03T10:59:15.544Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnrrc2-c2537g\"}",
+      "created_at": "2026-05-03T10:59:26.889Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopntl2d-ehjuyi\"}",
+      "created_at": "2026-05-03T11:00:52.076Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopntu8o-fc84a1\"}",
+      "created_at": "2026-05-03T11:01:03.964Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnu432-q6mcsf\"}",
+      "created_at": "2026-05-03T11:01:16.734Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnucuf-hf85kv\"}",
+      "created_at": "2026-05-03T11:01:28.107Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopoccdn-tdio0e\"}",
+      "created_at": "2026-05-03T11:15:27.298Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopocldv-yozvgo\"}",
+      "created_at": "2026-05-03T11:15:38.952Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopoeelc-x02lt0\"}",
+      "created_at": "2026-05-03T11:17:03.465Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopoen9y-q3tvjw\"}",
+      "created_at": "2026-05-03T11:17:14.719Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopohauy-demrhj\"}",
+      "created_at": "2026-05-03T11:19:18.612Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopohjnx-tjs8ls\"}",
+      "created_at": "2026-05-03T11:19:30.016Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopok5aa-v7h9el\"}",
+      "created_at": "2026-05-03T11:21:31.363Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopoke9e-hexs4h\"}",
+      "created_at": "2026-05-03T11:21:42.989Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopon3pl-t0h1sy\"}",
+      "created_at": "2026-05-03T11:23:49.271Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moponcqb-9e6i91\"}",
+      "created_at": "2026-05-03T11:24:00.950Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopovvqa-fda0vg\"}",
+      "created_at": "2026-05-03T11:30:38.829Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopp0030-oqba2v\"}",
+      "created_at": "2026-05-03T11:33:51.094Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopp2o81-q8m546\"}",
+      "created_at": "2026-05-03T11:35:55.693Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopp65sn-k3i27k\"}",
+      "created_at": "2026-05-03T11:38:38.432Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppcx7f-6ah90t\"}",
+      "created_at": "2026-05-03T11:43:53.895Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppcxkl-641dyx\"}",
+      "created_at": "2026-05-03T11:43:54.379Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppfle2-990rj7\"}",
+      "created_at": "2026-05-03T11:45:58.574Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppfls6-ctp74y\"}",
+      "created_at": "2026-05-03T11:45:59.056Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopplleo-du090g\"}",
+      "created_at": "2026-05-03T11:50:38.511Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moppllsw-cisibe\"}",
+      "created_at": "2026-05-03T11:50:39.054Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"moppngux-qbzsfs\"}",
+      "created_at": "2026-05-03T11:52:05.926Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"moppnpki-l7tbat\"}",
+      "created_at": "2026-05-03T11:52:17.242Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppqmn8-vd709m\"}",
+      "created_at": "2026-05-03T11:54:33.392Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppqvkd-7ay66o\"}",
+      "created_at": "2026-05-03T11:54:44.952Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moppsufm-9mdwuf\"}",
+      "created_at": "2026-05-03T11:56:16.793Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moppt33y-0jcu2d\"}",
+      "created_at": "2026-05-03T11:56:28.041Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moppzw5p-czlyc9\"}",
+      "created_at": "2026-05-03T12:01:45.623Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopq04po-nbxn5g\"}",
+      "created_at": "2026-05-03T12:01:56.713Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopqsxxf-gprrye\"}",
+      "created_at": "2026-05-03T12:24:20.941Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopqsyou-nuc24f\"}",
+      "created_at": "2026-05-03T12:24:21.950Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopqzdz9-zxvwc2\"}",
+      "created_at": "2026-05-03T12:29:21.678Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopqzeie-t4qehe\"}",
+      "created_at": "2026-05-03T12:29:22.425Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopr18rn-p42d3e\"}",
+      "created_at": "2026-05-03T12:30:48.246Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":97,\"requestId\":\"mopr18rn-p42d3e\"}",
+      "created_at": "2026-05-03T12:30:49.865Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopr23ix-96efxj\"}",
+      "created_at": "2026-05-03T12:31:28.121Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":109,\"requestId\":\"mopr23ix-96efxj\"}",
+      "created_at": "2026-05-03T12:31:29.435Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopr4uw1-ol8ii8\"}",
+      "created_at": "2026-05-03T12:33:36.868Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":483,\"requestId\":\"mopr4uw1-ol8ii8\"}",
+      "created_at": "2026-05-03T12:33:39.007Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":29,\"requestId\":\"mopr5qom-8ki74t\"}",
+      "created_at": "2026-05-03T12:34:18.072Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1420,\"requestId\":\"mopr5qom-8ki74t\"}",
+      "created_at": "2026-05-03T12:34:22.780Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":51,\"requestId\":\"mopr6vsj-ysd63i\"}",
+      "created_at": "2026-05-03T12:35:11.352Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1624,\"requestId\":\"mopr6vsj-ysd63i\"}",
+      "created_at": "2026-05-03T12:35:16.029Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":56,\"requestId\":\"mopr8eo0-ydz3mr\"}",
+      "created_at": "2026-05-03T12:36:22.468Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":968,\"requestId\":\"mopr8eo0-ydz3mr\"}",
+      "created_at": "2026-05-03T12:36:25.701Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopr8rds-4pzzbi\"}",
+      "created_at": "2026-05-03T12:36:38.947Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":804,\"requestId\":\"mopr8rds-4pzzbi\"}",
+      "created_at": "2026-05-03T12:36:43.642Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":68,\"requestId\":\"mopralp8-m3brt3\"}",
+      "created_at": "2026-05-03T12:38:04.895Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":600,\"requestId\":\"mopralp8-m3brt3\"}",
+      "created_at": "2026-05-03T12:38:07.440Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":12,\"requestId\":\"moprb6y7-qssroc\"}",
+      "created_at": "2026-05-03T12:38:32.436Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":779,\"requestId\":\"moprb6y7-qssroc\"}",
+      "created_at": "2026-05-03T12:38:35.146Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moprbn4m-v1gots\"}",
+      "created_at": "2026-05-03T12:38:53.407Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":92,\"requestId\":\"moprbn4m-v1gots\"}",
+      "created_at": "2026-05-03T12:38:54.636Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":1,\"requestId\":\"mopsl0yc-9g1fbj\"}",
+      "created_at": "2026-05-03T13:14:10.885Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":235,\"requestId\":\"mopsl0yc-9g1fbj\"}",
+      "created_at": "2026-05-03T13:14:13.061Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopsq7rv-ngjdvc\"}",
+      "created_at": "2026-05-03T13:18:12.962Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":269,\"requestId\":\"mopsq7rv-ngjdvc\"}",
+      "created_at": "2026-05-03T13:18:14.907Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopsqn1f-ojx4b5\"}",
+      "created_at": "2026-05-03T13:18:32.747Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":554,\"requestId\":\"mopsqn1f-ojx4b5\"}",
+      "created_at": "2026-05-03T13:18:34.926Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopsynl3-qv15a4\"}",
+      "created_at": "2026-05-03T13:24:46.706Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":251,\"requestId\":\"mopsynl3-qv15a4\"}",
+      "created_at": "2026-05-03T13:24:47.897Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":33,\"requestId\":\"mopz2891-srrapi\"}",
+      "created_at": "2026-05-03T16:15:31.224Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":180,\"requestId\":\"mopz2891-srrapi\"}",
+      "created_at": "2026-05-03T16:15:40.167Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":20,\"requestId\":\"mopz3ksu-1baf2j\"}",
+      "created_at": "2026-05-03T16:16:34.094Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":241,\"requestId\":\"mopz3ksu-1baf2j\"}",
+      "created_at": "2026-05-03T16:16:35.476Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":69,\"requestId\":\"mopz8idr-i5u8l8\"}",
+      "created_at": "2026-05-03T16:20:24.222Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":404,\"requestId\":\"mopz8idr-i5u8l8\"}",
+      "created_at": "2026-05-03T16:20:26.672Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":45,\"requestId\":\"mopzar66-7ke5b9\"}",
+      "created_at": "2026-05-03T16:22:08.962Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":592,\"requestId\":\"mopzar66-7ke5b9\"}",
+      "created_at": "2026-05-03T16:22:12.081Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopzoosr-ptsc3u\"}",
+      "created_at": "2026-05-03T16:32:59.098Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":580,\"requestId\":\"mopzoosr-ptsc3u\"}",
+      "created_at": "2026-05-03T16:33:01.452Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopzoulv-f2givw\"}",
+      "created_at": "2026-05-03T16:33:06.564Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":658,\"requestId\":\"mopzoulv-f2givw\"}",
+      "created_at": "2026-05-03T16:33:08.992Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopzqh0x-i0k9q7\"}",
+      "created_at": "2026-05-03T16:34:22.290Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":588,\"requestId\":\"mopzqh0x-i0k9q7\"}",
+      "created_at": "2026-05-03T16:34:25.840Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"mopzqnlv-n7rgjx\"}",
+      "created_at": "2026-05-03T16:34:30.843Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":588,\"requestId\":\"mopzqnlv-n7rgjx\"}",
+      "created_at": "2026-05-03T16:34:33.198Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopzsi2n-95ifp3\"}",
+      "created_at": "2026-05-03T16:35:56.965Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopzsj0h-6tnlin\"}",
+      "created_at": "2026-05-03T16:35:58.152Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":133,\"requestId\":\"mopzsj0h-6tnlin\"}",
+      "created_at": "2026-05-03T16:36:00.542Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopzsljy-uk77bx\"}",
+      "created_at": "2026-05-03T16:36:01.444Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":129,\"requestId\":\"mopzsljy-uk77bx\"}",
+      "created_at": "2026-05-03T16:36:02.556Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopzsn8p-a1l9hf\"}",
+      "created_at": "2026-05-03T16:36:03.636Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":151,\"requestId\":\"mopzsn8p-a1l9hf\"}",
+      "created_at": "2026-05-03T16:36:05.466Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"mopzt4b6-usm257\"}",
+      "created_at": "2026-05-03T16:36:25.758Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":340,\"requestId\":\"mopzt4b6-usm257\"}",
+      "created_at": "2026-05-03T16:36:29.466Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":6,\"requestId\":\"mopztahe-9dlugp\"}",
+      "created_at": "2026-05-03T16:36:33.759Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":356,\"requestId\":\"mopztahe-9dlugp\"}",
+      "created_at": "2026-05-03T16:36:35.504Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopztkcy-mms314\"}",
+      "created_at": "2026-05-03T16:36:46.557Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":213,\"requestId\":\"mopztkcy-mms314\"}",
+      "created_at": "2026-05-03T16:36:48.261Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopztv2j-1dg5nx\"}",
+      "created_at": "2026-05-03T16:37:00.437Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1788,\"requestId\":\"mopztv2j-1dg5nx\"}",
+      "created_at": "2026-05-03T16:37:05.900Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"mopzuaz5-jyekca\"}",
+      "created_at": "2026-05-03T16:37:21.051Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":388,\"requestId\":\"mopzuaz5-jyekca\"}",
+      "created_at": "2026-05-03T16:37:23.724Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":35,\"requestId\":\"mopzwe7d-fuuk0m\"}",
+      "created_at": "2026-05-03T16:38:58.556Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":326,\"requestId\":\"mopzwe7d-fuuk0m\"}",
+      "created_at": "2026-05-03T16:39:01.078Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moq2wklu-sq028q\"}",
+      "created_at": "2026-05-03T18:03:05.693Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":99,\"requestId\":\"moq2wklu-sq028q\"}",
+      "created_at": "2026-05-03T18:03:06.931Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"moq2x3k8-z9gto6\"}",
+      "created_at": "2026-05-03T18:03:30.304Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":129,\"requestId\":\"moq2x3k8-z9gto6\"}",
+      "created_at": "2026-05-03T18:03:31.939Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":13,\"requestId\":\"moq2xg28-0ljlxk\"}",
+      "created_at": "2026-05-03T18:03:46.499Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":69,\"requestId\":\"moq2xg28-0ljlxk\"}",
+      "created_at": "2026-05-03T18:03:47.794Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":29,\"requestId\":\"moq2yrm3-3319hj\"}",
+      "created_at": "2026-05-03T18:04:48.129Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":441,\"requestId\":\"moq2yrm3-3319hj\"}",
+      "created_at": "2026-05-03T18:04:50.281Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"moq2zexq-j3lbl9\"}",
+      "created_at": "2026-05-03T18:05:18.369Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":368,\"requestId\":\"moq2zexq-j3lbl9\"}",
+      "created_at": "2026-05-03T18:05:20.494Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":26,\"requestId\":\"moq301pv-a7d3cu\"}",
+      "created_at": "2026-05-03T18:05:47.877Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":226,\"requestId\":\"moq301pv-a7d3cu\"}",
+      "created_at": "2026-05-03T18:05:50.043Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"moq31hjm-fhfnnl\"}",
+      "created_at": "2026-05-03T18:06:54.997Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":99,\"requestId\":\"moq31hjm-fhfnnl\"}",
+      "created_at": "2026-05-03T18:06:57.150Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"moq31k4d-h11d5f\"}",
+      "created_at": "2026-05-03T18:06:58.336Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":92,\"requestId\":\"moq31k4d-h11d5f\"}",
+      "created_at": "2026-05-03T18:06:59.878Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq31mtz-nmn95u\"}",
+      "created_at": "2026-05-03T18:07:01.862Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":190,\"requestId\":\"moq31mtz-nmn95u\"}",
+      "created_at": "2026-05-03T18:07:03.808Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq31vv3-ijmgck\"}",
+      "created_at": "2026-05-03T18:07:13.555Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":190,\"requestId\":\"moq31vv3-ijmgck\"}",
+      "created_at": "2026-05-03T18:07:14.899Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq31x1j-l4tv9v\"}",
+      "created_at": "2026-05-03T18:07:15.097Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":193,\"requestId\":\"moq31x1j-l4tv9v\"}",
+      "created_at": "2026-05-03T18:07:17.069Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq31yp2-t5p5y1\"}",
+      "created_at": "2026-05-03T18:07:17.227Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":205,\"requestId\":\"moq31yp2-t5p5y1\"}",
+      "created_at": "2026-05-03T18:07:20.058Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq320zn-1h19sd\"}",
+      "created_at": "2026-05-03T18:07:20.199Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":205,\"requestId\":\"moq320zn-1h19sd\"}",
+      "created_at": "2026-05-03T18:07:22.431Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"moq32c2a-7u8vra\"}",
+      "created_at": "2026-05-03T18:07:34.556Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":72,\"requestId\":\"moq32c2a-7u8vra\"}",
+      "created_at": "2026-05-03T18:07:37.265Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moq38ua4-b5hbqc\"}",
+      "created_at": "2026-05-03T18:12:38.104Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":98,\"requestId\":\"moq38ua4-b5hbqc\"}",
+      "created_at": "2026-05-03T18:12:39.420Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"moq39fbs-9k5lhc\"}",
+      "created_at": "2026-05-03T18:13:05.380Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":195,\"requestId\":\"moq39fbs-9k5lhc\"}",
+      "created_at": "2026-05-03T18:13:07.614Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":31,\"requestId\":\"moq3a7ad-pu11zv\"}",
+      "created_at": "2026-05-03T18:13:41.610Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":169,\"requestId\":\"moq3a7ad-pu11zv\"}",
+      "created_at": "2026-05-03T18:13:43.923Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":30,\"requestId\":\"moq3bdg5-ji561i\"}",
+      "created_at": "2026-05-03T18:14:36.252Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":320,\"requestId\":\"moq3bdg5-ji561i\"}",
+      "created_at": "2026-05-03T18:14:38.411Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":23,\"requestId\":\"moq3e2qg-7nwq42\"}",
+      "created_at": "2026-05-03T18:16:42.360Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":234,\"requestId\":\"moq3e2qg-7nwq42\"}",
+      "created_at": "2026-05-03T18:16:44.761Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":24,\"requestId\":\"moq3f18v-7qcs6r\"}",
+      "created_at": "2026-05-03T18:17:27.084Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":308,\"requestId\":\"moq3f18v-7qcs6r\"}",
+      "created_at": "2026-05-03T18:17:29.430Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"moq3fu6y-ywi3gj\"}",
+      "created_at": "2026-05-03T18:18:04.577Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":123,\"requestId\":\"moq3fu6y-ywi3gj\"}",
+      "created_at": "2026-05-03T18:18:10.160Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq3g6ch-altm84\"}",
+      "created_at": "2026-05-03T18:18:20.324Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":107,\"requestId\":\"moq3g6ch-altm84\"}",
+      "created_at": "2026-05-03T18:18:22.122Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":36,\"requestId\":\"moq3hla8-4v41az\"}",
+      "created_at": "2026-05-03T18:19:26.346Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":161,\"requestId\":\"moq3hla8-4v41az\"}",
+      "created_at": "2026-05-03T18:19:28.631Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":36,\"requestId\":\"moq3i1xy-rgo6ri\"}",
+      "created_at": "2026-05-03T18:19:47.934Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":106,\"requestId\":\"moq3i1xy-rgo6ri\"}",
+      "created_at": "2026-05-03T18:19:49.608Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moquavgr-6w648j\"}",
+      "created_at": "2026-05-04T06:50:02.590Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":165,\"requestId\":\"moquavgr-6w648j\"}",
+      "created_at": "2026-05-04T06:50:04.625Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":21,\"requestId\":\"moqub20n-50he9v\"}",
+      "created_at": "2026-05-04T06:50:11.074Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":200,\"requestId\":\"moqub20n-50he9v\"}",
+      "created_at": "2026-05-04T06:50:12.395Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":14,\"requestId\":\"moqub9vl-lwwd9h\"}",
+      "created_at": "2026-05-04T06:50:21.264Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":424,\"requestId\":\"moqub9vl-lwwd9h\"}",
+      "created_at": "2026-05-04T06:50:23.409Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqv5jqj-o8v2fg\"}",
+      "created_at": "2026-05-04T07:13:53.722Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":167,\"requestId\":\"moqv5jqj-o8v2fg\"}",
+      "created_at": "2026-05-04T07:13:55.999Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"moqv5vpx-88dt51\"}",
+      "created_at": "2026-05-04T07:14:09.245Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":126,\"requestId\":\"moqv5vpx-88dt51\"}",
+      "created_at": "2026-05-04T07:14:10.962Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":5,\"requestId\":\"moqv664o-ye8712\"}",
+      "created_at": "2026-05-04T07:14:22.740Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":662,\"requestId\":\"moqv664o-ye8712\"}",
+      "created_at": "2026-05-04T07:14:25.486Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moqv6hfk-qhtzc0\"}",
+      "created_at": "2026-05-04T07:14:37.389Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":595,\"requestId\":\"moqv6hfk-qhtzc0\"}",
+      "created_at": "2026-05-04T07:14:40.689Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":20,\"requestId\":\"moqv6utp-n4liez\"}",
+      "created_at": "2026-05-04T07:14:54.745Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1091,\"requestId\":\"moqv6utp-n4liez\"}",
+      "created_at": "2026-05-04T07:14:59.316Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":19,\"requestId\":\"moqv7tv3-hljdjf\"}",
+      "created_at": "2026-05-04T07:15:40.152Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":355,\"requestId\":\"moqv7tv3-hljdjf\"}",
+      "created_at": "2026-05-04T07:15:45.254Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"moqv8hqk-pwawul\"}",
+      "created_at": "2026-05-04T07:16:11.093Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1083,\"requestId\":\"moqv8hqk-pwawul\"}",
+      "created_at": "2026-05-04T07:16:13.935Z"
     }
   ],
   "errors": [
@@ -750,6 +2235,517 @@
       "status_code": 504,
       "details": "This operation was aborted",
       "created_at": "2026-05-03T08:38:02.063Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:02:04.130Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:02:17.904Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:06:21.185Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:06:21.616Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:06:41.445Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:06:41.990Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:08:06.397Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:08:06.826Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got model\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:55:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:254:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T10:09:16.206Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got model\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:55:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:254:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T10:09:16.672Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:12:37.964Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:12:49.111Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:13:09.661Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:13:20.682Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:14:41.688Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:14:52.809Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:16:10.160Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:16:21.707Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:16:53.323Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:17:04.641Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:27:57.267Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:28:08.363Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:28:20.054Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:28:31.319Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:34:15.856Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:34:27.635Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:39:27.245Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:39:38.628Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:39:46.222Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:39:57.345Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:43:53.788Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:44:05.609Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:49:07.490Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:49:18.687Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:50:23.939Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:50:35.101Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T10:59:26.438Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T10:59:37.510Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:01:02.730Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:01:27.566Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:01:38.774Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:15:38.101Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:15:49.585Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:17:14.241Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:17:25.322Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:19:29.222Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:19:40.610Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:21:42.412Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:21:53.642Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:24:00.030Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:24:11.507Z"
+    },
+    {
+      "error_type": "gapgpt_auth_error",
+      "endpoint": "/gemini",
+      "status_code": 401,
+      "details": "",
+      "created_at": "2026-05-03T11:30:39.334Z"
+    },
+    {
+      "error_type": "gapgpt_auth_error",
+      "endpoint": "/gemini",
+      "status_code": 401,
+      "details": "",
+      "created_at": "2026-05-03T11:33:51.424Z"
+    },
+    {
+      "error_type": "gapgpt_auth_error",
+      "endpoint": "/gemini",
+      "status_code": 401,
+      "details": "",
+      "created_at": "2026-05-03T11:35:56.090Z"
+    },
+    {
+      "error_type": "gapgpt_auth_error",
+      "endpoint": "/gemini",
+      "status_code": 401,
+      "details": "",
+      "created_at": "2026-05-03T11:38:38.676Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got assistant\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:43:53.901Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got assistant\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:43:54.401Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got assistant\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:45:58.597Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got assistant\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:45:59.070Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: Each item should include role field. Got assistant but valid roles are: [\"user\",\"model\",\"function\",\"system\"]\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1055:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:243:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:50:38.539Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: Each item should include role field. Got assistant but valid roles are: [\"user\",\"model\",\"function\",\"system\"]\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1055:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:243:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:50:39.089Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:52:16.691Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:52:27.871Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:54:44.199Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:54:55.618Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:56:27.561Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:56:38.697Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T12:01:56.264Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T12:02:07.387Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: Upstream status 401\n    at sendRequest (D:\\PROGEs\\chatBot\\backend\\src\\server.js:75:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:289:19",
+      "created_at": "2026-05-03T12:24:21.462Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: Upstream status 401\n    at sendRequest (D:\\PROGEs\\chatBot\\backend\\src\\server.js:75:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:289:19",
+      "created_at": "2026-05-03T12:24:22.079Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: Upstream status 401\n    at sendRequest (D:\\PROGEs\\chatBot\\backend\\src\\server.js:75:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:289:19",
+      "created_at": "2026-05-03T12:29:21.903Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: Upstream status 401\n    at sendRequest (D:\\PROGEs\\chatBot\\backend\\src\\server.js:75:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:289:19",
+      "created_at": "2026-05-03T12:29:22.502Z"
     }
   ]
 }

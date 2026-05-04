@@ -2,14 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const dotenv = require('dotenv');
-const http = require('http');
-const https = require('https');
 const { ensureUserExists, logEvent, logError, getStats } = require('../db');
 
 dotenv.config();
 
 const app = express();
 const verificationStore = new Map();
+const conversationMemory = new Map();
 const VERIFICATION_TTL_MS = 5 * 60 * 1000;
 
 const now = () => new Date().toISOString();
@@ -22,137 +21,198 @@ const log = (scope, message, meta) => {
 };
 
 const port = Number(process.env.PORT || 3001);
-const gapBaseUrl = process.env.GAPGPT_BASE_URL || 'https://api.gapgpt.app/v1';
-const gapModel = process.env.GAPGPT_MODEL || 'gpt-4o-mini';
-const gapApiKey = typeof process.env.GAPGPT_API_KEY === 'string' ? process.env.GAPGPT_API_KEY.trim() : '';
+const geminiBaseUrl = (process.env.GEMINI_BASE_URL || 'https://api.metisai.ir').replace(/\/+$/, '');
+const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const geminiApiKey = typeof process.env.GEMINI_API_KEY === 'string' ? process.env.GEMINI_API_KEY.trim() : '';
 const upstreamTimeoutMs = Number(process.env.GAPGPT_TIMEOUT_MS || 30000);
-const maxUpstreamRetries = Number(process.env.GAPGPT_MAX_RETRIES || 2);
 const adminApiKey = typeof process.env.ADMIN_API_KEY === 'string' ? process.env.ADMIN_API_KEY.trim() : '';
 
-const httpAgent = new http.Agent({
-  keepAlive: true,
-  timeout: upstreamTimeoutMs
-});
-const httpsAgent = new https.Agent({
-  keepAlive: true,
-  timeout: upstreamTimeoutMs
-});
+const chatEndpoint = `${geminiBaseUrl}/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
 
-const RETRYABLE_UPSTREAM_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
-const AUTH_ERROR_STATUSES = new Set([401, 403]);
+const normalizeHistory = (history, currentMessage) => {
+  const clean = Array.isArray(history)
+    ? history
+        .filter(
+          (item) =>
+            item &&
+            (item.role === 'user' || item.role === 'assistant') &&
+            typeof item.content === 'string' &&
+            item.content.trim().length > 0
+        )
+        .map((item) => ({ role: item.role, content: item.content.trim() }))
+    : [];
 
-const authHeaderCandidates = gapApiKey
-  ? [
-      { Authorization: `Bearer ${gapApiKey}` },
-      { Authorization: gapApiKey },
-      { 'x-api-key': gapApiKey }
-    ]
-  : [];
-
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const getRetryDelayMs = (attemptIndex, retryAfterHeader) => {
-  const parsedRetryAfter = Number(retryAfterHeader);
-  if (Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 1) {
-    return Math.min(parsedRetryAfter * 1000, 8000);
-  }
-  return Math.min(400 * 2 ** attemptIndex, 2500);
-};
-
-const isRetryableError = (error) => {
-  if (!error || typeof error !== 'object') {
-    return false;
+  while (clean.length > 0 && clean[0].role !== 'user') {
+    clean.shift();
   }
 
-  return (
-    error.name === 'AbortError' ||
-    error.code === 'UND_ERR_CONNECT_TIMEOUT' ||
-    error.code === 'ECONNRESET' ||
-    error.code === 'ECONNREFUSED' ||
-    error.code === 'ETIMEDOUT'
-  );
+  if (
+    clean.length === 0 ||
+    clean[clean.length - 1].role !== 'user' ||
+    clean[clean.length - 1].content !== currentMessage
+  ) {
+    clean.push({ role: 'user', content: currentMessage });
+  }
+
+  return clean;
 };
 
-const callUpstreamWithRetry = async (messages) => {
-  let lastError = null;
+const buildMetisPayload = (messages) => {
+  const systemMessage = messages.find((m) => m.role === 'system');
+  const chatHistory = messages.filter((m) => m.role === 'user' || m.role === 'assistant');
 
-  for (let attempt = 0; attempt <= maxUpstreamRetries; attempt += 1) {
-    for (let authIndex = 0; authIndex < authHeaderCandidates.length; authIndex += 1) {
-      log('UPSTREAM', 'attempt_started', {
-        attempt: attempt + 1,
-        maxAttempts: maxUpstreamRetries + 1,
-        authVariant: authIndex + 1
-      });
+  const contents = chatHistory.map((m) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), upstreamTimeoutMs);
+  if (contents.length === 0) {
+    contents.push({ role: 'user', parts: [{ text: '' }] });
+  }
 
-      try {
-        const response = await fetch(`${gapBaseUrl.replace(/\/$/, '')}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...authHeaderCandidates[authIndex]
-          },
-          body: JSON.stringify({
-            model: gapModel,
-            messages,
-            temperature: 0.6
-          }),
-          signal: controller.signal,
-          agent: ({ protocol }) => (protocol === 'http:' ? httpAgent : httpsAgent)
-        });
+  if (systemMessage && contents[contents.length - 1].role === 'user') {
+    const lastText = contents[contents.length - 1].parts?.[0]?.text || '';
+    contents[contents.length - 1].parts = [{ text: `${systemMessage.content}\n\n${lastText}` }];
+  }
 
-        if (response.ok) {
-          log('UPSTREAM', 'attempt_succeeded', {
-            attempt: attempt + 1,
-            authVariant: authIndex + 1,
-            status: response.status
-          });
-          return response;
-        }
+  return {
+    contents,
+    generationConfig: {
+      temperature: 0.6
+    }
+  };
+};
 
-        log('UPSTREAM', 'attempt_failed_status', {
-          attempt: attempt + 1,
-          authVariant: authIndex + 1,
-          status: response.status
-        });
+const parseJsonSafe = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch (_error) {
+    return null;
+  }
+};
 
-        if (AUTH_ERROR_STATUSES.has(response.status) && authIndex < authHeaderCandidates.length - 1) {
-          continue;
-        }
+const extractReply = (json) => {
+  const parts = json?.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts)) {
+    return '';
+  }
 
-        if (!RETRYABLE_UPSTREAM_STATUSES.has(response.status) || attempt >= maxUpstreamRetries) {
-          return response;
-        }
+  const textParts = parts
+    .map((part) => (typeof part?.text === 'string' ? part.text : ''))
+    .filter(Boolean);
 
-        const retryDelayMs = getRetryDelayMs(attempt, response.headers.get('retry-after'));
-        await wait(retryDelayMs);
-        break;
-      } catch (error) {
-        lastError = error;
+  return textParts.join('\n').trim();
+};
 
-        log('UPSTREAM', 'attempt_failed_error', {
-          attempt: attempt + 1,
-          authVariant: authIndex + 1,
-          errorName: error && typeof error === 'object' ? error.name : 'unknown',
-          errorCode: error && typeof error === 'object' ? error.code : 'unknown'
-        });
+const doUpstreamRequest = async (payload, authHeaders) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), upstreamTimeoutMs);
 
-        if (!isRetryableError(error) || attempt >= maxUpstreamRetries) {
-          throw error;
-        }
+  try {
+    const response = await fetch(chatEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
 
-        const retryDelayMs = getRetryDelayMs(attempt);
-        await wait(retryDelayMs);
-        break;
-      } finally {
-        clearTimeout(timeoutId);
+    const raw = await response.text();
+    const json = parseJsonSafe(raw);
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      json,
+      raw
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const callGemini = async (messages) => {
+  if (!geminiApiKey) {
+    const error = new Error('GEMINI_API_KEY is missing');
+    error.code = 'API_KEY_MISSING';
+    throw error;
+  }
+
+  const payload = buildMetisPayload(messages);
+  const authModes = [
+    { mode: 'bearer', headers: { Authorization: `Bearer ${geminiApiKey}` } },
+    { mode: 'x-goog-api-key', headers: { 'x-goog-api-key': geminiApiKey } }
+  ];
+
+  let lastFailure = null;
+
+  for (const auth of authModes) {
+    try {
+      const result = await doUpstreamRequest(payload, auth.headers);
+
+      if (!result.ok) {
+        lastFailure = {
+          authMode: auth.mode,
+          status: result.status,
+          details: result.json || result.raw
+        };
+        continue;
       }
+
+      const reply = extractReply(result.json);
+      if (!reply) {
+        const error = new Error('EMPTY_UPSTREAM_REPLY');
+        error.code = 'EMPTY_UPSTREAM_REPLY';
+        error.details = result.json || result.raw;
+        throw error;
+      }
+
+      return reply;
+    } catch (error) {
+      const causeCode =
+        error &&
+        typeof error === 'object' &&
+        error.cause &&
+        typeof error.cause === 'object' &&
+        typeof error.cause.code === 'string'
+          ? error.cause.code
+          : null;
+
+      if (error && typeof error === 'object' && error.name === 'AbortError') {
+        const timeoutError = new Error('UPSTREAM_TIMEOUT');
+        timeoutError.code = 'UPSTREAM_TIMEOUT';
+        throw timeoutError;
+      }
+
+      if (error instanceof TypeError && error.message === 'fetch failed') {
+        const networkError = new Error('UPSTREAM_FETCH_FAILED');
+        networkError.code = 'UPSTREAM_FETCH_FAILED';
+        networkError.details = {
+          authMode: auth.mode,
+          causeCode,
+          baseUrl: geminiBaseUrl
+        };
+        throw networkError;
+      }
+
+      if (error && error.code === 'EMPTY_UPSTREAM_REPLY') {
+        throw error;
+      }
+
+      lastFailure = {
+        authMode: auth.mode,
+        status: error && error.status ? error.status : null,
+        details: error && error.details ? error.details : (error instanceof Error ? error.message : 'unknown_error')
+      };
     }
   }
 
-  throw lastError || new Error('unknown_upstream_error');
+  const upstreamError = new Error('UPSTREAM_REQUEST_FAILED');
+  upstreamError.code = 'UPSTREAM_REQUEST_FAILED';
+  upstreamError.details = lastFailure;
+  throw upstreamError;
 };
 
 function detectCategory(msg) {
@@ -211,6 +271,8 @@ const buildSystemPrompt = (profile) => {
 3) ${ageStyle}
 4) اگر اطلاعات کاربر ناقص بود، از لحن خنثی و محترمانه استفاده کن.
 5) پاسخ کوتاه و مفید باشد، اما اگر سوال آموزشی است مرحله بندی واضح داشته باشد.
+6) سلام و خوش آمدگویی را فقط در شروع یک گفتگوی جدید انجام بده؛ در پیام های بعدی تکرار سلام نکن و مستقیم وارد پاسخ شو.
+7) در مکالمه جاری، مگر در اولین پاسخ، از تکرار «سلام» و معرفی خود بپرهیز و مستقیماً به سوال پاسخ بده.
 
 قواعد The Mom Test:
 - همیشه اول اعتبارسنجی احساسی انجام بده (تایید احساس/تجربه کاربر).
@@ -289,7 +351,7 @@ app.post('/api/verify-code', (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, profile, history } = req.body || {};
+    const { message, profile, history, conversationId } = req.body || {};
     const requestId = res.locals.requestId;
     const trimmedMessage = typeof message === 'string' ? message.trim() : '';
 
@@ -300,37 +362,41 @@ app.post('/api/chat', async (req, res) => {
       messageLength: trimmedMessage.length
     });
 
-    if (!gapApiKey) {
-      logError('api_key_missing', '/api/chat', 500, 'GAPGPT_API_KEY is missing');
+    if (!geminiApiKey) {
+      logError('api_key_missing', '/api/chat', 500, 'GEMINI_API_KEY is missing');
       return res.status(500).json({ error: 'کلید API تنظیم نشده است.' });
     }
 
-    if (typeof message !== 'string' || !trimmedMessage) {
+    if (!trimmedMessage) {
       return res.status(400).json({ error: 'پیام معتبر ارسال نشده است.' });
     }
 
     const userId = ensureUserExists(profile || {});
     const category = detectCategory(trimmedMessage);
+    const memoryKey =
+      typeof conversationId === 'string' && conversationId.trim().length > 0
+        ? `${userId}:${conversationId.trim()}`
+        : `${userId}:default`;
 
     logEvent(userId, 'message_sent', category, {
       messageLength: trimmedMessage.length,
       requestId
     });
 
-    const normalizedHistory = Array.isArray(history)
-      ? history
-          .filter(
-            (item) =>
-              item &&
-              (item.role === 'user' || item.role === 'assistant') &&
-              typeof item.content === 'string' &&
-              item.content.trim().length > 0
-          )
-          .map((item) => ({ role: item.role, content: item.content.trim() }))
-      : [];
-
-    if (normalizedHistory.length === 0 || normalizedHistory[normalizedHistory.length - 1].content !== trimmedMessage) {
-      normalizedHistory.push({ role: 'user', content: trimmedMessage });
+    const normalizedHistory = normalizeHistory(history, trimmedMessage);
+    const storedHistory = conversationMemory.get(memoryKey);
+    let effectiveHistory =
+      Array.isArray(storedHistory) && storedHistory.length > normalizedHistory.length ? [...storedHistory] : normalizedHistory;
+    const lastItem = effectiveHistory[effectiveHistory.length - 1];
+    if (!lastItem || lastItem.role !== 'user' || lastItem.content !== trimmedMessage) {
+      effectiveHistory.push({ role: 'user', content: trimmedMessage });
+    }
+    if (normalizedHistory.length > 50) {
+      log('CHAT', 'long_conversation_warning', {
+        requestId,
+        historyCount: effectiveHistory.length,
+        warning: 'مکالمه طولانی شده، ممکن است پاسخ ها کیفیت کمتری داشته باشند'
+      });
     }
 
     const messages = [
@@ -338,49 +404,48 @@ app.post('/api/chat', async (req, res) => {
         role: 'system',
         content: buildSystemPrompt(profile)
       },
-      ...normalizedHistory
+      ...effectiveHistory
     ];
 
-    const response = await callUpstreamWithRetry(messages);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorType = AUTH_ERROR_STATUSES.has(response.status) ? 'auth_failed' : `gapgpt_${response.status}`;
-      logError(errorType, '/chat/completions', response.status, errorText);
-
-      if (AUTH_ERROR_STATUSES.has(response.status)) {
-        return res.status(response.status).json({
-          error: 'احراز هویت سرویس مدل نامعتبر است. GAPGPT_API_KEY را بررسی کن.',
-          details: errorText.slice(0, 400)
-        });
-      }
-
-      return res.status(response.status).json({ error: 'خطا در ارتباط با مدل', details: errorText.slice(0, 400) });
-    }
-
-    const data = await response.json();
-    const reply = data?.choices?.[0]?.message?.content;
-
-    if (typeof reply !== 'string' || !reply.trim()) {
-      logError('invalid_upstream_response', '/chat/completions', 502, 'Empty or invalid reply content');
-      return res.status(502).json({ error: 'پاسخ نامعتبر از مدل دریافت شد.' });
-    }
+    const reply = await callGemini(messages);
+    conversationMemory.set(memoryKey, [...effectiveHistory, { role: 'assistant', content: reply }]);
 
     logEvent(userId, 'message_received', category, {
-      responseLength: reply.trim().length,
+      responseLength: reply.length,
       requestId
     });
 
-    return res.json({ reply: reply.trim() });
+    return res.json({ reply });
   } catch (error) {
-    if (error && typeof error === 'object' && error.name === 'AbortError') {
-      logError('gapgpt_timeout', '/chat/completions', 504, error.message);
-      return res.status(504).json({
-        error: 'زمان پاسخ مدل طولانی شد. لطفاً دوباره تلاش کن.'
+    if (error && typeof error === 'object' && error.code === 'UPSTREAM_TIMEOUT') {
+      logError('gemini_timeout', '/gemini', 504, 'Upstream timeout reached');
+      return res.status(504).json({ error: 'زمان پاسخ مدل طولانی شد. لطفاً دوباره تلاش کن.' });
+    }
+
+    if (error && typeof error === 'object' && error.code === 'UPSTREAM_FETCH_FAILED') {
+      logError('gemini_fetch_failed', '/gemini', 502, JSON.stringify(error.details || {}));
+      return res.status(502).json({
+        error: 'ارتباط با سرویس مدل برقرار نشد.',
+        details: 'اتصال شبکه، DNS یا GEMINI_BASE_URL را بررسی کنید.'
       });
     }
 
-    logError('unknown', '/chat/completions', null, error instanceof Error ? error.stack || error.message : 'unknown_error');
+    if (error && typeof error === 'object' && error.code === 'UPSTREAM_REQUEST_FAILED') {
+      const status = Number(error?.details?.status);
+      const safeStatus = Number.isInteger(status) && status >= 400 ? status : 502;
+      logError('gemini_upstream_error', '/gemini', safeStatus, JSON.stringify(error.details || {}));
+      return res.status(safeStatus).json({
+        error: 'خطا از سرویس مدل دریافت شد.',
+        details: error?.details?.details || 'unknown_upstream_error'
+      });
+    }
+
+    if (error && typeof error === 'object' && error.code === 'EMPTY_UPSTREAM_REPLY') {
+      logError('invalid_upstream_response', '/gemini', 502, JSON.stringify(error.details || {}));
+      return res.status(502).json({ error: 'پاسخ نامعتبر از مدل دریافت شد.' });
+    }
+
+    logError('unknown', '/gemini', null, error instanceof Error ? error.stack || error.message : 'unknown_error');
 
     return res.status(500).json({
       error: 'مشکلی در سرور پیش آمد.',
@@ -403,16 +468,20 @@ app.get('/api/admin/stats', (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'hemraz-backend' });
+  res.json({
+    ok: true,
+    service: 'hemraz-backend',
+    model: geminiModel,
+    baseUrl: geminiBaseUrl
+  });
 });
 
 const server = app.listen(port, () => {
   log('BOOT', 'backend_started', {
     port,
-    model: gapModel,
-    baseUrl: gapBaseUrl,
-    timeoutMs: upstreamTimeoutMs,
-    retries: maxUpstreamRetries
+    model: geminiModel,
+    baseUrl: geminiBaseUrl,
+    timeoutMs: upstreamTimeoutMs
   });
 });
 
