@@ -150,6 +150,7 @@ const getStats = () => {
 ensureDBFile();
 
 module.exports = {
+  readDB,
   ensureUserExists,
   logEvent,
   logError,

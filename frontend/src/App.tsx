@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { ChatMessage, Conversation, UserProfile } from './types';
 
 const PROFILE_KEY = 'chat_profile';
+const PROFILES_KEY = 'chat_profiles';
 const CONVERSATIONS_KEY = 'chat_conversations';
 const ACTIVE_CONVERSATION_KEY = 'chat_active_conversation_id';
 const DEFAULT_TITLE = 'گفتگوی جدید';
@@ -18,14 +19,109 @@ const CHAT_MAX_RETRIES = 1;
 
 type AppProfile = UserProfile & { id?: number | string };
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
+type LandingStep = 'landing' | 'login' | 'signup';
+type PersonalityProfile = {
+  interests: string[];
+  preferredStyle: 'formal' | 'casual' | 'playful';
+  emotionState: 'happy' | 'sad' | 'neutral';
+  messageCount: number;
+  lastTopics: string[];
+};
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const RETRYABLE_API_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const PERSIAN_PHONE_REGEX = /^09[0-9]{9}$/;
+const INTEREST_PATTERNS = [
+  /(?:عاشق|دوست دارم|علاقه دارم)\s+([آ-یa-zA-Z0-9\s‌]+)/i,
+  /(?:به\s+)?([آ-یa-zA-Z0-9\s‌]+)\s+علاقه دارم/i
+];
+const POSITIVE_EMOTION_REGEX = /(خوشحال|خوشحالم|عالیم|عالیه|هیجان زده|خوبم|راضیم)/i;
+const NEGATIVE_EMOTION_REGEX = /(ناراحت|ناراحتم|غمگین|عصبانی|استرس|مضطرب|بدحالم|خسته ام|خسته‌ام)/i;
+
+const createDefaultPersonality = (): PersonalityProfile => ({
+  interests: [],
+  preferredStyle: 'casual',
+  emotionState: 'neutral',
+  messageCount: 0,
+  lastTopics: []
+});
+
+const normalizePersonality = (value: unknown): PersonalityProfile => {
+  const source = value && typeof value === 'object' ? (value as Partial<PersonalityProfile>) : {};
+  const style = source.preferredStyle;
+  const emotion = source.emotionState;
+  return {
+    interests: Array.isArray(source.interests)
+      ? source.interests.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).slice(0, 20)
+      : [],
+    preferredStyle: style === 'formal' || style === 'playful' || style === 'casual' ? style : 'casual',
+    emotionState: emotion === 'happy' || emotion === 'sad' || emotion === 'neutral' ? emotion : 'neutral',
+    messageCount: Number.isFinite(Number(source.messageCount)) ? Math.max(0, Number(source.messageCount)) : 0,
+    lastTopics: Array.isArray(source.lastTopics)
+      ? source.lastTopics
+          .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+          .slice(-3)
+      : []
+  };
+};
+
+const detectCategoryClient = (msg: string): 'academic' | 'emotional' | 'creative' | 'general' => {
+  const lower = msg.toLowerCase();
+  if (/ریاضی|علم|فرمول|معادله|چرا|چگونه|درس|مدرسه|فیزیک|شیمی|زیست/.test(lower)) return 'academic';
+  if (/احساس|ناراحت|غمگین|ترس|استرس|خجالت|دعوا|دوست|رابطه|دوستی|مامان|بابا/.test(lower)) return 'emotional';
+  if (/داستان|قصه|ایده|شخصیت|بنویس|نوشتن|خلاقیت|ماجراجویی/.test(lower)) return 'creative';
+  return 'general';
+};
+
+const mapCategoryToTopic = (category: 'academic' | 'emotional' | 'creative' | 'general') => {
+  if (category === 'academic') return 'آموزشی';
+  if (category === 'emotional') return 'احساسی';
+  if (category === 'creative') return 'خلاقانه';
+  return 'عمومی';
+};
+
+const extractInterest = (message: string): string | null => {
+  for (const pattern of INTEREST_PATTERNS) {
+    const match = message.match(pattern);
+    const candidate = match?.[1]?.replace(/[.!؟?,،]+$/g, '').trim();
+    if (candidate && candidate.length >= 2 && candidate.length <= 30) {
+      return candidate;
+    }
+  }
+  return null;
+};
+
+const updatePersonalityFromMessage = (current: PersonalityProfile, message: string): PersonalityProfile => {
+  const next: PersonalityProfile = {
+    ...current,
+    interests: [...current.interests],
+    lastTopics: [...current.lastTopics],
+    messageCount: current.messageCount + 1
+  };
+
+  const interest = extractInterest(message);
+  if (interest && !next.interests.includes(interest)) {
+    next.interests.push(interest);
+  }
+
+  if (POSITIVE_EMOTION_REGEX.test(message)) {
+    next.emotionState = 'happy';
+  } else if (NEGATIVE_EMOTION_REGEX.test(message)) {
+    next.emotionState = 'sad';
+  } else {
+    next.emotionState = 'neutral';
+  }
+
+  const category = detectCategoryClient(message);
+  const topic = mapCategoryToTopic(category);
+  next.lastTopics = [...next.lastTopics.filter((item) => item !== topic), topic].slice(-3);
+  return next;
+};
 
 const postChatWithRetry = async (payload: {
   message: string;
   profile: UserProfile;
+  personality: PersonalityProfile;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
   conversationId?: string;
 }) => {
@@ -78,11 +174,11 @@ const buildRequestErrorMessage = async (response: Response) => {
   return 'پاسخ سرور دریافت نشد.';
 };
 
-const sendVerificationCode = async (phone: string): Promise<void> => {
+const sendVerificationCode = async (phone: string, mode: 'login' | 'signup'): Promise<void> => {
   const response = await fetch('/api/send-verification-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone })
+    body: JSON.stringify({ phone, mode })
   });
 
   if (!response.ok) {
@@ -138,6 +234,10 @@ const generateUniqueId = () => Date.now() + Math.floor(Math.random() * 10000);
 
 function App() {
   const [profile, setProfile] = useState<AppProfile | null>(null);
+  const [landingStep, setLandingStep] = useState<LandingStep>('landing');
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+  const [authTransition, setAuthTransition] = useState<'forward' | 'back'>('forward');
+  const [hasSavedAccount, setHasSavedAccount] = useState(false);
 
   const [registrationStep, setRegistrationStep] = useState<1 | 2 | 3>(1);
   const [name, setName] = useState('');
@@ -190,8 +290,15 @@ function App() {
   useEffect(() => {
     try {
       const rawProfile = localStorage.getItem(PROFILE_KEY);
+      const rawProfiles = localStorage.getItem(PROFILES_KEY);
       const rawConversations = localStorage.getItem(CONVERSATIONS_KEY);
       const savedActiveConversationId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
+      if (rawProfiles) {
+        const parsedProfiles = JSON.parse(rawProfiles) as AppProfile[];
+        if (Array.isArray(parsedProfiles) && parsedProfiles.length > 0) {
+          setHasSavedAccount(true);
+        }
+      }
 
       if (rawProfile) {
         const parsedProfile = JSON.parse(rawProfile) as AppProfile;
@@ -200,17 +307,7 @@ function App() {
           typeof parsedProfile.name === 'string' &&
           Number.isFinite(Number(parsedProfile.age))
         ) {
-          const normalizedProfile: AppProfile = {
-            ...parsedProfile,
-            age: Number(parsedProfile.age),
-            phone:
-              typeof parsedProfile.phone === 'string' && PERSIAN_PHONE_REGEX.test(parsedProfile.phone.trim())
-                ? parsedProfile.phone.trim()
-                : undefined,
-            id: parsedProfile.id ?? generateUniqueId()
-          };
-          setProfile(normalizedProfile);
-          localStorage.setItem(PROFILE_KEY, JSON.stringify(normalizedProfile));
+          setHasSavedAccount(true);
         } else {
           localStorage.removeItem(PROFILE_KEY);
         }
@@ -444,10 +541,33 @@ function App() {
       return;
     }
 
+    const rawProfiles = localStorage.getItem('chat_profiles');
+    const rawProfile = localStorage.getItem('chat_profile');
+    const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
+    const profilePool = Array.isArray(parsedProfiles) ? parsedProfiles : [];
+    if (rawProfile) {
+      profilePool.push(JSON.parse(rawProfile) as AppProfile);
+    }
+
+    const phoneExists = profilePool.some((item) => {
+      const savedPhone = typeof item?.phone === 'string' ? item.phone.trim() : '';
+      return savedPhone === trimmedPhone;
+    });
+
+    if (authMode === 'signup' && phoneExists) {
+      setErrors({ phone: 'این شماره قبلاً ثبت‌نام شده است' });
+      return;
+    }
+
+    if (authMode === 'login' && !phoneExists) {
+      setErrors({ phone: 'حسابی با این شماره یافت نشد' });
+      return;
+    }
+
     setIsSendingVerification(true);
 
     try {
-      await sendVerificationCode(trimmedPhone);
+      await sendVerificationCode(trimmedPhone, authMode);
 
       setVerificationCode('');
       setErrors({});
@@ -485,15 +605,57 @@ function App() {
     try {
       await verifyCode(trimmedPhone, trimmedCode);
 
+      if (authMode === 'login') {
+        const rawProfiles = localStorage.getItem(PROFILES_KEY);
+        const rawProfile = localStorage.getItem(PROFILE_KEY);
+        const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
+        const profilePool = Array.isArray(parsedProfiles) ? parsedProfiles : [];
+        if (rawProfile) {
+          profilePool.push(JSON.parse(rawProfile) as AppProfile);
+        }
+
+        const matchedProfile = profilePool.find((item) => {
+          const savedPhone = typeof item?.phone === 'string' ? item.phone.trim() : '';
+          return savedPhone === trimmedPhone;
+        });
+
+        if (!matchedProfile) {
+          setErrors({ code: 'حسابی با این شماره یافت نشد.' });
+          return;
+        }
+
+        const normalizedProfile: AppProfile = {
+          ...matchedProfile,
+          age: Number(matchedProfile.age),
+          phone: trimmedPhone,
+          id: matchedProfile.id ?? generateUniqueId(),
+          personality: normalizePersonality(matchedProfile.personality)
+        };
+
+        setProfile(normalizedProfile);
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(normalizedProfile));
+        return;
+      }
+
       const payload: AppProfile = {
         name: name.trim(),
         age: Number(age),
         phone: trimmedPhone,
-        id: generateUniqueId()
+        id: generateUniqueId(),
+        personality: createDefaultPersonality()
       };
 
       setProfile(payload);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
+      const rawProfiles = localStorage.getItem(PROFILES_KEY);
+      const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
+      const profiles = Array.isArray(parsedProfiles) ? parsedProfiles : [];
+      const withoutSamePhone = profiles.filter((item) => {
+        const savedPhone = typeof item?.phone === 'string' ? item.phone.trim() : '';
+        return savedPhone !== trimmedPhone;
+      });
+      localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, payload]));
+      setHasSavedAccount(true);
     } catch (error) {
       setErrors({
         code: error instanceof Error && error.message.trim() ? error.message : 'کد نادرست است'
@@ -512,6 +674,14 @@ function App() {
     if (!content) {
       return;
     }
+
+    const nextPersonality = updatePersonalityFromMessage(normalizePersonality(profile.personality), content);
+    const nextProfile: AppProfile = {
+      ...profile,
+      personality: nextPersonality
+    };
+    setProfile(nextProfile);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
 
     const currentConversation = ensureConversation();
     const userMessage: ChatMessage = {
@@ -544,7 +714,8 @@ function App() {
 
       const response = await postChatWithRetry({
         message: content,
-        profile,
+        profile: nextProfile,
+        personality: nextPersonality,
         history,
         conversationId: currentConversation.id
       });
@@ -662,6 +833,8 @@ function App() {
     localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
 
     setProfile(null);
+    setLandingStep('landing');
+    setAuthMode('signup');
     setRegistrationStep(1);
     setName('');
     setAge('');
@@ -674,6 +847,7 @@ function App() {
     setInputValue('');
     setIsSending(false);
     setIsRecording(false);
+    setHasSavedAccount(Boolean(localStorage.getItem(PROFILES_KEY)));
   };
 
   const handleStartRecording = () => {
@@ -747,6 +921,7 @@ function App() {
   };
 
   if (!profile) {
+    const authCardClass = `register-card auth-card ${authTransition === 'back' ? 'slide-back' : 'slide-forward'}`;
     return (
       <div className="app-shell auth-shell">
         <div className="bg-blob blob-pink" />
@@ -754,8 +929,56 @@ function App() {
         <div className="bg-blob blob-yellow" />
         <div className="bg-blob blob-purple" />
 
-        {registrationStep === 1 ? (
-          <form className="register-card" onSubmit={handleRegisterStepOne}>
+        {landingStep === 'landing' ? (
+          <div className={authCardClass}>
+            <h1>
+              به دانوآ خوش آمدید <span>🌤️</span>
+            </h1>
+            <p className="subtitle">همراه یادگیری تو، با حال خوب و گفتگوی هوشمند</p>
+            <button
+              type="button"
+              className="start-btn landing-btn"
+              onClick={() => {
+                setAuthTransition('forward');
+                setAuthMode('login');
+                setRegistrationStep(2);
+                setLandingStep('login');
+                setErrors({});
+                setVerificationCode('');
+              }}
+            >
+              حساب کاربری دارم
+            </button>
+            <button
+              type="button"
+              className="start-btn landing-btn secondary"
+              onClick={() => {
+                setAuthTransition('forward');
+                setAuthMode('signup');
+                setRegistrationStep(1);
+                setLandingStep('signup');
+                setErrors({});
+              }}
+            >
+              حساب کاربری ندارم
+            </button>
+            <p className="helper onboarding-help">
+              {hasSavedAccount ? 'حساب قبلی روی این مرورگر پیدا شد ✅' : 'اگر اولین بارته، ثبت نام را انتخاب کن.'}
+            </p>
+          </div>
+        ) : authMode === 'signup' && registrationStep === 1 ? (
+          <form className={authCardClass} onSubmit={handleRegisterStepOne}>
+            <button
+              type="button"
+              className="auth-back-btn"
+              onClick={() => {
+                setAuthTransition('back');
+                setLandingStep('landing');
+                setErrors({});
+              }}
+            >
+              ← بازگشت
+            </button>
             <h1>
               سلام رفیق! <span>✨</span>
             </h1>
@@ -794,11 +1017,28 @@ function App() {
             </button>
           </form>
         ) : registrationStep === 2 ? (
-          <form className="register-card" onSubmit={handleRegisterStepTwo}>
+          <form className={authCardClass} onSubmit={handleRegisterStepTwo}>
+            <button
+              type="button"
+              className="auth-back-btn"
+              onClick={() => {
+                if (authMode === 'login') {
+                  setAuthTransition('back');
+                  setLandingStep('landing');
+                } else {
+                  setRegistrationStep(1);
+                }
+                setErrors({});
+              }}
+            >
+              ← بازگشت
+            </button>
             <h1>
               تقریبا تمومه! <span>📱</span>
             </h1>
-            <p className="subtitle">مرحله 2 از 3: شماره موبایل را وارد کن</p>
+            <p className="subtitle">
+              {authMode === 'login' ? 'ورود: شماره موبایل را وارد کن' : 'مرحله 2 از 3: شماره موبایل را وارد کن'}
+            </p>
             <p className="helper onboarding-help">
               یک کد 6 رقمی شبیه سازی شده در کنسول بک اند لاگ می شود.
             </p>
@@ -824,11 +1064,16 @@ function App() {
                 className="danger"
                 style={{ flex: 1 }}
                 onClick={() => {
-                  setRegistrationStep(1);
+                  if (authMode === 'login') {
+                    setAuthTransition('back');
+                    setLandingStep('landing');
+                  } else {
+                    setRegistrationStep(1);
+                  }
                   setErrors({});
                 }}
               >
-                بازگشت
+                {authMode === 'login' ? 'صفحه اول' : 'بازگشت'}
               </button>
               <button type="submit" className="start-btn" style={{ flex: 2 }} disabled={isSendingVerification}>
                 {isSendingVerification ? 'در حال ارسال...' : 'ادامه'}
@@ -836,11 +1081,22 @@ function App() {
             </div>
           </form>
         ) : (
-          <form className="register-card" onSubmit={handleVerifyCode}>
+          <form className={authCardClass} onSubmit={handleVerifyCode}>
+            <button
+              type="button"
+              className="auth-back-btn"
+              onClick={() => {
+                setRegistrationStep(2);
+                setVerificationCode('');
+                setErrors({});
+              }}
+            >
+              ← بازگشت
+            </button>
             <h1>
               کد را وارد کن <span>✅</span>
             </h1>
-            <p className="subtitle">مرحله 3 از 3: کد 6 رقمی تأیید</p>
+            <p className="subtitle">{authMode === 'login' ? 'ورود: کد 6 رقمی تأیید' : 'مرحله 3 از 3: کد 6 رقمی تأیید'}</p>
             <p className="helper onboarding-help">کد در کنسول بک‌اند ثبت شده است.</p>
 
             <label>

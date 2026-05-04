@@ -109,6 +109,41 @@ textarea {
   z-index: 2;
 }
 
+.auth-card {
+  border-radius: 48px;
+  animation: auth-enter 320ms ease both;
+}
+
+.auth-card.slide-forward {
+  animation-name: auth-enter-forward;
+}
+
+.auth-card.slide-back {
+  animation-name: auth-enter-back;
+}
+
+@keyframes auth-enter-forward {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes auth-enter-back {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .register-card h1 {
   margin: 0;
   font-size: clamp(2rem, 6vw, 3rem);
@@ -123,6 +158,28 @@ textarea {
 
 .onboarding-help {
   margin: -8px 0 18px;
+}
+
+.landing-btn {
+  margin-bottom: 12px;
+  min-height: 58px;
+  font-size: 1.15rem;
+}
+
+.landing-btn.secondary {
+  background: linear-gradient(90deg, #ffb65a 0%, #ff8d2f 100%);
+}
+
+.auth-back-btn {
+  border: none;
+  background: #fff3df;
+  color: #8a5a2b;
+  border-radius: 22px;
+  min-height: 42px;
+  padding: 8px 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  cursor: pointer;
 }
 
 .register-card label {
