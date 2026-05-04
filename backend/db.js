@@ -80,7 +80,9 @@ const ensureUserExists = (profile = {}) => {
   if (existingUser) {
     existingUser.name = nextName;
     existingUser.age = nextAge;
-    existingUser.phone = nextPhone;
+    if (nextPhone) {
+      existingUser.phone = nextPhone;
+    }
     existingUser.last_active = timestamp;
   } else {
     data.users.push({

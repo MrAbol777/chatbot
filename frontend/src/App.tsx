@@ -200,6 +200,19 @@ const verifyCode = async (phone: string, code: string): Promise<void> => {
   }
 };
 
+const registerProfile = async (profile: { name: string; age: number; phone: string; id: number | string }): Promise<void> => {
+  const response = await fetch('/api/register-profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile)
+  });
+
+  if (!response.ok) {
+    const errorMessage = await buildRequestErrorMessage(response);
+    throw new Error(errorMessage || 'ثبت پروفایل انجام نشد.');
+  }
+};
+
 const createConversation = (): Conversation => {
   const now = new Date().toISOString();
   return {
@@ -656,6 +669,12 @@ function App() {
       });
       localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, payload]));
       setHasSavedAccount(true);
+      await registerProfile({
+        name: payload.name,
+        age: Number(payload.age),
+        phone: payload.phone || trimmedPhone,
+        id: payload.id ?? generateUniqueId()
+      });
     } catch (error) {
       setErrors({
         code: error instanceof Error && error.message.trim() ? error.message : 'کد نادرست است'

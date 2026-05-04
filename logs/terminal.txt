@@ -1,27 +1,22 @@
-(node:16308) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:15724) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[13:05:20] FRONTEND 
-[13:05:20] FRONTEND > hemraz-frontend@1.0.0 dev
-[13:05:20] FRONTEND > vite
-[13:05:20] FRONTEND 
-[13:05:20] BACKEND 
-[13:05:20] BACKEND > hemraz-backend@1.0.0 dev
-[13:05:20] BACKEND > nodemon --config nodemon.json src/server.js
-[13:05:20] BACKEND 
-[13:05:20] BACKEND [33m[nodemon] 3.1.14[39m
-[13:05:20] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[13:05:20] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[13:05:20] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[13:05:20] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[13:05:20] FRONTEND 
-[13:05:20] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m319[22m[2m[0m ms[22m
-[13:05:20] FRONTEND 
-[13:05:20] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[13:05:20] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.132:[1m5173[22m/[39m
-[13:05:20] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[13:05:20] BACKEND [2026-05-04T09:35:20.879Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[13:06:32] BACKEND [32m[nodemon] restarting child process[39m
-[13:06:32] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[13:06:32] BACKEND [2026-05-04T09:36:32.602Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[13:06:37] BACKEND ^C^C^CTerminate batch job (Y/N)? ^CTerminate batch job (Y/N)? npm run dev --prefix backend exited with code 3221225786
-[13:06:37] FRONTEND npm run dev --prefix frontend exited with code 3221225786
+[19:29:06] FRONTEND 
+[19:29:06] FRONTEND > hemraz-frontend@1.0.0 dev
+[19:29:06] FRONTEND > vite
+[19:29:06] FRONTEND 
+[19:29:06] BACKEND 
+[19:29:06] BACKEND > hemraz-backend@1.0.0 dev
+[19:29:06] BACKEND > nodemon --config nodemon.json src/server.js
+[19:29:06] BACKEND 
+[19:29:06] BACKEND [33m[nodemon] 3.1.14[39m
+[19:29:06] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[19:29:06] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[19:29:06] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[19:29:06] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[19:29:06] FRONTEND 
+[19:29:06] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m318[22m[2m[0m ms[22m
+[19:29:06] FRONTEND 
+[19:29:06] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[19:29:06] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.179.229.176:[1m5173[22m/[39m
+[19:29:06] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[19:29:07] BACKEND [2026-05-04T15:59:07.036Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}

@@ -403,6 +403,45 @@ app.post('/api/verify-code', (req, res) => {
   }
 });
 
+app.post('/api/register-profile', (req, res) => {
+  try {
+    const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const rawPhone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+    const rawAge = Number(req.body?.age);
+    const rawId = req.body?.id;
+
+    if (!rawName) {
+      return res.status(400).json({ error: 'نام معتبر نیست.' });
+    }
+
+    if (!/^09[0-9]{9}$/.test(rawPhone)) {
+      return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
+    }
+
+    if (!Number.isFinite(rawAge)) {
+      return res.status(400).json({ error: 'سن معتبر نیست.' });
+    }
+
+    if (!(typeof rawId === 'string' || typeof rawId === 'number')) {
+      return res.status(400).json({ error: 'شناسه معتبر نیست.' });
+    }
+
+    const userId = ensureUserExists({
+      id: rawId,
+      name: rawName,
+      age: rawAge,
+      phone: rawPhone
+    });
+
+    return res.json({ success: true, userId });
+  } catch (error) {
+    const details = error instanceof Error ? error.message : 'unknown';
+    logError('register_profile_failed', '/api/register-profile', 500, details);
+    log('REGISTER_PROFILE', 'failed', { details });
+    return res.status(500).json({ error: 'ثبت پروفایل با خطا مواجه شد.' });
+  }
+});
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, profile, personality, history, conversationId } = req.body || {};

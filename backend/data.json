@@ -111,6 +111,22 @@
       "phone": "09134515518",
       "registered_at": "2026-05-04T09:02:58.916Z",
       "last_active": "2026-05-04T09:07:16.305Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "name": "ابولفضل",
+      "age": 16,
+      "phone": "09926638344",
+      "registered_at": "2026-05-04T10:17:01.081Z",
+      "last_active": "2026-05-04T10:19:20.398Z"
+    },
+    {
+      "user_id": "1777896127576",
+      "name": "لا",
+      "age": 12,
+      "phone": "09123456789",
+      "registered_at": "2026-05-04T12:02:02.092Z",
+      "last_active": "2026-05-04T12:02:02.092Z"
     }
   ],
   "events": [
@@ -2598,6 +2614,62 @@
       "category": "general",
       "metadata": "{\"responseLength\":215,\"requestId\":\"moqz7avp-roau24\"}",
       "created_at": "2026-05-04T09:07:16.305Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"mor1p1n8-y7wkeg\"}",
+      "created_at": "2026-05-04T10:17:01.095Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":535,\"requestId\":\"mor1p1n8-y7wkeg\"}",
+      "created_at": "2026-05-04T10:17:05.057Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"mor1p6f8-kmewbg\"}",
+      "created_at": "2026-05-04T10:17:07.279Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":412,\"requestId\":\"mor1p6f8-kmewbg\"}",
+      "created_at": "2026-05-04T10:17:09.923Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":5,\"requestId\":\"mor1qcnn-k95rtn\"}",
+      "created_at": "2026-05-04T10:18:02.014Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":538,\"requestId\":\"mor1qcnn-k95rtn\"}",
+      "created_at": "2026-05-04T10:18:05.221Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":32,\"requestId\":\"mor1rz3j-bfhhqv\"}",
+      "created_at": "2026-05-04T10:19:17.751Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":527,\"requestId\":\"mor1rz3j-bfhhqv\"}",
+      "created_at": "2026-05-04T10:19:20.398Z"
     }
   ],
   "errors": [
