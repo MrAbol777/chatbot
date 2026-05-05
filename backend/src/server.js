@@ -104,6 +104,17 @@ const extractReply = (json) => {
   return textParts.join('\n').trim();
 };
 
+const removeExtraGreeting = (text, isFirstMessage) => {
+  if (typeof text !== 'string') return '';
+  if (isFirstMessage) return text;
+
+  const cleaned = text.trimStart();
+  const greetingPattern =
+    /^(?:(?:سلام(?:\s+(?:دوباره|مجدد))?)|درود|(?:من\s+دانوآ\s+هستم)|(?:من\s+دانوآم))(?:[\s،,:!.\-—]+|$)/i;
+
+  return cleaned.replace(greetingPattern, '').trimStart();
+};
+
 const doUpstreamRequest = async (payload, authHeaders) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), upstreamTimeoutMs);
@@ -276,19 +287,22 @@ const buildSystemPrompt = (profile, personality) => {
 - وضعیت احساسی اخیر: ${emotionState}
 
 شخصی سازی پاسخ:
-- با توجه به علایق و سبک کاربر، لحن و مثال‌هایت را شخصی‌سازی کن.
-- اگر کاربر به موضوع خاصی علاقه دارد، در پاسخ‌ها به آن ارجاع بده.
-- اگر وضعیت احساسی منفی است، اول همدلی کن و بعد پاسخ بده.
+- در پاسخ‌های عادی، نیازی به پرسیدن سوالات متعدد از کاربر نیست. فقط اگر اطلاعات کاملاً ضروری نبود، می‌توانی یک سوال کوتاه بپرسی.
+- در غیر این صورت، پاسخ را بر اساس اطلاعات موجود (تاریخچه، علایق ثبت‌شده) بده و از پرسیدن سوالات تکراری خودداری کن.
 
 🧠 قوانین طلایی (همیشه رعایت کن)
 
 1. همه پاسخ‌ها فارسی و راست‌به‌چپ باشد.
 2. لحن: امن، محترمانه، دوستانه و بدون تحقیر.
-3. هیچ‌وقت با سؤال خشک شروع نکن – اول یک میکروتوضیح یا فکت جذاب (حداکثر ۳ جمله) بده، بعد سؤال بپرس.
-4. در هر پاسخ، حداکثر یک بخش اطلاعات + یک سؤال (بار شناختی سنگین نشه).
+3. فکت علمی فقط در مواقع خاص: اگر این یکی از ۲ پیام اول گفتگو است، می‌توانی پاسخ را با یک فکت علمی کوتاه (حداکثر ۱ جمله) شروع کنی. اگر کاربر صراحتاً از تو خواست «یک واقعیت جالب بگو» یا «بیشتر توضیح بده»، در آن صورت نیز می‌توانی یک فکت اضافه کنی. در غیر این صورت (ادامه یک مکالمه عادی)، پاسخ را مستقیم و بدون هیچ فکت علمی بده؛ فقط مفید و کوتاه به سؤال پاسخ بده. هیچ‌وقت در پاسخ‌های تکراری یا تأییدی (مثل «بله»، «درسته»، «آفرین») فکت نیاور.
+4. در هر پاسخ، بیش از یک ایده اصلی ارائه نکن. اگر پاسخ ساده است، یک جمله کافی است. از توضیحات اضافی بپرهیز.
 5. بازخورد مثبت: به جای «غلطه» بگو «خیلی نزدیک شدی! بیا یک جور دیگه ببینیم.»
 6. ناوبری ذهنی: همیشه به کاربر بگو کجای مسیره (مثلاً «الان مرحله دوم از سه مرحله‌ست»).
-7. در ابتدای هر پاسخ (به جز اولین تعامل کاربر در یک گفتگوی جدید) از تکرار «سلام»، «سلام مجدد» و معرفی خود («من دانوآ هستم») خودداری کن و مستقیم به سؤال یا ادامه گفتگو بپرداز.
+7. **ممنوعیت کامل تکرار سلام در ادامه مکالمه**:
+   - اگر این اولین پیام کاربر در این گفتگو نیست (یعنی قبلاً حداقل یک تبادل انجام شده)، هرگز پاسخ را با «سلام»، «سلام مجدد»، «درود»، «سلام دوباره» یا معرفی خود (مثل «من دانوآ هستم») شروع نکن.
+   - مستقیماً و بدون هیچ مقدمه‌ای به سؤال یا موضوع قبلی بپرداز.
+   - تنها در صورتی که کاربر پس از مدتی دوری (مثلاً چند ساعت) پیام داده باشد، می‌توانی یک سلام مختصر بدهی، اما در غیر این صورت خیر.
+8. اگر کاربر قبلاً به یک سوال پاسخ داده، در پاسخ‌های بعدی همان سوال را تکرار نکن. اطلاعات قبلی را به خاطر بسپار و بر اساس آن پاسخ بده.
 
 🧩 تطابق با سن کاربر
 
@@ -320,8 +334,9 @@ const buildSystemPrompt = (profile, personality) => {
   5. یک جمله نمونه برای شروع حرف زدن واقعی
 
 ✨ دسته خلاقانه
-- اول سه جزئیات بپرس: چه کسی؟ کجا؟ مشکل یا ایده چیست؟
-- بعد ۳ ایده داستان کوتاه یا راه‌حل خلاقانه بده.
+- اگر کاربر درخواست ایده یا کمک خلاقانه داشت، ابتدا توضیح کوتاه و مستقیم بده.
+- اگر اطلاعات کافی نبود، حداکثر یک سوال اضافی بپرس (ترجیحاً باز). از پرسیدن سه سوال پشت‌سر هم خودداری کن.
+- سعی کن بر اساس اطلاعات موجود در تاریخچه گفتگو، حدس بزنی و بدون سوال اضافی کمک کنی.
 
 🎭 حالت ویژه: «تمرین با مامان»
 - اگر کاربر گفت «تمرین با مامان»، نقش مادر مهربان رو بازی کن.
@@ -345,7 +360,7 @@ const buildSystemPrompt = (profile, personality) => {
 
 app.post('/api/send-verification-code', (req, res) => {
   try {
-    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim().replace(/[-\s]/g, '') : '';
     const mode = typeof req.body?.mode === 'string' ? req.body.mode.trim() : '';
 
     if (!/^09[0-9]{9}$/.test(phone)) {
@@ -354,7 +369,9 @@ app.post('/api/send-verification-code', (req, res) => {
 
     const db = readDB();
     const users = Array.isArray(db?.users) ? db.users : [];
-    const phoneExists = users.some((user) => typeof user?.phone === 'string' && user.phone.trim() === phone);
+    const phoneExists = users.some(
+      (user) => typeof user?.phone === 'string' && user.phone.trim().replace(/[-\s]/g, '') === phone
+    );
 
     if (mode === 'signup' && phoneExists) {
       return res.status(400).json({ error: 'این شماره قبلاً ثبت‌نام شده است' });
@@ -378,7 +395,7 @@ app.post('/api/send-verification-code', (req, res) => {
 
 app.post('/api/verify-code', (req, res) => {
   try {
-    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim().replace(/[-\s]/g, '') : '';
     const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
 
     if (!/^09[0-9]{9}$/.test(phone) || !/^[0-9]{6}$/.test(code)) {
@@ -406,7 +423,7 @@ app.post('/api/verify-code', (req, res) => {
 app.post('/api/register-profile', (req, res) => {
   try {
     const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
-    const rawPhone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+    const rawPhone = typeof req.body?.phone === 'string' ? req.body.phone.trim().replace(/[-\s]/g, '') : '';
     const rawAge = Number(req.body?.age);
     const rawId = req.body?.id;
 
@@ -500,7 +517,9 @@ app.post('/api/chat', async (req, res) => {
       ...effectiveHistory
     ];
 
-    const reply = await callGemini(messages);
+    const isFirstMessage = normalizedHistory.length === 1;
+    const rawReply = await callGemini(messages);
+    const reply = removeExtraGreeting(rawReply, isFirstMessage);
     conversationMemory.set(memoryKey, [...effectiveHistory, { role: 'assistant', content: reply }]);
 
     logEvent(userId, 'message_received', category, {

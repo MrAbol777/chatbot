@@ -57,7 +57,7 @@ const sanitizePhone = (value) => {
   if (typeof value !== 'string') {
     return null;
   }
-  const trimmed = value.trim();
+  const trimmed = value.trim().replace(/[-\s]/g, '');
   return /^09[0-9]{9}$/.test(trimmed) ? trimmed : null;
 };
 
@@ -80,9 +80,7 @@ const ensureUserExists = (profile = {}) => {
   if (existingUser) {
     existingUser.name = nextName;
     existingUser.age = nextAge;
-    if (nextPhone) {
-      existingUser.phone = nextPhone;
-    }
+    existingUser.phone = nextPhone;
     existingUser.last_active = timestamp;
   } else {
     data.users.push({

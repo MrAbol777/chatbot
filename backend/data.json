@@ -127,6 +127,62 @@
       "phone": "09123456789",
       "registered_at": "2026-05-04T12:02:02.092Z",
       "last_active": "2026-05-04T12:02:02.092Z"
+    },
+    {
+      "user_id": "1777911747542",
+      "name": "قبفبل",
+      "age": 13,
+      "phone": "09123546789",
+      "registered_at": "2026-05-04T16:22:24.744Z",
+      "last_active": "2026-05-04T16:22:24.744Z"
+    },
+    {
+      "user_id": "1777912039375",
+      "name": "رذ",
+      "age": 8,
+      "phone": "09123456798",
+      "registered_at": "2026-05-04T16:27:18.362Z",
+      "last_active": "2026-05-04T16:27:18.362Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "name": "لا",
+      "age": 13,
+      "phone": "09124655678",
+      "registered_at": "2026-05-04T16:30:27.345Z",
+      "last_active": "2026-05-05T07:14:29.753Z"
+    },
+    {
+      "user_id": "1777912457876",
+      "name": "زیلدت",
+      "age": 11,
+      "phone": "09243536893",
+      "registered_at": "2026-05-04T16:34:17.447Z",
+      "last_active": "2026-05-04T16:34:17.447Z"
+    },
+    {
+      "user_id": "1777912671519",
+      "name": "مه",
+      "age": 12,
+      "phone": "09132165487",
+      "registered_at": "2026-05-04T16:37:42.199Z",
+      "last_active": "2026-05-04T16:37:42.199Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "name": "بللی",
+      "age": 14,
+      "phone": "09874563211",
+      "registered_at": "2026-05-04T16:40:20.603Z",
+      "last_active": "2026-05-04T17:38:39.376Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "name": "شیوا",
+      "age": 14,
+      "phone": "09138544236",
+      "registered_at": "2026-05-04T17:28:39.829Z",
+      "last_active": "2026-05-04T17:39:07.035Z"
     }
   ],
   "events": [
@@ -2670,6 +2726,377 @@
       "category": "general",
       "metadata": "{\"responseLength\":527,\"requestId\":\"mor1rz3j-bfhhqv\"}",
       "created_at": "2026-05-04T10:19:20.398Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"morgeeq9-2o71br\"}",
+      "created_at": "2026-05-04T17:08:39.076Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":419,\"requestId\":\"morgeeq9-2o71br\"}",
+      "created_at": "2026-05-04T17:08:41.541Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"morgz8e6-pxn8qh\"}",
+      "created_at": "2026-05-04T17:24:50.641Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":579,\"requestId\":\"morgz8e6-pxn8qh\"}",
+      "created_at": "2026-05-04T17:24:53.612Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":6,\"requestId\":\"morh4o02-8qk4x2\"}",
+      "created_at": "2026-05-04T17:29:04.139Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":315,\"requestId\":\"morh4o02-8qk4x2\"}",
+      "created_at": "2026-05-04T17:29:06.559Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"morh5d6n-v5x7t3\"}",
+      "created_at": "2026-05-04T17:29:36.777Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":286,\"requestId\":\"morh5d6n-v5x7t3\"}",
+      "created_at": "2026-05-04T17:29:38.262Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":38,\"requestId\":\"morh5rzh-vh769y\"}",
+      "created_at": "2026-05-04T17:29:55.960Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":394,\"requestId\":\"morh5rzh-vh769y\"}",
+      "created_at": "2026-05-04T17:29:57.752Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":28,\"requestId\":\"morh77ta-hr2vgi\"}",
+      "created_at": "2026-05-04T17:31:03.131Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":462,\"requestId\":\"morh77ta-hr2vgi\"}",
+      "created_at": "2026-05-04T17:31:05.602Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":21,\"requestId\":\"morh8gax-j5qb8c\"}",
+      "created_at": "2026-05-04T17:32:00.850Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":416,\"requestId\":\"morh8gax-j5qb8c\"}",
+      "created_at": "2026-05-04T17:32:02.885Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":44,\"requestId\":\"morh9u3s-4d3ct3\"}",
+      "created_at": "2026-05-04T17:33:05.328Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":379,\"requestId\":\"morh9u3s-4d3ct3\"}",
+      "created_at": "2026-05-04T17:33:07.455Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":21,\"requestId\":\"morhat06-6yvnlh\"}",
+      "created_at": "2026-05-04T17:33:50.566Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":722,\"requestId\":\"morhat06-6yvnlh\"}",
+      "created_at": "2026-05-04T17:33:53.337Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"morhcd7o-qw3b78\"}",
+      "created_at": "2026-05-04T17:35:03.409Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":686,\"requestId\":\"morhcd7o-qw3b78\"}",
+      "created_at": "2026-05-04T17:35:06.762Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":13,\"requestId\":\"morhd56r-o3ueze\"}",
+      "created_at": "2026-05-04T17:35:39.709Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":374,\"requestId\":\"morhd56r-o3ueze\"}",
+      "created_at": "2026-05-04T17:35:41.626Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":20,\"requestId\":\"morhf6og-5pcklh\"}",
+      "created_at": "2026-05-04T17:37:14.966Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":461,\"requestId\":\"morhf6og-5pcklh\"}",
+      "created_at": "2026-05-04T17:37:17.283Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"morhg71h-whib9q\"}",
+      "created_at": "2026-05-04T17:38:02.034Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":686,\"requestId\":\"morhg71h-whib9q\"}",
+      "created_at": "2026-05-04T17:38:04.170Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"morhgasf-qj5cgh\"}",
+      "created_at": "2026-05-04T17:38:06.896Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":686,\"requestId\":\"morhgasf-qj5cgh\"}",
+      "created_at": "2026-05-04T17:38:08.990Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":14,\"requestId\":\"morhgg16-r4qjg1\"}",
+      "created_at": "2026-05-04T17:38:13.680Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":14,\"requestId\":\"morhgj0f-mgnflm\"}",
+      "created_at": "2026-05-04T17:38:17.539Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":313,\"requestId\":\"morhgj0f-mgnflm\"}",
+      "created_at": "2026-05-04T17:38:19.505Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"morhgy0y-0evroz\"}",
+      "created_at": "2026-05-04T17:38:37.014Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":686,\"requestId\":\"morhgy0y-0evroz\"}",
+      "created_at": "2026-05-04T17:38:39.376Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":5,\"requestId\":\"morhhjpx-8d7str\"}",
+      "created_at": "2026-05-04T17:39:05.115Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":381,\"requestId\":\"morhhjpx-8d7str\"}",
+      "created_at": "2026-05-04T17:39:07.035Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mosa0wpy-trlc3w\"}",
+      "created_at": "2026-05-05T06:57:57.717Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":261,\"requestId\":\"mosa0wpy-trlc3w\"}",
+      "created_at": "2026-05-05T06:57:59.807Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":34,\"requestId\":\"mosa3ja3-fpok1p\"}",
+      "created_at": "2026-05-05T07:00:00.230Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":349,\"requestId\":\"mosa3ja3-fpok1p\"}",
+      "created_at": "2026-05-05T07:00:07.456Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mosaehf0-1pqe29\"}",
+      "created_at": "2026-05-05T07:08:31.072Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":266,\"requestId\":\"mosaehf0-1pqe29\"}",
+      "created_at": "2026-05-05T07:08:33.009Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":23,\"requestId\":\"mosaez6n-5w9bca\"}",
+      "created_at": "2026-05-05T07:08:54.058Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":373,\"requestId\":\"mosaez6n-5w9bca\"}",
+      "created_at": "2026-05-05T07:08:55.885Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":27,\"requestId\":\"mosafpcq-ch1323\"}",
+      "created_at": "2026-05-05T07:09:27.974Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":382,\"requestId\":\"mosafpcq-ch1323\"}",
+      "created_at": "2026-05-05T07:09:29.704Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":38,\"requestId\":\"mosaglds-811lre\"}",
+      "created_at": "2026-05-05T07:10:09.486Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":483,\"requestId\":\"mosaglds-811lre\"}",
+      "created_at": "2026-05-05T07:10:11.334Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":38,\"requestId\":\"mosakk0p-x47lge\"}",
+      "created_at": "2026-05-05T07:13:14.413Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":674,\"requestId\":\"mosakk0p-x47lge\"}",
+      "created_at": "2026-05-05T07:13:17.241Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":25,\"requestId\":\"mosal7e2-c6ei41\"}",
+      "created_at": "2026-05-05T07:13:44.632Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":696,\"requestId\":\"mosal7e2-c6ei41\"}",
+      "created_at": "2026-05-05T07:13:47.622Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"mosam3s3-xpsgp2\"}",
+      "created_at": "2026-05-05T07:14:26.608Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":637,\"requestId\":\"mosam3s3-xpsgp2\"}",
+      "created_at": "2026-05-05T07:14:29.753Z"
     }
   ],
   "errors": [

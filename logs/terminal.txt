@@ -1,22 +1,31 @@
-(node:15724) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:14496) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[19:29:06] FRONTEND 
-[19:29:06] FRONTEND > hemraz-frontend@1.0.0 dev
-[19:29:06] FRONTEND > vite
-[19:29:06] FRONTEND 
-[19:29:06] BACKEND 
-[19:29:06] BACKEND > hemraz-backend@1.0.0 dev
-[19:29:06] BACKEND > nodemon --config nodemon.json src/server.js
-[19:29:06] BACKEND 
-[19:29:06] BACKEND [33m[nodemon] 3.1.14[39m
-[19:29:06] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[19:29:06] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[19:29:06] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[19:29:06] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[19:29:06] FRONTEND 
-[19:29:06] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m318[22m[2m[0m ms[22m
-[19:29:06] FRONTEND 
-[19:29:06] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[19:29:06] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.179.229.176:[1m5173[22m/[39m
-[19:29:06] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[19:29:07] BACKEND [2026-05-04T15:59:07.036Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[10:43:03] FRONTEND 
+[10:43:03] FRONTEND > hemraz-frontend@1.0.0 dev
+[10:43:03] FRONTEND > vite
+[10:43:03] FRONTEND 
+[10:43:03] BACKEND 
+[10:43:03] BACKEND > hemraz-backend@1.0.0 dev
+[10:43:03] BACKEND > nodemon --config nodemon.json src/server.js
+[10:43:03] BACKEND 
+[10:43:03] BACKEND [33m[nodemon] 3.1.14[39m
+[10:43:03] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[10:43:03] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[10:43:03] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[10:43:03] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[10:43:03] FRONTEND 
+[10:43:03] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m304[22m[2m[0m ms[22m
+[10:43:03] FRONTEND 
+[10:43:03] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[10:43:03] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.148:[1m5173[22m/[39m
+[10:43:03] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[10:43:03] BACKEND [2026-05-05T07:13:03.535Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[10:43:14] BACKEND [2026-05-05T07:13:14.329Z] [HTTP] request_started {"requestId":"mosakk0p-x47lge","method":"POST","path":"/api/chat"}
+[10:43:14] BACKEND [2026-05-05T07:13:14.335Z] [CHAT] incoming_message {"requestId":"mosakk0p-x47lge","hasProfile":true,"historyCount":9,"messageLength":38}
+[10:43:17] BACKEND [2026-05-05T07:13:17.300Z] [HTTP] request_finished {"requestId":"mosakk0p-x47lge","method":"POST","path":"/api/chat","status":200,"durationMs":2971}
+[10:43:44] BACKEND [2026-05-05T07:13:44.618Z] [HTTP] request_started {"requestId":"mosal7e2-c6ei41","method":"POST","path":"/api/chat"}
+[10:43:44] BACKEND [2026-05-05T07:13:44.618Z] [CHAT] incoming_message {"requestId":"mosal7e2-c6ei41","hasProfile":true,"historyCount":11,"messageLength":25}
+[10:43:47] BACKEND [2026-05-05T07:13:47.649Z] [HTTP] request_finished {"requestId":"mosal7e2-c6ei41","method":"POST","path":"/api/chat","status":200,"durationMs":3031}
+[10:44:26] BACKEND [2026-05-05T07:14:26.595Z] [HTTP] request_started {"requestId":"mosam3s3-xpsgp2","method":"POST","path":"/api/chat"}
+[10:44:26] BACKEND [2026-05-05T07:14:26.595Z] [CHAT] incoming_message {"requestId":"mosam3s3-xpsgp2","hasProfile":true,"historyCount":13,"messageLength":3}
+[10:44:29] BACKEND [2026-05-05T07:14:29.774Z] [HTTP] request_finished {"requestId":"mosam3s3-xpsgp2","method":"POST","path":"/api/chat","status":200,"durationMs":3178}

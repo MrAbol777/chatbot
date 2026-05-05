@@ -263,7 +263,10 @@ function App() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string>('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(min-width: 1024px)').matches;
+  });
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileFormName, setProfileFormName] = useState('');
   const [profileFormAge, setProfileFormAge] = useState('');
@@ -301,11 +304,35 @@ function App() {
   );
 
   useEffect(() => {
+    const loadProfile = () => {
+      try {
+        const rawProfile = localStorage.getItem(PROFILE_KEY);
+        console.log('[DEBUG] rawProfile on load:', rawProfile);
+        if (!rawProfile) return null;
+
+        const parsed = JSON.parse(rawProfile) as Partial<AppProfile>;
+        if (!parsed?.name || typeof parsed.name !== 'string' || !Number.isFinite(Number(parsed.age))) {
+          console.warn('[DEBUG] Invalid profile structure');
+          return null;
+        }
+
+        const hydrated: AppProfile = {
+          ...parsed,
+          age: Number(parsed.age),
+          personality: normalizePersonality(parsed.personality)
+        };
+        return hydrated;
+      } catch (err) {
+        console.error('[DEBUG] Failed to load profile:', err);
+        return null;
+      }
+    };
+
     try {
-      const rawProfile = localStorage.getItem(PROFILE_KEY);
       const rawProfiles = localStorage.getItem(PROFILES_KEY);
       const rawConversations = localStorage.getItem(CONVERSATIONS_KEY);
       const savedActiveConversationId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
+
       if (rawProfiles) {
         const parsedProfiles = JSON.parse(rawProfiles) as AppProfile[];
         if (Array.isArray(parsedProfiles) && parsedProfiles.length > 0) {
@@ -313,17 +340,13 @@ function App() {
         }
       }
 
-      if (rawProfile) {
-        const parsedProfile = JSON.parse(rawProfile) as AppProfile;
-        if (
-          parsedProfile &&
-          typeof parsedProfile.name === 'string' &&
-          Number.isFinite(Number(parsedProfile.age))
-        ) {
-          setHasSavedAccount(true);
-        } else {
-          localStorage.removeItem(PROFILE_KEY);
-        }
+      const profileData = loadProfile();
+      if (profileData) {
+        setProfile(profileData);
+        setLandingStep('chat');
+        setHasSavedAccount(true);
+      } else {
+        setLandingStep('landing');
       }
 
       if (rawConversations) {
@@ -351,6 +374,12 @@ function App() {
       setActiveConversationId(fallbackConversation.id);
     }
   }, []);
+
+  useEffect(() => {
+    if (profile) {
+      setLandingStep('chat');
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (!profile || !showProfileModal) {
@@ -554,6 +583,8 @@ function App() {
       return;
     }
 
+    const normalizePhone = (value: string) => value.trim().replace(/[-\s]/g, '');
+    const normalizedPhone = normalizePhone(trimmedPhone);
     const rawProfiles = localStorage.getItem('chat_profiles');
     const rawProfile = localStorage.getItem('chat_profile');
     const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
@@ -563,17 +594,12 @@ function App() {
     }
 
     const phoneExists = profilePool.some((item) => {
-      const savedPhone = typeof item?.phone === 'string' ? item.phone.trim() : '';
-      return savedPhone === trimmedPhone;
+      const savedPhone = typeof item?.phone === 'string' ? normalizePhone(item.phone) : '';
+      return savedPhone === normalizedPhone;
     });
 
     if (authMode === 'signup' && phoneExists) {
       setErrors({ phone: 'این شماره قبلاً ثبت‌نام شده است' });
-      return;
-    }
-
-    if (authMode === 'login' && !phoneExists) {
-      setErrors({ phone: 'حسابی با این شماره یافت نشد' });
       return;
     }
 
@@ -601,6 +627,8 @@ function App() {
     event.preventDefault();
 
     const trimmedPhone = phone.trim();
+    const normalizePhone = (value: string) => value.trim().replace(/[-\s]/g, '');
+    const normalizedPhone = normalizePhone(trimmedPhone);
     const trimmedCode = verificationCode.trim();
     const nextErrors: { code?: string } = {};
 
@@ -628,25 +656,35 @@ function App() {
         }
 
         const matchedProfile = profilePool.find((item) => {
-          const savedPhone = typeof item?.phone === 'string' ? item.phone.trim() : '';
-          return savedPhone === trimmedPhone;
+          const savedPhone = typeof item?.phone === 'string' ? normalizePhone(item.phone) : '';
+          return savedPhone === normalizedPhone;
         });
 
-        if (!matchedProfile) {
-          setErrors({ code: 'حسابی با این شماره یافت نشد.' });
-          return;
-        }
+        const normalizedProfile: AppProfile = matchedProfile
+          ? {
+              ...matchedProfile,
+              age: Number(matchedProfile.age),
+              phone: trimmedPhone,
+              id: matchedProfile.id ?? generateUniqueId(),
+              personality: normalizePersonality(matchedProfile.personality)
+            }
+          : {
+              name: 'کاربر',
+              age: 0,
+              phone: trimmedPhone,
+              id: generateUniqueId(),
+              personality: createDefaultPersonality()
+            };
 
-        const normalizedProfile: AppProfile = {
-          ...matchedProfile,
-          age: Number(matchedProfile.age),
-          phone: trimmedPhone,
-          id: matchedProfile.id ?? generateUniqueId(),
-          personality: normalizePersonality(matchedProfile.personality)
-        };
-
+        await registerProfile({
+          name: normalizedProfile.name,
+          age: Number(normalizedProfile.age),
+          phone: normalizedProfile.phone || trimmedPhone,
+          id: normalizedProfile.id ?? generateUniqueId()
+        });
         setProfile(normalizedProfile);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(normalizedProfile));
+        setLandingStep('chat');
         return;
       }
 
@@ -658,23 +696,24 @@ function App() {
         personality: createDefaultPersonality()
       };
 
-      setProfile(payload);
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
-      const rawProfiles = localStorage.getItem(PROFILES_KEY);
-      const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
-      const profiles = Array.isArray(parsedProfiles) ? parsedProfiles : [];
-      const withoutSamePhone = profiles.filter((item) => {
-        const savedPhone = typeof item?.phone === 'string' ? item.phone.trim() : '';
-        return savedPhone !== trimmedPhone;
-      });
-      localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, payload]));
-      setHasSavedAccount(true);
       await registerProfile({
         name: payload.name,
         age: Number(payload.age),
         phone: payload.phone || trimmedPhone,
         id: payload.id ?? generateUniqueId()
       });
+      setProfile(payload);
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
+      setLandingStep('chat');
+      const rawProfiles = localStorage.getItem(PROFILES_KEY);
+      const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
+      const profiles = Array.isArray(parsedProfiles) ? parsedProfiles : [];
+      const withoutSamePhone = profiles.filter((item) => {
+        const savedPhone = typeof item?.phone === 'string' ? normalizePhone(item.phone) : '';
+        return savedPhone !== normalizedPhone;
+      });
+      localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, payload]));
+      setHasSavedAccount(true);
     } catch (error) {
       setErrors({
         code: error instanceof Error && error.message.trim() ? error.message : 'کد نادرست است'
@@ -839,6 +878,34 @@ function App() {
     setInputValue('');
     localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify([freshConversation]));
     localStorage.setItem(ACTIVE_CONVERSATION_KEY, freshConversation.id);
+  };
+
+  const handleDownloadActiveConversation = () => {
+    if (!activeConversation) {
+      alert('گفتگوی فعالی برای ذخیره وجود ندارد.');
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const exportTime = new Date().toLocaleString('fa-IR');
+    const safeTitle = (activeConversation.title || DEFAULT_TITLE).trim();
+    const messagesText = activeConversation.messages
+      .map((message) => `${message.role === 'user' ? 'شما' : 'دانوآ'}: ${message.content}`)
+      .join('\n\n');
+
+    const content = [`عنوان گفتگو: ${safeTitle}`, `تاریخ ذخیره: ${exportTime}`, '', messagesText || 'این گفتگو هنوز پیامی ندارد.'].join(
+      '\n'
+    );
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    const objectUrl = URL.createObjectURL(blob);
+    link.href = objectUrl;
+    link.download = `گفتگو-${today}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
   };
 
   const handleLogout = () => {
@@ -1156,7 +1223,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell chat-shell">
+    <div className={`app-shell chat-shell ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="bg-blob blob-pink" />
       <div className="bg-blob blob-orange" />
       <div className="bg-blob blob-yellow" />
@@ -1164,7 +1231,13 @@ function App() {
 
       <div className="chat-card">
         <header className="top-bar">
-          <button className="menu-btn" onClick={() => setSidebarOpen((prev) => !prev)} type="button" aria-label="منو">
+          <button
+            className="menu-btn"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            type="button"
+            aria-label="منو"
+            aria-expanded={sidebarOpen}
+          >
             ☰
           </button>
           <div className="top-title">
@@ -1259,6 +1332,10 @@ function App() {
           </div>
 
           <div className="sidebar-footer">
+            <button type="button" onClick={handleDownloadActiveConversation} title="ذخیره گفتگوی جاری">
+              <span aria-hidden="true">📥</span>
+              ذخیره گفتگو
+            </button>
             <button type="button" onClick={() => setShowProfileModal(true)}>
               <span aria-hidden="true">⚙️</span>
               تنظیمات پروفایل
