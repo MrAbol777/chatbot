@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessage, Conversation, UserProfile } from './types';
@@ -7,6 +7,7 @@ const PROFILE_KEY = 'chat_profile';
 const PROFILES_KEY = 'chat_profiles';
 const CONVERSATIONS_KEY = 'chat_conversations';
 const ACTIVE_CONVERSATION_KEY = 'chat_active_conversation_id';
+const THEME_KEY = 'danoa_theme';
 const DEFAULT_TITLE = 'گفتگوی جدید';
 const WAITING_MESSAGES = [
   'در حال یافتن پاسخ',
@@ -19,7 +20,7 @@ const CHAT_MAX_RETRIES = 1;
 
 type AppProfile = UserProfile & { id?: number | string };
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
-type LandingStep = 'landing' | 'login' | 'signup';
+type LandingStep = 'landing' | 'login' | 'signup' | 'chat';
 type PersonalityProfile = {
   interests: string[];
   preferredStyle: 'formal' | 'casual' | 'playful';
@@ -120,6 +121,7 @@ const updatePersonalityFromMessage = (current: PersonalityProfile, message: stri
 
 const postChatWithRetry = async (payload: {
   message: string;
+  image?: string;
   profile: UserProfile;
   personality: PersonalityProfile;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -244,6 +246,7 @@ const inferTitle = (text: string): string => {
 };
 
 const generateUniqueId = () => Date.now() + Math.floor(Math.random() * 10000);
+const getDefaultThemeByAge = (age: number): 'energy' | 'calm' => (age < 13 ? 'energy' : 'calm');
 
 function App() {
   const [profile, setProfile] = useState<AppProfile | null>(null);
@@ -271,8 +274,12 @@ function App() {
   const [profileFormName, setProfileFormName] = useState('');
   const [profileFormAge, setProfileFormAge] = useState('');
   const [profileFormErrors, setProfileFormErrors] = useState<{ name?: string; age?: string }>({});
+  const [theme, setTheme] = useState<'energy' | 'calm'>('energy');
 
   const [inputValue, setInputValue] = useState('');
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [waitingTextIndex, setWaitingTextIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -291,6 +298,8 @@ function App() {
   const messagesContainerRef = useRef<HTMLElement | null>(null);
   const inputAreaRef = useRef<HTMLElement | null>(null);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentBoxRef = useRef<HTMLDivElement | null>(null);
 
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === activeConversationId) ?? null,
@@ -302,6 +311,19 @@ function App() {
     () => (activeConversation ? activeConversation.messages.map((item) => item.role).lastIndexOf('assistant') : -1),
     [activeConversation]
   );
+
+  const applyTheme = (newTheme: 'energy' | 'calm', persist = true) => {
+    const root = document.documentElement;
+    if (newTheme === 'calm') {
+      root.classList.add('theme-calm');
+    } else {
+      root.classList.remove('theme-calm');
+    }
+    if (persist) {
+      localStorage.setItem(THEME_KEY, newTheme);
+    }
+    setTheme(newTheme);
+  };
 
   useEffect(() => {
     const loadProfile = () => {
@@ -318,6 +340,7 @@ function App() {
 
         const hydrated: AppProfile = {
           ...parsed,
+          name: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : 'کاربر',
           age: Number(parsed.age),
           personality: normalizePersonality(parsed.personality)
         };
@@ -341,6 +364,16 @@ function App() {
       }
 
       const profileData = loadProfile();
+      const savedTheme = localStorage.getItem(THEME_KEY) as 'energy' | 'calm' | null;
+      if (savedTheme === 'energy' || savedTheme === 'calm') {
+        applyTheme(savedTheme, false);
+      } else if (profileData) {
+        const defaultTheme = getDefaultThemeByAge(profileData.age);
+        applyTheme(defaultTheme, false);
+      } else {
+        applyTheme('energy', false);
+      }
+
       if (profileData) {
         setProfile(profileData);
         setLandingStep('chat');
@@ -424,6 +457,24 @@ function App() {
       window.clearInterval(intervalId);
     };
   }, [isSending]);
+
+  useEffect(() => {
+    if (!attachmentMenuOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (attachmentBoxRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setAttachmentMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [attachmentMenuOpen]);
 
   useLayoutEffect(() => {
     const container = messagesContainerRef.current;
@@ -729,7 +780,7 @@ function App() {
     }
 
     const content = (value ?? inputValue).trim();
-    if (!content) {
+    if (!content && !imageBase64) {
       return;
     }
 
@@ -772,11 +823,16 @@ function App() {
 
       const response = await postChatWithRetry({
         message: content,
+        image: imageBase64 ?? undefined,
         profile: nextProfile,
         personality: nextPersonality,
         history,
         conversationId: currentConversation.id
       });
+
+      if (imageBase64) {
+        console.log('تصویر آماده ارسال است');
+      }
 
       if (!response.ok) {
         const message = await buildRequestErrorMessage(response);
@@ -797,6 +853,8 @@ function App() {
         messages: [...item.messages, botMessage],
         updatedAt: new Date().toISOString()
       }));
+      setImageBase64(null);
+      setImagePreview(null);
     } catch (error) {
       const fallbackText =
         error instanceof Error && error.message.trim()
@@ -815,7 +873,51 @@ function App() {
       }));
     } finally {
       setIsSending(false);
+      setAttachmentMenuOpen(false);
     }
+  };
+
+  const handlePickImageClick = () => {
+    setAttachmentMenuOpen(false);
+    imageInputRef.current?.click();
+  };
+
+  const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      alert('فایل انتخابی تصویر نیست.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('حداکثر حجم عکس باید ۵ مگابایت باشد.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      if (!result) {
+        alert('خواندن تصویر ناموفق بود. دوباره تلاش کن.');
+        return;
+      }
+      setImageBase64(result);
+      setImagePreview(result);
+    };
+    reader.onerror = () => {
+      alert('خواندن تصویر ناموفق بود. دوباره تلاش کن.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImageBase64(null);
+    setImagePreview(null);
   };
 
   useEffect(() => {
@@ -1003,6 +1105,11 @@ function App() {
 
     setProfile(nextProfile);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    if (!savedTheme) {
+      const newDefaultTheme = getDefaultThemeByAge(nextProfile.age);
+      applyTheme(newDefaultTheme, false);
+    }
     setShowProfileModal(false);
   };
 
@@ -1386,6 +1493,26 @@ function App() {
                 <code>{String(profile.id ?? '')}</code>
               </div>
 
+              <div className="profile-section">
+                <label>تم سایت</label>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    className={`theme-btn ${theme === 'energy' ? 'active' : ''}`}
+                    onClick={() => applyTheme('energy')}
+                  >
+                    انرژی
+                  </button>
+                  <button
+                    type="button"
+                    className={`theme-btn ${theme === 'calm' ? 'active' : ''}`}
+                    onClick={() => applyTheme('calm')}
+                  >
+                    آرامش
+                  </button>
+                </div>
+              </div>
+
               <div className="parent-panel-soon">پنل والد به زودی فعال می‌شود</div>
 
               <div className="modal-buttons">
@@ -1465,22 +1592,61 @@ function App() {
             </button>
           </div>
 
+          {imagePreview ? (
+            <div className="image-thumb-wrap">
+              <img className="image-thumb" src={imagePreview} alt="تصویر انتخاب‌شده" />
+              <button className="remove-thumb-btn" type="button" aria-label="حذف تصویر" onClick={handleRemoveImage}>
+                ❌
+              </button>
+            </div>
+          ) : null}
+
           <div className="input-row">
-            <textarea
-              ref={messageInputRef}
-              rows={1}
-              value={inputValue}
-              disabled={isRecording}
-              onChange={(event) => setInputValue(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault();
-                  void handleSendMessage();
-                }
-              }}
-              placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیامت را اینجا بنویس...'}
-              aria-label="نوشتن پیام"
-            />
+            <div className="message-field">
+              <textarea
+                ref={messageInputRef}
+                rows={1}
+                value={inputValue}
+                disabled={isRecording}
+                onChange={(event) => setInputValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    void handleSendMessage();
+                  }
+                }}
+                placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیامت را اینجا بنویس...'}
+                aria-label="نوشتن پیام"
+              />
+              <div className="attachment-box" ref={attachmentBoxRef}>
+                <button
+                  className="attach-btn"
+                  type="button"
+                  aria-label="پیوست"
+                  onClick={() => setAttachmentMenuOpen((prev) => !prev)}
+                >
+                  📎
+                </button>
+                {attachmentMenuOpen ? (
+                  <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
+                    <button type="button" onClick={handlePickImageClick}>
+                      📷 ارسال عکس
+                    </button>
+                    <button
+                      type="button"
+                      className="menu-item-disabled"
+                      onClick={() => {
+                        setAttachmentMenuOpen(false);
+                        alert('به زودی فعال میشه این بخش ...');
+                      }}
+                    >
+                      📄 ارسال فایل
+                    </button>
+                  </div>
+                ) : null}
+                <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImageSelect} />
+              </div>
+            </div>
 
             {isRecording ? (
               <>

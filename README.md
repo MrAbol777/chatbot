@@ -1,69 +1,84 @@
-دانوآ ( چت بات برای کودکان )
-یک چت بات فارسی امن و صمیمی برای سنین 8 تا 18 سال، ساخته شده با React + TypeScript + Vite در فرانت اند و Node.js + Express در بک اند.
+دانوآ (چت‌بات فارسی کودک و نوجوان)
+
+یک چت‌بات امن و دوستانه برای سنین ۸ تا ۱۸ سال با `React + TypeScript + Vite` در فرانت‌اند و `Node.js + Express` در بک‌اند.
 
 ## امکانات اصلی
 
-- ثبت نام کاربر با نام، سن (8 تا 18) و جنسیت اجباری
-- ذخیره پروفایل و تاریخچه گفتگوها در `localStorage`
-- مدیریت کامل گفتگوها (گفتگوی جدید، سنجاق، تغییر نام، حذف)
+- ورود/ثبت‌نام با شماره موبایل و کد تأیید
+- ذخیره پروفایل، مکالمه‌ها و تنظیمات در `localStorage`
+- مدیریت مکالمه‌ها (گفتگوی جدید، سنجاق، تغییر نام، حذف)
 - ورودی صوتی فارسی با Web Speech API (`fa-IR`)
-- ارسال پیام به بک اند و پراکسی به GapGPT API
-- رابط کاربری RTL با طراحی شاد، مدرن و واکنش گرا
+- پشتیبانی از انتخاب تم (`energy` و `calm`)
+- امکان انتخاب تصویر از UI چت (پیش‌نمایش و حذف قبل از ارسال)
+- رابط RTL واکنش‌گرا با طراحی مناسب کودک/نوجوان
+
+## تغییرات جدید
+
+- مهاجرت سرویس مدل از GapGPT به Gemini (از طریق `GEMINI_BASE_URL`)
+- اضافه شدن احراز هویت پیامکی در بک‌اند:
+  - `POST /api/send-verification-code`
+  - `POST /api/verify-code`
+  - `POST /api/register-profile`
+- اضافه شدن `GET /api/admin/stats` با `ADMIN_API_KEY`
+- اضافه شدن اسکریپت توسعه با لاگ فایل (`logs/terminal.txt`)
 
 ## ساختار پروژه
 
-```
+```text
 project-root/
 ├── frontend/
 ├── backend/
+├── logs/
+├── scripts/
 ├── package.json
-├── README.md
-└── .gitignore
+└── README.md
 ```
 
-## پیش نیازها
+## پیش‌نیازها
 
-- Node.js نسخه 18 یا بالاتر
-- npm
+- `Node.js` نسخه ۱۸ یا بالاتر
+- `npm`
 
-## راه اندازی
+## راه‌اندازی
 
-1. نصب وابستگی ها از ریشه پروژه:
+1) نصب وابستگی‌ها از ریشه پروژه:
 
 ```bash
 npm run install-all
 ```
 
-2. ساخت فایل محیطی بک اند:
+2) ساخت فایل محیطی بک‌اند:
 
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-3. مقداردهی `backend/.env`:
+3) تنظیم `backend/.env`:
 
 ```env
-GAPGPT_API_KEY=your_real_key
-GAPGPT_BASE_URL=https://api.gapgpt.app/v1
-GAPGPT_MODEL=gpt-4o
+GEMINI_API_KEY=your_metis_key
+GEMINI_BASE_URL=https://api.metisai.ir
+GEMINI_MODEL=gemini-2.0-flash
+GAPGPT_TIMEOUT_MS=30000
+ADMIN_API_KEY=your-secret-key
 PORT=3001
 ```
 
-4. اجرای هم زمان فرانت و بک اند:
+4) اجرای همزمان فرانت و بک‌اند:
 
 ```bash
 npm run dev
 ```
 
-- فرانت اند: `http://localhost:5173`
-- بک اند: `http://localhost:3001`
+- فرانت‌اند: `http://localhost:5173`
+- بک‌اند: `http://localhost:3001`
 
-## اسکریپت ها
+## اسکریپت‌ها
 
 ### ریشه پروژه
 
-- `npm run install-all`: نصب وابستگی های `frontend` و `backend`
-- `npm run dev`: اجرای هم زمان هر دو سرویس
+- `npm run install-all`: نصب وابستگی‌های `frontend` و `backend`
+- `npm run dev`: اجرای همزمان دو سرویس + ثبت لاگ در `logs/terminal.txt`
 
 ### frontend
 
@@ -78,6 +93,6 @@ npm run dev
 
 ## نکات
 
-- فرانت اند هیچ API Key نگه نمی دارد و فقط به `/api/chat` درخواست می فرستد.
-- بک اند سیستم پرامپت پویا می سازد و پاسخ آماده یا از پیش نوشته را هاردکد نمی کند.
-- برای استفاده از ورودی صوتی، مرورگر باید دسترسی میکروفن داشته باشد.
+- فرانت‌اند هیچ API Key نگه نمی‌دارد و فقط به API بک‌اند درخواست می‌فرستد.
+- بک‌اند برای هر پیام، پرامپت پویا بر اساس پروفایل و تاریخچه می‌سازد.
+- برای ورودی صوتی، مرورگر باید دسترسی میکروفون داشته باشد.
