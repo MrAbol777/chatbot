@@ -86,3 +86,6 @@
 [14:20:01] BACKEND [32m[nodemon] restarting due to changes...[39m
 [14:20:02] BACKEND [32m[nodemon] starting `node src/server.js`[39m
 [14:20:02] BACKEND [2026-05-07T10:50:02.524Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[14:27:44] BACKEND [32m[nodemon] restarting due to changes...[39m
+[14:27:45] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[14:27:45] BACKEND [2026-05-07T10:57:45.582Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}

@@ -22,7 +22,15 @@ const log = (scope, message, meta) => {
   console.log(`[${now()}] [${scope}] ${message}`);
 };
 
-const port = Number(process.env.PORT || 3000);
+const normalizePort = (value, fallback = 3000) => {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  if (Number.isInteger(parsed) && parsed > 0 && parsed <= 65535) {
+    return parsed;
+  }
+  return fallback;
+};
+
+const port = normalizePort(process.env.PORT, 3000);
 const host = '0.0.0.0';
 const geminiBaseUrl = (process.env.GEMINI_BASE_URL || 'https://api.metisai.ir').replace(/\/+$/, '');
 const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
@@ -605,6 +613,15 @@ app.get('/api/health', (_req, res) => {
     model: geminiModel,
     baseUrl: geminiBaseUrl
   });
+});
+
+// Compatibility health endpoints for platform probes.
+app.get('/health', (_req, res) => {
+  res.status(200).send('ok');
+});
+
+app.get('/healthz', (_req, res) => {
+  res.status(200).send('ok');
 });
 
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
