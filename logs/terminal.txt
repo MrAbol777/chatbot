@@ -24,3 +24,9 @@
 [13:44:14] BACKEND [32m[nodemon] restarting due to changes...[39m
 [13:44:14] BACKEND [32m[nodemon] starting `node src/server.js`[39m
 [13:44:14] BACKEND [2026-05-07T10:14:14.503Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[14:00:33] BACKEND [2026-05-07T10:30:33.207Z] [HTTP] request_started {"requestId":"movci0af-7kjzoq","method":"POST","path":"/api/chat"}
+[14:00:33] BACKEND [2026-05-07T10:30:33.209Z] [CHAT] incoming_message {"requestId":"movci0af-7kjzoq","hasProfile":true,"historyCount":1,"messageLength":50}
+[14:00:36] BACKEND [2026-05-07T10:30:36.595Z] [HTTP] request_finished {"requestId":"movci0af-7kjzoq","method":"POST","path":"/api/chat","status":200,"durationMs":3388}
+[14:02:40] BACKEND [2026-05-07T10:32:40.901Z] [HTTP] request_started {"requestId":"movckqth-skodkn","method":"POST","path":"/api/chat"}
+[14:02:40] BACKEND [2026-05-07T10:32:40.903Z] [CHAT] incoming_message {"requestId":"movckqth-skodkn","hasProfile":true,"historyCount":3,"messageLength":3}
+[14:02:43] BACKEND [2026-05-07T10:32:43.787Z] [HTTP] request_finished {"requestId":"movckqth-skodkn","method":"POST","path":"/api/chat","status":200,"durationMs":2886}

@@ -10,6 +10,8 @@ const createEmptyDB = () => ({
   errors: []
 });
 
+let inMemoryDB = createEmptyDB();
+
 const ensureParentDir = (filePath) => {
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
@@ -38,12 +40,15 @@ const resolveDbFilePath = () => {
   }
 
   // Last resort to avoid crashing at boot in strict/containerized environments.
-  return FALLBACK_DB_FILE_PATH;
+  return null;
 };
 
 const DB_FILE_PATH = resolveDbFilePath();
 
 const ensureDBFile = () => {
+  if (!DB_FILE_PATH) {
+    return;
+  }
   ensureParentDir(DB_FILE_PATH);
   if (!fs.existsSync(DB_FILE_PATH)) {
     fs.writeFileSync(DB_FILE_PATH, JSON.stringify(createEmptyDB(), null, 2), 'utf8');
@@ -51,6 +56,13 @@ const ensureDBFile = () => {
 };
 
 const readDB = () => {
+  if (!DB_FILE_PATH) {
+    return {
+      users: Array.isArray(inMemoryDB.users) ? inMemoryDB.users : [],
+      events: Array.isArray(inMemoryDB.events) ? inMemoryDB.events : [],
+      errors: Array.isArray(inMemoryDB.errors) ? inMemoryDB.errors : []
+    };
+  }
   ensureDBFile();
 
   try {
@@ -70,6 +82,14 @@ const readDB = () => {
 };
 
 const writeDB = (data) => {
+  if (!DB_FILE_PATH) {
+    inMemoryDB = {
+      users: Array.isArray(data.users) ? data.users : [],
+      events: Array.isArray(data.events) ? data.events : [],
+      errors: Array.isArray(data.errors) ? data.errors : []
+    };
+    return;
+  }
   fs.writeFileSync(DB_FILE_PATH, JSON.stringify(data, null, 2), 'utf8');
 };
 
