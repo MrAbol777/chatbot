@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const dotenv = require('dotenv');
+const path = require('path');
 const { readDB, ensureUserExists, logEvent, logError, getStats } = require('../db');
 
 dotenv.config();
@@ -586,6 +587,12 @@ app.get('/api/health', (_req, res) => {
     model: geminiModel,
     baseUrl: geminiBaseUrl
   });
+});
+
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 
 const server = app.listen(port, () => {
