@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_FILE_PATH = path.join(__dirname, 'data.json');
+const DEFAULT_DB_FILE_PATH = path.join(__dirname, 'data.json');
+const FALLBACK_DB_FILE_PATH = '/tmp/hemraz-data.json';
 
 const createEmptyDB = () => ({
   users: [],
@@ -9,7 +10,41 @@ const createEmptyDB = () => ({
   errors: []
 });
 
+const ensureParentDir = (filePath) => {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+};
+
+const isWritableFilePath = (filePath) => {
+  try {
+    ensureParentDir(filePath);
+    const probe = `${filePath}.write-test`;
+    fs.writeFileSync(probe, 'ok', 'utf8');
+    fs.unlinkSync(probe);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+};
+
+const resolveDbFilePath = () => {
+  const envPath = typeof process.env.DB_FILE_PATH === 'string' ? process.env.DB_FILE_PATH.trim() : '';
+  const candidates = [envPath, DEFAULT_DB_FILE_PATH, FALLBACK_DB_FILE_PATH].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (isWritableFilePath(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Last resort to avoid crashing at boot in strict/containerized environments.
+  return FALLBACK_DB_FILE_PATH;
+};
+
+const DB_FILE_PATH = resolveDbFilePath();
+
 const ensureDBFile = () => {
+  ensureParentDir(DB_FILE_PATH);
   if (!fs.existsSync(DB_FILE_PATH)) {
     fs.writeFileSync(DB_FILE_PATH, JSON.stringify(createEmptyDB(), null, 2), 'utf8');
   }
