@@ -24,10 +24,12 @@ RUN cd backend && npm ci --omit=dev
 
 COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+COPY scripts/container-start.sh /app/container-start.sh
+RUN chmod +x /app/container-start.sh
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["node", "backend/src/server.js"]
+ENTRYPOINT ["/app/container-start.sh"]
