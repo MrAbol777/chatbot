@@ -74,3 +74,15 @@
 [14:08:19] BACKEND [2026-05-07T10:38:19.587Z] [HTTP] request_started {"requestId":"movcs05f-ujy52l","method":"POST","path":"/api/chat"}
 [14:08:19] BACKEND [2026-05-07T10:38:19.588Z] [CHAT] incoming_message {"requestId":"movcs05f-ujy52l","hasProfile":true,"historyCount":13,"messageLength":7}
 [14:08:22] BACKEND [2026-05-07T10:38:22.353Z] [HTTP] request_finished {"requestId":"movcs05f-ujy52l","method":"POST","path":"/api/chat","status":200,"durationMs":2766}
+[14:11:53] BACKEND [2026-05-07T10:41:53.331Z] [HTTP] request_started {"requestId":"movcwl2r-is1ifx","method":"POST","path":"/api/chat"}
+[14:11:53] BACKEND [2026-05-07T10:41:53.331Z] [CHAT] incoming_message {"requestId":"movcwl2r-is1ifx","hasProfile":true,"historyCount":15,"messageLength":16}
+[14:11:55] BACKEND [2026-05-07T10:41:55.367Z] [HTTP] request_finished {"requestId":"movcwl2r-is1ifx","method":"POST","path":"/api/chat","status":200,"durationMs":2036}
+[14:13:37] BACKEND [2026-05-07T10:43:37.874Z] [HTTP] request_started {"requestId":"movcytqq-t09zkb","method":"POST","path":"/api/chat"}
+[14:13:37] BACKEND [2026-05-07T10:43:37.874Z] [CHAT] incoming_message {"requestId":"movcytqq-t09zkb","hasProfile":true,"historyCount":1,"messageLength":36}
+[14:13:39] BACKEND [2026-05-07T10:43:39.282Z] [HTTP] request_finished {"requestId":"movcytqq-t09zkb","method":"POST","path":"/api/chat","status":200,"durationMs":1408}
+[14:13:58] BACKEND [2026-05-07T10:43:58.853Z] [HTTP] request_started {"requestId":"movcz9xh-n0burv","method":"POST","path":"/api/chat"}
+[14:13:58] BACKEND [2026-05-07T10:43:58.854Z] [CHAT] incoming_message {"requestId":"movcz9xh-n0burv","hasProfile":true,"historyCount":3,"messageLength":10}
+[14:14:00] BACKEND [2026-05-07T10:44:00.395Z] [HTTP] request_finished {"requestId":"movcz9xh-n0burv","method":"POST","path":"/api/chat","status":200,"durationMs":1542}
+[14:20:01] BACKEND [32m[nodemon] restarting due to changes...[39m
+[14:20:02] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[14:20:02] BACKEND [2026-05-07T10:50:02.524Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}

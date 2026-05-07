@@ -3,7 +3,8 @@ const cors = require('cors');
 const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
-const { readDB, ensureUserExists, logEvent, logError, getStats } = require('../db');
+const db = require('../db');
+const { readDB, ensureUserExists, logEvent, logError, getStats } = db;
 
 dotenv.config();
 
@@ -21,7 +22,8 @@ const log = (scope, message, meta) => {
   console.log(`[${now()}] [${scope}] ${message}`);
 };
 
-const port = Number(process.env.PORT || 3001);
+const port = Number(process.env.PORT || 3000);
+const host = '0.0.0.0';
 const geminiBaseUrl = (process.env.GEMINI_BASE_URL || 'https://api.metisai.ir').replace(/\/+$/, '');
 const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 const geminiApiKey = typeof process.env.GEMINI_API_KEY === 'string' ? process.env.GEMINI_API_KEY.trim() : '';
@@ -29,6 +31,22 @@ const upstreamTimeoutMs = Number(process.env.GAPGPT_TIMEOUT_MS || 30000);
 const adminApiKey = typeof process.env.ADMIN_API_KEY === 'string' ? process.env.ADMIN_API_KEY.trim() : '';
 
 const chatEndpoint = `${geminiBaseUrl}/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
+
+process.on('uncaughtException', (error) => {
+  console.error('[FATAL] uncaughtException', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] unhandledRejection', reason);
+});
+
+if (typeof db.ensureDBFile === 'function') {
+  try {
+    db.ensureDBFile();
+  } catch (error) {
+    console.error('[BOOT] ensureDBFile failed', error);
+  }
+}
 
 const normalizeHistory = (history, currentMessage) => {
   const clean = Array.isArray(history)
@@ -595,8 +613,9 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 
-const server = app.listen(port, () => {
+const server = app.listen(port, host, () => {
   log('BOOT', 'backend_started', {
+    host,
     port,
     model: geminiModel,
     baseUrl: geminiBaseUrl,

@@ -222,7 +222,7 @@
       "age": 0,
       "phone": "09134515518",
       "registered_at": "2026-05-07T07:51:11.940Z",
-      "last_active": "2026-05-07T10:38:22.326Z"
+      "last_active": "2026-05-07T10:44:00.390Z"
     }
   ],
   "events": [
@@ -3298,6 +3298,48 @@
       "category": "general",
       "metadata": "{\"responseLength\":463,\"requestId\":\"movcs05f-ujy52l\"}",
       "created_at": "2026-05-07T10:38:22.326Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"movcwl2r-is1ifx\"}",
+      "created_at": "2026-05-07T10:41:53.336Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":220,\"requestId\":\"movcwl2r-is1ifx\"}",
+      "created_at": "2026-05-07T10:41:55.364Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":36,\"requestId\":\"movcytqq-t09zkb\"}",
+      "created_at": "2026-05-07T10:43:37.880Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":177,\"requestId\":\"movcytqq-t09zkb\"}",
+      "created_at": "2026-05-07T10:43:39.279Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"movcz9xh-n0burv\"}",
+      "created_at": "2026-05-07T10:43:58.862Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":155,\"requestId\":\"movcz9xh-n0burv\"}",
+      "created_at": "2026-05-07T10:44:00.390Z"
     }
   ],
   "errors": [
