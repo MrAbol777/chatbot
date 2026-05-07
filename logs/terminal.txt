@@ -34,3 +34,8 @@
 [11:21:11] BACKEND [2026-05-07T07:51:11.922Z] [HTTP] request_finished {"requestId":"mov6t2r4-dfxa9q","method":"POST","path":"/api/verify-code","status":200,"durationMs":2}
 [11:21:11] BACKEND [2026-05-07T07:51:11.939Z] [HTTP] request_started {"requestId":"mov6t2rn-npk86l","method":"POST","path":"/api/register-profile"}
 [11:21:11] BACKEND [2026-05-07T07:51:11.943Z] [HTTP] request_finished {"requestId":"mov6t2rn-npk86l","method":"POST","path":"/api/register-profile","status":200,"durationMs":4}
+[11:49:56] BACKEND [32m[nodemon] restarting child process[39m
+[11:49:56] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[11:49:57] BACKEND [2026-05-07T08:19:57.127Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[11:50:01] BACKEND ^C^C^CTerminate batch job (Y/N)? ^CTerminate batch job (Y/N)? npm run dev --prefix backend exited with code 3221225786
+[11:50:01] FRONTEND npm run dev --prefix frontend exited with code 3221225786
