@@ -1,91 +1,27 @@
-(node:14872) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:14560) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[13:41:45] FRONTEND 
-[13:41:45] FRONTEND > hemraz-frontend@1.0.0 dev
-[13:41:45] FRONTEND > vite
-[13:41:45] FRONTEND 
-[13:41:45] BACKEND 
-[13:41:45] BACKEND > hemraz-backend@1.0.0 dev
-[13:41:45] BACKEND > nodemon --config nodemon.json src/server.js
-[13:41:45] BACKEND 
-[13:41:45] BACKEND [33m[nodemon] 3.1.14[39m
-[13:41:45] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[13:41:45] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[13:41:45] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[13:41:45] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[13:41:45] FRONTEND 
-[13:41:45] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m354[22m[2m[0m ms[22m
-[13:41:45] FRONTEND 
-[13:41:45] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[13:41:45] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.117:[1m5173[22m/[39m
-[13:41:45] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[13:41:45] BACKEND [2026-05-07T10:11:45.557Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[13:44:13] BACKEND [32m[nodemon] restarting due to changes...[39m
-[13:44:14] BACKEND [32m[nodemon] restarting due to changes...[39m
-[13:44:14] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[13:44:14] BACKEND [2026-05-07T10:14:14.503Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[14:00:33] BACKEND [2026-05-07T10:30:33.207Z] [HTTP] request_started {"requestId":"movci0af-7kjzoq","method":"POST","path":"/api/chat"}
-[14:00:33] BACKEND [2026-05-07T10:30:33.209Z] [CHAT] incoming_message {"requestId":"movci0af-7kjzoq","hasProfile":true,"historyCount":1,"messageLength":50}
-[14:00:36] BACKEND [2026-05-07T10:30:36.595Z] [HTTP] request_finished {"requestId":"movci0af-7kjzoq","method":"POST","path":"/api/chat","status":200,"durationMs":3388}
-[14:02:40] BACKEND [2026-05-07T10:32:40.901Z] [HTTP] request_started {"requestId":"movckqth-skodkn","method":"POST","path":"/api/chat"}
-[14:02:40] BACKEND [2026-05-07T10:32:40.903Z] [CHAT] incoming_message {"requestId":"movckqth-skodkn","hasProfile":true,"historyCount":3,"messageLength":3}
-[14:02:43] BACKEND [2026-05-07T10:32:43.787Z] [HTTP] request_finished {"requestId":"movckqth-skodkn","method":"POST","path":"/api/chat","status":200,"durationMs":2886}
-[14:05:08] BACKEND [2026-05-07T10:35:08.950Z] [HTTP] request_started {"requestId":"movcnx1y-dp1u14","method":"POST","path":"/api/chat"}
-[14:05:08] BACKEND [2026-05-07T10:35:08.950Z] [CHAT] incoming_message {"requestId":"movcnx1y-dp1u14","hasProfile":true,"historyCount":5,"messageLength":3}
-[14:05:09] BACKEND [32m[nodemon] restarting due to changes...[39m
-[14:05:09] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[14:05:09] FRONTEND [2m2:05:09 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/chat[39m
-[14:05:09] FRONTEND Error: read ECONNRESET
-[14:05:09] FRONTEND     at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
-[14:05:09] BACKEND D:\PROGEs\chatBot\backend\db.js:6
-[14:05:09] BACKEND let inMemoryDB = createEmptyDB();
-[14:05:09] BACKEND                  ^
-[14:05:09] BACKEND 
-[14:05:09] BACKEND ReferenceError: Cannot access 'createEmptyDB' before initialization
-[14:05:09] BACKEND     at Object.<anonymous> (D:\PROGEs\chatBot\backend\db.js:6:18)
-[14:05:09] BACKEND     at Module._compile (node:internal/modules/cjs/loader:1761:14)
-[14:05:09] BACKEND     at Object..js (node:internal/modules/cjs/loader:1893:10)
-[14:05:09] BACKEND     at Module.load (node:internal/modules/cjs/loader:1481:32)
-[14:05:09] BACKEND     at Module._load (node:internal/modules/cjs/loader:1300:12)
-[14:05:09] BACKEND     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
-[14:05:09] BACKEND     at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
-[14:05:09] BACKEND     at Module.require (node:internal/modules/cjs/loader:1504:12)
-[14:05:09] BACKEND     at require (node:internal/modules/helpers:152:16)
-[14:05:09] BACKEND     at Object.<anonymous> (D:\PROGEs\chatBot\backend\src\server.js:6:68)
-[14:05:09] BACKEND 
-[14:05:09] BACKEND Node.js v24.11.1
-[14:05:09] BACKEND [31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[14:05:09] FRONTEND [2m2:05:09 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/chat[39m
-[14:05:09] FRONTEND AggregateError [ECONNREFUSED]: 
-[14:05:09] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[14:05:09] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[14:05:15] BACKEND [32m[nodemon] restarting due to changes...[39m
-[14:05:15] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[14:05:15] BACKEND [2026-05-07T10:35:15.823Z] [BOOT] backend_started {"port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[14:06:25] BACKEND [2026-05-07T10:36:25.873Z] [HTTP] request_started {"requestId":"movcpkep-c57afz","method":"POST","path":"/api/chat"}
-[14:06:25] BACKEND [2026-05-07T10:36:25.874Z] [CHAT] incoming_message {"requestId":"movcpkep-c57afz","hasProfile":true,"historyCount":7,"messageLength":3}
-[14:06:28] BACKEND [2026-05-07T10:36:28.889Z] [HTTP] request_finished {"requestId":"movcpkep-c57afz","method":"POST","path":"/api/chat","status":200,"durationMs":3016}
-[14:06:53] BACKEND [2026-05-07T10:36:53.547Z] [HTTP] request_started {"requestId":"movcq5rf-zi6ozp","method":"POST","path":"/api/chat"}
-[14:06:53] BACKEND [2026-05-07T10:36:53.550Z] [CHAT] incoming_message {"requestId":"movcq5rf-zi6ozp","hasProfile":true,"historyCount":9,"messageLength":30}
-[14:06:56] BACKEND [2026-05-07T10:36:56.737Z] [HTTP] request_finished {"requestId":"movcq5rf-zi6ozp","method":"POST","path":"/api/chat","status":200,"durationMs":3190}
-[14:07:42] BACKEND [2026-05-07T10:37:42.771Z] [HTTP] request_started {"requestId":"movcr7qr-4gzang","method":"POST","path":"/api/chat"}
-[14:07:42] BACKEND [2026-05-07T10:37:42.771Z] [CHAT] incoming_message {"requestId":"movcr7qr-4gzang","hasProfile":true,"historyCount":11,"messageLength":28}
-[14:07:46] BACKEND [2026-05-07T10:37:46.513Z] [HTTP] request_finished {"requestId":"movcr7qr-4gzang","method":"POST","path":"/api/chat","status":200,"durationMs":3742}
-[14:08:19] BACKEND [2026-05-07T10:38:19.587Z] [HTTP] request_started {"requestId":"movcs05f-ujy52l","method":"POST","path":"/api/chat"}
-[14:08:19] BACKEND [2026-05-07T10:38:19.588Z] [CHAT] incoming_message {"requestId":"movcs05f-ujy52l","hasProfile":true,"historyCount":13,"messageLength":7}
-[14:08:22] BACKEND [2026-05-07T10:38:22.353Z] [HTTP] request_finished {"requestId":"movcs05f-ujy52l","method":"POST","path":"/api/chat","status":200,"durationMs":2766}
-[14:11:53] BACKEND [2026-05-07T10:41:53.331Z] [HTTP] request_started {"requestId":"movcwl2r-is1ifx","method":"POST","path":"/api/chat"}
-[14:11:53] BACKEND [2026-05-07T10:41:53.331Z] [CHAT] incoming_message {"requestId":"movcwl2r-is1ifx","hasProfile":true,"historyCount":15,"messageLength":16}
-[14:11:55] BACKEND [2026-05-07T10:41:55.367Z] [HTTP] request_finished {"requestId":"movcwl2r-is1ifx","method":"POST","path":"/api/chat","status":200,"durationMs":2036}
-[14:13:37] BACKEND [2026-05-07T10:43:37.874Z] [HTTP] request_started {"requestId":"movcytqq-t09zkb","method":"POST","path":"/api/chat"}
-[14:13:37] BACKEND [2026-05-07T10:43:37.874Z] [CHAT] incoming_message {"requestId":"movcytqq-t09zkb","hasProfile":true,"historyCount":1,"messageLength":36}
-[14:13:39] BACKEND [2026-05-07T10:43:39.282Z] [HTTP] request_finished {"requestId":"movcytqq-t09zkb","method":"POST","path":"/api/chat","status":200,"durationMs":1408}
-[14:13:58] BACKEND [2026-05-07T10:43:58.853Z] [HTTP] request_started {"requestId":"movcz9xh-n0burv","method":"POST","path":"/api/chat"}
-[14:13:58] BACKEND [2026-05-07T10:43:58.854Z] [CHAT] incoming_message {"requestId":"movcz9xh-n0burv","hasProfile":true,"historyCount":3,"messageLength":10}
-[14:14:00] BACKEND [2026-05-07T10:44:00.395Z] [HTTP] request_finished {"requestId":"movcz9xh-n0burv","method":"POST","path":"/api/chat","status":200,"durationMs":1542}
-[14:20:01] BACKEND [32m[nodemon] restarting due to changes...[39m
-[14:20:02] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[14:20:02] BACKEND [2026-05-07T10:50:02.524Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[14:27:44] BACKEND [32m[nodemon] restarting due to changes...[39m
-[14:27:45] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[14:27:45] BACKEND [2026-05-07T10:57:45.582Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[16:32:49] FRONTEND 
+[16:32:49] FRONTEND > hemraz-frontend@1.0.0 dev
+[16:32:49] FRONTEND > vite
+[16:32:49] FRONTEND 
+[16:32:49] BACKEND 
+[16:32:49] BACKEND > hemraz-backend@1.0.0 dev
+[16:32:49] BACKEND > nodemon --config nodemon.json src/server.js
+[16:32:49] BACKEND 
+[16:32:49] BACKEND [33m[nodemon] 3.1.14[39m
+[16:32:49] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[16:32:49] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[16:32:49] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[16:32:49] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[16:32:49] FRONTEND 
+[16:32:49] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m303[22m[2m[0m ms[22m
+[16:32:49] FRONTEND 
+[16:32:49] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[16:32:49] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.101:[1m5173[22m/[39m
+[16:32:49] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[16:32:49] BACKEND [2026-05-08T13:02:49.996Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[16:50:39] BACKEND [32m[nodemon] restarting child process[39m
+[16:50:39] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[16:50:39] BACKEND [2026-05-08T13:20:39.571Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[16:50:44] FRONTEND npm run dev --prefix frontend exited with code 3221225786
+[16:50:44] BACKEND npm run dev --prefix backend exited with code 3221225786

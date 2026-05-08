@@ -29,6 +29,7 @@ RUN chmod +x /app/container-start.sh
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV FRONTEND_DIST_DIR=/app/frontend/dist
 
 EXPOSE 3000
 
