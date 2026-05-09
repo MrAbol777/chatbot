@@ -30,7 +30,7 @@
       "age": 16,
       "phone": "09926638344",
       "registered_at": "2026-05-03T07:27:46.292Z",
-      "last_active": "2026-05-03T13:24:47.897Z"
+      "last_active": "2026-05-09T11:34:28.465Z"
     },
     {
       "user_id": "1777797844720",
@@ -3889,5 +3889,6 @@
       "details": "Error: Upstream status 401\n    at sendRequest (D:\\PROGEs\\chatBot\\backend\\src\\server.js:75:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:289:19",
       "created_at": "2026-05-03T12:29:22.502Z"
     }
-  ]
+  ],
+  "conversations": []
 }

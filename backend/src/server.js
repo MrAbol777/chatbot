@@ -4,7 +4,15 @@ const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
 const db = require('../db');
-const { readDB, ensureUserExists, logEvent, logError, getStats, getConversationMessages, saveConversationMessages } = db;
+const {
+  ensureUserExists,
+  findUserByPhone,
+  logEvent,
+  logError,
+  getStats,
+  getConversationMessages,
+  saveConversationMessages
+} = db;
 
 dotenv.config();
 
@@ -29,6 +37,8 @@ const normalizePort = (value, fallback = 3000) => {
   }
   return fallback;
 };
+const normalizePhone = (value) => (typeof value === 'string' ? value.trim().replace(/[-\s]/g, '') : '');
+const isValidPhone = (value) => /^09[0-9]{9}$/.test(value);
 
 const port = normalizePort(process.env.PORT, 3000);
 const host = '0.0.0.0';
@@ -392,25 +402,21 @@ const buildSystemPrompt = (profile, personality) => {
 
 app.post('/api/send-verification-code', (req, res) => {
   try {
-    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim().replace(/[-\s]/g, '') : '';
+    const phone = normalizePhone(req.body?.phone);
     const mode = typeof req.body?.mode === 'string' ? req.body.mode.trim() : '';
 
-    if (!/^09[0-9]{9}$/.test(phone)) {
+    if (!isValidPhone(phone)) {
       return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
     }
 
-    const db = readDB();
-    const users = Array.isArray(db?.users) ? db.users : [];
-    const phoneExists = users.some(
-      (user) => typeof user?.phone === 'string' && user.phone.trim().replace(/[-\s]/g, '') === phone
-    );
+    const phoneExists = Boolean(findUserByPhone(phone));
 
     if (mode === 'signup' && phoneExists) {
-      return res.status(400).json({ error: 'این شماره قبلاً ثبت‌نام شده است' });
+      return res.status(409).json({ error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login', phoneExists });
     }
 
     if (mode === 'login' && !phoneExists) {
-      return res.status(400).json({ error: 'حسابی با این شماره یافت نشد' });
+      return res.status(404).json({ error: 'حسابی با این شماره یافت نشد', redirectTo: 'signup', phoneExists });
     }
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -425,12 +431,39 @@ app.post('/api/send-verification-code', (req, res) => {
   }
 });
 
+app.post('/api/auth/phone-status', (req, res) => {
+  try {
+    const phone = normalizePhone(req.body?.phone);
+    const mode = typeof req.body?.mode === 'string' ? req.body.mode.trim() : '';
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
+    }
+
+    const user = findUserByPhone(phone);
+    const exists = Boolean(user);
+    const recommendedMode = exists ? 'login' : 'signup';
+    const shouldRedirect = mode === 'signup' ? exists : mode === 'login' ? !exists : false;
+
+    return res.json({
+      success: true,
+      exists,
+      recommendedMode,
+      redirectTo: shouldRedirect ? recommendedMode : null
+    });
+  } catch (error) {
+    logError('phone_status_failed', '/api/auth/phone-status', 500, error instanceof Error ? error.message : 'unknown');
+    return res.status(500).json({ error: 'بررسی شماره موبایل با خطا مواجه شد.' });
+  }
+});
+
 app.post('/api/verify-code', (req, res) => {
   try {
-    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim().replace(/[-\s]/g, '') : '';
+    const phone = normalizePhone(req.body?.phone);
     const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+    const mode = typeof req.body?.mode === 'string' ? req.body.mode.trim() : '';
 
-    if (!/^09[0-9]{9}$/.test(phone) || !/^[0-9]{6}$/.test(code)) {
+    if (!isValidPhone(phone) || !/^[0-9]{6}$/.test(code)) {
       return res.status(400).json({ success: false, error: 'کد منقضی شده یا نامعتبر است' });
     }
 
@@ -444,6 +477,16 @@ app.post('/api/verify-code', (req, res) => {
       return res.status(400).json({ success: false, error: 'کد نادرست است' });
     }
 
+    const phoneExists = Boolean(findUserByPhone(phone));
+    if (mode === 'signup' && phoneExists) {
+      verificationStore.delete(phone);
+      return res.status(409).json({ success: false, error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login' });
+    }
+    if (mode === 'login' && !phoneExists) {
+      verificationStore.delete(phone);
+      return res.status(404).json({ success: false, error: 'حسابی با این شماره یافت نشد', redirectTo: 'signup' });
+    }
+
     verificationStore.delete(phone);
     return res.json({ success: true });
   } catch (error) {
@@ -455,15 +498,16 @@ app.post('/api/verify-code', (req, res) => {
 app.post('/api/register-profile', (req, res) => {
   try {
     const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
-    const rawPhone = typeof req.body?.phone === 'string' ? req.body.phone.trim().replace(/[-\s]/g, '') : '';
+    const rawPhone = normalizePhone(req.body?.phone);
     const rawAge = Number(req.body?.age);
     const rawId = req.body?.id;
+    const mode = typeof req.body?.mode === 'string' ? req.body.mode.trim() : '';
 
     if (!rawName) {
       return res.status(400).json({ error: 'نام معتبر نیست.' });
     }
 
-    if (!/^09[0-9]{9}$/.test(rawPhone)) {
+    if (!isValidPhone(rawPhone)) {
       return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
     }
 
@@ -475,16 +519,45 @@ app.post('/api/register-profile', (req, res) => {
       return res.status(400).json({ error: 'شناسه معتبر نیست.' });
     }
 
-    const userId = ensureUserExists({
-      id: rawId,
-      name: rawName,
-      age: rawAge,
-      phone: rawPhone
-    });
+    const existingUser = findUserByPhone(rawPhone);
+    if (mode === 'signup' && existingUser && String(existingUser.user_id) !== String(rawId)) {
+      return res.status(409).json({ error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login' });
+    }
+    if (mode === 'login' && !existingUser) {
+      return res.status(404).json({ error: 'حسابی با این شماره یافت نشد', redirectTo: 'signup' });
+    }
 
-    return res.json({ success: true, userId });
+    const payloadProfile =
+      mode === 'login' && existingUser
+        ? {
+            id: existingUser.user_id,
+            name: existingUser.name,
+            age: existingUser.age,
+            phone: rawPhone
+          }
+        : {
+            id: rawId,
+            name: rawName,
+            age: rawAge,
+            phone: rawPhone
+          };
+
+    const userId = ensureUserExists(payloadProfile);
+
+    return res.json({
+      success: true,
+      userId,
+      profile: {
+        name: payloadProfile.name,
+        age: Number(payloadProfile.age),
+        phone: rawPhone
+      }
+    });
   } catch (error) {
     const details = error instanceof Error ? error.message : 'unknown';
+    if (error && typeof error === 'object' && error.code === 'PHONE_ALREADY_IN_USE') {
+      return res.status(409).json({ error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login' });
+    }
     logError('register_profile_failed', '/api/register-profile', 500, details);
     log('REGISTER_PROFILE', 'failed', { details });
     return res.status(500).json({ error: 'ثبت پروفایل با خطا مواجه شد.' });

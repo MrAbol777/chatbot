@@ -28,6 +28,9 @@ type PersonalityProfile = {
   messageCount: number;
   lastTopics: string[];
 };
+type AuthMode = 'login' | 'signup';
+type ApiErrorData = { error?: string; details?: string; redirectTo?: AuthMode | null };
+type ApiError = Error & { redirectTo?: AuthMode | null };
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const RETRYABLE_API_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
@@ -159,16 +162,15 @@ const postChatWithRetry = async (payload: {
   throw new Error('chat_request_failed');
 };
 
-const buildRequestErrorMessage = async (response: Response) => {
+const parseApiError = async (response: Response): Promise<ApiErrorData> => {
   try {
-    const payload = (await response.json()) as { error?: string; details?: string };
-    if (typeof payload?.error === 'string' && payload.error.trim()) {
-      return payload.error.trim();
-    }
+    return (await response.json()) as ApiErrorData;
   } catch {
-    // ignore invalid json bodies and use fallback message.
+    return {};
   }
+};
 
+const buildRequestErrorMessage = async (response: Response) => {
   if (response.status === 401 || response.status === 403) {
     return 'احراز هویت API نامعتبر است. لطفاً کلید API را در بک اند بررسی کن.';
   }
@@ -176,7 +178,31 @@ const buildRequestErrorMessage = async (response: Response) => {
   return 'پاسخ سرور دریافت نشد.';
 };
 
-const sendVerificationCode = async (phone: string, mode: 'login' | 'signup'): Promise<void> => {
+const createApiError = (message: string, redirectTo?: AuthMode | null): ApiError => {
+  const error = new Error(message) as ApiError;
+  if (redirectTo) {
+    error.redirectTo = redirectTo;
+  }
+  return error;
+};
+
+const checkPhoneStatus = async (phone: string, mode: AuthMode): Promise<{ exists: boolean; redirectTo: AuthMode | null }> => {
+  const response = await fetch('/api/auth/phone-status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, mode })
+  });
+
+  if (!response.ok) {
+    const payload = await parseApiError(response);
+    throw createApiError(payload.error?.trim() || 'بررسی شماره انجام نشد.', payload.redirectTo ?? null);
+  }
+
+  const payload = (await response.json()) as { exists?: boolean; redirectTo?: AuthMode | null };
+  return { exists: Boolean(payload.exists), redirectTo: payload.redirectTo ?? null };
+};
+
+const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void> => {
   const response = await fetch('/api/send-verification-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -184,25 +210,33 @@ const sendVerificationCode = async (phone: string, mode: 'login' | 'signup'): Pr
   });
 
   if (!response.ok) {
-    const errorMessage = await buildRequestErrorMessage(response);
-    throw new Error(errorMessage || 'ارسال کد تایید انجام نشد.');
+    const payload = await parseApiError(response);
+    const fallback = await buildRequestErrorMessage(response);
+    throw createApiError(payload.error?.trim() || fallback || 'ارسال کد تایید انجام نشد.', payload.redirectTo ?? null);
   }
 };
 
-const verifyCode = async (phone: string, code: string): Promise<void> => {
+const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<void> => {
   const response = await fetch('/api/verify-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone, code })
+    body: JSON.stringify({ phone, code, mode })
   });
 
   if (!response.ok) {
-    const errorMessage = await buildRequestErrorMessage(response);
-    throw new Error(errorMessage || 'تایید کد انجام نشد.');
+    const payload = await parseApiError(response);
+    const fallback = await buildRequestErrorMessage(response);
+    throw createApiError(payload.error?.trim() || fallback || 'تایید کد انجام نشد.', payload.redirectTo ?? null);
   }
 };
 
-const registerProfile = async (profile: { name: string; age: number; phone: string; id: number | string }): Promise<void> => {
+const registerProfile = async (profile: {
+  name: string;
+  age: number;
+  phone: string;
+  id: number | string;
+  mode: AuthMode;
+}): Promise<{ userId: string; profile: { name: string; age: number; phone: string } }> => {
   const response = await fetch('/api/register-profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -210,9 +244,12 @@ const registerProfile = async (profile: { name: string; age: number; phone: stri
   });
 
   if (!response.ok) {
-    const errorMessage = await buildRequestErrorMessage(response);
-    throw new Error(errorMessage || 'ثبت پروفایل انجام نشد.');
+    const payload = await parseApiError(response);
+    const fallback = await buildRequestErrorMessage(response);
+    throw createApiError(payload.error?.trim() || fallback || 'ثبت پروفایل انجام نشد.', payload.redirectTo ?? null);
   }
+
+  return (await response.json()) as { userId: string; profile: { name: string; age: number; phone: string } };
 };
 
 const createConversation = (): Conversation => {
@@ -251,7 +288,7 @@ const getDefaultThemeByAge = (age: number): 'energy' | 'calm' => (age < 13 ? 'en
 function App() {
   const [profile, setProfile] = useState<AppProfile | null>(null);
   const [landingStep, setLandingStep] = useState<LandingStep>('landing');
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+  const [authMode, setAuthMode] = useState<AuthMode>('signup');
   const [authTransition, setAuthTransition] = useState<'forward' | 'back'>('forward');
   const [hasSavedAccount, setHasSavedAccount] = useState(false);
 
@@ -262,6 +299,7 @@ function App() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; age?: string; phone?: string; code?: string }>({});
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -634,35 +672,38 @@ function App() {
       return;
     }
 
-    const normalizePhone = (value: string) => value.trim().replace(/[-\s]/g, '');
-    const normalizedPhone = normalizePhone(trimmedPhone);
-    const rawProfiles = localStorage.getItem('chat_profiles');
-    const rawProfile = localStorage.getItem('chat_profile');
-    const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
-    const profilePool = Array.isArray(parsedProfiles) ? parsedProfiles : [];
-    if (rawProfile) {
-      profilePool.push(JSON.parse(rawProfile) as AppProfile);
-    }
-
-    const phoneExists = profilePool.some((item) => {
-      const savedPhone = typeof item?.phone === 'string' ? normalizePhone(item.phone) : '';
-      return savedPhone === normalizedPhone;
-    });
-
-    if (authMode === 'signup' && phoneExists) {
-      setErrors({ phone: 'این شماره قبلاً ثبت‌نام شده است' });
-      return;
-    }
-
     setIsSendingVerification(true);
+    setIsCheckingPhone(true);
 
     try {
+      const phoneStatus = await checkPhoneStatus(trimmedPhone, authMode);
+      if (phoneStatus.redirectTo) {
+        setAuthTransition('forward');
+        setAuthMode(phoneStatus.redirectTo);
+        setLandingStep(phoneStatus.redirectTo);
+        setRegistrationStep(2);
+        setErrors({
+          phone:
+            phoneStatus.redirectTo === 'login'
+              ? 'این شماره قبلاً ثبت‌نام شده است. لطفاً وارد شوید.'
+              : 'حسابی با این شماره یافت نشد. لطفاً ثبت نام کنید.'
+        });
+        return;
+      }
+
       await sendVerificationCode(trimmedPhone, authMode);
 
       setVerificationCode('');
       setErrors({});
       setRegistrationStep(3);
     } catch (error) {
+      const redirectTo = error && typeof error === 'object' ? (error as ApiError).redirectTo : null;
+      if (redirectTo) {
+        setAuthTransition('forward');
+        setAuthMode(redirectTo);
+        setLandingStep(redirectTo);
+        setRegistrationStep(2);
+      }
       setErrors({
         phone:
           error instanceof Error && error.message.trim()
@@ -670,6 +711,7 @@ function App() {
             : 'ارسال کد تایید با خطا مواجه شد. لطفاً دوباره تلاش کن.'
       });
     } finally {
+      setIsCheckingPhone(false);
       setIsSendingVerification(false);
     }
   };
@@ -695,46 +737,35 @@ function App() {
     setIsVerifyingCode(true);
 
     try {
-      await verifyCode(trimmedPhone, trimmedCode);
+      await verifyCode(trimmedPhone, trimmedCode, authMode);
 
       if (authMode === 'login') {
-        const rawProfiles = localStorage.getItem(PROFILES_KEY);
-        const rawProfile = localStorage.getItem(PROFILE_KEY);
-        const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
-        const profilePool = Array.isArray(parsedProfiles) ? parsedProfiles : [];
-        if (rawProfile) {
-          profilePool.push(JSON.parse(rawProfile) as AppProfile);
-        }
-
-        const matchedProfile = profilePool.find((item) => {
-          const savedPhone = typeof item?.phone === 'string' ? normalizePhone(item.phone) : '';
-          return savedPhone === normalizedPhone;
+        const loginProfileId = generateUniqueId();
+        const registrationResult = await registerProfile({
+          name: name.trim() || 'کاربر',
+          age: Number(age) || 0,
+          phone: trimmedPhone,
+          id: loginProfileId,
+          mode: 'login'
         });
+        const normalizedProfile: AppProfile = {
+          name: registrationResult.profile.name,
+          age: Number(registrationResult.profile.age),
+          phone: registrationResult.profile.phone,
+          id: registrationResult.userId || loginProfileId,
+          personality: createDefaultPersonality()
+        };
 
-        const normalizedProfile: AppProfile = matchedProfile
-          ? {
-              ...matchedProfile,
-              age: Number(matchedProfile.age),
-              phone: trimmedPhone,
-              id: matchedProfile.id ?? generateUniqueId(),
-              personality: normalizePersonality(matchedProfile.personality)
-            }
-          : {
-              name: 'کاربر',
-              age: 0,
-              phone: trimmedPhone,
-              id: generateUniqueId(),
-              personality: createDefaultPersonality()
-            };
-
-        await registerProfile({
-          name: normalizedProfile.name,
-          age: Number(normalizedProfile.age),
-          phone: normalizedProfile.phone || trimmedPhone,
-          id: normalizedProfile.id ?? generateUniqueId()
-        });
         setProfile(normalizedProfile);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(normalizedProfile));
+        const rawProfiles = localStorage.getItem(PROFILES_KEY);
+        const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
+        const profiles = Array.isArray(parsedProfiles) ? parsedProfiles : [];
+        const withoutSamePhone = profiles.filter((item) => {
+          const savedPhone = typeof item?.phone === 'string' ? normalizePhone(item.phone) : '';
+          return savedPhone !== normalizedPhone;
+        });
+        localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, normalizedProfile]));
         setLandingStep('chat');
         return;
       }
@@ -747,12 +778,14 @@ function App() {
         personality: createDefaultPersonality()
       };
 
-      await registerProfile({
+      const registrationResult = await registerProfile({
         name: payload.name,
         age: Number(payload.age),
         phone: payload.phone || trimmedPhone,
-        id: payload.id ?? generateUniqueId()
+        id: payload.id ?? generateUniqueId(),
+        mode: 'signup'
       });
+      payload.id = registrationResult.userId || payload.id;
       setProfile(payload);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
       setLandingStep('chat');
@@ -766,6 +799,13 @@ function App() {
       localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, payload]));
       setHasSavedAccount(true);
     } catch (error) {
+      const redirectTo = error && typeof error === 'object' ? (error as ApiError).redirectTo : null;
+      if (redirectTo) {
+        setAuthTransition('forward');
+        setAuthMode(redirectTo);
+        setLandingStep(redirectTo);
+        setRegistrationStep(2);
+      }
       setErrors({
         code: error instanceof Error && error.message.trim() ? error.message : 'کد نادرست است'
       });
@@ -1268,8 +1308,8 @@ function App() {
               >
                 {authMode === 'login' ? 'صفحه اول' : 'بازگشت'}
               </button>
-              <button type="submit" className="start-btn" style={{ flex: 2 }} disabled={isSendingVerification}>
-                {isSendingVerification ? 'در حال ارسال...' : 'ادامه'}
+              <button type="submit" className="start-btn" style={{ flex: 2 }} disabled={isSendingVerification || isCheckingPhone}>
+                {isCheckingPhone ? 'در حال بررسی شماره...' : isSendingVerification ? 'در حال ارسال...' : 'ادامه'}
               </button>
             </div>
           </form>

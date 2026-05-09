@@ -2,6 +2,9 @@ FROM hub.hamdocker.ir/library/node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
+ARG APK_MIRROR=https://repo.hmirror.ir/apk
+
+RUN sed -i "s|https\?://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
 RUN npm config set registry ${NPM_REGISTRY}
 
 COPY frontend/package*.json ./
@@ -14,6 +17,9 @@ FROM hub.hamdocker.ir/library/node:20-alpine AS backend-runtime
 WORKDIR /app
 
 ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
+ARG APK_MIRROR=https://repo.hmirror.ir/apk
+
+RUN sed -i "s|https\?://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
 RUN npm config set registry ${NPM_REGISTRY}
 
 COPY backend/package*.json ./backend/
@@ -27,7 +33,9 @@ RUN chmod +x /app/container-start.sh
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV FRONTEND_DIST_DIR=/app/frontend/dist
+ENV DB_FILE_PATH=/tmp/hemraz-data.json
 
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD wget -qO- http://127.0.0.1:${PORT}/healthz || exit 1
 
 ENTRYPOINT ["/app/container-start.sh"]

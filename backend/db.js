@@ -130,6 +130,16 @@ const sanitizePhone = (value) => {
   return /^09[0-9]{9}$/.test(trimmed) ? trimmed : null;
 };
 
+const findUserByPhone = (phone) => {
+  const normalizedPhone = sanitizePhone(phone);
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  const data = readDB();
+  return data.users.find((item) => sanitizePhone(item?.phone) === normalizedPhone) || null;
+};
+
 const generateUserId = () => `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
 const normalizeConversationId = (value) => {
   if (typeof value !== 'string') {
@@ -151,7 +161,23 @@ const ensureUserExists = (profile = {}) => {
   const nextAge = sanitizeAge(profile.age);
   const nextPhone = sanitizePhone(profile.phone);
 
-  const existingUser = data.users.find((item) => item.user_id === userId);
+  const existingUserById = data.users.find((item) => item.user_id === userId);
+  const existingUserByPhone = nextPhone
+    ? data.users.find((item) => sanitizePhone(item?.phone) === nextPhone)
+    : null;
+  const hasPhoneConflict =
+    Boolean(existingUserById) &&
+    Boolean(existingUserByPhone) &&
+    existingUserById.user_id !== existingUserByPhone.user_id;
+
+  if (hasPhoneConflict) {
+    const conflictError = new Error('این شماره موبایل قبلا برای حساب دیگری ثبت شده است.');
+    conflictError.code = 'PHONE_ALREADY_IN_USE';
+    conflictError.userId = existingUserByPhone.user_id;
+    throw conflictError;
+  }
+
+  const existingUser = existingUserByPhone || existingUserById;
 
   if (existingUser) {
     existingUser.name = nextName;
@@ -307,6 +333,7 @@ module.exports = {
   readDB,
   ensureDBFile,
   ensureUserExists,
+  findUserByPhone,
   logEvent,
   logError,
   getStats,
