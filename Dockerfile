@@ -1,5 +1,8 @@
-FROM node:20-alpine AS frontend-builder
+FROM hub.hamdocker.ir/library/node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
+
+ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
+RUN npm config set registry ${NPM_REGISTRY}
 
 COPY frontend/package*.json ./
 RUN npm ci
@@ -7,8 +10,11 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM node:20-alpine AS backend-runtime
+FROM hub.hamdocker.ir/library/node:20-alpine AS backend-runtime
 WORKDIR /app
+
+ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
+RUN npm config set registry ${NPM_REGISTRY}
 
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --omit=dev

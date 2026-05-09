@@ -7,7 +7,8 @@ const FALLBACK_DB_FILE_PATH = '/tmp/hemraz-data.json';
 const createEmptyDB = () => ({
   users: [],
   events: [],
-  errors: []
+  errors: [],
+  conversations: []
 });
 
 let inMemoryDB = createEmptyDB();
@@ -70,7 +71,8 @@ const readDB = () => {
     return {
       users: Array.isArray(inMemoryDB.users) ? inMemoryDB.users : [],
       events: Array.isArray(inMemoryDB.events) ? inMemoryDB.events : [],
-      errors: Array.isArray(inMemoryDB.errors) ? inMemoryDB.errors : []
+      errors: Array.isArray(inMemoryDB.errors) ? inMemoryDB.errors : [],
+      conversations: Array.isArray(inMemoryDB.conversations) ? inMemoryDB.conversations : []
     };
   }
   ensureDBFile();
@@ -82,7 +84,8 @@ const readDB = () => {
     return {
       users: Array.isArray(parsed.users) ? parsed.users : [],
       events: Array.isArray(parsed.events) ? parsed.events : [],
-      errors: Array.isArray(parsed.errors) ? parsed.errors : []
+      errors: Array.isArray(parsed.errors) ? parsed.errors : [],
+      conversations: Array.isArray(parsed.conversations) ? parsed.conversations : []
     };
   } catch (_error) {
     const fallback = createEmptyDB();
@@ -96,7 +99,8 @@ const writeDB = (data) => {
     inMemoryDB = {
       users: Array.isArray(data.users) ? data.users : [],
       events: Array.isArray(data.events) ? data.events : [],
-      errors: Array.isArray(data.errors) ? data.errors : []
+      errors: Array.isArray(data.errors) ? data.errors : [],
+      conversations: Array.isArray(data.conversations) ? data.conversations : []
     };
     return;
   }
@@ -127,6 +131,13 @@ const sanitizePhone = (value) => {
 };
 
 const generateUserId = () => `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+const normalizeConversationId = (value) => {
+  if (typeof value !== 'string') {
+    return 'default';
+  }
+  const trimmed = value.trim();
+  return trimmed || 'default';
+};
 
 const ensureUserExists = (profile = {}) => {
   const data = readDB();
@@ -207,9 +218,87 @@ const getStats = () => {
     userCount: data.users.length,
     eventCount: data.events.length,
     errorCount: data.errors.length,
+    conversationCount: data.conversations.length,
     latestUsers: data.users.slice(-5),
-    latestErrors: data.errors.slice(-5)
+    latestErrors: data.errors.slice(-5),
+    latestConversations: data.conversations.slice(-5).map((item) => ({
+      user_id: item.user_id,
+      conversation_id: item.conversation_id,
+      message_count: Array.isArray(item.messages) ? item.messages.length : 0,
+      updated_at: item.updated_at || null
+    }))
   };
+};
+
+const getConversationMessages = (userId, conversationId) => {
+  const data = readDB();
+  const normalizedUserId = typeof userId === 'string' || typeof userId === 'number' ? String(userId) : '';
+  const normalizedConversationId = normalizeConversationId(conversationId);
+  const conversation = data.conversations.find(
+    (item) => item.user_id === normalizedUserId && item.conversation_id === normalizedConversationId
+  );
+
+  if (!conversation || !Array.isArray(conversation.messages)) {
+    return [];
+  }
+
+  return conversation.messages
+    .filter(
+      (item) =>
+        item &&
+        (item.role === 'user' || item.role === 'assistant') &&
+        typeof item.content === 'string' &&
+        item.content.trim().length > 0
+    )
+    .map((item) => ({
+      role: item.role,
+      content: item.content
+    }));
+};
+
+const saveConversationMessages = (userId, conversationId, messages) => {
+  if (!userId) {
+    return;
+  }
+
+  const safeMessages = Array.isArray(messages)
+    ? messages
+        .filter(
+          (item) =>
+            item &&
+            (item.role === 'user' || item.role === 'assistant') &&
+            typeof item.content === 'string' &&
+            item.content.trim().length > 0
+        )
+        .slice(-100)
+        .map((item) => ({
+          role: item.role,
+          content: item.content.trim()
+        }))
+    : [];
+
+  const data = readDB();
+  const timestamp = nowIso();
+  const normalizedUserId = String(userId);
+  const normalizedConversationId = normalizeConversationId(conversationId);
+  const existingConversation = data.conversations.find(
+    (item) => item.user_id === normalizedUserId && item.conversation_id === normalizedConversationId
+  );
+
+  if (existingConversation) {
+    existingConversation.messages = safeMessages;
+    existingConversation.updated_at = timestamp;
+  } else {
+    data.conversations.push({
+      user_id: normalizedUserId,
+      conversation_id: normalizedConversationId,
+      messages: safeMessages,
+      created_at: timestamp,
+      updated_at: timestamp
+    });
+  }
+
+  writeDB(data);
 };
 
 ensureDBFile();
@@ -221,6 +310,8 @@ module.exports = {
   logEvent,
   logError,
   getStats,
+  getConversationMessages,
+  saveConversationMessages,
   dbInfo: {
     mode: DB_STORAGE_MODE,
     filePath: DB_FILE_PATH

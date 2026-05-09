@@ -4,7 +4,7 @@ const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
 const db = require('../db');
-const { readDB, ensureUserExists, logEvent, logError, getStats } = db;
+const { readDB, ensureUserExists, logEvent, logError, getStats, getConversationMessages, saveConversationMessages } = db;
 
 dotenv.config();
 
@@ -519,6 +519,8 @@ app.post('/api/chat', async (req, res) => {
       typeof conversationId === 'string' && conversationId.trim().length > 0
         ? `${userId}:${conversationId.trim()}`
         : `${userId}:default`;
+    const normalizedConversationId =
+      typeof conversationId === 'string' && conversationId.trim().length > 0 ? conversationId.trim() : 'default';
 
     logEvent(userId, 'message_sent', category, {
       messageLength: trimmedMessage.length,
@@ -527,8 +529,12 @@ app.post('/api/chat', async (req, res) => {
 
     const normalizedHistory = normalizeHistory(history, trimmedMessage);
     const storedHistory = conversationMemory.get(memoryKey);
+    const dbHistory = getConversationMessages(userId, normalizedConversationId);
     let effectiveHistory =
       Array.isArray(storedHistory) && storedHistory.length > normalizedHistory.length ? [...storedHistory] : normalizedHistory;
+    if (dbHistory.length > effectiveHistory.length) {
+      effectiveHistory = [...dbHistory];
+    }
     const lastItem = effectiveHistory[effectiveHistory.length - 1];
     if (!lastItem || lastItem.role !== 'user' || lastItem.content !== trimmedMessage) {
       effectiveHistory.push({ role: 'user', content: trimmedMessage });
@@ -552,7 +558,9 @@ app.post('/api/chat', async (req, res) => {
     const isFirstMessage = normalizedHistory.length === 1;
     const rawReply = await callGemini(messages);
     const reply = removeExtraGreeting(rawReply, isFirstMessage);
-    conversationMemory.set(memoryKey, [...effectiveHistory, { role: 'assistant', content: reply }]);
+    const nextConversationMessages = [...effectiveHistory, { role: 'assistant', content: reply }];
+    conversationMemory.set(memoryKey, nextConversationMessages);
+    saveConversationMessages(userId, normalizedConversationId, nextConversationMessages);
 
     logEvent(userId, 'message_received', category, {
       responseLength: reply.length,
