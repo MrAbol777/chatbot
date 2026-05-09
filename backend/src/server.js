@@ -51,6 +51,11 @@ process.on('unhandledRejection', (reason) => {
 if (typeof db.ensureDBFile === 'function') {
   try {
     db.ensureDBFile();
+    if (db.dbInfo?.mode === 'file') {
+      console.log(`[BOOT] DB mode=file path=${db.dbInfo.filePath}`);
+    } else {
+      console.warn('[BOOT] DB mode=memory (no writable file path found)');
+    }
   } catch (error) {
     console.error('[BOOT] ensureDBFile failed', error);
   }

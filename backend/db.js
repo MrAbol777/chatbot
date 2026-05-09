@@ -31,7 +31,16 @@ const isWritableFilePath = (filePath) => {
 
 const resolveDbFilePath = () => {
   const envPath = typeof process.env.DB_FILE_PATH === 'string' ? process.env.DB_FILE_PATH.trim() : '';
-  const candidates = [envPath, DEFAULT_DB_FILE_PATH, FALLBACK_DB_FILE_PATH].filter(Boolean);
+  const databaseUrl = typeof process.env.DATABASE_URL === 'string' ? process.env.DATABASE_URL.trim() : '';
+  const databaseUrlPath = databaseUrl.startsWith('file:') ? databaseUrl.slice('file:'.length).trim() : '';
+  const normalizedDatabaseUrlPath = databaseUrlPath
+    ? path.isAbsolute(databaseUrlPath)
+      ? databaseUrlPath
+      : path.join(__dirname, databaseUrlPath)
+    : '';
+  const candidates = [envPath, normalizedDatabaseUrlPath, DEFAULT_DB_FILE_PATH, FALLBACK_DB_FILE_PATH].filter(
+    Boolean
+  );
 
   for (const candidate of candidates) {
     if (isWritableFilePath(candidate)) {
@@ -44,6 +53,7 @@ const resolveDbFilePath = () => {
 };
 
 const DB_FILE_PATH = resolveDbFilePath();
+const DB_STORAGE_MODE = DB_FILE_PATH ? 'file' : 'memory';
 
 const ensureDBFile = () => {
   if (!DB_FILE_PATH) {
@@ -206,8 +216,13 @@ ensureDBFile();
 
 module.exports = {
   readDB,
+  ensureDBFile,
   ensureUserExists,
   logEvent,
   logError,
-  getStats
+  getStats,
+  dbInfo: {
+    mode: DB_STORAGE_MODE,
+    filePath: DB_FILE_PATH
+  }
 };
