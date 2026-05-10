@@ -1,60 +1,44 @@
-(node:3064) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:1004) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[12:49:05] FRONTEND 
-[12:49:05] FRONTEND > hemraz-frontend@1.0.0 dev
-[12:49:05] FRONTEND > vite
-[12:49:05] FRONTEND 
-[12:49:05] BACKEND 
-[12:49:05] BACKEND > hemraz-backend@1.0.0 dev
-[12:49:05] BACKEND > nodemon --config nodemon.json src/server.js
-[12:49:05] BACKEND 
-[12:49:05] BACKEND [33m[nodemon] 3.1.14[39m
-[12:49:05] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[12:49:05] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[12:49:05] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[12:49:05] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[12:49:05] FRONTEND 
-[12:49:05] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m328[22m[2m[0m ms[22m
-[12:49:05] FRONTEND 
-[12:49:05] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[12:49:05] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.148:[1m5173[22m/[39m
-[12:49:05] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[12:49:05] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\data.json
-[12:49:05] BACKEND [2026-05-10T09:19:05.988Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[12:49:20] BACKEND [2026-05-10T09:19:20.481Z] [HTTP] request_started {"requestId":"mozk9zfl-qagx9x","method":"POST","path":"/api/auth/phone-status"}
-[12:49:20] BACKEND [2026-05-10T09:19:20.499Z] [HTTP] request_finished {"requestId":"mozk9zfl-qagx9x","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":18}
-[12:49:20] BACKEND [2026-05-10T09:19:20.534Z] [HTTP] request_started {"requestId":"mozk9zh2-k69trz","method":"POST","path":"/api/send-verification-code"}
-[12:49:20] BACKEND [VERIFICATION CODE] 09926638344 -> 187418
-[12:49:20] BACKEND [2026-05-10T09:19:20.549Z] [HTTP] request_finished {"requestId":"mozk9zh2-k69trz","method":"POST","path":"/api/send-verification-code","status":200,"durationMs":15}
-[12:49:38] BACKEND [2026-05-10T09:19:38.058Z] [HTTP] request_started {"requestId":"mozkaczu-cm58sr","method":"POST","path":"/api/verify-code"}
-[12:49:38] BACKEND [2026-05-10T09:19:38.064Z] [HTTP] request_finished {"requestId":"mozkaczu-cm58sr","method":"POST","path":"/api/verify-code","status":200,"durationMs":6}
-[12:49:38] BACKEND [2026-05-10T09:19:38.086Z] [HTTP] request_started {"requestId":"mozkad0m-v98uxf","method":"POST","path":"/api/register-profile"}
-[12:49:38] BACKEND [2026-05-10T09:19:38.102Z] [HTTP] request_finished {"requestId":"mozkad0m-v98uxf","method":"POST","path":"/api/register-profile","status":200,"durationMs":16}
-[12:49:38] BACKEND [2026-05-10T09:19:38.175Z] [HTTP] request_started {"requestId":"mozkad33-5pipcm","method":"POST","path":"/api/conversations/load"}
-[12:49:38] BACKEND [2026-05-10T09:19:38.242Z] [HTTP] request_finished {"requestId":"mozkad33-5pipcm","method":"POST","path":"/api/conversations/load","status":200,"durationMs":67}
-[12:49:38] BACKEND [2026-05-10T09:19:38.781Z] [HTTP] request_started {"requestId":"mozkadjx-ul7gwi","method":"POST","path":"/api/conversations/sync"}
-[12:49:38] BACKEND [2026-05-10T09:19:38.838Z] [HTTP] request_finished {"requestId":"mozkadjx-ul7gwi","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":57}
-[12:49:46] BACKEND [2026-05-10T09:19:46.978Z] [HTTP] request_started {"requestId":"mozkajvm-jska9t","method":"GET","path":"/api/admin/dashboard/stats"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.021Z] [HTTP] request_finished {"requestId":"mozkajvm-jska9t","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":43}
-[12:49:47] BACKEND [2026-05-10T09:19:47.026Z] [HTTP] request_started {"requestId":"mozkajwx-ow1hqy","method":"GET","path":"/api/admin/users?"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.045Z] [HTTP] request_started {"requestId":"mozkajxh-f1x37f","method":"GET","path":"/api/admin/errors"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.051Z] [HTTP] request_finished {"requestId":"mozkajxh-f1x37f","method":"GET","path":"/api/admin/errors","status":304,"durationMs":6}
-[12:49:47] BACKEND [2026-05-10T09:19:47.053Z] [HTTP] request_started {"requestId":"mozkajxp-h63of9","method":"GET","path":"/api/admin/config"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.057Z] [HTTP] request_started {"requestId":"mozkajxt-tn81qs","method":"GET","path":"/api/admin/config/system-prompt"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.060Z] [HTTP] request_started {"requestId":"mozkajxw-1cvgd6","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.067Z] [HTTP] request_started {"requestId":"mozkajy3-j1sfpk","method":"GET","path":"/api/admin/dashboard/stats"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.092Z] [HTTP] request_finished {"requestId":"mozkajy3-j1sfpk","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":25}
-[12:49:47] BACKEND [2026-05-10T09:19:47.093Z] [HTTP] request_started {"requestId":"mozkajyt-wve9hf","method":"GET","path":"/api/admin/errors"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.098Z] [HTTP] request_finished {"requestId":"mozkajyt-wve9hf","method":"GET","path":"/api/admin/errors","status":304,"durationMs":5}
-[12:49:47] BACKEND [2026-05-10T09:19:47.101Z] [HTTP] request_finished {"requestId":"mozkajwx-ow1hqy","method":"GET","path":"/api/admin/users?","status":200,"durationMs":76}
-[12:49:47] BACKEND [2026-05-10T09:19:47.105Z] [HTTP] request_finished {"requestId":"mozkajxw-1cvgd6","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":45}
-[12:49:47] BACKEND [2026-05-10T09:19:47.108Z] [HTTP] request_started {"requestId":"mozkajz8-21jo6h","method":"GET","path":"/api/admin/users?"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.117Z] [HTTP] request_finished {"requestId":"mozkajz8-21jo6h","method":"GET","path":"/api/admin/users?","status":304,"durationMs":9}
-[12:49:47] BACKEND [2026-05-10T09:19:47.120Z] [HTTP] request_finished {"requestId":"mozkajxt-tn81qs","method":"GET","path":"/api/admin/config/system-prompt","status":200,"durationMs":63}
-[12:49:47] BACKEND [2026-05-10T09:19:47.122Z] [HTTP] request_finished {"requestId":"mozkajxp-h63of9","method":"GET","path":"/api/admin/config","status":200,"durationMs":69}
-[12:49:47] BACKEND [2026-05-10T09:19:47.125Z] [HTTP] request_started {"requestId":"mozkajzo-davzy8","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.131Z] [HTTP] request_finished {"requestId":"mozkajzo-davzy8","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":7}
-[12:49:47] BACKEND [2026-05-10T09:19:47.135Z] [HTTP] request_started {"requestId":"mozkajzz-1vrb48","method":"GET","path":"/api/admin/config/system-prompt"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.137Z] [HTTP] request_started {"requestId":"mozkak01-rlswse","method":"GET","path":"/api/admin/config"}
-[12:49:47] BACKEND [2026-05-10T09:19:47.141Z] [HTTP] request_finished {"requestId":"mozkajzz-1vrb48","method":"GET","path":"/api/admin/config/system-prompt","status":304,"durationMs":6}
-[12:49:47] BACKEND [2026-05-10T09:19:47.142Z] [HTTP] request_finished {"requestId":"mozkak01-rlswse","method":"GET","path":"/api/admin/config","status":304,"durationMs":5}
+[13:08:24] FRONTEND 
+[13:08:24] FRONTEND > hemraz-frontend@1.0.0 dev
+[13:08:24] FRONTEND > vite
+[13:08:24] FRONTEND 
+[13:08:24] BACKEND 
+[13:08:24] BACKEND > hemraz-backend@1.0.0 dev
+[13:08:24] BACKEND > nodemon --config nodemon.json src/server.js
+[13:08:24] BACKEND 
+[13:08:24] BACKEND [33m[nodemon] 3.1.14[39m
+[13:08:24] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[13:08:24] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[13:08:24] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[13:08:24] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[13:08:25] FRONTEND 
+[13:08:25] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m307[22m[2m[0m ms[22m
+[13:08:25] FRONTEND 
+[13:08:25] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[13:08:25] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.148:[1m5173[22m/[39m
+[13:08:25] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[13:08:25] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\data.json
+[13:08:25] BACKEND [2026-05-10T09:38:25.269Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[13:08:44] BACKEND [2026-05-10T09:38:44.805Z] [HTTP] request_started {"requestId":"mozkyxtx-77tbdu","method":"POST","path":"/api/conversations/load"}
+[13:08:44] BACKEND [2026-05-10T09:38:44.840Z] [HTTP] request_finished {"requestId":"mozkyxtx-77tbdu","method":"POST","path":"/api/conversations/load","status":200,"durationMs":35}
+[13:08:45] BACKEND [2026-05-10T09:38:45.423Z] [HTTP] request_started {"requestId":"mozkyyb3-983ub2","method":"POST","path":"/api/conversations/sync"}
+[13:08:45] BACKEND [2026-05-10T09:38:45.482Z] [HTTP] request_finished {"requestId":"mozkyyb3-983ub2","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":59}
+[13:09:13] BACKEND [2026-05-10T09:39:13.648Z] [HTTP] request_started {"requestId":"mozkzk34-85jlxw","method":"POST","path":"/api/conversations/load"}
+[13:09:13] BACKEND [2026-05-10T09:39:13.692Z] [HTTP] request_finished {"requestId":"mozkzk34-85jlxw","method":"POST","path":"/api/conversations/load","status":200,"durationMs":44}
+[13:09:14] BACKEND [2026-05-10T09:39:14.286Z] [HTTP] request_started {"requestId":"mozkzkku-7f3t3g","method":"POST","path":"/api/conversations/sync"}
+[13:09:14] BACKEND [2026-05-10T09:39:14.351Z] [HTTP] request_finished {"requestId":"mozkzkku-7f3t3g","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":65}
+[13:10:19] BACKEND [2026-05-10T09:40:19.410Z] [HTTP] request_started {"requestId":"mozl0ytu-uidj3e","method":"POST","path":"/api/conversations/load"}
+[13:10:19] BACKEND [2026-05-10T09:40:19.431Z] [HTTP] request_finished {"requestId":"mozl0ytu-uidj3e","method":"POST","path":"/api/conversations/load","status":200,"durationMs":21}
+[13:10:20] BACKEND [2026-05-10T09:40:20.008Z] [HTTP] request_started {"requestId":"mozl0zag-jucinp","method":"POST","path":"/api/conversations/sync"}
+[13:10:20] BACKEND [2026-05-10T09:40:20.066Z] [HTTP] request_finished {"requestId":"mozl0zag-jucinp","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":58}
+[13:10:20] FRONTEND [2m1:10:20 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[13:10:35] BACKEND [2026-05-10T09:40:35.600Z] [HTTP] request_started {"requestId":"mozl1bbk-gyktc2","method":"POST","path":"/api/conversations/load"}
+[13:10:35] BACKEND [2026-05-10T09:40:35.618Z] [HTTP] request_finished {"requestId":"mozl1bbk-gyktc2","method":"POST","path":"/api/conversations/load","status":200,"durationMs":18}
+[13:10:36] BACKEND [2026-05-10T09:40:36.202Z] [HTTP] request_started {"requestId":"mozl1bsa-kdlmsy","method":"POST","path":"/api/conversations/sync"}
+[13:10:36] BACKEND [2026-05-10T09:40:36.234Z] [HTTP] request_finished {"requestId":"mozl1bsa-kdlmsy","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":32}
+[13:10:37] BACKEND [2026-05-10T09:40:37.645Z] [HTTP] request_started {"requestId":"mozl1cwd-4mbivd","method":"POST","path":"/api/conversations/load"}
+[13:10:37] BACKEND [2026-05-10T09:40:37.660Z] [HTTP] request_finished {"requestId":"mozl1cwd-4mbivd","method":"POST","path":"/api/conversations/load","status":200,"durationMs":15}
+[13:10:38] BACKEND [2026-05-10T09:40:38.245Z] [HTTP] request_started {"requestId":"mozl1dd1-us5hp9","method":"POST","path":"/api/conversations/sync"}
+[13:10:38] BACKEND [2026-05-10T09:40:38.275Z] [HTTP] request_finished {"requestId":"mozl1dd1-us5hp9","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":30}

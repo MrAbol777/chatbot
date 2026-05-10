@@ -21,6 +21,7 @@ WORKDIR /app
 
 ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
 ARG APK_MIRROR=https://repo.hmirror.ir/apk
+ARG ENABLE_SYSTEM_PROMPT_EDIT=true
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 ENV npm_config_audit=false
 ENV npm_config_fund=false
@@ -40,7 +41,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV FRONTEND_DIST_DIR=/app/frontend/dist
 ENV DB_FILE_PATH=/tmp/hemraz-data.json
-ENV ENABLE_SYSTEM_PROMPT_EDIT=true
+ENV ENABLE_SYSTEM_PROMPT_EDIT=${ENABLE_SYSTEM_PROMPT_EDIT}
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD wget -qO- http://127.0.0.1:${PORT}/healthz || exit 1
