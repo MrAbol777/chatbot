@@ -3,12 +3,15 @@ WORKDIR /app/frontend
 
 ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
 ARG APK_MIRROR=https://repo.hmirror.ir/apk
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
+ENV npm_config_audit=false
+ENV npm_config_fund=false
 
 RUN sed -i "s|https\?://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
 RUN npm config set registry ${NPM_REGISTRY}
 
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 COPY frontend/ ./
 RUN npm run build
@@ -18,12 +21,15 @@ WORKDIR /app
 
 ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
 ARG APK_MIRROR=https://repo.hmirror.ir/apk
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
+ENV npm_config_audit=false
+ENV npm_config_fund=false
 
 RUN sed -i "s|https\?://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
 RUN npm config set registry ${NPM_REGISTRY}
 
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --omit=dev
+RUN cd backend && npm ci --omit=dev --no-audit --no-fund
 
 COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
