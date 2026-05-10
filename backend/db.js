@@ -474,6 +474,7 @@ const listUsersWithConversationStats = ({
 } = {}) => {
   const data = readDB();
   const normalizedSearch = String(search || '').trim().toLowerCase();
+  const normalizedSearchPhone = sanitizePhone(search);
   const normalizedPhone = sanitizePhone(phone);
   const safePage = Math.max(1, Number.parseInt(String(page), 10) || 1);
   const safePageSize = Math.min(100, Math.max(1, Number.parseInt(String(pageSize), 10) || 20));
@@ -504,7 +505,13 @@ const listUsersWithConversationStats = ({
   });
 
   if (normalizedSearch) {
-    users = users.filter((user) => String(user.name || '').toLowerCase().includes(normalizedSearch));
+    users = users.filter((user) => {
+      const byName = String(user.name || '').toLowerCase().includes(normalizedSearch);
+      const byId = String(user.user_id || '').toLowerCase().includes(normalizedSearch);
+      const userPhone = sanitizePhone(user.phone) || '';
+      const byPhone = normalizedSearchPhone ? userPhone.includes(normalizedSearchPhone) : false;
+      return byName || byId || byPhone;
+    });
   }
 
   if (normalizedPhone) {
@@ -575,6 +582,75 @@ const getUserFullProfile = (userId) => {
   };
 };
 
+const getUserConversations = (userId) => {
+  const data = readDB();
+  const targetId = String(userId || '').trim();
+  if (!targetId) {
+    return [];
+  }
+
+  return data.conversations
+    .filter((item) => String(item.user_id) === targetId)
+    .map((item) => ({
+      conversation_id: String(item.conversation_id || 'default'),
+      title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : null,
+      pinned: Boolean(item.pinned),
+      created_at: item.created_at || nowIso(),
+      updated_at: item.updated_at || item.created_at || nowIso(),
+      messages: Array.isArray(item.messages) ? item.messages : []
+    }))
+    .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
+};
+
+const replaceUserConversations = (userId, conversations) => {
+  const targetId = String(userId || '').trim();
+  if (!targetId) {
+    return 0;
+  }
+
+  const data = readDB();
+  data.conversations = data.conversations.filter((item) => String(item.user_id) !== targetId);
+
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
+  for (const item of safeConversations) {
+    const conversationId =
+      typeof item?.conversation_id === 'string' && item.conversation_id.trim()
+        ? item.conversation_id.trim()
+        : normalizeConversationId(item?.conversation_id);
+    const createdAt = item?.created_at || nowIso();
+    const updatedAt = item?.updated_at || createdAt;
+    const safeMessages = Array.isArray(item?.messages)
+      ? item.messages
+          .filter(
+            (msg) =>
+              msg &&
+              (msg.role === 'user' || msg.role === 'assistant') &&
+              typeof msg.content === 'string' &&
+              msg.content.trim().length > 0
+          )
+          .slice(-200)
+          .map((msg) => ({
+            role: msg.role,
+            content: msg.content.trim(),
+            timestamp: typeof msg.timestamp === 'string' ? msg.timestamp : updatedAt
+          }))
+      : [];
+
+    data.conversations.push({
+      user_id: targetId,
+      conversation_id: conversationId,
+      title: typeof item?.title === 'string' ? item.title.trim() : '',
+      pinned: Boolean(item?.pinned),
+      messages: safeMessages,
+      created_at: createdAt,
+      updated_at: updatedAt
+    });
+  }
+
+  writeDB(data);
+  return safeConversations.length;
+};
+
 ensureDBFile();
 
 module.exports = {
@@ -592,6 +668,8 @@ module.exports = {
   setUserBanStatus,
   deleteUserAndConversations,
   getUserFullProfile,
+  getUserConversations,
+  replaceUserConversations,
   getTotalUsers,
   getActiveUsersToday,
   getApiCallsToday,

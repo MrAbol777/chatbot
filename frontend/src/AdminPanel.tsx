@@ -72,6 +72,10 @@ function AdminPanel() {
   const [dashboardError, setDashboardError] = useState('');
   const [configSaving, setConfigSaving] = useState(false);
   const [configMessage, setConfigMessage] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [systemPromptLoading, setSystemPromptLoading] = useState(false);
+  const [systemPromptSaving, setSystemPromptSaving] = useState(false);
+  const [systemPromptMessage, setSystemPromptMessage] = useState('');
 
   const loadUsers = async () => {
     const params = new URLSearchParams();
@@ -120,6 +124,27 @@ function AdminPanel() {
     setConfig(payload);
   };
 
+  const loadSystemPrompt = async () => {
+    setSystemPromptLoading(true);
+    setSystemPromptMessage('');
+    try {
+      const response = await fetch('/api/admin/config/system-prompt', { credentials: 'include' });
+      if (response.status === 401) {
+        window.location.href = '/admin/login';
+        return;
+      }
+      if (!response.ok) {
+        throw new Error('load_failed');
+      }
+      const payload = await response.json();
+      setSystemPrompt(typeof payload.systemPrompt === 'string' ? payload.systemPrompt : '');
+    } catch (_error) {
+      setSystemPromptMessage('خواندن سیستم پرامپت ناموفق بود.');
+    } finally {
+      setSystemPromptLoading(false);
+    }
+  };
+
   const loadLogs = async () => {
     const response = await fetch('/api/admin/audit-logs?page=1&pageSize=50', { credentials: 'include' });
     const payload = await response.json();
@@ -131,6 +156,7 @@ function AdminPanel() {
     void loadUsers();
     void loadErrors();
     void loadConfig();
+    void loadSystemPrompt();
     void loadLogs();
   }, []);
 
@@ -190,6 +216,34 @@ function AdminPanel() {
     if (reportOptions.errors) params.set('errors', '1');
     if (reportOptions.conversations) params.set('conversations', '1');
     window.open(`/api/admin/reports/csv?${params.toString()}`, '_blank');
+  };
+
+  const saveSystemPrompt = async () => {
+    if (!systemPrompt.trim()) {
+      setSystemPromptMessage('سیستم پرامپت نمی تواند خالی باشد.');
+      return;
+    }
+
+    setSystemPromptSaving(true);
+    setSystemPromptMessage('');
+    try {
+      const response = await fetch('/api/admin/config/system-prompt', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ systemPrompt })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || 'save_failed');
+      }
+      setSystemPromptMessage(payload.message || 'پرامپت با موفقیت به‌روزرسانی شد');
+      alert(payload.message || 'پرامپت با موفقیت به‌روزرسانی شد');
+    } catch (error) {
+      setSystemPromptMessage(error instanceof Error ? error.message : 'ذخیره سیستم پرامپت ناموفق بود.');
+    } finally {
+      setSystemPromptSaving(false);
+    }
   };
 
   return (
@@ -424,6 +478,29 @@ function AdminPanel() {
                 {configMessage}
               </span>
             ) : null}
+          </div>
+
+          <div className="system-prompt-box">
+            <h4>سیستم پرامپت (System Prompt)</h4>
+            <p className="admin-note">متن دستور پایه مدل در این بخش مدیریت می شود و بدون ری استارت سرور اعمال خواهد شد.</p>
+            {systemPromptLoading ? <p className="admin-note">در حال بارگذاری پرامپت...</p> : null}
+            <textarea
+              className="system-prompt-textarea"
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              placeholder="متن سیستم پرامپت را وارد کنید"
+              rows={14}
+            />
+            <div className="config-actions">
+              <button onClick={() => void saveSystemPrompt()} disabled={systemPromptSaving || systemPromptLoading}>
+                {systemPromptSaving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
+              </button>
+              {systemPromptMessage ? (
+                <span className={systemPromptMessage.includes('موفقیت') ? 'admin-success' : 'admin-error'}>
+                  {systemPromptMessage}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}

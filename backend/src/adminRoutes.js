@@ -32,7 +32,36 @@ const DEFAULT_CONFIG = {
     voiceInput: true,
     quickChips: true,
     practiceMode: true
-  }
+  },
+  systemPrompt: `تو «دانوآ» هستی؛ یک همراه مهربان، خیالی و بدون جنسیت (ترکیبی از ربات کوچک و ابر) که برای همه سنین از ۲ تا ۱۸ سال طراحی شده‌ای. شکل تو گرد و نرم است تا حس امنیت بده. برای نوجوانان، نقش یک «دوست داناتر» را بازی می‌کنی و برای کودکان، نقش یک مربی صبور و داستان‌گو.
+
+🧠 قوانین طلایی (همیشه رعایت کن)
+
+1. همه پاسخ‌ها فارسی و راست‌به‌چپ باشد.
+2. لحن: امن، محترمانه، دوستانه و بدون تحقیر.
+3. فکت علمی فقط در مواقع خاص: اگر این یکی از ۲ پیام اول گفتگو است، می‌توانی پاسخ را با یک فکت علمی کوتاه (حداکثر ۱ جمله) شروع کنی. اگر کاربر صراحتاً از تو خواست «یک واقعیت جالب بگو» یا «بیشتر توضیح بده»، در آن صورت نیز می‌توانی یک فکت اضافه کنی. در غیر این صورت (ادامه یک مکالمه عادی)، پاسخ را مستقیم و بدون هیچ فکت علمی بده؛ فقط مفید و کوتاه به سؤال پاسخ بده. هیچ‌وقت در پاسخ‌های تکراری یا تأییدی (مثل «بله»، «درسته»، «آفرین») فکت نیاور.
+4. در هر پاسخ، بیش از یک ایده اصلی ارائه نکن. اگر پاسخ ساده است، یک جمله کافی است. از توضیحات اضافی بپرهیز.
+5. بازخورد مثبت: به جای «غلطه» بگو «خیلی نزدیک شدی! بیا یک جور دیگه ببینیم.»
+6. ناوبری ذهنی: همیشه به کاربر بگو کجای مسیره (مثلاً «الان مرحله دوم از سه مرحله‌ست»).
+7. اگر این اولین پیام کاربر در این گفتگو نیست، پاسخ را با سلام تکراری شروع نکن و مستقیم سر اصل مطلب برو.
+8. اگر کاربر قبلاً به یک سوال پاسخ داده، در پاسخ‌های بعدی همان سوال را تکرار نکن.
+
+🎯 دسته‌بندی موضوع و قالب پاسخ
+
+📚 دسته آموزشی/درسی
+- شروع با ایموجی 📚
+- گام‌به‌گام و دقیق
+
+❤️ دسته احساسی
+- اول همدلی کن، بعد عادی‌سازی احساس، و در صورت نیاز پیشنهاد گفت‌وگو با یک بزرگ‌سال قابل اعتماد بده.
+
+✨ دسته خلاقانه
+- اگر اطلاعات کافی بود مستقیم کمک کن، اگر نبود حداکثر یک سوال تکمیلی بپرس.
+
+🛡️ ایمنی گفتگو
+- اگر موضوع حساس یا خطرناک بود، اول آرامش بده، بعد بگو «بیا با یک بزرگ‌سال مورد اعتماد حرف بزنیم.»
+- هیچ‌وقت تحقیر نکن، مسخره نکن، نترسون.
+`
 };
 
 const now = () => new Date().toISOString();
@@ -89,7 +118,11 @@ const ensureConfigData = async () => {
       voiceInput: Boolean(parsed.features?.voiceInput),
       quickChips: Boolean(parsed.features?.quickChips),
       practiceMode: Boolean(parsed.features?.practiceMode)
-    }
+    },
+    systemPrompt:
+      typeof parsed.systemPrompt === 'string' && parsed.systemPrompt.trim()
+        ? parsed.systemPrompt.trim()
+        : DEFAULT_CONFIG.systemPrompt
   };
 };
 
@@ -129,8 +162,9 @@ const parseBannedFilter = (value) => {
   return undefined;
 };
 
-const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token' }) => {
+const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemPromptUpdated }) => {
   const router = express.Router();
+  const isSystemPromptEditEnabled = process.env.ENABLE_SYSTEM_PROMPT_EDIT !== 'false';
 
   const loginLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -332,7 +366,8 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token' }) => {
         voiceInput: Boolean(req.body?.features?.voiceInput),
         quickChips: Boolean(req.body?.features?.quickChips),
         practiceMode: Boolean(req.body?.features?.practiceMode)
-      }
+      },
+      systemPrompt: current.systemPrompt || DEFAULT_CONFIG.systemPrompt
     };
 
     await fs.writeJson(CONFIG_FILE_PATH, nextConfig, { spaces: 2 });
@@ -358,6 +393,48 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token' }) => {
     }
 
     return res.json({ success: true, config: nextConfig });
+  });
+
+  router.get('/config/system-prompt', requireAdminAuth, async (_req, res) => {
+    if (!isSystemPromptEditEnabled) {
+      return res.status(403).json({ error: 'ویرایش سیستم پرامپت غیرفعال است.' });
+    }
+    const config = await ensureConfigData();
+    return res.json({ systemPrompt: config.systemPrompt || DEFAULT_CONFIG.systemPrompt });
+  });
+
+  router.put('/config/system-prompt', requireAdminAuth, async (req, res) => {
+    if (!isSystemPromptEditEnabled) {
+      return res.status(403).json({ error: 'ویرایش سیستم پرامپت غیرفعال است.' });
+    }
+
+    const nextPrompt = typeof req.body?.systemPrompt === 'string' ? req.body.systemPrompt.trim() : '';
+    if (!nextPrompt) {
+      return res.status(400).json({ error: 'متن سیستم پرامپت نمی تواند خالی باشد.' });
+    }
+
+    const current = await ensureConfigData();
+    const nextConfig = {
+      ...current,
+      systemPrompt: nextPrompt
+    };
+    await fs.writeJson(CONFIG_FILE_PATH, nextConfig, { spaces: 2 });
+
+    if (typeof onSystemPromptUpdated === 'function') {
+      onSystemPromptUpdated();
+    }
+
+    await appendAudit({
+      adminUsername: req.admin?.username,
+      action: 'update_system_prompt',
+      target: 'system_prompt',
+      details: {
+        previousLength: (current.systemPrompt || '').length,
+        nextLength: nextPrompt.length
+      }
+    });
+
+    return res.json({ success: true, message: 'پرامپت با موفقیت به‌روزرسانی شد' });
   });
 
   router.get('/reports/csv', requireAdminAuth, (req, res) => {

@@ -40,6 +40,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV FRONTEND_DIST_DIR=/app/frontend/dist
 ENV DB_FILE_PATH=/tmp/hemraz-data.json
+ENV ENABLE_SYSTEM_PROMPT_EDIT=true
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD wget -qO- http://127.0.0.1:${PORT}/healthz || exit 1

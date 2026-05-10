@@ -1,65 +1,60 @@
-(node:12392) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:3064) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[11:51:37] FRONTEND 
-[11:51:37] FRONTEND > hemraz-frontend@1.0.0 dev
-[11:51:37] FRONTEND > vite
-[11:51:37] FRONTEND 
-[11:51:37] BACKEND 
-[11:51:37] BACKEND > hemraz-backend@1.0.0 dev
-[11:51:37] BACKEND > nodemon --config nodemon.json src/server.js
-[11:51:37] BACKEND 
-[11:51:38] BACKEND [33m[nodemon] 3.1.14[39m
-[11:51:38] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[11:51:38] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[11:51:38] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[11:51:38] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[11:51:38] FRONTEND 
-[11:51:38] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m310[22m[2m[0m ms[22m
-[11:51:38] FRONTEND 
-[11:51:38] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[11:51:38] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.148:[1m5173[22m/[39m
-[11:51:38] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[11:51:38] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\data.json
-[11:51:38] BACKEND [2026-05-10T08:21:38.412Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[11:51:39] BACKEND [2026-05-10T08:21:39.474Z] [HTTP] request_started {"requestId":"mozi7swi-fnq1ak","method":"GET","path":"/api/admin/users?"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.482Z] [HTTP] request_finished {"requestId":"mozi7swi-fnq1ak","method":"GET","path":"/api/admin/users?","status":304,"durationMs":8}
-[11:51:39] BACKEND [2026-05-10T08:21:39.484Z] [HTTP] request_started {"requestId":"mozi7sws-tlzky8","method":"GET","path":"/api/admin/errors"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.487Z] [HTTP] request_finished {"requestId":"mozi7sws-tlzky8","method":"GET","path":"/api/admin/errors","status":304,"durationMs":3}
-[11:51:39] BACKEND [2026-05-10T08:21:39.487Z] [HTTP] request_started {"requestId":"mozi7swv-gkgfm3","method":"GET","path":"/api/admin/config"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.491Z] [HTTP] request_started {"requestId":"mozi7swz-2gk1sd","method":"GET","path":"/api/admin/dashboard/stats"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.505Z] [HTTP] request_finished {"requestId":"mozi7swz-2gk1sd","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":14}
-[11:51:39] BACKEND [2026-05-10T08:21:39.507Z] [HTTP] request_started {"requestId":"mozi7sxf-kxz73j","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.511Z] [HTTP] request_started {"requestId":"mozi7sxj-baf7uh","method":"GET","path":"/api/admin/users?"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.514Z] [HTTP] request_finished {"requestId":"mozi7sxj-baf7uh","method":"GET","path":"/api/admin/users?","status":304,"durationMs":3}
-[11:51:39] BACKEND [2026-05-10T08:21:39.515Z] [HTTP] request_started {"requestId":"mozi7sxn-yq7vpw","method":"GET","path":"/api/admin/errors"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.518Z] [HTTP] request_finished {"requestId":"mozi7sxn-yq7vpw","method":"GET","path":"/api/admin/errors","status":304,"durationMs":3}
-[11:51:39] BACKEND [2026-05-10T08:21:39.521Z] [HTTP] request_started {"requestId":"mozi7sxt-elxewy","method":"GET","path":"/api/admin/dashboard/stats"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.532Z] [HTTP] request_finished {"requestId":"mozi7sxt-elxewy","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":11}
-[11:51:39] BACKEND [2026-05-10T08:21:39.533Z] [HTTP] request_finished {"requestId":"mozi7swv-gkgfm3","method":"GET","path":"/api/admin/config","status":304,"durationMs":46}
-[11:51:39] BACKEND [2026-05-10T08:21:39.534Z] [HTTP] request_finished {"requestId":"mozi7sxf-kxz73j","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":27}
-[11:51:39] BACKEND [2026-05-10T08:21:39.541Z] [HTTP] request_started {"requestId":"mozi7syd-c893aa","method":"GET","path":"/api/admin/config"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.542Z] [HTTP] request_started {"requestId":"mozi7sye-j7uk1g","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
-[11:51:39] BACKEND [2026-05-10T08:21:39.544Z] [HTTP] request_finished {"requestId":"mozi7syd-c893aa","method":"GET","path":"/api/admin/config","status":304,"durationMs":3}
-[11:51:39] BACKEND [2026-05-10T08:21:39.545Z] [HTTP] request_finished {"requestId":"mozi7sye-j7uk1g","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":3}
-[11:51:43] BACKEND [2026-05-10T08:21:43.700Z] [HTTP] request_started {"requestId":"mozi7w5w-ysl5z4","method":"GET","path":"/api/admin/reports/csv?users=1"}
-[11:51:43] BACKEND [2026-05-10T08:21:43.717Z] [HTTP] request_finished {"requestId":"mozi7w5w-ysl5z4","method":"GET","path":"/api/admin/reports/csv?users=1","status":200,"durationMs":17}
-[11:52:41] BACKEND [2026-05-10T08:22:41.273Z] [HTTP] request_started {"requestId":"mozi94l5-05y0zm","method":"GET","path":"/api/admin/dashboard/stats"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.297Z] [HTTP] request_finished {"requestId":"mozi94l5-05y0zm","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":24}
-[11:52:41] BACKEND [2026-05-10T08:22:41.298Z] [HTTP] request_started {"requestId":"mozi94lu-7tb6cm","method":"GET","path":"/api/admin/users?"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.302Z] [HTTP] request_finished {"requestId":"mozi94lu-7tb6cm","method":"GET","path":"/api/admin/users?","status":304,"durationMs":4}
-[11:52:41] BACKEND [2026-05-10T08:22:41.302Z] [HTTP] request_started {"requestId":"mozi94ly-y3s3mv","method":"GET","path":"/api/admin/errors"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.306Z] [HTTP] request_finished {"requestId":"mozi94ly-y3s3mv","method":"GET","path":"/api/admin/errors","status":304,"durationMs":4}
-[11:52:41] BACKEND [2026-05-10T08:22:41.310Z] [HTTP] request_started {"requestId":"mozi94m6-b4c8w9","method":"GET","path":"/api/admin/config"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.313Z] [HTTP] request_started {"requestId":"mozi94m9-luatzl","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.316Z] [HTTP] request_started {"requestId":"mozi94mc-hvca4g","method":"GET","path":"/api/admin/dashboard/stats"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.336Z] [HTTP] request_finished {"requestId":"mozi94mc-hvca4g","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":20}
-[11:52:41] BACKEND [2026-05-10T08:22:41.336Z] [HTTP] request_started {"requestId":"mozi94mw-5ghu6a","method":"GET","path":"/api/admin/users?"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.341Z] [HTTP] request_finished {"requestId":"mozi94mw-5ghu6a","method":"GET","path":"/api/admin/users?","status":304,"durationMs":5}
-[11:52:41] BACKEND [2026-05-10T08:22:41.341Z] [HTTP] request_started {"requestId":"mozi94n1-t716fw","method":"GET","path":"/api/admin/errors"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.345Z] [HTTP] request_finished {"requestId":"mozi94n1-t716fw","method":"GET","path":"/api/admin/errors","status":304,"durationMs":4}
-[11:52:41] BACKEND [2026-05-10T08:22:41.349Z] [HTTP] request_finished {"requestId":"mozi94m9-luatzl","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":36}
-[11:52:41] BACKEND [2026-05-10T08:22:41.349Z] [HTTP] request_finished {"requestId":"mozi94m6-b4c8w9","method":"GET","path":"/api/admin/config","status":304,"durationMs":39}
-[11:52:41] BACKEND [2026-05-10T08:22:41.358Z] [HTTP] request_started {"requestId":"mozi94ni-zbbvr4","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.359Z] [HTTP] request_started {"requestId":"mozi94nj-zt60rq","method":"GET","path":"/api/admin/config"}
-[11:52:41] BACKEND [2026-05-10T08:22:41.361Z] [HTTP] request_finished {"requestId":"mozi94ni-zbbvr4","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":3}
-[11:52:41] BACKEND [2026-05-10T08:22:41.362Z] [HTTP] request_finished {"requestId":"mozi94nj-zt60rq","method":"GET","path":"/api/admin/config","status":304,"durationMs":3}
+[12:49:05] FRONTEND 
+[12:49:05] FRONTEND > hemraz-frontend@1.0.0 dev
+[12:49:05] FRONTEND > vite
+[12:49:05] FRONTEND 
+[12:49:05] BACKEND 
+[12:49:05] BACKEND > hemraz-backend@1.0.0 dev
+[12:49:05] BACKEND > nodemon --config nodemon.json src/server.js
+[12:49:05] BACKEND 
+[12:49:05] BACKEND [33m[nodemon] 3.1.14[39m
+[12:49:05] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[12:49:05] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[12:49:05] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[12:49:05] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[12:49:05] FRONTEND 
+[12:49:05] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m328[22m[2m[0m ms[22m
+[12:49:05] FRONTEND 
+[12:49:05] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[12:49:05] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.148:[1m5173[22m/[39m
+[12:49:05] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[12:49:05] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\data.json
+[12:49:05] BACKEND [2026-05-10T09:19:05.988Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[12:49:20] BACKEND [2026-05-10T09:19:20.481Z] [HTTP] request_started {"requestId":"mozk9zfl-qagx9x","method":"POST","path":"/api/auth/phone-status"}
+[12:49:20] BACKEND [2026-05-10T09:19:20.499Z] [HTTP] request_finished {"requestId":"mozk9zfl-qagx9x","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":18}
+[12:49:20] BACKEND [2026-05-10T09:19:20.534Z] [HTTP] request_started {"requestId":"mozk9zh2-k69trz","method":"POST","path":"/api/send-verification-code"}
+[12:49:20] BACKEND [VERIFICATION CODE] 09926638344 -> 187418
+[12:49:20] BACKEND [2026-05-10T09:19:20.549Z] [HTTP] request_finished {"requestId":"mozk9zh2-k69trz","method":"POST","path":"/api/send-verification-code","status":200,"durationMs":15}
+[12:49:38] BACKEND [2026-05-10T09:19:38.058Z] [HTTP] request_started {"requestId":"mozkaczu-cm58sr","method":"POST","path":"/api/verify-code"}
+[12:49:38] BACKEND [2026-05-10T09:19:38.064Z] [HTTP] request_finished {"requestId":"mozkaczu-cm58sr","method":"POST","path":"/api/verify-code","status":200,"durationMs":6}
+[12:49:38] BACKEND [2026-05-10T09:19:38.086Z] [HTTP] request_started {"requestId":"mozkad0m-v98uxf","method":"POST","path":"/api/register-profile"}
+[12:49:38] BACKEND [2026-05-10T09:19:38.102Z] [HTTP] request_finished {"requestId":"mozkad0m-v98uxf","method":"POST","path":"/api/register-profile","status":200,"durationMs":16}
+[12:49:38] BACKEND [2026-05-10T09:19:38.175Z] [HTTP] request_started {"requestId":"mozkad33-5pipcm","method":"POST","path":"/api/conversations/load"}
+[12:49:38] BACKEND [2026-05-10T09:19:38.242Z] [HTTP] request_finished {"requestId":"mozkad33-5pipcm","method":"POST","path":"/api/conversations/load","status":200,"durationMs":67}
+[12:49:38] BACKEND [2026-05-10T09:19:38.781Z] [HTTP] request_started {"requestId":"mozkadjx-ul7gwi","method":"POST","path":"/api/conversations/sync"}
+[12:49:38] BACKEND [2026-05-10T09:19:38.838Z] [HTTP] request_finished {"requestId":"mozkadjx-ul7gwi","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":57}
+[12:49:46] BACKEND [2026-05-10T09:19:46.978Z] [HTTP] request_started {"requestId":"mozkajvm-jska9t","method":"GET","path":"/api/admin/dashboard/stats"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.021Z] [HTTP] request_finished {"requestId":"mozkajvm-jska9t","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":43}
+[12:49:47] BACKEND [2026-05-10T09:19:47.026Z] [HTTP] request_started {"requestId":"mozkajwx-ow1hqy","method":"GET","path":"/api/admin/users?"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.045Z] [HTTP] request_started {"requestId":"mozkajxh-f1x37f","method":"GET","path":"/api/admin/errors"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.051Z] [HTTP] request_finished {"requestId":"mozkajxh-f1x37f","method":"GET","path":"/api/admin/errors","status":304,"durationMs":6}
+[12:49:47] BACKEND [2026-05-10T09:19:47.053Z] [HTTP] request_started {"requestId":"mozkajxp-h63of9","method":"GET","path":"/api/admin/config"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.057Z] [HTTP] request_started {"requestId":"mozkajxt-tn81qs","method":"GET","path":"/api/admin/config/system-prompt"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.060Z] [HTTP] request_started {"requestId":"mozkajxw-1cvgd6","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.067Z] [HTTP] request_started {"requestId":"mozkajy3-j1sfpk","method":"GET","path":"/api/admin/dashboard/stats"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.092Z] [HTTP] request_finished {"requestId":"mozkajy3-j1sfpk","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":25}
+[12:49:47] BACKEND [2026-05-10T09:19:47.093Z] [HTTP] request_started {"requestId":"mozkajyt-wve9hf","method":"GET","path":"/api/admin/errors"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.098Z] [HTTP] request_finished {"requestId":"mozkajyt-wve9hf","method":"GET","path":"/api/admin/errors","status":304,"durationMs":5}
+[12:49:47] BACKEND [2026-05-10T09:19:47.101Z] [HTTP] request_finished {"requestId":"mozkajwx-ow1hqy","method":"GET","path":"/api/admin/users?","status":200,"durationMs":76}
+[12:49:47] BACKEND [2026-05-10T09:19:47.105Z] [HTTP] request_finished {"requestId":"mozkajxw-1cvgd6","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":45}
+[12:49:47] BACKEND [2026-05-10T09:19:47.108Z] [HTTP] request_started {"requestId":"mozkajz8-21jo6h","method":"GET","path":"/api/admin/users?"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.117Z] [HTTP] request_finished {"requestId":"mozkajz8-21jo6h","method":"GET","path":"/api/admin/users?","status":304,"durationMs":9}
+[12:49:47] BACKEND [2026-05-10T09:19:47.120Z] [HTTP] request_finished {"requestId":"mozkajxt-tn81qs","method":"GET","path":"/api/admin/config/system-prompt","status":200,"durationMs":63}
+[12:49:47] BACKEND [2026-05-10T09:19:47.122Z] [HTTP] request_finished {"requestId":"mozkajxp-h63of9","method":"GET","path":"/api/admin/config","status":200,"durationMs":69}
+[12:49:47] BACKEND [2026-05-10T09:19:47.125Z] [HTTP] request_started {"requestId":"mozkajzo-davzy8","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.131Z] [HTTP] request_finished {"requestId":"mozkajzo-davzy8","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":7}
+[12:49:47] BACKEND [2026-05-10T09:19:47.135Z] [HTTP] request_started {"requestId":"mozkajzz-1vrb48","method":"GET","path":"/api/admin/config/system-prompt"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.137Z] [HTTP] request_started {"requestId":"mozkak01-rlswse","method":"GET","path":"/api/admin/config"}
+[12:49:47] BACKEND [2026-05-10T09:19:47.141Z] [HTTP] request_finished {"requestId":"mozkajzz-1vrb48","method":"GET","path":"/api/admin/config/system-prompt","status":304,"durationMs":6}
+[12:49:47] BACKEND [2026-05-10T09:19:47.142Z] [HTTP] request_finished {"requestId":"mozkak01-rlswse","method":"GET","path":"/api/admin/config","status":304,"durationMs":5}

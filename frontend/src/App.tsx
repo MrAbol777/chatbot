@@ -254,6 +254,37 @@ const registerProfile = async (profile: {
   return (await response.json()) as { userId: string; profile: { name: string; age: number; phone: string } };
 };
 
+const loadRemoteConversations = async (profile: UserProfile & { id?: string | number }) => {
+  const response = await fetch('/api/conversations/load', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profile })
+  });
+  if (!response.ok) {
+    throw new Error('بارگذاری گفتگوها انجام نشد.');
+  }
+  return (await response.json()) as {
+    success: boolean;
+    userId: string;
+    items: Array<{
+      conversation_id: string;
+      title?: string | null;
+      pinned?: boolean;
+      created_at?: string;
+      updated_at?: string;
+      messages?: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string }>;
+    }>;
+  };
+};
+
+const syncRemoteConversations = async (profile: UserProfile & { id?: string | number }, conversations: Conversation[]) => {
+  await fetch('/api/conversations/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profile, items: conversations })
+  });
+};
+
 const createConversation = (): Conversation => {
   const now = new Date().toISOString();
   return {
@@ -273,6 +304,34 @@ const sortConversations = (items: Conversation[]): Conversation[] => {
     }
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
+};
+
+const normalizeConversationFromServer = (item: {
+  conversation_id: string;
+  title?: string | null;
+  pinned?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  messages?: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string }>;
+}): Conversation => {
+  const createdAt = item.created_at || new Date().toISOString();
+  const updatedAt = item.updated_at || createdAt;
+  const messages = Array.isArray(item.messages)
+    ? item.messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp || updatedAt
+      }))
+    : [];
+
+  return {
+    id: item.conversation_id || `${Date.now()}`,
+    title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : DEFAULT_TITLE,
+    pinned: Boolean(item.pinned),
+    createdAt,
+    updatedAt,
+    messages
+  };
 };
 
 const inferTitle = (text: string): string => {
@@ -306,6 +365,7 @@ function ChatApp() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string>('');
+  const [hasHydratedRemoteConversations, setHasHydratedRemoteConversations] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.matchMedia('(min-width: 1024px)').matches;
@@ -449,6 +509,43 @@ function ChatApp() {
   }, []);
 
   useEffect(() => {
+    if (!profile?.id || landingStep !== 'chat') {
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const payload = await loadRemoteConversations(profile);
+        if (cancelled) return;
+
+        const remote = Array.isArray(payload.items) ? payload.items.map(normalizeConversationFromServer) : [];
+        if (remote.length === 0) {
+          setHasHydratedRemoteConversations(true);
+          return;
+        }
+
+        const sorted = sortConversations(remote);
+        setConversations(sorted);
+        const nextActiveId = sorted[0].id;
+        setActiveConversationId(nextActiveId);
+        localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(sorted));
+        localStorage.setItem(ACTIVE_CONVERSATION_KEY, nextActiveId);
+        setHasHydratedRemoteConversations(true);
+      } catch (_error) {
+        // Keep local data if remote load fails.
+      } finally {
+        setHasHydratedRemoteConversations(true);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.id, landingStep]);
+
+  useEffect(() => {
     if (profile) {
       setLandingStep('chat');
     }
@@ -476,6 +573,20 @@ function ChatApp() {
       localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
     }
   }, [conversations]);
+
+  useEffect(() => {
+    if (!profile?.id || landingStep !== 'chat' || conversations.length === 0 || !hasHydratedRemoteConversations) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void syncRemoteConversations(profile, conversations);
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [profile, conversations, landingStep, hasHydratedRemoteConversations]);
 
   useEffect(() => {
     if (activeConversationId) {
@@ -758,6 +869,7 @@ function ChatApp() {
           personality: createDefaultPersonality()
         };
 
+        setHasHydratedRemoteConversations(false);
         setProfile(normalizedProfile);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(normalizedProfile));
         const rawProfiles = localStorage.getItem(PROFILES_KEY);
@@ -788,6 +900,7 @@ function ChatApp() {
         mode: 'signup'
       });
       payload.id = registrationResult.userId || payload.id;
+      setHasHydratedRemoteConversations(false);
       setProfile(payload);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
       setLandingStep('chat');
@@ -1073,6 +1186,7 @@ function ChatApp() {
     setErrors({});
     setConversations([]);
     setActiveConversationId('');
+    setHasHydratedRemoteConversations(false);
     setSidebarOpen(false);
     setInputValue('');
     setIsSending(false);

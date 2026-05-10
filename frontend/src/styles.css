@@ -528,6 +528,31 @@ textarea {
   flex-wrap: wrap;
 }
 
+.system-prompt-box {
+  margin-top: 16px;
+  border-top: 1px dashed var(--admin-border);
+  padding-top: 14px;
+}
+
+.system-prompt-textarea {
+  width: 100%;
+  min-height: 300px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fffdfa;
+  color: #3d2a1a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.system-prompt-textarea:focus {
+  outline: none;
+  border-color: #f2a04f;
+  box-shadow: 0 0 0 3px rgba(242, 160, 79, 0.22);
+}
+
 .dashboard-skeleton {
   display: grid;
   gap: 16px;

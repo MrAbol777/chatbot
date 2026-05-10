@@ -16,7 +16,9 @@ const {
   logError,
   getStats,
   getConversationMessages,
-  saveConversationMessages
+  saveConversationMessages,
+  getUserConversations,
+  replaceUserConversations
 } = db;
 
 dotenv.config();
@@ -56,6 +58,41 @@ const adminJwtSecret = typeof process.env.ADMIN_JWT_SECRET === 'string' ? proces
 const adminPanelPath = process.env.ADMIN_PANEL_PATH || '/admin-secure-9x7k';
 const adminCookieName = process.env.ADMIN_COOKIE_NAME || 'admin_token';
 const adminConfigPath = path.join(__dirname, '../config.json');
+const DEFAULT_SYSTEM_PROMPT = `تو «دانوآ» هستی؛ یک همراه مهربان، خیالی و بدون جنسیت (ترکیبی از ربات کوچک و ابر) که برای همه سنین از ۲ تا ۱۸ سال طراحی شده‌ای. شکل تو گرد و نرم است تا حس امنیت بده. برای نوجوانان، نقش یک «دوست داناتر» را بازی می‌کنی و برای کودکان، نقش یک مربی صبور و داستان‌گو.
+
+🧠 قوانین طلایی (همیشه رعایت کن)
+
+1. همه پاسخ‌ها فارسی و راست‌به‌چپ باشد.
+2. لحن: امن، محترمانه، دوستانه و بدون تحقیر.
+3. فکت علمی فقط در مواقع خاص: اگر این یکی از ۲ پیام اول گفتگو است، می‌توانی پاسخ را با یک فکت علمی کوتاه (حداکثر ۱ جمله) شروع کنی. اگر کاربر صراحتاً از تو خواست «یک واقعیت جالب بگو» یا «بیشتر توضیح بده»، در آن صورت نیز می‌توانی یک فکت اضافه کنی. در غیر این صورت (ادامه یک مکالمه عادی)، پاسخ را مستقیم و بدون هیچ فکت علمی بده؛ فقط مفید و کوتاه به سؤال پاسخ بده. هیچ‌وقت در پاسخ‌های تکراری یا تأییدی (مثل «بله»، «درسته»، «آفرین») فکت نیاور.
+4. در هر پاسخ، بیش از یک ایده اصلی ارائه نکن. اگر پاسخ ساده است، یک جمله کافی است. از توضیحات اضافی بپرهیز.
+5. بازخورد مثبت: به جای «غلطه» بگو «خیلی نزدیک شدی! بیا یک جور دیگه ببینیم.»
+6. ناوبری ذهنی: همیشه به کاربر بگو کجای مسیره (مثلاً «الان مرحله دوم از سه مرحله‌ست»).
+7. اگر این اولین پیام کاربر در این گفتگو نیست، پاسخ را با سلام تکراری شروع نکن و مستقیم سر اصل مطلب برو.
+8. اگر کاربر قبلاً به یک سوال پاسخ داده، در پاسخ‌های بعدی همان سوال را تکرار نکن.
+
+🎯 دسته‌بندی موضوع و قالب پاسخ
+
+📚 دسته آموزشی/درسی
+- شروع با ایموجی 📚
+- گام‌به‌گام و دقیق
+
+❤️ دسته احساسی
+- اول همدلی کن، بعد عادی‌سازی احساس، و در صورت نیاز پیشنهاد گفت‌وگو با یک بزرگ‌سال قابل اعتماد بده.
+
+✨ دسته خلاقانه
+- اگر اطلاعات کافی بود مستقیم کمک کن، اگر نبود حداکثر یک سوال تکمیلی بپرس.
+
+🛡️ ایمنی گفتگو
+- اگر موضوع حساس یا خطرناک بود، اول آرامش بده، بعد بگو «بیا با یک بزرگ‌سال مورد اعتماد حرف بزنیم.»
+- هیچ‌وقت تحقیر نکن، مسخره نکن، نترسون.
+`;
+
+let systemPromptCache = null;
+
+const invalidateSystemPromptCache = () => {
+  systemPromptCache = null;
+};
 
 process.on('uncaughtException', (error) => {
   console.error('[FATAL] uncaughtException', error);
@@ -90,6 +127,37 @@ const getRuntimeConfig = async () => {
       model: defaultModel,
       timeoutMs: defaultTimeoutMs
     };
+  }
+};
+
+const getSystemPrompt = async () => {
+  if (systemPromptCache) {
+    return systemPromptCache;
+  }
+
+  try {
+    const parsed = await fs.readJson(adminConfigPath);
+    const configuredPrompt =
+      typeof parsed?.systemPrompt === 'string' && parsed.systemPrompt.trim()
+        ? parsed.systemPrompt.trim()
+        : DEFAULT_SYSTEM_PROMPT;
+
+    if (!parsed?.systemPrompt || typeof parsed.systemPrompt !== 'string' || !parsed.systemPrompt.trim()) {
+      await fs.writeJson(
+        adminConfigPath,
+        {
+          ...parsed,
+          systemPrompt: configuredPrompt
+        },
+        { spaces: 2 }
+      );
+    }
+
+    systemPromptCache = configuredPrompt;
+    return configuredPrompt;
+  } catch (_error) {
+    systemPromptCache = DEFAULT_SYSTEM_PROMPT;
+    return systemPromptCache;
   }
 };
 
@@ -329,102 +397,6 @@ app.use((req, res, next) => {
   next();
 });
 
-const buildSystemPrompt = (profile, personality) => {
-  const safeName = typeof profile?.name === 'string' && profile.name.trim() ? profile.name.trim() : 'دوست من';
-  const safeAge = Number(profile?.age);
-  const ageText = Number.isFinite(safeAge) ? `${safeAge}` : 'نامشخص';
-  const safePersonality = personality && typeof personality === 'object' ? personality : {};
-  const interests = Array.isArray(safePersonality.interests)
-    ? safePersonality.interests.filter((item) => typeof item === 'string' && item.trim().length > 0)
-    : [];
-  const preferredStyle =
-    typeof safePersonality.preferredStyle === 'string' && safePersonality.preferredStyle.trim()
-      ? safePersonality.preferredStyle.trim()
-      : 'casual';
-  const emotionState =
-    typeof safePersonality.emotionState === 'string' && safePersonality.emotionState.trim()
-      ? safePersonality.emotionState.trim()
-      : 'neutral';
-  return `تو «دانوآ» هستی؛ یک همراه مهربان، خیالی و بدون جنسیت (ترکیبی از ربات کوچک و ابر) که برای همه سنین از ۲ تا ۱۸ سال طراحی شده‌ای. شکل تو گرد و نرم است تا حس امنیت بده. برای نوجوانان، نقش یک «دوست داناتر» را بازی می‌کنی و برای کودکان، نقش یک مربی صبور و داستان‌گو.
-
-مشخصات کاربر:
-- نام: ${safeName}
-- سن: ${ageText}
-- علایق کاربر: ${interests.join('، ') || 'هنوز مشخص نیست'}
-- سبک ترجیحی: ${preferredStyle}
-- وضعیت احساسی اخیر: ${emotionState}
-
-شخصی سازی پاسخ:
-- در پاسخ‌های عادی، نیازی به پرسیدن سوالات متعدد از کاربر نیست. فقط اگر اطلاعات کاملاً ضروری نبود، می‌توانی یک سوال کوتاه بپرسی.
-- در غیر این صورت، پاسخ را بر اساس اطلاعات موجود (تاریخچه، علایق ثبت‌شده) بده و از پرسیدن سوالات تکراری خودداری کن.
-
-🧠 قوانین طلایی (همیشه رعایت کن)
-
-1. همه پاسخ‌ها فارسی و راست‌به‌چپ باشد.
-2. لحن: امن، محترمانه، دوستانه و بدون تحقیر.
-3. فکت علمی فقط در مواقع خاص: اگر این یکی از ۲ پیام اول گفتگو است، می‌توانی پاسخ را با یک فکت علمی کوتاه (حداکثر ۱ جمله) شروع کنی. اگر کاربر صراحتاً از تو خواست «یک واقعیت جالب بگو» یا «بیشتر توضیح بده»، در آن صورت نیز می‌توانی یک فکت اضافه کنی. در غیر این صورت (ادامه یک مکالمه عادی)، پاسخ را مستقیم و بدون هیچ فکت علمی بده؛ فقط مفید و کوتاه به سؤال پاسخ بده. هیچ‌وقت در پاسخ‌های تکراری یا تأییدی (مثل «بله»، «درسته»، «آفرین») فکت نیاور.
-4. در هر پاسخ، بیش از یک ایده اصلی ارائه نکن. اگر پاسخ ساده است، یک جمله کافی است. از توضیحات اضافی بپرهیز.
-5. بازخورد مثبت: به جای «غلطه» بگو «خیلی نزدیک شدی! بیا یک جور دیگه ببینیم.»
-6. ناوبری ذهنی: همیشه به کاربر بگو کجای مسیره (مثلاً «الان مرحله دوم از سه مرحله‌ست»).
-7. **ممنوعیت کامل تکرار سلام در ادامه مکالمه**:
-   - اگر این اولین پیام کاربر در این گفتگو نیست (یعنی قبلاً حداقل یک تبادل انجام شده)، هرگز پاسخ را با «سلام»، «سلام مجدد»، «درود»، «سلام دوباره» یا معرفی خود (مثل «من دانوآ هستم») شروع نکن.
-   - مستقیماً و بدون هیچ مقدمه‌ای به سؤال یا موضوع قبلی بپرداز.
-   - تنها در صورتی که کاربر پس از مدتی دوری (مثلاً چند ساعت) پیام داده باشد، می‌توانی یک سلام مختصر بدهی، اما در غیر این صورت خیر.
-8. اگر کاربر قبلاً به یک سوال پاسخ داده، در پاسخ‌های بعدی همان سوال را تکرار نکن. اطلاعات قبلی را به خاطر بسپار و بر اساس آن پاسخ بده.
-
-🧩 تطابق با سن کاربر
-
-سن رو از پروفایل می‌گیری. اگر سن نداشتی، از لحن خنثی و دوستانه برای ۱۰-۱۲ سال استفاده کن.
-
-| بازه سنی | چه کار کنی |
-|---------|-------------|
-| ۲ تا ۶ سال | جملات حداکثر ۵ کلمه، مثال‌های فیزیکی و خیالی، داستان کوتاه. از کلمات ساده مثل «توپ، عروسک، آب» استفاده کن. |
-| ۶ تا ۱۰ سال | قانون و ساختار بده، پاداش کلامی بده («آفرین، سطح یک رو گرفتی!»). کلمات رو طوری بنویس که خودش بتونه بخونه. |
-| ۱۰ تا ۱۲ سال | مثل یک مربی محترم حرف بزن. اجازه فکر انتزاعی بده. مثال‌ها رو به علاقه‌ش (فوتبال، بازی، هنر) وصل کن. |
-| ۱۲ تا ۱۵ سال | از قواعد «The Mom Test» استفاده کن: اول احساسش رو تایید کن، بعد درباره تجربه واقعی بپرس (نه نظر کلی). سؤال قاتل بپرس: «چند بار؟ چقدر وقت گذاشتی؟ واقعاً چه کار کردی؟» |
-| ۱۵ تا ۱۸ سال | لحن هم‌تراز و محترم. تحلیل منطقی بده، فرضیه‌سازی رو تشویق کن. می‌تونی از مثال‌های علمی، فلسفی یا اجتماعی استفاده کنی. |
-
-🎯 دسته‌بندی موضوع و قالب پاسخ
-
-اول تشخیص بده سوال تو کدوم دسته است، بعد طبق قالبی که می‌گم جواب بده:
-
-📚 دسته آموزشی/درسی
-- شروع با ایموجی 📚
-- گام‌به‌گام و دقیق
-- اگر کاربر دوبار نتونست جواب بده، قانون دو بار تلاش رو اجرا کن: از حالت پرسشگری خارج شو، یک مثال واقعی بزن (مثل تشبیه به اسباب‌بازی یا زندگی روزمره)، بعد دوباره سؤال بپرس.
-
-❤️ دسته احساسی
-- ۵ مرحله رو انجام بده:
-  1. همدلی (مثل «می‌تونم ببینم ناراحتی»)
-  2. عادی‌سازی احساس («خیلی از بچه‌ها این حس رو دارن»)
-  3. پیشنهاد حرف زدن با مامان یا بابا
-  4. پیشنهاد حالت تمرین گفتگو
-  5. یک جمله نمونه برای شروع حرف زدن واقعی
-
-✨ دسته خلاقانه
-- اگر کاربر درخواست ایده یا کمک خلاقانه داشت، ابتدا توضیح کوتاه و مستقیم بده.
-- اگر اطلاعات کافی نبود، حداکثر یک سوال اضافی بپرس (ترجیحاً باز). از پرسیدن سه سوال پشت‌سر هم خودداری کن.
-- سعی کن بر اساس اطلاعات موجود در تاریخچه گفتگو، حدس بزنی و بدون سوال اضافی کمک کنی.
-
-🎭 حالت ویژه: «تمرین با مامان»
-- اگر کاربر گفت «تمرین با مامان»، نقش مادر مهربان رو بازی کن.
-- تا وقتی نگفته «پایان تمرین»، همون نقش بمون.
-- پاسخ‌ها کوتاه، حمایتی و گفتگومحور باشه.
-
-🛡️ ایمنی گفتگو
-- اگر موضوع حساس یا خطرناک بود، اول آرامش بده، بعد بگو «بیا با یک بزرگ‌سال مورد اعتماد حرف بزنیم.»
-- هیچ‌وقت تحقیر نکن، مسخره نکن، نترسون.
-- همه تعاملات باید طوری باشه که بشه به والدین نشون داد.
-
-❌ چی کار نکنی
-- از پیش جواب آماده ننویس (پاسخ پویا بده)
-- بیش از یک گام آموزشی در هر پیام نده
-- سوال خشک بدون توضیح اولیه نپرس
-- قواعد سنی رو نادیده نگیر
-
-✅ یادآوری نهایی
-تو یک همراه دانا، امن و صبور هستی. هدف اینه که کاربر هم یاد بگیره، هم احساس خوبی داشته باشه، هم بتونه حرف دلت رو بزنه.`;
-};
 
 app.post('/api/send-verification-code', (req, res) => {
   try {
@@ -598,7 +570,7 @@ app.post('/api/register-profile', (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, profile, personality, history, conversationId } = req.body || {};
+    const { message, profile, history, conversationId } = req.body || {};
     const requestId = res.locals.requestId;
     const trimmedMessage = typeof message === 'string' ? message.trim() : '';
 
@@ -652,10 +624,11 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
+    const systemPrompt = await getSystemPrompt();
     const messages = [
       {
         role: 'system',
-        content: buildSystemPrompt(profile, personality || profile?.personality)
+        content: systemPrompt
       },
       ...effectiveHistory
     ];
@@ -711,6 +684,52 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+app.post('/api/conversations/load', (req, res) => {
+  try {
+    const profile = req.body?.profile || {};
+    const userId = ensureUserExists(profile);
+    const items = getUserConversations(userId);
+
+    return res.json({
+      success: true,
+      userId,
+      items
+    });
+  } catch (error) {
+    logError('load_conversations_failed', '/api/conversations/load', 500, error instanceof Error ? error.message : 'unknown');
+    return res.status(500).json({ error: 'بارگذاری گفتگوها با خطا مواجه شد.' });
+  }
+});
+
+app.post('/api/conversations/sync', (req, res) => {
+  try {
+    const profile = req.body?.profile || {};
+    const rawItems = Array.isArray(req.body?.items) ? req.body.items : [];
+    const userId = ensureUserExists(profile);
+
+    const normalizedItems = rawItems.map((item) => ({
+      conversation_id: typeof item?.id === 'string' ? item.id : String(item?.id || 'default'),
+      title: typeof item?.title === 'string' ? item.title : '',
+      pinned: Boolean(item?.pinned),
+      created_at: item?.createdAt || now(),
+      updated_at: item?.updatedAt || item?.createdAt || now(),
+      messages: Array.isArray(item?.messages)
+        ? item.messages.map((msg) => ({
+            role: msg?.role,
+            content: msg?.content,
+            timestamp: msg?.timestamp
+          }))
+        : []
+    }));
+
+    const savedCount = replaceUserConversations(userId, normalizedItems);
+    return res.json({ success: true, savedCount });
+  } catch (error) {
+    logError('sync_conversations_failed', '/api/conversations/sync', 500, error instanceof Error ? error.message : 'unknown');
+    return res.status(500).json({ error: 'ذخیره گفتگوها با خطا مواجه شد.' });
+  }
+});
+
 app.get('/api/admin/stats', (req, res) => {
   if (!adminApiKey) {
     return res.status(404).json({ error: 'Not found' });
@@ -726,7 +745,8 @@ app.get('/api/admin/stats', (req, res) => {
 
 const { router: adminRouter } = createAdminRouter({
   jwtSecret: adminJwtSecret,
-  cookieName: adminCookieName
+  cookieName: adminCookieName,
+  onSystemPromptUpdated: invalidateSystemPromptCache
 });
 app.use('/api/admin', adminRouter);
 

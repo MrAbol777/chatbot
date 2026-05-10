@@ -30,7 +30,7 @@
       "age": 16,
       "phone": "09926638344",
       "registered_at": "2026-05-03T07:27:46.292Z",
-      "last_active": "2026-05-09T11:34:28.465Z"
+      "last_active": "2026-05-10T09:19:38.787Z"
     },
     {
       "user_id": "1777797844720",
@@ -3890,5 +3890,15 @@
       "created_at": "2026-05-03T12:29:22.502Z"
     }
   ],
-  "conversations": []
+  "conversations": [
+    {
+      "user_id": "1777793271366",
+      "conversation_id": "1778404755502-3363",
+      "title": "گفتگوی جدید",
+      "pinned": false,
+      "messages": [],
+      "created_at": "2026-05-10T09:19:15.502Z",
+      "updated_at": "2026-05-10T09:19:15.502Z"
+    }
+  ]
 }
