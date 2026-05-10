@@ -10,10 +10,16 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^7.5.1",
+    "fs-extra": "^11.3.5",
+    "helmet": "^7.2.0",
+    "jsonwebtoken": "^9.0.3",
     "prisma": "^7.8.0"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@ const path = require('path');
 
 const DEFAULT_DB_FILE_PATH = path.join(__dirname, 'data.json');
 const FALLBACK_DB_FILE_PATH = '/tmp/hemraz-data.json';
+const AUDIT_LOG_PATH = path.join(__dirname, 'audit.log');
 
 const createEmptyDB = () => ({
   users: [],
@@ -140,6 +141,11 @@ const findUserByPhone = (phone) => {
   return data.users.find((item) => sanitizePhone(item?.phone) === normalizedPhone) || null;
 };
 
+const isUserBannedByPhone = (phone) => {
+  const user = findUserByPhone(phone);
+  return Boolean(user?.isBanned);
+};
+
 const generateUserId = () => `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
 const normalizeConversationId = (value) => {
   if (typeof value !== 'string') {
@@ -256,6 +262,138 @@ const getStats = () => {
   };
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const toValidTime = (value) => {
+  const ts = new Date(value || 0).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+};
+
+const getStartOfToday = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+};
+
+const getDateLabel = (date) => {
+  const y = date.getFullYear();
+  const m = `${date.getMonth() + 1}`.padStart(2, '0');
+  const d = `${date.getDate()}`.padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const buildDailySeries = (days = 7) => {
+  const safeDays = Math.max(1, Number.parseInt(String(days), 10) || 7);
+  const todayStart = getStartOfToday();
+  const start = todayStart - (safeDays - 1) * DAY_MS;
+  const items = [];
+
+  for (let i = 0; i < safeDays; i += 1) {
+    const dayStart = start + i * DAY_MS;
+    items.push({
+      date: getDateLabel(new Date(dayStart)),
+      start: dayStart,
+      end: dayStart + DAY_MS,
+      count: 0
+    });
+  }
+  return items;
+};
+
+const getTotalUsers = () => {
+  const data = readDB();
+  return data.users.length;
+};
+
+const getActiveUsersToday = () => {
+  const data = readDB();
+  const last24h = Date.now() - DAY_MS;
+  const activeUserIds = new Set();
+
+  for (const event of data.events) {
+    if (event.event_type !== 'message_sent') continue;
+    if (toValidTime(event.created_at) >= last24h) {
+      activeUserIds.add(String(event.user_id || ''));
+    }
+  }
+
+  return activeUserIds.size;
+};
+
+const getApiCallsToday = () => {
+  const data = readDB();
+  const startOfToday = getStartOfToday();
+  return data.events.filter((event) => event.event_type === 'message_sent' && toValidTime(event.created_at) >= startOfToday)
+    .length;
+};
+
+const getErrorCountToday = () => {
+  const data = readDB();
+  const startOfToday = getStartOfToday();
+  return data.errors.filter((item) => toValidTime(item.created_at) >= startOfToday).length;
+};
+
+const getUserGrowth = (days = 7) => {
+  const data = readDB();
+  const series = buildDailySeries(days);
+
+  for (const user of data.users) {
+    const ts = toValidTime(user.registered_at);
+    const day = series.find((item) => ts >= item.start && ts < item.end);
+    if (day) day.count += 1;
+  }
+
+  return series.map(({ date, count }) => ({ date, users: count }));
+};
+
+const getApiUsage = (days = 7) => {
+  const data = readDB();
+  const series = buildDailySeries(days);
+
+  for (const event of data.events) {
+    if (event.event_type !== 'message_sent') continue;
+    const ts = toValidTime(event.created_at);
+    const day = series.find((item) => ts >= item.start && ts < item.end);
+    if (day) day.count += 1;
+  }
+
+  return series.map(({ date, count }) => ({ date, calls: count }));
+};
+
+const getErrorDistribution = () => {
+  const data = readDB();
+  const distribution = new Map();
+
+  for (const item of data.errors) {
+    const key = item.error_type ? String(item.error_type) : 'unknown';
+    distribution.set(key, (distribution.get(key) || 0) + 1);
+  }
+
+  return [...distribution.entries()].map(([error_type, count]) => ({ error_type, count }));
+};
+
+const getRecentAuditLogs = (limit = 10) => {
+  const safeLimit = Math.min(100, Math.max(1, Number.parseInt(String(limit), 10) || 10));
+  if (!fs.existsSync(AUDIT_LOG_PATH)) {
+    return [];
+  }
+
+  const raw = fs.readFileSync(AUDIT_LOG_PATH, 'utf8');
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch (_error) {
+        return null;
+      }
+    })
+    .filter(Boolean)
+    .reverse()
+    .slice(0, safeLimit);
+};
+
 const getConversationMessages = (userId, conversationId) => {
   const data = readDB();
   const normalizedUserId = typeof userId === 'string' || typeof userId === 'number' ? String(userId) : '';
@@ -327,6 +465,116 @@ const saveConversationMessages = (userId, conversationId, messages) => {
   writeDB(data);
 };
 
+const listUsersWithConversationStats = ({
+  search = '',
+  phone = '',
+  isBanned,
+  page = 1,
+  pageSize = 20
+} = {}) => {
+  const data = readDB();
+  const normalizedSearch = String(search || '').trim().toLowerCase();
+  const normalizedPhone = sanitizePhone(phone);
+  const safePage = Math.max(1, Number.parseInt(String(page), 10) || 1);
+  const safePageSize = Math.min(100, Math.max(1, Number.parseInt(String(pageSize), 10) || 20));
+
+  const conversationMap = new Map();
+  for (const conversation of data.conversations) {
+    const key = String(conversation.user_id || '');
+    if (!conversationMap.has(key)) {
+      conversationMap.set(key, []);
+    }
+    conversationMap.get(key).push(conversation);
+  }
+
+  let users = data.users.map((user) => {
+    const userConversations = conversationMap.get(String(user.user_id)) || [];
+    const conversationCount = userConversations.length;
+    const lastConversationTime = userConversations
+      .map((item) => item.updated_at || item.created_at || null)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    return {
+      ...user,
+      isBanned: Boolean(user.isBanned),
+      conversationCount,
+      last_activity: user.last_active || lastConversationTime || user.registered_at || null
+    };
+  });
+
+  if (normalizedSearch) {
+    users = users.filter((user) => String(user.name || '').toLowerCase().includes(normalizedSearch));
+  }
+
+  if (normalizedPhone) {
+    users = users.filter((user) => sanitizePhone(user.phone) === normalizedPhone);
+  }
+
+  if (typeof isBanned === 'boolean') {
+    users = users.filter((user) => Boolean(user.isBanned) === isBanned);
+  }
+
+  users.sort((a, b) => new Date(b.last_activity || 0).getTime() - new Date(a.last_activity || 0).getTime());
+
+  const total = users.length;
+  const start = (safePage - 1) * safePageSize;
+  const items = users.slice(start, start + safePageSize);
+
+  return { items, total, page: safePage, pageSize: safePageSize };
+};
+
+const setUserBanStatus = (userId, isBanned) => {
+  const data = readDB();
+  const target = data.users.find((user) => String(user.user_id) === String(userId));
+  if (!target) {
+    return null;
+  }
+  target.isBanned = Boolean(isBanned);
+  writeDB(data);
+  return target;
+};
+
+const deleteUserAndConversations = (userId) => {
+  const data = readDB();
+  const targetId = String(userId);
+  const userIndex = data.users.findIndex((user) => String(user.user_id) === targetId);
+  if (userIndex < 0) {
+    return { deleted: false, conversationCount: 0 };
+  }
+  data.users.splice(userIndex, 1);
+  const beforeCount = data.conversations.length;
+  data.conversations = data.conversations.filter((conversation) => String(conversation.user_id) !== targetId);
+  const conversationCount = beforeCount - data.conversations.length;
+  writeDB(data);
+  return { deleted: true, conversationCount };
+};
+
+const getUserFullProfile = (userId) => {
+  const data = readDB();
+  const targetId = String(userId);
+  const user = data.users.find((item) => String(item.user_id) === targetId);
+  if (!user) {
+    return null;
+  }
+  const conversations = data.conversations
+    .filter((item) => String(item.user_id) === targetId)
+    .map((item) => ({
+      conversation_id: item.conversation_id,
+      title: item.title || `گفتگو ${item.conversation_id}`,
+      message_count: Array.isArray(item.messages) ? item.messages.length : 0,
+      last_message_at: item.updated_at || item.created_at || null,
+      messages: Array.isArray(item.messages) ? item.messages : []
+    }))
+    .sort((a, b) => new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime());
+
+  return {
+    ...user,
+    isBanned: Boolean(user.isBanned),
+    conversations
+  };
+};
+
 ensureDBFile();
 
 module.exports = {
@@ -339,6 +587,19 @@ module.exports = {
   getStats,
   getConversationMessages,
   saveConversationMessages,
+  isUserBannedByPhone,
+  listUsersWithConversationStats,
+  setUserBanStatus,
+  deleteUserAndConversations,
+  getUserFullProfile,
+  getTotalUsers,
+  getActiveUsersToday,
+  getApiCallsToday,
+  getErrorCountToday,
+  getUserGrowth,
+  getApiUsage,
+  getErrorDistribution,
+  getRecentAuditLogs,
   dbInfo: {
     mode: DB_STORAGE_MODE,
     filePath: DB_FILE_PATH

@@ -3,10 +3,15 @@ const cors = require('cors');
 const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs-extra');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const db = require('../db');
+const { createAdminRouter } = require('./adminRoutes');
 const {
   ensureUserExists,
   findUserByPhone,
+  isUserBannedByPhone,
   logEvent,
   logError,
   getStats,
@@ -43,12 +48,14 @@ const isValidPhone = (value) => /^09[0-9]{9}$/.test(value);
 const port = normalizePort(process.env.PORT, 3000);
 const host = '0.0.0.0';
 const geminiBaseUrl = (process.env.GEMINI_BASE_URL || 'https://api.metisai.ir').replace(/\/+$/, '');
-const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const defaultModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 const geminiApiKey = typeof process.env.GEMINI_API_KEY === 'string' ? process.env.GEMINI_API_KEY.trim() : '';
-const upstreamTimeoutMs = Number(process.env.GAPGPT_TIMEOUT_MS || 30000);
+const defaultTimeoutMs = Number(process.env.GAPGPT_TIMEOUT_MS || 30000);
 const adminApiKey = typeof process.env.ADMIN_API_KEY === 'string' ? process.env.ADMIN_API_KEY.trim() : '';
-
-const chatEndpoint = `${geminiBaseUrl}/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
+const adminJwtSecret = typeof process.env.ADMIN_JWT_SECRET === 'string' ? process.env.ADMIN_JWT_SECRET.trim() : 'danoa-admin-secret';
+const adminPanelPath = process.env.ADMIN_PANEL_PATH || '/admin-secure-9x7k';
+const adminCookieName = process.env.ADMIN_COOKIE_NAME || 'admin_token';
+const adminConfigPath = path.join(__dirname, '../config.json');
 
 process.on('uncaughtException', (error) => {
   console.error('[FATAL] uncaughtException', error);
@@ -70,6 +77,21 @@ if (typeof db.ensureDBFile === 'function') {
     console.error('[BOOT] ensureDBFile failed', error);
   }
 }
+
+const getRuntimeConfig = async () => {
+  try {
+    const parsed = await fs.readJson(adminConfigPath);
+    return {
+      model: typeof parsed?.model === 'string' && parsed.model.trim() ? parsed.model.trim() : defaultModel,
+      timeoutMs: Number.isFinite(Number(parsed?.timeoutMs)) ? Number(parsed.timeoutMs) : defaultTimeoutMs
+    };
+  } catch (_error) {
+    return {
+      model: defaultModel,
+      timeoutMs: defaultTimeoutMs
+    };
+  }
+};
 
 const normalizeHistory = (history, currentMessage) => {
   const clean = Array.isArray(history)
@@ -157,9 +179,9 @@ const removeExtraGreeting = (text, isFirstMessage) => {
   return cleaned.replace(greetingPattern, '').trimStart();
 };
 
-const doUpstreamRequest = async (payload, authHeaders) => {
+const doUpstreamRequest = async (payload, authHeaders, chatEndpoint, timeoutMs) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), upstreamTimeoutMs);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(chatEndpoint, {
@@ -194,6 +216,8 @@ const callGemini = async (messages) => {
   }
 
   const payload = buildMetisPayload(messages);
+  const runtimeConfig = await getRuntimeConfig();
+  const chatEndpoint = `${geminiBaseUrl}/v1beta/models/${encodeURIComponent(runtimeConfig.model)}:generateContent`;
   const authModes = [
     { mode: 'bearer', headers: { Authorization: `Bearer ${geminiApiKey}` } },
     { mode: 'x-goog-api-key', headers: { 'x-goog-api-key': geminiApiKey } }
@@ -203,7 +227,7 @@ const callGemini = async (messages) => {
 
   for (const auth of authModes) {
     try {
-      const result = await doUpstreamRequest(payload, auth.headers);
+      const result = await doUpstreamRequest(payload, auth.headers, chatEndpoint, runtimeConfig.timeoutMs);
 
       if (!result.ok) {
         lastFailure = {
@@ -276,9 +300,11 @@ function detectCategory(msg) {
   return 'general';
 }
 
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
+app.use(helmet());
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
 app.use((req, res, next) => {
   const startedAt = Date.now();
   const requestId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -441,6 +467,9 @@ app.post('/api/auth/phone-status', (req, res) => {
     }
 
     const user = findUserByPhone(phone);
+    if (user?.isBanned) {
+      return res.status(403).json({ error: 'حساب شما مسدود شده است' });
+    }
     const exists = Boolean(user);
     const recommendedMode = exists ? 'login' : 'signup';
     const shouldRedirect = mode === 'signup' ? exists : mode === 'login' ? !exists : false;
@@ -520,6 +549,9 @@ app.post('/api/register-profile', (req, res) => {
     }
 
     const existingUser = findUserByPhone(rawPhone);
+    if (isUserBannedByPhone(rawPhone)) {
+      return res.status(403).json({ error: 'حساب شما مسدود شده است' });
+    }
     if (mode === 'signup' && existingUser && String(existingUser.user_id) !== String(rawId)) {
       return res.status(409).json({ error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login' });
     }
@@ -692,11 +724,17 @@ app.get('/api/admin/stats', (req, res) => {
   return res.json(getStats());
 });
 
+const { router: adminRouter } = createAdminRouter({
+  jwtSecret: adminJwtSecret,
+  cookieName: adminCookieName
+});
+app.use('/api/admin', adminRouter);
+
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     service: 'hemraz-backend',
-    model: geminiModel,
+    model: defaultModel,
     baseUrl: geminiBaseUrl
   });
 });
@@ -720,9 +758,9 @@ const server = app.listen(port, host, () => {
   log('BOOT', 'backend_started', {
     host,
     port,
-    model: geminiModel,
+    model: defaultModel,
     baseUrl: geminiBaseUrl,
-    timeoutMs: upstreamTimeoutMs
+    timeoutMs: defaultTimeoutMs
   });
 });
 

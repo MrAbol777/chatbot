@@ -1,0 +1,9 @@
+{
+  "model": "gemini-2.0-flash",
+  "timeoutMs": 30000,
+  "features": {
+    "voiceInput": true,
+    "quickChips": true,
+    "practiceMode": true
+  }
+}

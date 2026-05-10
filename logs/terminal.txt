@@ -1,43 +1,45 @@
-(node:10384) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:12392) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[15:04:01] FRONTEND 
-[15:04:01] FRONTEND > hemraz-frontend@1.0.0 dev
-[15:04:01] FRONTEND > vite
-[15:04:01] FRONTEND 
-[15:04:01] BACKEND 
-[15:04:01] BACKEND > hemraz-backend@1.0.0 dev
-[15:04:01] BACKEND > nodemon --config nodemon.json src/server.js
-[15:04:01] BACKEND 
-[15:04:01] BACKEND [33m[nodemon] 3.1.14[39m
-[15:04:01] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[15:04:01] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[15:04:01] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[15:04:01] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[15:04:01] FRONTEND 
-[15:04:01] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m305[22m[2m[0m ms[22m
-[15:04:01] FRONTEND 
-[15:04:01] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[15:04:01] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.101:[1m5173[22m/[39m
-[15:04:01] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[15:04:02] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\data.json
-[15:04:02] BACKEND [2026-05-09T11:34:02.177Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[15:04:16] BACKEND [2026-05-09T11:34:16.935Z] [HTTP] request_started {"requestId":"moy9no13-mnt189","method":"POST","path":"/api/auth/phone-status"}
-[15:04:16] BACKEND [2026-05-09T11:34:16.977Z] [HTTP] request_finished {"requestId":"moy9no13-mnt189","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":42}
-[15:04:21] BACKEND [2026-05-09T11:34:21.541Z] [HTTP] request_started {"requestId":"moy9nrl1-8ifzzr","method":"POST","path":"/api/auth/phone-status"}
-[15:04:21] BACKEND [2026-05-09T11:34:21.547Z] [HTTP] request_finished {"requestId":"moy9nrl1-8ifzzr","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":6}
-[15:04:21] BACKEND [2026-05-09T11:34:21.558Z] [HTTP] request_started {"requestId":"moy9nrli-vz78uc","method":"POST","path":"/api/send-verification-code"}
-[15:04:21] BACKEND [VERIFICATION CODE] 09926638344 -> 862748
-[15:04:21] BACKEND [2026-05-09T11:34:21.564Z] [HTTP] request_finished {"requestId":"moy9nrli-vz78uc","method":"POST","path":"/api/send-verification-code","status":200,"durationMs":6}
-[15:04:28] BACKEND [2026-05-09T11:34:28.435Z] [HTTP] request_started {"requestId":"moy9nwwj-6zpljh","method":"POST","path":"/api/verify-code"}
-[15:04:28] BACKEND [2026-05-09T11:34:28.441Z] [HTTP] request_finished {"requestId":"moy9nwwj-6zpljh","method":"POST","path":"/api/verify-code","status":200,"durationMs":6}
-[15:04:28] BACKEND [2026-05-09T11:34:28.453Z] [HTTP] request_started {"requestId":"moy9nwx1-xskhpo","method":"POST","path":"/api/register-profile"}
-[15:04:28] BACKEND [2026-05-09T11:34:28.498Z] [HTTP] request_finished {"requestId":"moy9nwx1-xskhpo","method":"POST","path":"/api/register-profile","status":200,"durationMs":45}
-[15:04:41] BACKEND [2026-05-09T11:34:41.610Z] [HTTP] request_started {"requestId":"moy9o72i-xb3he0","method":"POST","path":"/api/auth/phone-status"}
-[15:04:41] BACKEND [2026-05-09T11:34:41.616Z] [HTTP] request_finished {"requestId":"moy9o72i-xb3he0","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":6}
-[15:04:51] BACKEND [31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[15:04:51] BACKEND [32m[nodemon] restarting child process[39m
-[15:04:51] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[15:04:51] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\data.json
-[15:04:51] BACKEND [2026-05-09T11:34:51.587Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[15:04:56] BACKEND ^C^C^CTerminate batch job (Y/N)? ^CTerminate batch job (Y/N)? npm run dev --prefix backend exited with code 3221225786
-[15:04:56] FRONTEND npm run dev --prefix frontend exited with code 3221225786
+[11:51:37] FRONTEND 
+[11:51:37] FRONTEND > hemraz-frontend@1.0.0 dev
+[11:51:37] FRONTEND > vite
+[11:51:37] FRONTEND 
+[11:51:37] BACKEND 
+[11:51:37] BACKEND > hemraz-backend@1.0.0 dev
+[11:51:37] BACKEND > nodemon --config nodemon.json src/server.js
+[11:51:37] BACKEND 
+[11:51:38] BACKEND [33m[nodemon] 3.1.14[39m
+[11:51:38] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[11:51:38] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[11:51:38] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[11:51:38] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[11:51:38] FRONTEND 
+[11:51:38] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m310[22m[2m[0m ms[22m
+[11:51:38] FRONTEND 
+[11:51:38] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[11:51:38] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.148:[1m5173[22m/[39m
+[11:51:38] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[11:51:38] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\data.json
+[11:51:38] BACKEND [2026-05-10T08:21:38.412Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[11:51:39] BACKEND [2026-05-10T08:21:39.474Z] [HTTP] request_started {"requestId":"mozi7swi-fnq1ak","method":"GET","path":"/api/admin/users?"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.482Z] [HTTP] request_finished {"requestId":"mozi7swi-fnq1ak","method":"GET","path":"/api/admin/users?","status":304,"durationMs":8}
+[11:51:39] BACKEND [2026-05-10T08:21:39.484Z] [HTTP] request_started {"requestId":"mozi7sws-tlzky8","method":"GET","path":"/api/admin/errors"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.487Z] [HTTP] request_finished {"requestId":"mozi7sws-tlzky8","method":"GET","path":"/api/admin/errors","status":304,"durationMs":3}
+[11:51:39] BACKEND [2026-05-10T08:21:39.487Z] [HTTP] request_started {"requestId":"mozi7swv-gkgfm3","method":"GET","path":"/api/admin/config"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.491Z] [HTTP] request_started {"requestId":"mozi7swz-2gk1sd","method":"GET","path":"/api/admin/dashboard/stats"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.505Z] [HTTP] request_finished {"requestId":"mozi7swz-2gk1sd","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":14}
+[11:51:39] BACKEND [2026-05-10T08:21:39.507Z] [HTTP] request_started {"requestId":"mozi7sxf-kxz73j","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.511Z] [HTTP] request_started {"requestId":"mozi7sxj-baf7uh","method":"GET","path":"/api/admin/users?"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.514Z] [HTTP] request_finished {"requestId":"mozi7sxj-baf7uh","method":"GET","path":"/api/admin/users?","status":304,"durationMs":3}
+[11:51:39] BACKEND [2026-05-10T08:21:39.515Z] [HTTP] request_started {"requestId":"mozi7sxn-yq7vpw","method":"GET","path":"/api/admin/errors"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.518Z] [HTTP] request_finished {"requestId":"mozi7sxn-yq7vpw","method":"GET","path":"/api/admin/errors","status":304,"durationMs":3}
+[11:51:39] BACKEND [2026-05-10T08:21:39.521Z] [HTTP] request_started {"requestId":"mozi7sxt-elxewy","method":"GET","path":"/api/admin/dashboard/stats"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.532Z] [HTTP] request_finished {"requestId":"mozi7sxt-elxewy","method":"GET","path":"/api/admin/dashboard/stats","status":304,"durationMs":11}
+[11:51:39] BACKEND [2026-05-10T08:21:39.533Z] [HTTP] request_finished {"requestId":"mozi7swv-gkgfm3","method":"GET","path":"/api/admin/config","status":304,"durationMs":46}
+[11:51:39] BACKEND [2026-05-10T08:21:39.534Z] [HTTP] request_finished {"requestId":"mozi7sxf-kxz73j","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":27}
+[11:51:39] BACKEND [2026-05-10T08:21:39.541Z] [HTTP] request_started {"requestId":"mozi7syd-c893aa","method":"GET","path":"/api/admin/config"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.542Z] [HTTP] request_started {"requestId":"mozi7sye-j7uk1g","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
+[11:51:39] BACKEND [2026-05-10T08:21:39.544Z] [HTTP] request_finished {"requestId":"mozi7syd-c893aa","method":"GET","path":"/api/admin/config","status":304,"durationMs":3}
+[11:51:39] BACKEND [2026-05-10T08:21:39.545Z] [HTTP] request_finished {"requestId":"mozi7sye-j7uk1g","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":3}
+[11:51:43] BACKEND [2026-05-10T08:21:43.700Z] [HTTP] request_started {"requestId":"mozi7w5w-ysl5z4","method":"GET","path":"/api/admin/reports/csv?users=1"}
+[11:51:43] BACKEND [2026-05-10T08:21:43.717Z] [HTTP] request_finished {"requestId":"mozi7w5w-ysl5z4","method":"GET","path":"/api/admin/reports/csv?users=1","status":200,"durationMs":17}

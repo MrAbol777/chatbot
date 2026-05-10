@@ -2,6 +2,8 @@ import { ChangeEvent, FormEvent, useEffect, useLayoutEffect, useMemo, useRef, us
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessage, Conversation, UserProfile } from './types';
+import AdminLogin from './AdminLogin';
+import AdminPanel from './AdminPanel';
 
 const PROFILE_KEY = 'chat_profile';
 const PROFILES_KEY = 'chat_profiles';
@@ -285,7 +287,7 @@ const inferTitle = (text: string): string => {
 const generateUniqueId = () => Date.now() + Math.floor(Math.random() * 10000);
 const getDefaultThemeByAge = (age: number): 'energy' | 'calm' => (age < 13 ? 'energy' : 'calm');
 
-function App() {
+function ChatApp() {
   const [profile, setProfile] = useState<AppProfile | null>(null);
   const [landingStep, setLandingStep] = useState<LandingStep>('landing');
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
@@ -1712,6 +1714,21 @@ function App() {
       </div>
     </div>
   );
+}
+
+function App() {
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const adminPath = '/admin-secure-9x7k';
+
+  if (pathname === '/admin/login') {
+    return <AdminLogin onLoginSuccess={() => { window.location.href = adminPath; }} />;
+  }
+
+  if (pathname === adminPath) {
+    return <AdminPanel />;
+  }
+
+  return <ChatApp />;
 }
 
 export default App;
