@@ -2,12 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const dotenv = require('dotenv');
+dotenv.config();
 const path = require('path');
 const fs = require('fs-extra');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const db = require('../db');
 const { createAdminRouter } = require('./adminRoutes');
+const smsRoutes = require('./routes/smsRoutes');
+const otpService = require('./services/otp.service');
+const patternSmsService = require('./services/sms.service');
 const {
   ensureUserExists,
   findUserByPhone,
@@ -21,12 +25,8 @@ const {
   replaceUserConversations
 } = db;
 
-dotenv.config();
-
 const app = express();
-const verificationStore = new Map();
 const conversationMemory = new Map();
-const VERIFICATION_TTL_MS = 5 * 60 * 1000;
 
 const now = () => new Date().toISOString();
 const log = (scope, message, meta) => {
@@ -44,7 +44,13 @@ const normalizePort = (value, fallback = 3000) => {
   }
   return fallback;
 };
-const normalizePhone = (value) => (typeof value === 'string' ? value.trim().replace(/[-\s]/g, '') : '');
+const normalizePhone = (value) => {
+  if (typeof value !== 'string') return '';
+  const cleaned = value.trim().replace(/[-\s]/g, '');
+  if (cleaned.startsWith('+98')) return `0${cleaned.slice(3)}`;
+  if (cleaned.startsWith('98')) return `0${cleaned.slice(2)}`;
+  return cleaned;
+};
 const isValidPhone = (value) => /^09[0-9]{9}$/.test(value);
 
 const port = normalizePort(process.env.PORT, 3000);
@@ -398,7 +404,7 @@ app.use((req, res, next) => {
 });
 
 
-app.post('/api/send-verification-code', (req, res) => {
+app.post('/api/send-verification-code', async (req, res) => {
   try {
     const phone = normalizePhone(req.body?.phone);
     const mode = typeof req.body?.mode === 'string' ? req.body.mode.trim() : '';
@@ -417,13 +423,33 @@ app.post('/api/send-verification-code', (req, res) => {
       return res.status(404).json({ error: 'حسابی با این شماره یافت نشد', redirectTo: 'signup', phoneExists });
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    const expiresAt = Date.now() + VERIFICATION_TTL_MS;
-    verificationStore.set(phone, { code, expiresAt });
-    console.log(`[VERIFICATION CODE] ${phone} -> ${code}`);
+    const resend = otpService.canResend(phone);
+    if (!resend.allowed) {
+      return res.status(429).json({
+        error: 'لطفا کمی صبر کنید و دوباره تلاش کنید.',
+        retryAfter: resend.retryAfterSeconds
+      });
+    }
 
-    return res.json({ success: true });
+    const code = otpService.generateOtp();
+    otpService.saveOtp(phone, code);
+
+    await patternSmsService.sendVerificationCode(phone, code);
+
+    console.log('[OTP] verification code created', {
+      phone,
+      mode,
+      expiresIn: otpService.getExpirySeconds(),
+      createdAt: new Date().toISOString()
+    });
+
+    return res.json({ success: true, expiresIn: otpService.getExpirySeconds() });
   } catch (error) {
+    console.error('[OTP] send-verification-code failed', {
+      message: error instanceof Error ? error.message : 'unknown',
+      status: error?.response?.status || null,
+      responseBody: error?.response?.data || null
+    });
     logError('verification_code_failed', '/api/send-verification-code', 500, error instanceof Error ? error.message : 'unknown');
     return res.status(500).json({ error: 'ارسال کد با خطا مواجه شد.' });
   }
@@ -468,27 +494,38 @@ app.post('/api/verify-code', (req, res) => {
       return res.status(400).json({ success: false, error: 'کد منقضی شده یا نامعتبر است' });
     }
 
-    const stored = verificationStore.get(phone);
-    if (!stored || Date.now() > stored.expiresAt) {
-      verificationStore.delete(phone);
+    const verifyResult = otpService.verifyOtp(phone, code);
+    if (!verifyResult.valid) {
+      if (verifyResult.reason === 'too_many_attempts') {
+        return res.status(429).json({
+          success: false,
+          error: 'تعداد تلاش ناموفق بیش از حد مجاز است. کمی بعد دوباره تلاش کنید.',
+          retryAfter: verifyResult.retryAfterSeconds || otpService.getExpirySeconds()
+        });
+      }
+      if (verifyResult.reason === 'invalid_code') {
+        return res.status(400).json({
+          success: false,
+          error: 'کد نادرست است',
+          remainingAttempts: verifyResult.remainingAttempts
+        });
+      }
       return res.status(400).json({ success: false, error: 'کد منقضی شده یا نامعتبر است' });
-    }
-
-    if (stored.code !== code) {
-      return res.status(400).json({ success: false, error: 'کد نادرست است' });
     }
 
     const phoneExists = Boolean(findUserByPhone(phone));
     if (mode === 'signup' && phoneExists) {
-      verificationStore.delete(phone);
       return res.status(409).json({ success: false, error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login' });
     }
     if (mode === 'login' && !phoneExists) {
-      verificationStore.delete(phone);
       return res.status(404).json({ success: false, error: 'حسابی با این شماره یافت نشد', redirectTo: 'signup' });
     }
 
-    verificationStore.delete(phone);
+    console.log('[OTP] verification successful', {
+      phone,
+      mode,
+      verifiedAt: new Date().toISOString()
+    });
     return res.json({ success: true });
   } catch (error) {
     logError('verify_code_failed', '/api/verify-code', 500, error instanceof Error ? error.message : 'unknown');
@@ -729,6 +766,10 @@ app.post('/api/conversations/sync', (req, res) => {
     return res.status(500).json({ error: 'ذخیره گفتگوها با خطا مواجه شد.' });
   }
 });
+
+// SMS Routes
+app.use('/api/sms', smsRoutes);
+console.log('[SMS] routes mounted');
 
 app.get('/api/admin/stats', (req, res) => {
   if (!adminApiKey) {

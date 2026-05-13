@@ -1389,7 +1389,7 @@ function ChatApp() {
               {authMode === 'login' ? 'ورود: شماره موبایل را وارد کن' : 'مرحله 2 از 3: شماره موبایل را وارد کن'}
             </p>
             <p className="helper onboarding-help">
-              یک کد 6 رقمی شبیه سازی شده در کنسول بک اند لاگ می شود.
+              کد تایید از طریق پیامک ارسال می شود.
             </p>
 
             <label>
@@ -1446,7 +1446,7 @@ function ChatApp() {
               کد را وارد کن <span>✅</span>
             </h1>
             <p className="subtitle">{authMode === 'login' ? 'ورود: کد 6 رقمی تأیید' : 'مرحله 3 از 3: کد 6 رقمی تأیید'}</p>
-            <p className="helper onboarding-help">کد در کنسول بک‌اند ثبت شده است.</p>
+            <p className="helper onboarding-help">کد ارسال شده را در این بخش وارد کنید.</p>
 
             <label>
               کد تایید

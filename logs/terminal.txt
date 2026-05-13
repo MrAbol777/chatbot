@@ -1,44 +1,50 @@
-(node:1004) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:5352) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[13:08:24] FRONTEND 
-[13:08:24] FRONTEND > hemraz-frontend@1.0.0 dev
-[13:08:24] FRONTEND > vite
-[13:08:24] FRONTEND 
-[13:08:24] BACKEND 
-[13:08:24] BACKEND > hemraz-backend@1.0.0 dev
-[13:08:24] BACKEND > nodemon --config nodemon.json src/server.js
-[13:08:24] BACKEND 
-[13:08:24] BACKEND [33m[nodemon] 3.1.14[39m
-[13:08:24] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[13:08:24] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[13:08:24] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[13:08:24] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[13:08:25] FRONTEND 
-[13:08:25] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m307[22m[2m[0m ms[22m
-[13:08:25] FRONTEND 
-[13:08:25] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[13:08:25] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.148:[1m5173[22m/[39m
-[13:08:25] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[13:08:25] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\data.json
-[13:08:25] BACKEND [2026-05-10T09:38:25.269Z] [BOOT] backend_started {"host":"0.0.0.0","port":3001,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[13:08:44] BACKEND [2026-05-10T09:38:44.805Z] [HTTP] request_started {"requestId":"mozkyxtx-77tbdu","method":"POST","path":"/api/conversations/load"}
-[13:08:44] BACKEND [2026-05-10T09:38:44.840Z] [HTTP] request_finished {"requestId":"mozkyxtx-77tbdu","method":"POST","path":"/api/conversations/load","status":200,"durationMs":35}
-[13:08:45] BACKEND [2026-05-10T09:38:45.423Z] [HTTP] request_started {"requestId":"mozkyyb3-983ub2","method":"POST","path":"/api/conversations/sync"}
-[13:08:45] BACKEND [2026-05-10T09:38:45.482Z] [HTTP] request_finished {"requestId":"mozkyyb3-983ub2","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":59}
-[13:09:13] BACKEND [2026-05-10T09:39:13.648Z] [HTTP] request_started {"requestId":"mozkzk34-85jlxw","method":"POST","path":"/api/conversations/load"}
-[13:09:13] BACKEND [2026-05-10T09:39:13.692Z] [HTTP] request_finished {"requestId":"mozkzk34-85jlxw","method":"POST","path":"/api/conversations/load","status":200,"durationMs":44}
-[13:09:14] BACKEND [2026-05-10T09:39:14.286Z] [HTTP] request_started {"requestId":"mozkzkku-7f3t3g","method":"POST","path":"/api/conversations/sync"}
-[13:09:14] BACKEND [2026-05-10T09:39:14.351Z] [HTTP] request_finished {"requestId":"mozkzkku-7f3t3g","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":65}
-[13:10:19] BACKEND [2026-05-10T09:40:19.410Z] [HTTP] request_started {"requestId":"mozl0ytu-uidj3e","method":"POST","path":"/api/conversations/load"}
-[13:10:19] BACKEND [2026-05-10T09:40:19.431Z] [HTTP] request_finished {"requestId":"mozl0ytu-uidj3e","method":"POST","path":"/api/conversations/load","status":200,"durationMs":21}
-[13:10:20] BACKEND [2026-05-10T09:40:20.008Z] [HTTP] request_started {"requestId":"mozl0zag-jucinp","method":"POST","path":"/api/conversations/sync"}
-[13:10:20] BACKEND [2026-05-10T09:40:20.066Z] [HTTP] request_finished {"requestId":"mozl0zag-jucinp","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":58}
-[13:10:20] FRONTEND [2m1:10:20 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
-[13:10:35] BACKEND [2026-05-10T09:40:35.600Z] [HTTP] request_started {"requestId":"mozl1bbk-gyktc2","method":"POST","path":"/api/conversations/load"}
-[13:10:35] BACKEND [2026-05-10T09:40:35.618Z] [HTTP] request_finished {"requestId":"mozl1bbk-gyktc2","method":"POST","path":"/api/conversations/load","status":200,"durationMs":18}
-[13:10:36] BACKEND [2026-05-10T09:40:36.202Z] [HTTP] request_started {"requestId":"mozl1bsa-kdlmsy","method":"POST","path":"/api/conversations/sync"}
-[13:10:36] BACKEND [2026-05-10T09:40:36.234Z] [HTTP] request_finished {"requestId":"mozl1bsa-kdlmsy","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":32}
-[13:10:37] BACKEND [2026-05-10T09:40:37.645Z] [HTTP] request_started {"requestId":"mozl1cwd-4mbivd","method":"POST","path":"/api/conversations/load"}
-[13:10:37] BACKEND [2026-05-10T09:40:37.660Z] [HTTP] request_finished {"requestId":"mozl1cwd-4mbivd","method":"POST","path":"/api/conversations/load","status":200,"durationMs":15}
-[13:10:38] BACKEND [2026-05-10T09:40:38.245Z] [HTTP] request_started {"requestId":"mozl1dd1-us5hp9","method":"POST","path":"/api/conversations/sync"}
-[13:10:38] BACKEND [2026-05-10T09:40:38.275Z] [HTTP] request_finished {"requestId":"mozl1dd1-us5hp9","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":30}
+[16:08:16] FRONTEND 
+[16:08:16] FRONTEND > hemraz-frontend@1.0.0 dev
+[16:08:16] FRONTEND > vite
+[16:08:16] FRONTEND 
+[16:08:16] BACKEND 
+[16:08:16] BACKEND > hemraz-backend@1.0.0 dev
+[16:08:16] BACKEND > nodemon --config nodemon.json src/server.js
+[16:08:16] BACKEND 
+[16:08:16] BACKEND [33m[nodemon] 3.1.14[39m
+[16:08:16] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[16:08:16] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[16:08:16] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[16:08:16] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[16:08:17] FRONTEND 
+[16:08:17] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m307[22m[2m[0m ms[22m
+[16:08:17] FRONTEND 
+[16:08:17] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[16:08:17] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.101:[1m5173[22m/[39m
+[16:08:17] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[16:08:17] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\dev.db
+[16:08:17] BACKEND [SMS] routes mounted
+[16:08:17] BACKEND [2026-05-13T12:38:17.333Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[16:08:23] BACKEND [2026-05-13T12:38:23.596Z] [HTTP] request_started {"requestId":"mp41pisr-v5vro1","method":"POST","path":"/api/auth/phone-status"}
+[16:08:23] BACKEND [2026-05-13T12:38:23.601Z] [HTTP] request_finished {"requestId":"mp41pisr-v5vro1","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":6}
+[16:08:24] BACKEND [2026-05-13T12:38:24.591Z] [HTTP] request_started {"requestId":"mp41pjkf-0dzkij","method":"POST","path":"/api/auth/phone-status"}
+[16:08:24] BACKEND [2026-05-13T12:38:24.594Z] [HTTP] request_finished {"requestId":"mp41pjkf-0dzkij","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":3}
+[16:08:24] BACKEND [2026-05-13T12:38:24.602Z] [HTTP] request_started {"requestId":"mp41pjkq-wmkw5s","method":"POST","path":"/api/send-verification-code"}
+[16:08:24] BACKEND [2026-05-13T12:38:24.604Z] [IPPanel] Before send pattern OTP {
+[16:08:24] BACKEND   endpoint: 'https://edge.ippanel.com/v1/messages/patterns/send',
+[16:08:24] BACKEND   payload: {
+[16:08:24] BACKEND     pattern_code: 'hcjtm046dbbbjpj',
+[16:08:24] BACKEND     originator: '3000505',
+[16:08:24] BACKEND     recipient: '989926638344',
+[16:08:24] BACKEND     values: { verification_code: '401153' }
+[16:08:24] BACKEND   }
+[16:08:24] BACKEND }
+[16:08:31] BACKEND [2026-05-13T12:38:31.159Z] [IPPanel] Error while sending pattern OTP {
+[16:08:31] BACKEND   message: 'Request failed with status code 404',
+[16:08:31] BACKEND   responseData: { error_msg: '404 Route Not Found' },
+[16:08:31] BACKEND   status: 404
+[16:08:31] BACKEND }
+[16:08:31] BACKEND [OTP] verification code created {
+[16:08:31] BACKEND   phone: '09926638344',
+[16:08:31] BACKEND   mode: 'signup',
+[16:08:31] BACKEND   expiresIn: 120,
+[16:08:31] BACKEND   createdAt: '2026-05-13T12:38:31.159Z'
+[16:08:31] BACKEND }
+[16:08:31] BACKEND [2026-05-13T12:38:31.160Z] [HTTP] request_finished {"requestId":"mp41pjkq-wmkw5s","method":"POST","path":"/api/send-verification-code","status":200,"durationMs":6558}
