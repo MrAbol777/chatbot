@@ -9,8 +9,30 @@ class OTPService {
     this.otpStore = new Map();
   }
 
+  getPhoneVariants(phone) {
+    const raw = String(phone || '').trim();
+    const digits = raw.replace(/\D/g, '');
+    const variants = new Set();
+
+    if (digits.startsWith('09') && digits.length === 11) {
+      variants.add(digits);
+      variants.add(`98${digits.slice(1)}`);
+    } else if (digits.startsWith('989') && digits.length === 12) {
+      variants.add(digits);
+      variants.add(`0${digits.slice(2)}`);
+    } else if (digits.startsWith('9') && digits.length === 10) {
+      variants.add(`0${digits}`);
+      variants.add(`98${digits}`);
+    } else if (digits) {
+      variants.add(digits);
+    }
+
+    return Array.from(variants);
+  }
+
   generateOtp() {
-    return String(Math.floor(100000 + Math.random() * 900000));
+    // IPPanel pattern sample uses a 5-digit token; keep this aligned.
+    return String(Math.floor(10000 + Math.random() * 90000));
   }
 
   canResend(phone) {
@@ -32,17 +54,33 @@ class OTPService {
   }
 
   saveOtp(phone, code) {
-    this.otpStore.set(phone, {
+    const entry = {
       code,
       createdAt: Date.now(),
       expiresAt: Date.now() + OTP_EXPIRE_MS,
       attempts: 0,
       blockedUntil: 0
-    });
+    };
+
+    const variants = this.getPhoneVariants(phone);
+    if (variants.length === 0) {
+      this.otpStore.set(phone, entry);
+      console.log('[OTPService] saveOtp (fallback key)', { key: phone, codeLength: String(code).length });
+      return;
+    }
+
+    for (const variant of variants) {
+      this.otpStore.set(variant, { ...entry });
+    }
+    console.log('[OTPService] saveOtp keys', { keys: variants, codeLength: String(code).length });
   }
 
   verifyOtp(phone, code) {
-    const entry = this.otpStore.get(phone);
+    const variants = this.getPhoneVariants(phone);
+    const matchedKey = variants.find((variant) => this.otpStore.has(variant));
+    const lookupKey = matchedKey || phone;
+    console.log('[OTPService] verifyOtp lookup', { phone, variants, lookupKey, found: Boolean(this.otpStore.get(lookupKey)) });
+    const entry = this.otpStore.get(lookupKey);
     if (!entry) {
       return { valid: false, reason: 'not_found' };
     }
@@ -58,19 +96,32 @@ class OTPService {
     }
 
     if (now > entry.expiresAt) {
-      this.otpStore.delete(phone);
+      for (const variant of variants) {
+        this.otpStore.delete(variant);
+      }
       return { valid: false, reason: 'expired' };
     }
 
-    if (entry.code !== code) {
+    const candidateCode = String(code || '').trim();
+    const matchesDirect = entry.code === candidateCode;
+    const matchesWithLeadingZero = candidateCode.length === entry.code.length + 1
+      && candidateCode.startsWith('0')
+      && candidateCode.slice(1) === entry.code;
+    const matchesBySuffix = candidateCode.length > entry.code.length && candidateCode.endsWith(entry.code);
+
+    if (!(matchesDirect || matchesWithLeadingZero || matchesBySuffix)) {
       entry.attempts += 1;
       if (entry.attempts >= MAX_WRONG_ATTEMPTS) {
         entry.blockedUntil = now + OTP_EXPIRE_MS;
-        this.otpStore.set(phone, entry);
+        for (const variant of variants) {
+          this.otpStore.set(variant, { ...entry });
+        }
         return { valid: false, reason: 'too_many_attempts', retryAfterSeconds: Math.ceil(OTP_EXPIRE_MS / 1000) };
       }
 
-      this.otpStore.set(phone, entry);
+      for (const variant of variants) {
+        this.otpStore.set(variant, { ...entry });
+      }
       return {
         valid: false,
         reason: 'invalid_code',
@@ -78,7 +129,9 @@ class OTPService {
       };
     }
 
-    this.otpStore.delete(phone);
+    for (const variant of variants) {
+      this.otpStore.delete(variant);
+    }
     return { valid: true };
   }
 

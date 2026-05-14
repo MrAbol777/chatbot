@@ -433,6 +433,11 @@ app.post('/api/send-verification-code', async (req, res) => {
 
     const code = otpService.generateOtp();
     otpService.saveOtp(phone, code);
+    console.log('[OTP] code generated', {
+      phone,
+      codeLength: String(code).length,
+      createdAt: new Date().toISOString()
+    });
 
     await patternSmsService.sendVerificationCode(phone, code);
 
@@ -487,15 +492,39 @@ app.post('/api/auth/phone-status', (req, res) => {
 app.post('/api/verify-code', (req, res) => {
   try {
     const phone = normalizePhone(req.body?.phone);
-    const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+    const rawCode = typeof req.body?.code === 'string' || typeof req.body?.code === 'number'
+      ? String(req.body.code).trim()
+      : '';
+    const normalizedCode = rawCode
+      .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
+      .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
+    const code = normalizedCode.replace(/\D/g, '');
     const mode = typeof req.body?.mode === 'string' ? req.body.mode.trim() : '';
 
-    if (!isValidPhone(phone) || !/^[0-9]{6}$/.test(code)) {
+    console.log('[OTP] verify-code request', {
+      phone,
+      mode,
+      rawCodeLength: rawCode.length,
+      normalizedCodeLength: normalizedCode.length,
+      digitOnlyCodeLength: code.length
+    });
+
+    if (!isValidPhone(phone) || !/^[0-9]{5,6}$/.test(code)) {
+      console.warn('[OTP] verify-code validation failed', {
+        phoneValid: isValidPhone(phone),
+        codeRegexPassed: /^[0-9]{5,6}$/.test(code)
+      });
       return res.status(400).json({ success: false, error: 'کد منقضی شده یا نامعتبر است' });
     }
 
     const verifyResult = otpService.verifyOtp(phone, code);
     if (!verifyResult.valid) {
+      console.warn('[OTP] verify-code failed', {
+        phone,
+        reason: verifyResult.reason,
+        remainingAttempts: verifyResult.remainingAttempts || null,
+        retryAfterSeconds: verifyResult.retryAfterSeconds || null
+      });
       if (verifyResult.reason === 'too_many_attempts') {
         return res.status(429).json({
           success: false,
@@ -509,6 +538,12 @@ app.post('/api/verify-code', (req, res) => {
           error: 'کد نادرست است',
           remainingAttempts: verifyResult.remainingAttempts
         });
+      }
+      if (verifyResult.reason === 'expired') {
+        return res.status(410).json({ success: false, error: 'کد منقضی شده است. دوباره درخواست کد بدهید.' });
+      }
+      if (verifyResult.reason === 'not_found') {
+        return res.status(404).json({ success: false, error: 'کدی برای این شماره پیدا نشد. دوباره درخواست کد بدهید.' });
       }
       return res.status(400).json({ success: false, error: 'کد منقضی شده یا نامعتبر است' });
     }
@@ -535,29 +570,25 @@ app.post('/api/verify-code', (req, res) => {
 
 app.post('/api/register-profile', (req, res) => {
   try {
-    const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const inputName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const rawName = inputName || 'کاربر';
     const rawPhone = normalizePhone(req.body?.phone);
     const rawAge = Number(req.body?.age);
     const rawId = req.body?.id;
     const mode = typeof req.body?.mode === 'string' ? req.body.mode.trim() : '';
 
-    if (!rawName) {
-      return res.status(400).json({ error: 'نام معتبر نیست.' });
-    }
-
     if (!isValidPhone(rawPhone)) {
       return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
     }
 
-    if (!Number.isFinite(rawAge)) {
-      return res.status(400).json({ error: 'سن معتبر نیست.' });
-    }
-
-    if (!(typeof rawId === 'string' || typeof rawId === 'number')) {
-      return res.status(400).json({ error: 'شناسه معتبر نیست.' });
-    }
-
     const existingUser = findUserByPhone(rawPhone);
+
+    console.log('[AUTH] register-profile request', {
+      phone: rawPhone,
+      mode,
+      hasInputName: Boolean(inputName),
+      resolvedName: rawName
+    });
     if (isUserBannedByPhone(rawPhone)) {
       return res.status(403).json({ error: 'حساب شما مسدود شده است' });
     }
@@ -566,6 +597,15 @@ app.post('/api/register-profile', (req, res) => {
     }
     if (mode === 'login' && !existingUser) {
       return res.status(404).json({ error: 'حسابی با این شماره یافت نشد', redirectTo: 'signup' });
+    }
+
+    if (mode !== 'login') {
+      if (!Number.isFinite(rawAge)) {
+        return res.status(400).json({ error: 'سن معتبر نیست.' });
+      }
+      if (!(typeof rawId === 'string' || typeof rawId === 'number')) {
+        return res.status(400).json({ error: 'شناسه معتبر نیست.' });
+      }
     }
 
     const payloadProfile =

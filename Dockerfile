@@ -6,12 +6,15 @@ ARG APK_MIRROR=https://repo.hmirror.ir/apk
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 ENV npm_config_audit=false
 ENV npm_config_fund=false
+ENV npm_config_update_notifier=false
 
-RUN sed -i "s|https\?://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
-RUN npm config set registry ${NPM_REGISTRY}
+RUN sed -i "s|dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
+RUN npm config set registry ${NPM_REGISTRY} \
+  && npm config set fund false \
+  && npm config set audit false
 
 COPY frontend/package*.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund --registry=${NPM_REGISTRY}
 
 COPY frontend/ ./
 RUN npm run build
@@ -25,12 +28,15 @@ ARG ENABLE_SYSTEM_PROMPT_EDIT=true
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 ENV npm_config_audit=false
 ENV npm_config_fund=false
+ENV npm_config_update_notifier=false
 
-RUN sed -i "s|https\?://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
-RUN npm config set registry ${NPM_REGISTRY}
+RUN sed -i "s|dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
+RUN npm config set registry ${NPM_REGISTRY} \
+  && npm config set fund false \
+  && npm config set audit false
 
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --omit=dev --no-audit --no-fund
+RUN cd backend && npm ci --omit=dev --no-audit --no-fund --registry=${NPM_REGISTRY}
 
 COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist

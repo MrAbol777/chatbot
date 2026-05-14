@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const IPPANEL_PATTERN_SEND_URL = 'https://edge.ippanel.com/v1/messages/patterns/send';
+const IPPANEL_SEND_URL = 'https://edge.ippanel.com/v1/api/send';
 
 const now = () => new Date().toISOString();
 
@@ -33,7 +33,6 @@ const getRequiredEnv = (key) => {
 class PatternSmsService {
   constructor() {
     this.http = axios.create({
-      baseURL: 'https://edge.ippanel.com',
       timeout: Number(process.env.IPPANEL_TIMEOUT_MS || 15000)
     });
   }
@@ -49,7 +48,7 @@ class PatternSmsService {
   async sendPatternOtp(phone, code) {
     const apiKey = getRequiredEnv('IPPANEL_API_KEY');
     const patternCode = getRequiredEnv('IPPANEL_PATTERN_CODE');
-    const originator = getRequiredEnv('IPPANEL_SENDER');
+    const fromNumber = getRequiredEnv('IPPANEL_SENDER');
     const normalizedPhone = normalizePhone(phone);
     const normalizedCode = String(code || '').trim();
 
@@ -58,30 +57,29 @@ class PatternSmsService {
     }
 
     const payload = {
-      pattern_code: patternCode,
-      originator,
-      recipient: normalizedPhone,
-      values: {
-        verification_code: normalizedCode
+      sending_type: 'pattern',
+      from_number: fromNumber,
+      code: patternCode,
+      recipients: [`+${normalizedPhone}`],
+      params: {
+        code: normalizedCode
       }
     };
 
+    const headers = {
+      Authorization: apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    };
+
     console.log(`[${now()}] [IPPanel] Before send pattern OTP`, {
-      endpoint: IPPANEL_PATTERN_SEND_URL,
-      payload: {
-        ...payload,
-        recipient: normalizedPhone
-      }
+      endpoint: IPPANEL_SEND_URL,
+      headers,
+      payload
     });
 
     try {
-      const response = await this.http.post('/v1/messages/patterns/send', payload, {
-        headers: {
-          Authorization: apiKey,
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
-        }
-      });
+      const response = await this.http.post(IPPANEL_SEND_URL, payload, { headers });
 
       console.log(`[${now()}] [IPPanel] After send pattern OTP response`, {
         status: response.status,
@@ -96,9 +94,9 @@ class PatternSmsService {
       };
     } catch (error) {
       console.error(`[${now()}] [IPPanel] Error while sending pattern OTP`, {
-        message: error.message,
-        responseData: error.response?.data,
-        status: error.response?.status
+        'error.message': error.message,
+        'error.response?.status': error.response?.status,
+        'error.response?.data': error.response?.data
       });
 
       return {

@@ -1,0 +1,14 @@
+curl --location 'https://edge.ippanel.com/v1/api/send' \
+--header 'Authorization: OWY1NWNlMWEtMzY4ZCNWE4N2VmMmFlOGFhNGRiZTE5NzU=' \
+--header 'Content-Type: application/json' \
+--data '{
+    "sending_type": "pattern",
+    "from_number": "+983000505",
+    "code": "*********",
+    "recipients": [
+        "+98912*******"
+    ],
+    "params": {
+        "code":"99999"
+    }
+}'

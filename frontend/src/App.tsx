@@ -219,10 +219,15 @@ const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void
 };
 
 const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<void> => {
+  const normalizedCode = String(code || '')
+    .trim()
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
+
   const response = await fetch('/api/verify-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone, code, mode })
+    body: JSON.stringify({ phone, code: normalizedCode, mode })
   });
 
   if (!response.ok) {
@@ -838,8 +843,12 @@ function ChatApp() {
     const trimmedCode = verificationCode.trim();
     const nextErrors: { code?: string } = {};
 
-    if (!/^[0-9]{6}$/.test(trimmedCode)) {
-      nextErrors.code = 'کد تایید باید 6 رقم باشد.';
+    const normalizedCode = trimmedCode
+      .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
+      .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
+
+    if (!/^[0-9]{5,6}$/.test(normalizedCode)) {
+      nextErrors.code = 'کد تایید باید 5 یا 6 رقم باشد.';
     }
 
     setErrors(nextErrors);
@@ -850,7 +859,7 @@ function ChatApp() {
     setIsVerifyingCode(true);
 
     try {
-      await verifyCode(trimmedPhone, trimmedCode, authMode);
+      await verifyCode(trimmedPhone, normalizedCode, authMode);
 
       if (authMode === 'login') {
         const loginProfileId = generateUniqueId();
