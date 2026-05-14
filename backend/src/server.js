@@ -432,14 +432,19 @@ app.post('/api/send-verification-code', async (req, res) => {
     }
 
     const code = otpService.generateOtp();
-    otpService.saveOtp(phone, code);
     console.log('[OTP] code generated', {
       phone,
       codeLength: String(code).length,
       createdAt: new Date().toISOString()
     });
 
-    await patternSmsService.sendVerificationCode(phone, code);
+    const smsResult = await patternSmsService.sendVerificationCode(phone, code);
+    if (!smsResult?.success) {
+      return res.status(smsResult?.status || 500).json({ error: 'ارسال کد با خطا مواجه شد.' });
+    }
+
+    // Store OTP only after provider confirms send.
+    otpService.saveOtp(phone, code);
 
     console.log('[OTP] verification code created', {
       phone,
