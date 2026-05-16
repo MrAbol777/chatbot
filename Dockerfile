@@ -4,12 +4,14 @@ WORKDIR /app/frontend
 ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
 ARG APK_MIRROR=https://repo.hmirror.ir/apk
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
+ENV NPM_CONFIG_REPLACE_REGISTRY_HOST=always
 ENV npm_config_audit=false
 ENV npm_config_fund=false
 ENV npm_config_update_notifier=false
 
 RUN sed -i "s|dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
 RUN npm config set registry ${NPM_REGISTRY} \
+  && npm config set replace-registry-host always \
   && npm config set fund false \
   && npm config set audit false
 
@@ -26,12 +28,14 @@ ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
 ARG APK_MIRROR=https://repo.hmirror.ir/apk
 ARG ENABLE_SYSTEM_PROMPT_EDIT=true
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
+ENV NPM_CONFIG_REPLACE_REGISTRY_HOST=always
 ENV npm_config_audit=false
 ENV npm_config_fund=false
 ENV npm_config_update_notifier=false
 
 RUN sed -i "s|dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
 RUN npm config set registry ${NPM_REGISTRY} \
+  && npm config set replace-registry-host always \
   && npm config set fund false \
   && npm config set audit false
 

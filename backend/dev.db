@@ -14,10 +14,25 @@
       "age": 0,
       "phone": "09926638344",
       "registered_at": "2026-05-14T09:43:11.421Z",
-      "last_active": "2026-05-14T09:43:49.771Z"
+      "last_active": "2026-05-16T07:07:30.840Z"
     }
   ],
-  "events": [],
+  "events": [
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":46,\"requestId\":\"mp807hyz-s0uckj\"}",
+      "created_at": "2026-05-16T07:07:27.807Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":325,\"requestId\":\"mp807hyz-s0uckj\"}",
+      "created_at": "2026-05-16T07:07:30.296Z"
+    }
+  ],
   "errors": [
     {
       "error_type": "verification_code_failed",
@@ -115,11 +130,22 @@
     {
       "user_id": "1778751798070",
       "conversation_id": "1778399113233-953",
-      "title": "گفتگوی جدید",
+      "title": "یی ی اسم با امیر",
       "pinned": false,
-      "messages": [],
+      "messages": [
+        {
+          "role": "user",
+          "content": "یی ی اسم با امیر علی برای کانال اپارات گیم بگو",
+          "timestamp": "2026-05-16T07:07:27.797Z"
+        },
+        {
+          "role": "assistant",
+          "content": "سلام! چه اسم‌های باحالی برای کانال آپاراتت می‌خوای! بذار چندتا پیشنهاد بدم:\n\n✨ دسته خلاقانه:\n\n*   **یی و امیرعلی گیمینگ**\n*   **دنیای بازی یی و امیرعلی**\n*   **گیم‌پلی یی‌علی** (ترکیب اسم‌ها)\n*   **یی‌گیمر و امیرعلی**\n*   **ماجراجویی‌های یی و امیرعلی در بازی‌ها**\n\nکدوم یکی رو بیشتر دوست داری؟ یا شاید یه ترکیب دیگه مد نظرته؟",
+          "timestamp": "2026-05-16T07:07:30.304Z"
+        }
+      ],
       "created_at": "2026-05-10T07:45:13.233Z",
-      "updated_at": "2026-05-10T07:45:13.233Z"
+      "updated_at": "2026-05-16T07:07:30.305Z"
     }
   ]
 }

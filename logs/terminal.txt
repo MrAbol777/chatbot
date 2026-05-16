@@ -1,260 +1,106 @@
-(node:13892) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:13940) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[13:12:53] FRONTEND 
-[13:12:53] FRONTEND > hemraz-frontend@1.0.0 dev
-[13:12:53] FRONTEND > vite
-[13:12:53] FRONTEND 
-[13:12:53] BACKEND 
-[13:12:53] BACKEND > hemraz-backend@1.0.0 dev
-[13:12:53] BACKEND > nodemon --config nodemon.json src/server.js
-[13:12:53] BACKEND 
-[13:12:53] BACKEND [33m[nodemon] 3.1.14[39m
-[13:12:53] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[13:12:53] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[13:12:53] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[13:12:53] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[13:12:53] FRONTEND 
-[13:12:53] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m289[22m[2m[0m ms[22m
-[13:12:53] FRONTEND 
-[13:12:53] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[13:12:53] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[13:12:53] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.101:[1m5173[22m/[39m
-[13:12:53] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\dev.db
-[13:12:53] BACKEND [SMS] routes mounted
-[13:12:53] BACKEND [2026-05-14T09:42:53.778Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[13:13:03] BACKEND [2026-05-14T09:43:03.126Z] [HTTP] request_started {"requestId":"mp5avvti-ccvyri","method":"POST","path":"/api/auth/phone-status"}
-[13:13:03] BACKEND [2026-05-14T09:43:03.137Z] [HTTP] request_finished {"requestId":"mp5avvti-ccvyri","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":11}
-[13:13:03] BACKEND [2026-05-14T09:43:03.819Z] [HTTP] request_started {"requestId":"mp5avwcr-78b3qv","method":"POST","path":"/api/auth/phone-status"}
-[13:13:03] BACKEND [2026-05-14T09:43:03.822Z] [HTTP] request_finished {"requestId":"mp5avwcr-78b3qv","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":3}
-[13:13:03] BACKEND [2026-05-14T09:43:03.831Z] [HTTP] request_started {"requestId":"mp5avwd3-xz344x","method":"POST","path":"/api/send-verification-code"}
-[13:13:03] BACKEND [OTPService] saveOtp keys { keys: [ '09926638344', '989926638344' ], codeLength: 5 }
-[13:13:03] BACKEND [OTP] code generated {
-[13:13:03] BACKEND   phone: '09926638344',
-[13:13:03] BACKEND   codeLength: 5,
-[13:13:03] BACKEND   createdAt: '2026-05-14T09:43:03.835Z'
-[13:13:03] BACKEND }
-[13:13:03] BACKEND [2026-05-14T09:43:03.836Z] [IPPanel] Before send pattern OTP {
-[13:13:03] BACKEND   endpoint: 'https://edge.ippanel.com/v1/api/send',
-[13:13:03] BACKEND   headers: {
-[13:13:03] BACKEND     Authorization: 'YTFjMGNjNDctNDBiZC00MWE1LWEyZGEtNDA2N2U5ZjU5MzM3NzI4MzgyNmI5MTBkMDQ1MDhmZDZiYjEwNTg2Y2Q5Mjg=',
-[13:13:03] BACKEND     'Content-Type': 'application/json',
-[13:13:03] BACKEND     Accept: 'application/json'
-[13:13:03] BACKEND   },
-[13:13:03] BACKEND   payload: {
-[13:13:03] BACKEND     sending_type: 'pattern',
-[13:13:03] BACKEND     from_number: '3000505',
-[13:13:03] BACKEND     code: 'hcjtm046dbbbjpj',
-[13:13:03] BACKEND     recipients: [ '+989926638344' ],
-[13:13:03] BACKEND     params: { code: '60164' }
-[13:13:03] BACKEND   }
-[13:13:03] BACKEND }
-[13:13:04] BACKEND [2026-05-14T09:43:04.120Z] [IPPanel] After send pattern OTP response {
-[13:13:04] BACKEND   status: 200,
-[13:13:04] BACKEND   data: {
-[13:13:04] BACKEND     data: { message_outbox_ids: [Array] },
-[13:13:04] BACKEND     meta: {
-[13:13:04] BACKEND       status: true,
-[13:13:04] BACKEND       message: 'انجام شد',
-[13:13:04] BACKEND       message_parameters: [],
-[13:13:04] BACKEND       message_code: '200-1'
-[13:13:04] BACKEND     }
-[13:13:04] BACKEND   }
-[13:13:04] BACKEND }
-[13:13:04] BACKEND [OTP] verification code created {
-[13:13:04] BACKEND   phone: '09926638344',
-[13:13:04] BACKEND   mode: 'signup',
-[13:13:04] BACKEND   expiresIn: 120,
-[13:13:04] BACKEND   createdAt: '2026-05-14T09:43:04.121Z'
-[13:13:04] BACKEND }
-[13:13:04] BACKEND [2026-05-14T09:43:04.122Z] [HTTP] request_finished {"requestId":"mp5avwd3-xz344x","method":"POST","path":"/api/send-verification-code","status":200,"durationMs":291}
-[13:13:11] BACKEND [2026-05-14T09:43:11.394Z] [HTTP] request_started {"requestId":"mp5aw276-kgcdiq","method":"POST","path":"/api/verify-code"}
-[13:13:11] BACKEND [OTP] verify-code request {
-[13:13:11] BACKEND   phone: '09926638344',
-[13:13:11] BACKEND   mode: 'signup',
-[13:13:11] BACKEND   rawCodeLength: 5,
-[13:13:11] BACKEND   normalizedCodeLength: 5,
-[13:13:11] BACKEND   digitOnlyCodeLength: 5
-[13:13:11] BACKEND }
-[13:13:11] BACKEND [OTPService] verifyOtp lookup {
-[13:13:11] BACKEND   phone: '09926638344',
-[13:13:11] BACKEND   variants: [ '09926638344', '989926638344' ],
-[13:13:11] BACKEND   lookupKey: '09926638344',
-[13:13:11] BACKEND   found: true
-[13:13:11] BACKEND }
-[13:13:11] BACKEND [OTP] verification successful {
-[13:13:11] BACKEND   phone: '09926638344',
-[13:13:11] BACKEND   mode: 'signup',
-[13:13:11] BACKEND   verifiedAt: '2026-05-14T09:43:11.398Z'
-[13:13:11] BACKEND }
-[13:13:11] BACKEND [2026-05-14T09:43:11.400Z] [HTTP] request_finished {"requestId":"mp5aw276-kgcdiq","method":"POST","path":"/api/verify-code","status":200,"durationMs":6}
-[13:13:11] BACKEND [2026-05-14T09:43:11.411Z] [HTTP] request_started {"requestId":"mp5aw27n-hq0q36","method":"POST","path":"/api/register-profile"}
-[13:13:11] BACKEND [AUTH] register-profile request {
-[13:13:11] BACKEND   phone: '09926638344',
-[13:13:11] BACKEND   mode: 'signup',
-[13:13:11] BACKEND   hasInputName: false,
-[13:13:11] BACKEND   resolvedName: 'کاربر'
-[13:13:11] BACKEND }
-[13:13:11] BACKEND [2026-05-14T09:43:11.427Z] [HTTP] request_finished {"requestId":"mp5aw27n-hq0q36","method":"POST","path":"/api/register-profile","status":200,"durationMs":16}
-[13:13:11] BACKEND [2026-05-14T09:43:11.443Z] [HTTP] request_started {"requestId":"mp5aw28j-9iowgg","method":"POST","path":"/api/conversations/load"}
-[13:13:11] BACKEND [2026-05-14T09:43:11.456Z] [HTTP] request_finished {"requestId":"mp5aw28j-9iowgg","method":"POST","path":"/api/conversations/load","status":200,"durationMs":13}
-[13:13:12] BACKEND [2026-05-14T09:43:12.055Z] [HTTP] request_started {"requestId":"mp5aw2pj-aeu0lj","method":"POST","path":"/api/conversations/sync"}
-[13:13:12] BACKEND [2026-05-14T09:43:12.077Z] [HTTP] request_finished {"requestId":"mp5aw2pj-aeu0lj","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":22}
-[13:13:22] BACKEND [2026-05-14T09:43:22.250Z] [HTTP] request_started {"requestId":"mp5awakq-94khc3","method":"POST","path":"/api/auth/phone-status"}
-[13:13:22] BACKEND [2026-05-14T09:43:22.253Z] [HTTP] request_finished {"requestId":"mp5awakq-94khc3","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":3}
-[13:13:22] BACKEND [2026-05-14T09:43:22.265Z] [HTTP] request_started {"requestId":"mp5awal5-e0xkk1","method":"POST","path":"/api/send-verification-code"}
-[13:13:22] BACKEND [OTPService] saveOtp keys { keys: [ '09926638344', '989926638344' ], codeLength: 5 }
-[13:13:22] BACKEND [OTP] code generated {
-[13:13:22] BACKEND   phone: '09926638344',
-[13:13:22] BACKEND   codeLength: 5,
-[13:13:22] BACKEND   createdAt: '2026-05-14T09:43:22.268Z'
-[13:13:22] BACKEND }
-[13:13:22] BACKEND [2026-05-14T09:43:22.268Z] [IPPanel] Before send pattern OTP {
-[13:13:22] BACKEND   endpoint: 'https://edge.ippanel.com/v1/api/send',
-[13:13:22] BACKEND   headers: {
-[13:13:22] BACKEND     Authorization: 'YTFjMGNjNDctNDBiZC00MWE1LWEyZGEtNDA2N2U5ZjU5MzM3NzI4MzgyNmI5MTBkMDQ1MDhmZDZiYjEwNTg2Y2Q5Mjg=',
-[13:13:22] BACKEND     'Content-Type': 'application/json',
-[13:13:22] BACKEND     Accept: 'application/json'
-[13:13:22] BACKEND   },
-[13:13:22] BACKEND   payload: {
-[13:13:22] BACKEND     sending_type: 'pattern',
-[13:13:22] BACKEND     from_number: '3000505',
-[13:13:22] BACKEND     code: 'hcjtm046dbbbjpj',
-[13:13:22] BACKEND     recipients: [ '+989926638344' ],
-[13:13:22] BACKEND     params: { code: '53796' }
-[13:13:22] BACKEND   }
-[13:13:22] BACKEND }
-[13:13:23] BACKEND [2026-05-14T09:43:23.074Z] [IPPanel] After send pattern OTP response {
-[13:13:23] BACKEND   status: 200,
-[13:13:23] BACKEND   data: {
-[13:13:23] BACKEND     data: { message_outbox_ids: [Array] },
-[13:13:23] BACKEND     meta: {
-[13:13:23] BACKEND       status: true,
-[13:13:23] BACKEND       message: 'انجام شد',
-[13:13:23] BACKEND       message_parameters: [],
-[13:13:23] BACKEND       message_code: '200-1'
-[13:13:23] BACKEND     }
-[13:13:23] BACKEND   }
-[13:13:23] BACKEND }
-[13:13:23] BACKEND [OTP] verification code created {
-[13:13:23] BACKEND   phone: '09926638344',
-[13:13:23] BACKEND   mode: 'login',
-[13:13:23] BACKEND   expiresIn: 120,
-[13:13:23] BACKEND   createdAt: '2026-05-14T09:43:23.075Z'
-[13:13:23] BACKEND }
-[13:13:23] BACKEND [2026-05-14T09:43:23.080Z] [HTTP] request_finished {"requestId":"mp5awal5-e0xkk1","method":"POST","path":"/api/send-verification-code","status":200,"durationMs":815}
-[13:13:25] BACKEND [2026-05-14T09:43:25.833Z] [HTTP] request_started {"requestId":"mp5awdc9-j56q4e","method":"POST","path":"/api/verify-code"}
-[13:13:25] BACKEND [OTP] verify-code request {
-[13:13:25] BACKEND   phone: '09926638344',
-[13:13:25] BACKEND   mode: 'login',
-[13:13:25] BACKEND   rawCodeLength: 6,
-[13:13:25] BACKEND   normalizedCodeLength: 6,
-[13:13:25] BACKEND   digitOnlyCodeLength: 6
-[13:13:25] BACKEND }
-[13:13:25] BACKEND [OTPService] verifyOtp lookup {
-[13:13:25] BACKEND   phone: '09926638344',
-[13:13:25] BACKEND   variants: [ '09926638344', '989926638344' ],
-[13:13:25] BACKEND   lookupKey: '09926638344',
-[13:13:25] BACKEND   found: true
-[13:13:25] BACKEND }
-[13:13:25] BACKEND [OTP] verify-code failed {
-[13:13:25] BACKEND   phone: '09926638344',
-[13:13:25] BACKEND   reason: 'invalid_code',
-[13:13:25] BACKEND   remainingAttempts: 4,
-[13:13:25] BACKEND   retryAfterSeconds: null
-[13:13:25] BACKEND }
-[13:13:25] BACKEND [2026-05-14T09:43:25.837Z] [HTTP] request_finished {"requestId":"mp5awdc9-j56q4e","method":"POST","path":"/api/verify-code","status":400,"durationMs":4}
-[13:13:28] BACKEND [2026-05-14T09:43:28.397Z] [HTTP] request_started {"requestId":"mp5awfbh-2wrpip","method":"POST","path":"/api/verify-code"}
-[13:13:28] BACKEND [OTP] verify-code failed {
-[13:13:28] BACKEND   phone: '09926638344',
-[13:13:28] BACKEND   reason: 'invalid_code',
-[13:13:28] BACKEND   remainingAttempts: 3,
-[13:13:28] BACKEND   retryAfterSeconds: null
-[13:13:28] BACKEND }
-[13:13:28] BACKEND [OTP] verify-code request {
-[13:13:28] BACKEND   phone: '09926638344',
-[13:13:28] BACKEND   mode: 'login',
-[13:13:28] BACKEND   rawCodeLength: 6,
-[13:13:28] BACKEND   normalizedCodeLength: 6,
-[13:13:28] BACKEND   digitOnlyCodeLength: 6
-[13:13:28] BACKEND }
-[13:13:28] BACKEND [OTPService] verifyOtp lookup {
-[13:13:28] BACKEND   phone: '09926638344',
-[13:13:28] BACKEND   variants: [ '09926638344', '989926638344' ],
-[13:13:28] BACKEND   lookupKey: '09926638344',
-[13:13:28] BACKEND   found: true
-[13:13:28] BACKEND }
-[13:13:28] BACKEND [2026-05-14T09:43:28.398Z] [HTTP] request_finished {"requestId":"mp5awfbh-2wrpip","method":"POST","path":"/api/verify-code","status":400,"durationMs":1}
-[13:13:37] BACKEND [2026-05-14T09:43:37.890Z] [HTTP] request_started {"requestId":"mp5awmn6-cc454u","method":"POST","path":"/api/verify-code"}
-[13:13:37] BACKEND [OTP] verify-code failed {
-[13:13:37] BACKEND   phone: '09926638344',
-[13:13:37] BACKEND   reason: 'invalid_code',
-[13:13:37] BACKEND   remainingAttempts: 2,
-[13:13:37] BACKEND   retryAfterSeconds: null
-[13:13:37] BACKEND }
-[13:13:37] BACKEND [OTP] verify-code request {
-[13:13:37] BACKEND   phone: '09926638344',
-[13:13:37] BACKEND   mode: 'login',
-[13:13:37] BACKEND   rawCodeLength: 6,
-[13:13:37] BACKEND   normalizedCodeLength: 6,
-[13:13:37] BACKEND   digitOnlyCodeLength: 6
-[13:13:37] BACKEND }
-[13:13:37] BACKEND [OTPService] verifyOtp lookup {
-[13:13:37] BACKEND   phone: '09926638344',
-[13:13:37] BACKEND   variants: [ '09926638344', '989926638344' ],
-[13:13:37] BACKEND   lookupKey: '09926638344',
-[13:13:37] BACKEND   found: true
-[13:13:37] BACKEND }
-[13:13:37] BACKEND [2026-05-14T09:43:37.892Z] [HTTP] request_finished {"requestId":"mp5awmn6-cc454u","method":"POST","path":"/api/verify-code","status":400,"durationMs":2}
-[13:13:38] BACKEND [2026-05-14T09:43:38.442Z] [HTTP] request_started {"requestId":"mp5awn2i-n1ijwg","method":"POST","path":"/api/verify-code"}
-[13:13:38] BACKEND [OTP] verify-code failed {
-[13:13:38] BACKEND   phone: '09926638344',
-[13:13:38] BACKEND   reason: 'invalid_code',
-[13:13:38] BACKEND   remainingAttempts: 1,
-[13:13:38] BACKEND   retryAfterSeconds: null
-[13:13:38] BACKEND }
-[13:13:38] BACKEND [OTP] verify-code request {
-[13:13:38] BACKEND   phone: '09926638344',
-[13:13:38] BACKEND   mode: 'login',
-[13:13:38] BACKEND   rawCodeLength: 6,
-[13:13:38] BACKEND   normalizedCodeLength: 6,
-[13:13:38] BACKEND   digitOnlyCodeLength: 6
-[13:13:38] BACKEND }
-[13:13:38] BACKEND [OTPService] verifyOtp lookup {
-[13:13:38] BACKEND   phone: '09926638344',
-[13:13:38] BACKEND   variants: [ '09926638344', '989926638344' ],
-[13:13:38] BACKEND   lookupKey: '09926638344',
-[13:13:38] BACKEND   found: true
-[13:13:38] BACKEND }
-[13:13:38] BACKEND [2026-05-14T09:43:38.444Z] [HTTP] request_finished {"requestId":"mp5awn2i-n1ijwg","method":"POST","path":"/api/verify-code","status":400,"durationMs":2}
-[13:13:49] BACKEND [2026-05-14T09:43:49.147Z] [HTTP] request_started {"requestId":"mp5awvbv-0j62m2","method":"POST","path":"/api/verify-code"}
-[13:13:49] BACKEND [OTP] verify-code request {
-[13:13:49] BACKEND   phone: '09926638344',
-[13:13:49] BACKEND   mode: 'login',
-[13:13:49] BACKEND   rawCodeLength: 5,
-[13:13:49] BACKEND   normalizedCodeLength: 5,
-[13:13:49] BACKEND   digitOnlyCodeLength: 5
-[13:13:49] BACKEND }
-[13:13:49] BACKEND [OTPService] verifyOtp lookup {
-[13:13:49] BACKEND   phone: '09926638344',
-[13:13:49] BACKEND   variants: [ '09926638344', '989926638344' ],
-[13:13:49] BACKEND   lookupKey: '09926638344',
-[13:13:49] BACKEND   found: true
-[13:13:49] BACKEND }
-[13:13:49] BACKEND [OTP] verification successful {
-[13:13:49] BACKEND   phone: '09926638344',
-[13:13:49] BACKEND   mode: 'login',
-[13:13:49] BACKEND   verifiedAt: '2026-05-14T09:43:49.150Z'
-[13:13:49] BACKEND }
-[13:13:49] BACKEND [2026-05-14T09:43:49.151Z] [HTTP] request_finished {"requestId":"mp5awvbv-0j62m2","method":"POST","path":"/api/verify-code","status":200,"durationMs":4}
-[13:13:49] BACKEND [2026-05-14T09:43:49.162Z] [HTTP] request_started {"requestId":"mp5awvca-ifrlo9","method":"POST","path":"/api/register-profile"}
-[13:13:49] BACKEND [AUTH] register-profile request {
-[13:13:49] BACKEND   phone: '09926638344',
-[13:13:49] BACKEND   mode: 'login',
-[13:13:49] BACKEND   hasInputName: true,
-[13:13:49] BACKEND   resolvedName: 'کاربر'
-[13:13:49] BACKEND }
-[13:13:49] BACKEND [2026-05-14T09:43:49.172Z] [HTTP] request_finished {"requestId":"mp5awvca-ifrlo9","method":"POST","path":"/api/register-profile","status":200,"durationMs":10}
-[13:13:49] BACKEND [2026-05-14T09:43:49.221Z] [HTTP] request_started {"requestId":"mp5awvdx-95e98l","method":"POST","path":"/api/conversations/load"}
-[13:13:49] BACKEND [2026-05-14T09:43:49.234Z] [HTTP] request_finished {"requestId":"mp5awvdx-95e98l","method":"POST","path":"/api/conversations/load","status":200,"durationMs":13}
-[13:13:49] BACKEND [2026-05-14T09:43:49.768Z] [HTTP] request_started {"requestId":"mp5awvt4-341qr0","method":"POST","path":"/api/conversations/sync"}
-[13:13:49] BACKEND [2026-05-14T09:43:49.781Z] [HTTP] request_finished {"requestId":"mp5awvt4-341qr0","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":13}
+[10:36:39] FRONTEND 
+[10:36:39] FRONTEND > hemraz-frontend@1.0.0 dev
+[10:36:39] FRONTEND > vite
+[10:36:39] FRONTEND 
+[10:36:39] BACKEND 
+[10:36:39] BACKEND > hemraz-backend@1.0.0 dev
+[10:36:39] BACKEND > nodemon --config nodemon.json src/server.js
+[10:36:39] BACKEND 
+[10:36:39] BACKEND [33m[nodemon] 3.1.14[39m
+[10:36:39] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[10:36:39] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[10:36:39] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[10:36:39] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[10:36:40] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\dev.db
+[10:36:40] BACKEND [SMS] routes mounted
+[10:36:40] BACKEND [2026-05-16T07:06:40.398Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.0-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[10:36:40] FRONTEND 
+[10:36:40] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m818[22m[2m[0m ms[22m
+[10:36:40] FRONTEND 
+[10:36:40] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[10:36:40] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.78:[1m5173[22m/[39m
+[10:36:40] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[10:36:50] BACKEND [2026-05-16T07:06:50.568Z] [HTTP] request_started {"requestId":"mp806p8o-9chmag","method":"POST","path":"/api/auth/phone-status"}
+[10:36:50] BACKEND [2026-05-16T07:06:50.572Z] [HTTP] request_finished {"requestId":"mp806p8o-9chmag","method":"POST","path":"/api/auth/phone-status","status":200,"durationMs":4}
+[10:36:50] BACKEND [2026-05-16T07:06:50.577Z] [HTTP] request_started {"requestId":"mp806p8x-m1cojl","method":"POST","path":"/api/send-verification-code"}
+[10:36:50] BACKEND [OTP] code generated {
+[10:36:50] BACKEND   phone: '09926638344',
+[10:36:50] BACKEND   codeLength: 5,
+[10:36:50] BACKEND   createdAt: '2026-05-16T07:06:50.578Z'
+[10:36:50] BACKEND }
+[10:36:50] BACKEND [2026-05-16T07:06:50.578Z] [IPPanel] Before send pattern OTP {
+[10:36:50] BACKEND   endpoint: 'https://edge.ippanel.com/v1/api/send',
+[10:36:50] BACKEND   headers: {
+[10:36:50] BACKEND     Authorization: 'YTFjMGNjNDctNDBiZC00MWE1LWEyZGEtNDA2N2U5ZjU5MzM3NzI4MzgyNmI5MTBkMDQ1MDhmZDZiYjEwNTg2Y2Q5Mjg=',
+[10:36:50] BACKEND     'Content-Type': 'application/json',
+[10:36:50] BACKEND     Accept: 'application/json'
+[10:36:50] BACKEND   },
+[10:36:50] BACKEND   payload: {
+[10:36:50] BACKEND     sending_type: 'pattern',
+[10:36:50] BACKEND     from_number: '3000505',
+[10:36:50] BACKEND     code: 'hcjtm046dbbbjpj',
+[10:36:50] BACKEND     recipients: [ '+989926638344' ],
+[10:36:50] BACKEND     params: { code: '16428' }
+[10:36:50] BACKEND   }
+[10:36:50] BACKEND }
+[10:36:50] BACKEND [2026-05-16T07:06:50.845Z] [IPPanel] After send pattern OTP response {
+[10:36:50] BACKEND   status: 200,
+[10:36:50] BACKEND   data: {
+[10:36:50] BACKEND     data: { message_outbox_ids: [Array] },
+[10:36:50] BACKEND     meta: {
+[10:36:50] BACKEND       status: true,
+[10:36:50] BACKEND       message: 'انجام شد',
+[10:36:50] BACKEND       message_parameters: [],
+[10:36:50] BACKEND       message_code: '200-1'
+[10:36:50] BACKEND     }
+[10:36:50] BACKEND   }
+[10:36:50] BACKEND }
+[10:36:50] BACKEND [OTPService] saveOtp keys { keys: [ '09926638344', '989926638344' ], codeLength: 5 }
+[10:36:50] BACKEND [OTP] verification code created {
+[10:36:50] BACKEND   phone: '09926638344',
+[10:36:50] BACKEND   mode: 'login',
+[10:36:50] BACKEND   expiresIn: 120,
+[10:36:50] BACKEND   createdAt: '2026-05-16T07:06:50.846Z'
+[10:36:50] BACKEND }
+[10:36:50] BACKEND [2026-05-16T07:06:50.847Z] [HTTP] request_finished {"requestId":"mp806p8x-m1cojl","method":"POST","path":"/api/send-verification-code","status":200,"durationMs":270}
+[10:37:05] BACKEND [2026-05-16T07:07:05.276Z] [HTTP] request_started {"requestId":"mp8070l8-03sdg5","method":"POST","path":"/api/verify-code"}
+[10:37:05] BACKEND [OTP] verify-code request {
+[10:37:05] BACKEND   phone: '09926638344',
+[10:37:05] BACKEND   mode: 'login',
+[10:37:05] BACKEND   rawCodeLength: 5,
+[10:37:05] BACKEND   normalizedCodeLength: 5,
+[10:37:05] BACKEND   digitOnlyCodeLength: 5
+[10:37:05] BACKEND }
+[10:37:05] BACKEND [OTPService] verifyOtp lookup {
+[10:37:05] BACKEND   phone: '09926638344',
+[10:37:05] BACKEND   variants: [ '09926638344', '989926638344' ],
+[10:37:05] BACKEND   lookupKey: '09926638344',
+[10:37:05] BACKEND   found: true
+[10:37:05] BACKEND }
+[10:37:05] BACKEND [OTP] verification successful {
+[10:37:05] BACKEND   phone: '09926638344',
+[10:37:05] BACKEND   mode: 'login',
+[10:37:05] BACKEND   verifiedAt: '2026-05-16T07:07:05.278Z'
+[10:37:05] BACKEND }
+[10:37:05] BACKEND [2026-05-16T07:07:05.279Z] [HTTP] request_finished {"requestId":"mp8070l8-03sdg5","method":"POST","path":"/api/verify-code","status":200,"durationMs":3}
+[10:37:05] BACKEND [2026-05-16T07:07:05.284Z] [HTTP] request_started {"requestId":"mp8070lg-e2yfq4","method":"POST","path":"/api/register-profile"}
+[10:37:05] BACKEND [AUTH] register-profile request {
+[10:37:05] BACKEND   phone: '09926638344',
+[10:37:05] BACKEND   mode: 'login',
+[10:37:05] BACKEND   hasInputName: true,
+[10:37:05] BACKEND   resolvedName: 'کاربر'
+[10:37:05] BACKEND }
+[10:37:05] BACKEND [2026-05-16T07:07:05.287Z] [HTTP] request_finished {"requestId":"mp8070lg-e2yfq4","method":"POST","path":"/api/register-profile","status":200,"durationMs":3}
+[10:37:05] BACKEND [2026-05-16T07:07:05.336Z] [HTTP] request_started {"requestId":"mp8070mw-t6bjtg","method":"POST","path":"/api/conversations/load"}
+[10:37:05] BACKEND [2026-05-16T07:07:05.338Z] [HTTP] request_finished {"requestId":"mp8070mw-t6bjtg","method":"POST","path":"/api/conversations/load","status":200,"durationMs":2}
+[10:37:05] BACKEND [2026-05-16T07:07:05.845Z] [HTTP] request_started {"requestId":"mp807111-m02o8n","method":"POST","path":"/api/conversations/sync"}
+[10:37:05] BACKEND [2026-05-16T07:07:05.847Z] [HTTP] request_finished {"requestId":"mp807111-m02o8n","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":2}
+[10:37:27] BACKEND [2026-05-16T07:07:27.803Z] [HTTP] request_started {"requestId":"mp807hyz-s0uckj","method":"POST","path":"/api/chat"}
+[10:37:27] BACKEND [2026-05-16T07:07:27.803Z] [CHAT] incoming_message {"requestId":"mp807hyz-s0uckj","hasProfile":true,"historyCount":1,"messageLength":46}
+[10:37:28] BACKEND [2026-05-16T07:07:28.305Z] [HTTP] request_started {"requestId":"mp807icx-64ncez","method":"POST","path":"/api/conversations/sync"}
+[10:37:28] BACKEND [2026-05-16T07:07:28.308Z] [HTTP] request_finished {"requestId":"mp807icx-64ncez","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":3}
+[10:37:30] BACKEND [2026-05-16T07:07:30.298Z] [HTTP] request_finished {"requestId":"mp807hyz-s0uckj","method":"POST","path":"/api/chat","status":200,"durationMs":2495}
+[10:37:30] BACKEND [2026-05-16T07:07:30.839Z] [HTTP] request_started {"requestId":"mp807kbb-0b7gkg","method":"POST","path":"/api/conversations/sync"}
+[10:37:30] BACKEND [2026-05-16T07:07:30.846Z] [HTTP] request_finished {"requestId":"mp807kbb-0b7gkg","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":7}
