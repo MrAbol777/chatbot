@@ -14,7 +14,7 @@
       "age": 0,
       "phone": "09926638344",
       "registered_at": "2026-05-14T09:43:11.421Z",
-      "last_active": "2026-05-16T07:07:30.840Z"
+      "last_active": "2026-05-17T09:12:06.816Z"
     }
   ],
   "events": [
@@ -31,6 +31,111 @@
       "category": "general",
       "metadata": "{\"responseLength\":325,\"requestId\":\"mp807hyz-s0uckj\"}",
       "created_at": "2026-05-16T07:07:30.296Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mp9j6gg0-0bd1h7\"}",
+      "created_at": "2026-05-17T08:46:18.050Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"mp9j7053-6e9ot5\"}",
+      "created_at": "2026-05-17T08:46:43.577Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"mp9j7nlz-sax3zl\"}",
+      "created_at": "2026-05-17T08:47:13.993Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mp9jywu9-j6xit1\"}",
+      "created_at": "2026-05-17T09:08:25.669Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mp9jyx5t-6n64r3\"}",
+      "created_at": "2026-05-17T09:08:26.083Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mp9jz89k-f2zqlv\"}",
+      "created_at": "2026-05-17T09:08:40.475Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mp9jz8lc-uo0a9s\"}",
+      "created_at": "2026-05-17T09:08:40.900Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mp9k34oh-kom3zx\"}",
+      "created_at": "2026-05-17T09:11:42.453Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":26,\"requestId\":\"mp9k34oh-kom3zx\"}",
+      "created_at": "2026-05-17T09:11:43.449Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":6,\"requestId\":\"mp9k383s-zcdn5e\"}",
+      "created_at": "2026-05-17T09:11:46.891Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":82,\"requestId\":\"mp9k383s-zcdn5e\"}",
+      "created_at": "2026-05-17T09:11:48.045Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"mp9k3e9k-ha1lmm\"}",
+      "created_at": "2026-05-17T09:11:54.875Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":108,\"requestId\":\"mp9k3e9k-ha1lmm\"}",
+      "created_at": "2026-05-17T09:11:56.081Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mp9k3jzj-3t6952\"}",
+      "created_at": "2026-05-17T09:12:02.289Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":536,\"requestId\":\"mp9k3jzj-3t6952\"}",
+      "created_at": "2026-05-17T09:12:06.285Z"
     }
   ],
   "errors": [
@@ -54,6 +159,55 @@
       "status_code": 500,
       "details": "patternSmsService.sendVerificationCode is not a function",
       "created_at": "2026-05-13T12:26:54.347Z"
+    },
+    {
+      "error_type": "openai_timeout",
+      "endpoint": "/api/chat",
+      "status_code": 504,
+      "details": "Upstream timeout reached",
+      "created_at": "2026-05-17T08:46:48.061Z"
+    },
+    {
+      "error_type": "openai_timeout",
+      "endpoint": "/api/chat",
+      "status_code": 504,
+      "details": "Upstream timeout reached",
+      "created_at": "2026-05-17T08:47:13.584Z"
+    },
+    {
+      "error_type": "openai_timeout",
+      "endpoint": "/api/chat",
+      "status_code": 504,
+      "details": "Upstream timeout reached",
+      "created_at": "2026-05-17T08:47:43.999Z"
+    },
+    {
+      "error_type": "openai_fetch_failed",
+      "endpoint": "/api/chat",
+      "status_code": 502,
+      "details": "{\"baseUrl\":\"https://api.metisai.ir/openai/v1\",\"cause\":\"openaiClient.withOptions is not a function\"}",
+      "created_at": "2026-05-17T09:08:25.674Z"
+    },
+    {
+      "error_type": "openai_fetch_failed",
+      "endpoint": "/api/chat",
+      "status_code": 502,
+      "details": "{\"baseUrl\":\"https://api.metisai.ir/openai/v1\",\"cause\":\"openaiClient.withOptions is not a function\"}",
+      "created_at": "2026-05-17T09:08:26.086Z"
+    },
+    {
+      "error_type": "openai_fetch_failed",
+      "endpoint": "/api/chat",
+      "status_code": 502,
+      "details": "{\"baseUrl\":\"https://api.metisai.ir/openai/v1\",\"cause\":\"openaiClient.withOptions is not a function\"}",
+      "created_at": "2026-05-17T09:08:40.480Z"
+    },
+    {
+      "error_type": "openai_fetch_failed",
+      "endpoint": "/api/chat",
+      "status_code": 502,
+      "details": "{\"baseUrl\":\"https://api.metisai.ir/openai/v1\",\"cause\":\"openaiClient.withOptions is not a function\"}",
+      "created_at": "2026-05-17T09:08:40.903Z"
     }
   ],
   "conversations": [
@@ -129,6 +283,96 @@
     },
     {
       "user_id": "1778751798070",
+      "conversation_id": "1779008918420-9488",
+      "title": "hi",
+      "pinned": false,
+      "messages": [
+        {
+          "role": "user",
+          "content": "hi",
+          "timestamp": "2026-05-17T09:08:40.466Z"
+        },
+        {
+          "role": "assistant",
+          "content": "پاسخ سرور دریافت نشد.",
+          "timestamp": "2026-05-17T09:08:40.908Z"
+        },
+        {
+          "role": "user",
+          "content": "سلام",
+          "timestamp": "2026-05-17T09:11:42.444Z"
+        },
+        {
+          "role": "assistant",
+          "content": "چطور می‌توانم بهت کمک کنم؟",
+          "timestamp": "2026-05-17T09:11:43.456Z"
+        },
+        {
+          "role": "user",
+          "content": "خوبی ؟",
+          "timestamp": "2026-05-17T09:11:46.883Z"
+        },
+        {
+          "role": "assistant",
+          "content": "ممنونم! امیدوارم تو هم خوب باشی. چه چیزی در ذهنت هست که بخواهی درباره‌اش صحبت کنی؟",
+          "timestamp": "2026-05-17T09:11:48.051Z"
+        },
+        {
+          "role": "user",
+          "content": "میخام ربا تبسازم",
+          "timestamp": "2026-05-17T09:11:54.867Z"
+        },
+        {
+          "role": "assistant",
+          "content": "✨ چه عالی! برای ساخت ربات، اول باید تصمیم بگیری که رباتت چه کاری باید انجام بده. آیا ایده خاصی در ذهنت داری؟",
+          "timestamp": "2026-05-17T09:11:56.088Z"
+        },
+        {
+          "role": "user",
+          "content": "مسیر یاب",
+          "timestamp": "2026-05-17T09:12:02.283Z"
+        },
+        {
+          "role": "assistant",
+          "content": "📚 عالیه! برای ساخت یک ربات مسیر یاب، مراحل زیر رو دنبال کن:\n\n1. **تحقیق**: درباره‌ی الگوریتم‌های مسیر یابی مثل Dijkstra یا A* مطالعه کن.\n2. **انتخاب پلتفرم**: تصمیم بگیر که رباتت روی چه پلتفرمی (مثل رزبری پای یا آردوینو) کار کنه.\n3. **جمع‌آوری سنسورها**: سنسورهایی مثل GPS و سنسورهای فاصله (مثل اولتراسونیک) تهیه کن.\n4. **برنامه‌نویسی**: با زبان‌های برنامه‌نویسی مثل پایتون یا C++، کد رباتت رو بنویس.\n5. **آزمایش**: رباتت رو تست کن و ببین آیا به درستی مسیر یابی می‌کنه یا نه.\n\nالان مرحله اول رو شروع کن و تحقیق کن. هر سوالی داشتی بپرس!",
+          "timestamp": "2026-05-17T09:12:06.291Z"
+        }
+      ],
+      "created_at": "2026-05-17T09:08:38.420Z",
+      "updated_at": "2026-05-17T09:12:06.292Z"
+    },
+    {
+      "user_id": "1778751798070",
+      "conversation_id": "1779007595258-7375",
+      "title": "hui",
+      "pinned": false,
+      "messages": [
+        {
+          "role": "user",
+          "content": "hui",
+          "timestamp": "2026-05-17T08:46:43.572Z"
+        },
+        {
+          "role": "assistant",
+          "content": "پاسخ سرور دریافت نشد.",
+          "timestamp": "2026-05-17T08:47:44.003Z"
+        },
+        {
+          "role": "user",
+          "content": "سلام",
+          "timestamp": "2026-05-17T09:08:25.661Z"
+        },
+        {
+          "role": "assistant",
+          "content": "پاسخ سرور دریافت نشد.",
+          "timestamp": "2026-05-17T09:08:26.089Z"
+        }
+      ],
+      "created_at": "2026-05-17T08:46:35.258Z",
+      "updated_at": "2026-05-17T09:08:26.089Z"
+    },
+    {
+      "user_id": "1778751798070",
       "conversation_id": "1778399113233-953",
       "title": "یی ی اسم با امیر",
       "pinned": false,
@@ -142,10 +386,15 @@
           "role": "assistant",
           "content": "سلام! چه اسم‌های باحالی برای کانال آپاراتت می‌خوای! بذار چندتا پیشنهاد بدم:\n\n✨ دسته خلاقانه:\n\n*   **یی و امیرعلی گیمینگ**\n*   **دنیای بازی یی و امیرعلی**\n*   **گیم‌پلی یی‌علی** (ترکیب اسم‌ها)\n*   **یی‌گیمر و امیرعلی**\n*   **ماجراجویی‌های یی و امیرعلی در بازی‌ها**\n\nکدوم یکی رو بیشتر دوست داری؟ یا شاید یه ترکیب دیگه مد نظرته؟",
           "timestamp": "2026-05-16T07:07:30.304Z"
+        },
+        {
+          "role": "user",
+          "content": "hi",
+          "timestamp": "2026-05-17T08:46:18.045Z"
         }
       ],
       "created_at": "2026-05-10T07:45:13.233Z",
-      "updated_at": "2026-05-16T07:07:30.305Z"
+      "updated_at": "2026-05-17T08:46:18.046Z"
     }
   ]
 }

@@ -26,7 +26,7 @@ const CONFIG_FILE_PATH = path.join(__dirname, '../config.json');
 const AUDIT_LOG_PATH = path.join(__dirname, '../audit.log');
 
 const DEFAULT_CONFIG = {
-  model: 'gemini-2.0-flash',
+  model: 'gpt-4o-mini',
   timeoutMs: 30000,
   features: {
     voiceInput: true,

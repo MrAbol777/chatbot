@@ -1,8 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
+const axios = require('axios');
 const dotenv = require('dotenv');
 dotenv.config();
+const OpenAI = require('openai');
 const path = require('path');
 const fs = require('fs-extra');
 const helmet = require('helmet');
@@ -52,18 +54,29 @@ const normalizePhone = (value) => {
   return cleaned;
 };
 const isValidPhone = (value) => /^09[0-9]{9}$/.test(value);
+const normalizeBaseUrl = (value, fallback) => String(value || fallback).replace(/\/+$/, '');
 
 const port = normalizePort(process.env.PORT, 3000);
 const host = '0.0.0.0';
-const geminiBaseUrl = (process.env.GEMINI_BASE_URL || 'https://api.metisai.ir').replace(/\/+$/, '');
-const defaultModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const geminiApiKey = typeof process.env.GEMINI_API_KEY === 'string' ? process.env.GEMINI_API_KEY.trim() : '';
+const metisBaseUrl = normalizeBaseUrl(
+  process.env.METIS_OPENAI_BASE_URL || process.env.OPENAI_BASE_URL,
+  'https://api.metisai.ir/openai/v1'
+);
+const defaultModel = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const metisApiKey =
+  typeof (process.env.METIS_API_KEY || process.env.OPENAI_API_KEY) === 'string'
+    ? (process.env.METIS_API_KEY || process.env.OPENAI_API_KEY).trim()
+    : '';
 const defaultTimeoutMs = Number(process.env.GAPGPT_TIMEOUT_MS || 30000);
 const adminApiKey = typeof process.env.ADMIN_API_KEY === 'string' ? process.env.ADMIN_API_KEY.trim() : '';
 const adminJwtSecret = typeof process.env.ADMIN_JWT_SECRET === 'string' ? process.env.ADMIN_JWT_SECRET.trim() : 'danoa-admin-secret';
 const adminPanelPath = process.env.ADMIN_PANEL_PATH || '/admin-secure-9x7k';
 const adminCookieName = process.env.ADMIN_COOKIE_NAME || 'admin_token';
 const adminConfigPath = path.join(__dirname, '../config.json');
+const openaiClient = new OpenAI({
+  apiKey: metisApiKey || 'missing-metis-api-key',
+  baseURL: metisBaseUrl
+});
 const DEFAULT_SYSTEM_PROMPT = `تو «دانوآ» هستی؛ یک همراه مهربان، خیالی و بدون جنسیت (ترکیبی از ربات کوچک و ابر) که برای همه سنین از ۲ تا ۱۸ سال طراحی شده‌ای. شکل تو گرد و نرم است تا حس امنیت بده. برای نوجوانان، نقش یک «دوست داناتر» را بازی می‌کنی و برای کودکان، نقش یک مربی صبور و داستان‌گو.
 
 🧠 قوانین طلایی (همیشه رعایت کن)
@@ -195,51 +208,35 @@ const normalizeHistory = (history, currentMessage) => {
   return clean;
 };
 
-const buildMetisPayload = (messages) => {
-  const systemMessage = messages.find((m) => m.role === 'system');
-  const chatHistory = messages.filter((m) => m.role === 'user' || m.role === 'assistant');
+const buildChatMessages = (messages) =>
+  (Array.isArray(messages) ? messages : [])
+    .filter(
+      (item) =>
+        item &&
+        (item.role === 'system' || item.role === 'user' || item.role === 'assistant') &&
+        typeof item.content === 'string' &&
+        item.content.trim().length > 0
+    )
+    .map((item) => ({
+      role: item.role,
+      content: item.content.trim()
+    }));
 
-  const contents = chatHistory.map((m) => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }]
-  }));
-
-  if (contents.length === 0) {
-    contents.push({ role: 'user', parts: [{ text: '' }] });
+const extractReply = (response) => {
+  const content = response?.choices?.[0]?.message?.content;
+  if (typeof content === 'string') {
+    return content.trim();
   }
 
-  if (systemMessage && contents[contents.length - 1].role === 'user') {
-    const lastText = contents[contents.length - 1].parts?.[0]?.text || '';
-    contents[contents.length - 1].parts = [{ text: `${systemMessage.content}\n\n${lastText}` }];
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (typeof part?.text === 'string' ? part.text : ''))
+      .filter(Boolean)
+      .join('\n')
+      .trim();
   }
 
-  return {
-    contents,
-    generationConfig: {
-      temperature: 0.6
-    }
-  };
-};
-
-const parseJsonSafe = (text) => {
-  try {
-    return JSON.parse(text);
-  } catch (_error) {
-    return null;
-  }
-};
-
-const extractReply = (json) => {
-  const parts = json?.candidates?.[0]?.content?.parts;
-  if (!Array.isArray(parts)) {
-    return '';
-  }
-
-  const textParts = parts
-    .map((part) => (typeof part?.text === 'string' ? part.text : ''))
-    .filter(Boolean);
-
-  return textParts.join('\n').trim();
+  return '';
 };
 
 const removeExtraGreeting = (text, isFirstMessage) => {
@@ -253,117 +250,129 @@ const removeExtraGreeting = (text, isFirstMessage) => {
   return cleaned.replace(greetingPattern, '').trimStart();
 };
 
-const doUpstreamRequest = async (payload, authHeaders, chatEndpoint, timeoutMs) => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+const withTimeout = async (promise, timeoutMs) => {
+  let timer = null;
 
   try {
-    const response = await fetch(chatEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-
-    const raw = await response.text();
-    const json = parseJsonSafe(raw);
-
-    return {
-      ok: response.ok,
-      status: response.status,
-      json,
-      raw
-    };
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          const timeoutError = new Error('UPSTREAM_TIMEOUT');
+          timeoutError.code = 'UPSTREAM_TIMEOUT';
+          reject(timeoutError);
+        }, timeoutMs);
+      })
+    ]);
   } finally {
-    clearTimeout(timer);
+    if (timer) {
+      clearTimeout(timer);
+    }
   }
 };
 
-const callGemini = async (messages) => {
-  if (!geminiApiKey) {
-    const error = new Error('GEMINI_API_KEY is missing');
+const postOpenAIChatCompletion = async (payload, timeoutMs) => {
+  const response = await axios.post(`${metisBaseUrl}/chat/completions`, payload, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${metisApiKey}`
+    },
+    timeout: timeoutMs
+  });
+
+  return response.data;
+};
+
+const callOpenAI = async (messages) => {
+  if (!metisApiKey) {
+    const error = new Error('METIS_API_KEY is missing');
     error.code = 'API_KEY_MISSING';
     throw error;
   }
 
-  const payload = buildMetisPayload(messages);
   const runtimeConfig = await getRuntimeConfig();
-  const chatEndpoint = `${geminiBaseUrl}/v1beta/models/${encodeURIComponent(runtimeConfig.model)}:generateContent`;
-  const authModes = [
-    { mode: 'bearer', headers: { Authorization: `Bearer ${geminiApiKey}` } },
-    { mode: 'x-goog-api-key', headers: { 'x-goog-api-key': geminiApiKey } }
-  ];
+  const payload = {
+    model: runtimeConfig.model,
+    messages: buildChatMessages(messages),
+    temperature: 0.6
+  };
+  const totalTimeoutMs = Math.max(5000, runtimeConfig.timeoutMs);
+  const sdkTimeoutMs = Math.min(8000, totalTimeoutMs);
+  const fallbackTimeoutMs = Math.max(5000, totalTimeoutMs - sdkTimeoutMs);
 
-  let lastFailure = null;
+  try {
+    let response = null;
 
-  for (const auth of authModes) {
     try {
-      const result = await doUpstreamRequest(payload, auth.headers, chatEndpoint, runtimeConfig.timeoutMs);
+      response = await withTimeout(
+        openaiClient.chat.completions.create(payload, {
+          timeout: sdkTimeoutMs,
+          maxRetries: 0
+        }),
+        sdkTimeoutMs
+      );
+    } catch (sdkError) {
+      const shouldFallback =
+        sdkError &&
+        typeof sdkError === 'object' &&
+        (sdkError.code === 'UPSTREAM_TIMEOUT' ||
+          sdkError.name === 'APIConnectionError' ||
+          sdkError.name === 'APIConnectionTimeoutError' ||
+          sdkError.name === 'InternalServerError');
 
-      if (!result.ok) {
-        lastFailure = {
-          authMode: auth.mode,
-          status: result.status,
-          details: result.json || result.raw
-        };
-        continue;
+      if (!shouldFallback) {
+        throw sdkError;
       }
 
-      const reply = extractReply(result.json);
-      if (!reply) {
-        const error = new Error('EMPTY_UPSTREAM_REPLY');
-        error.code = 'EMPTY_UPSTREAM_REPLY';
-        error.details = result.json || result.raw;
-        throw error;
-      }
-
-      return reply;
-    } catch (error) {
-      const causeCode =
-        error &&
-        typeof error === 'object' &&
-        error.cause &&
-        typeof error.cause === 'object' &&
-        typeof error.cause.code === 'string'
-          ? error.cause.code
-          : null;
-
-      if (error && typeof error === 'object' && error.name === 'AbortError') {
-        const timeoutError = new Error('UPSTREAM_TIMEOUT');
-        timeoutError.code = 'UPSTREAM_TIMEOUT';
-        throw timeoutError;
-      }
-
-      if (error instanceof TypeError && error.message === 'fetch failed') {
-        const networkError = new Error('UPSTREAM_FETCH_FAILED');
-        networkError.code = 'UPSTREAM_FETCH_FAILED';
-        networkError.details = {
-          authMode: auth.mode,
-          causeCode,
-          baseUrl: geminiBaseUrl
-        };
-        throw networkError;
-      }
-
-      if (error && error.code === 'EMPTY_UPSTREAM_REPLY') {
-        throw error;
-      }
-
-      lastFailure = {
-        authMode: auth.mode,
-        status: error && error.status ? error.status : null,
-        details: error && error.details ? error.details : (error instanceof Error ? error.message : 'unknown_error')
-      };
+      response = await postOpenAIChatCompletion(payload, fallbackTimeoutMs);
     }
-  }
 
-  const upstreamError = new Error('UPSTREAM_REQUEST_FAILED');
-  upstreamError.code = 'UPSTREAM_REQUEST_FAILED';
-  upstreamError.details = lastFailure;
-  throw upstreamError;
+    const reply = extractReply(response);
+
+    if (!reply) {
+      const error = new Error('EMPTY_UPSTREAM_REPLY');
+      error.code = 'EMPTY_UPSTREAM_REPLY';
+      error.details = response;
+      throw error;
+    }
+
+    return reply;
+  } catch (error) {
+    if (error && typeof error === 'object' && error.code === 'UPSTREAM_TIMEOUT') {
+      throw error;
+    }
+
+    const status = Number(error?.status || error?.cause?.status || error?.response?.status);
+    const details =
+      error?.error ||
+      error?.response?.data ||
+      error?.cause ||
+      (error instanceof Error ? error.message : 'unknown_error');
+
+    if (error && typeof error === 'object' && error.code === 'ECONNABORTED') {
+      const timeoutError = new Error('UPSTREAM_TIMEOUT');
+      timeoutError.code = 'UPSTREAM_TIMEOUT';
+      throw timeoutError;
+    }
+
+    if (!Number.isInteger(status)) {
+      const networkError = new Error('UPSTREAM_FETCH_FAILED');
+      networkError.code = 'UPSTREAM_FETCH_FAILED';
+      networkError.details = {
+        baseUrl: metisBaseUrl,
+        cause: details
+      };
+      throw networkError;
+    }
+
+    const upstreamError = new Error('UPSTREAM_REQUEST_FAILED');
+    upstreamError.code = 'UPSTREAM_REQUEST_FAILED';
+    upstreamError.details = {
+      status,
+      details
+    };
+    throw upstreamError;
+  }
 };
 
 function detectCategory(msg) {
@@ -663,8 +672,8 @@ app.post('/api/chat', async (req, res) => {
       messageLength: trimmedMessage.length
     });
 
-    if (!geminiApiKey) {
-      logError('api_key_missing', '/api/chat', 500, 'GEMINI_API_KEY is missing');
+    if (!metisApiKey) {
+      logError('api_key_missing', '/api/chat', 500, 'METIS_API_KEY is missing');
       return res.status(500).json({ error: 'کلید API تنظیم نشده است.' });
     }
 
@@ -716,7 +725,7 @@ app.post('/api/chat', async (req, res) => {
     ];
 
     const isFirstMessage = normalizedHistory.length === 1;
-    const rawReply = await callGemini(messages);
+    const rawReply = await callOpenAI(messages);
     const reply = removeExtraGreeting(rawReply, isFirstMessage);
     const nextConversationMessages = [...effectiveHistory, { role: 'assistant', content: reply }];
     conversationMemory.set(memoryKey, nextConversationMessages);
@@ -730,22 +739,22 @@ app.post('/api/chat', async (req, res) => {
     return res.json({ reply });
   } catch (error) {
     if (error && typeof error === 'object' && error.code === 'UPSTREAM_TIMEOUT') {
-      logError('gemini_timeout', '/gemini', 504, 'Upstream timeout reached');
+      logError('openai_timeout', '/api/chat', 504, 'Upstream timeout reached');
       return res.status(504).json({ error: 'زمان پاسخ مدل طولانی شد. لطفاً دوباره تلاش کن.' });
     }
 
     if (error && typeof error === 'object' && error.code === 'UPSTREAM_FETCH_FAILED') {
-      logError('gemini_fetch_failed', '/gemini', 502, JSON.stringify(error.details || {}));
+      logError('openai_fetch_failed', '/api/chat', 502, JSON.stringify(error.details || {}));
       return res.status(502).json({
         error: 'ارتباط با سرویس مدل برقرار نشد.',
-        details: 'اتصال شبکه، DNS یا GEMINI_BASE_URL را بررسی کنید.'
+        details: 'اتصال شبکه، DNS یا METIS_OPENAI_BASE_URL را بررسی کنید.'
       });
     }
 
     if (error && typeof error === 'object' && error.code === 'UPSTREAM_REQUEST_FAILED') {
       const status = Number(error?.details?.status);
       const safeStatus = Number.isInteger(status) && status >= 400 ? status : 502;
-      logError('gemini_upstream_error', '/gemini', safeStatus, JSON.stringify(error.details || {}));
+      logError('openai_upstream_error', '/api/chat', safeStatus, JSON.stringify(error.details || {}));
       return res.status(safeStatus).json({
         error: 'خطا از سرویس مدل دریافت شد.',
         details: error?.details?.details || 'unknown_upstream_error'
@@ -753,11 +762,11 @@ app.post('/api/chat', async (req, res) => {
     }
 
     if (error && typeof error === 'object' && error.code === 'EMPTY_UPSTREAM_REPLY') {
-      logError('invalid_upstream_response', '/gemini', 502, JSON.stringify(error.details || {}));
+      logError('invalid_upstream_response', '/api/chat', 502, JSON.stringify(error.details || {}));
       return res.status(502).json({ error: 'پاسخ نامعتبر از مدل دریافت شد.' });
     }
 
-    logError('unknown', '/gemini', null, error instanceof Error ? error.stack || error.message : 'unknown_error');
+    logError('unknown', '/api/chat', null, error instanceof Error ? error.stack || error.message : 'unknown_error');
 
     return res.status(500).json({
       error: 'مشکلی در سرور پیش آمد.',
@@ -841,7 +850,7 @@ app.get('/api/health', (_req, res) => {
     ok: true,
     service: 'hemraz-backend',
     model: defaultModel,
-    baseUrl: geminiBaseUrl
+    baseUrl: metisBaseUrl
   });
 });
 
@@ -865,7 +874,7 @@ const server = app.listen(port, host, () => {
     host,
     port,
     model: defaultModel,
-    baseUrl: geminiBaseUrl,
+    baseUrl: metisBaseUrl,
     timeoutMs: defaultTimeoutMs
   });
 });
