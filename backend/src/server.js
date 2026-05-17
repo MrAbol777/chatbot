@@ -58,7 +58,6 @@ const normalizeBaseUrl = (value, fallback) => String(value || fallback).replace(
 
 const port = normalizePort(process.env.PORT, 3000);
 const host = '0.0.0.0';
-<<<<<<< HEAD
 const metisBaseUrl = normalizeBaseUrl(
   process.env.METIS_OPENAI_BASE_URL || process.env.OPENAI_BASE_URL,
   'https://api.metisai.ir/openai/v1'
@@ -68,56 +67,17 @@ const metisApiKey =
   typeof (process.env.METIS_API_KEY || process.env.OPENAI_API_KEY) === 'string'
     ? (process.env.METIS_API_KEY || process.env.OPENAI_API_KEY).trim()
     : '';
-=======
-const geminiBaseUrl = (process.env.GEMINI_BASE_URL || 'https://api.metisai.ir').replace(/\/+$/, '');
-const defaultModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const geminiApiKey =
-  (typeof process.env.GEMINI_API_KEY === 'string' ? process.env.GEMINI_API_KEY.trim() : '') ||
-  (typeof process.env.METIS_API_KEY === 'string' ? process.env.METIS_API_KEY.trim() : '');
->>>>>>> 537f9d8 (اپدیت UI/UX و سیسیتم پرامت)
 const defaultTimeoutMs = Number(process.env.GAPGPT_TIMEOUT_MS || 30000);
 const adminApiKey = typeof process.env.ADMIN_API_KEY === 'string' ? process.env.ADMIN_API_KEY.trim() : '';
 const adminJwtSecret = typeof process.env.ADMIN_JWT_SECRET === 'string' ? process.env.ADMIN_JWT_SECRET.trim() : 'danoa-admin-secret';
 const adminPanelPath = process.env.ADMIN_PANEL_PATH || '/admin-secure-9x7k';
 const adminCookieName = process.env.ADMIN_COOKIE_NAME || 'admin_token';
 const adminConfigPath = path.join(__dirname, '../config.json');
-<<<<<<< HEAD
 const openaiClient = new OpenAI({
   apiKey: metisApiKey || 'missing-metis-api-key',
   baseURL: metisBaseUrl
 });
-const DEFAULT_SYSTEM_PROMPT = `تو «دانوآ» هستی؛ یک همراه مهربان، خیالی و بدون جنسیت (ترکیبی از ربات کوچک و ابر) که برای همه سنین از ۲ تا ۱۸ سال طراحی شده‌ای. شکل تو گرد و نرم است تا حس امنیت بده. برای نوجوانان، نقش یک «دوست داناتر» را بازی می‌کنی و برای کودکان، نقش یک مربی صبور و داستان‌گو.
-
-🧠 قوانین طلایی (همیشه رعایت کن)
-
-1. همه پاسخ‌ها فارسی و راست‌به‌چپ باشد.
-2. لحن: امن، محترمانه، دوستانه و بدون تحقیر.
-3. فکت علمی فقط در مواقع خاص: اگر این یکی از ۲ پیام اول گفتگو است، می‌توانی پاسخ را با یک فکت علمی کوتاه (حداکثر ۱ جمله) شروع کنی. اگر کاربر صراحتاً از تو خواست «یک واقعیت جالب بگو» یا «بیشتر توضیح بده»، در آن صورت نیز می‌توانی یک فکت اضافه کنی. در غیر این صورت (ادامه یک مکالمه عادی)، پاسخ را مستقیم و بدون هیچ فکت علمی بده؛ فقط مفید و کوتاه به سؤال پاسخ بده. هیچ‌وقت در پاسخ‌های تکراری یا تأییدی (مثل «بله»، «درسته»، «آفرین») فکت نیاور.
-4. در هر پاسخ، بیش از یک ایده اصلی ارائه نکن. اگر پاسخ ساده است، یک جمله کافی است. از توضیحات اضافی بپرهیز.
-5. بازخورد مثبت: به جای «غلطه» بگو «خیلی نزدیک شدی! بیا یک جور دیگه ببینیم.»
-6. ناوبری ذهنی: همیشه به کاربر بگو کجای مسیره (مثلاً «الان مرحله دوم از سه مرحله‌ست»).
-7. اگر این اولین پیام کاربر در این گفتگو نیست، پاسخ را با سلام تکراری شروع نکن و مستقیم سر اصل مطلب برو.
-8. اگر کاربر قبلاً به یک سوال پاسخ داده، در پاسخ‌های بعدی همان سوال را تکرار نکن.
-
-🎯 دسته‌بندی موضوع و قالب پاسخ
-
-📚 دسته آموزشی/درسی
-- شروع با ایموجی 📚
-- گام‌به‌گام و دقیق
-
-❤️ دسته احساسی
-- اول همدلی کن، بعد عادی‌سازی احساس، و در صورت نیاز پیشنهاد گفت‌وگو با یک بزرگ‌سال قابل اعتماد بده.
-
-✨ دسته خلاقانه
-- اگر اطلاعات کافی بود مستقیم کمک کن، اگر نبود حداکثر یک سوال تکمیلی بپرس.
-
-🛡️ ایمنی گفتگو
-- اگر موضوع حساس یا خطرناک بود، اول آرامش بده، بعد بگو «بیا با یک بزرگ‌سال مورد اعتماد حرف بزنیم.»
-- هیچ‌وقت تحقیر نکن، مسخره نکن، نترسون.
-`;
-=======
 const systemPromptPath = path.join(__dirname, '../system-prompt.txt');
->>>>>>> 537f9d8 (اپدیت UI/UX و سیسیتم پرامت)
 
 let systemPromptCache = null;
 
@@ -284,7 +244,6 @@ const withTimeout = async (promise, timeoutMs) => {
   }
 };
 
-<<<<<<< HEAD
 const postOpenAIChatCompletion = async (payload, timeoutMs) => {
   const response = await axios.post(`${metisBaseUrl}/chat/completions`, payload, {
     headers: {
@@ -300,11 +259,6 @@ const postOpenAIChatCompletion = async (payload, timeoutMs) => {
 const callOpenAI = async (messages) => {
   if (!metisApiKey) {
     const error = new Error('METIS_API_KEY is missing');
-=======
-const callGemini = async (messages) => {
-  if (!geminiApiKey) {
-    const error = new Error('GEMINI_API_KEY/METIS_API_KEY is missing');
->>>>>>> 537f9d8 (اپدیت UI/UX و سیسیتم پرامت)
     error.code = 'API_KEY_MISSING';
     throw error;
   }
@@ -691,13 +645,8 @@ app.post('/api/chat', async (req, res) => {
       messageLength: trimmedMessage.length
     });
 
-<<<<<<< HEAD
     if (!metisApiKey) {
       logError('api_key_missing', '/api/chat', 500, 'METIS_API_KEY is missing');
-=======
-    if (!geminiApiKey) {
-      logError('api_key_missing', '/api/chat', 500, 'GEMINI_API_KEY/METIS_API_KEY is missing');
->>>>>>> 537f9d8 (اپدیت UI/UX و سیسیتم پرامت)
       return res.status(500).json({ error: 'کلید API تنظیم نشده است.' });
     }
 
