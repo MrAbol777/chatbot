@@ -1507,10 +1507,10 @@ function ChatApp() {
         <header className="top-bar">
           <div className="top-bar-main">
             <button
-              className="menu-btn"
+              className={`menu-btn ${sidebarOpen ? 'open' : ''}`}
               onClick={() => setSidebarOpen((prev) => !prev)}
               type="button"
-              aria-label="منو"
+              aria-label={sidebarOpen ? 'بستن منو' : 'باز کردن منو'}
               aria-expanded={sidebarOpen}
             >
               <span className="menu-btn-line" />
@@ -1664,6 +1664,14 @@ function ChatApp() {
             </button>
           </div>
         </aside>
+        {sidebarOpen ? (
+          <button
+            className="sidebar-hitbox"
+            type="button"
+            aria-label="بستن منو"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
 
         {showProfileModal ? (
           <div className="modal-overlay" onClick={() => setShowProfileModal(false)} role="presentation">
@@ -1733,8 +1741,6 @@ function ChatApp() {
             </div>
           </div>
         ) : null}
-
-        {sidebarOpen ? <button className="backdrop" type="button" onClick={() => setSidebarOpen(false)} /> : null}
 
         <main className="messages-area" ref={messagesContainerRef}>
           {activeConversation?.messages.length ? (
