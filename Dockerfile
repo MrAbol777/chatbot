@@ -46,6 +46,7 @@ COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY scripts/container-start.sh /app/container-start.sh
 RUN chmod +x /app/container-start.sh
+RUN test -s /app/backend/system-prompt.txt
 
 ENV NODE_ENV=production
 ENV PORT=3000

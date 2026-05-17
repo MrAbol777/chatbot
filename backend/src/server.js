@@ -58,6 +58,7 @@ const normalizeBaseUrl = (value, fallback) => String(value || fallback).replace(
 
 const port = normalizePort(process.env.PORT, 3000);
 const host = '0.0.0.0';
+<<<<<<< HEAD
 const metisBaseUrl = normalizeBaseUrl(
   process.env.METIS_OPENAI_BASE_URL || process.env.OPENAI_BASE_URL,
   'https://api.metisai.ir/openai/v1'
@@ -67,12 +68,20 @@ const metisApiKey =
   typeof (process.env.METIS_API_KEY || process.env.OPENAI_API_KEY) === 'string'
     ? (process.env.METIS_API_KEY || process.env.OPENAI_API_KEY).trim()
     : '';
+=======
+const geminiBaseUrl = (process.env.GEMINI_BASE_URL || 'https://api.metisai.ir').replace(/\/+$/, '');
+const defaultModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const geminiApiKey =
+  (typeof process.env.GEMINI_API_KEY === 'string' ? process.env.GEMINI_API_KEY.trim() : '') ||
+  (typeof process.env.METIS_API_KEY === 'string' ? process.env.METIS_API_KEY.trim() : '');
+>>>>>>> 537f9d8 (اپدیت UI/UX و سیسیتم پرامت)
 const defaultTimeoutMs = Number(process.env.GAPGPT_TIMEOUT_MS || 30000);
 const adminApiKey = typeof process.env.ADMIN_API_KEY === 'string' ? process.env.ADMIN_API_KEY.trim() : '';
 const adminJwtSecret = typeof process.env.ADMIN_JWT_SECRET === 'string' ? process.env.ADMIN_JWT_SECRET.trim() : 'danoa-admin-secret';
 const adminPanelPath = process.env.ADMIN_PANEL_PATH || '/admin-secure-9x7k';
 const adminCookieName = process.env.ADMIN_COOKIE_NAME || 'admin_token';
 const adminConfigPath = path.join(__dirname, '../config.json');
+<<<<<<< HEAD
 const openaiClient = new OpenAI({
   apiKey: metisApiKey || 'missing-metis-api-key',
   baseURL: metisBaseUrl
@@ -106,6 +115,9 @@ const DEFAULT_SYSTEM_PROMPT = `تو «دانوآ» هستی؛ یک همراه م
 - اگر موضوع حساس یا خطرناک بود، اول آرامش بده، بعد بگو «بیا با یک بزرگ‌سال مورد اعتماد حرف بزنیم.»
 - هیچ‌وقت تحقیر نکن، مسخره نکن، نترسون.
 `;
+=======
+const systemPromptPath = path.join(__dirname, '../system-prompt.txt');
+>>>>>>> 537f9d8 (اپدیت UI/UX و سیسیتم پرامت)
 
 let systemPromptCache = null;
 
@@ -155,11 +167,12 @@ const getSystemPrompt = async () => {
   }
 
   try {
+    const fallbackPrompt = (await fs.readFile(systemPromptPath, 'utf8')).trim();
     const parsed = await fs.readJson(adminConfigPath);
     const configuredPrompt =
       typeof parsed?.systemPrompt === 'string' && parsed.systemPrompt.trim()
         ? parsed.systemPrompt.trim()
-        : DEFAULT_SYSTEM_PROMPT;
+        : fallbackPrompt;
 
     if (!parsed?.systemPrompt || typeof parsed.systemPrompt !== 'string' || !parsed.systemPrompt.trim()) {
       await fs.writeJson(
@@ -175,7 +188,7 @@ const getSystemPrompt = async () => {
     systemPromptCache = configuredPrompt;
     return configuredPrompt;
   } catch (_error) {
-    systemPromptCache = DEFAULT_SYSTEM_PROMPT;
+    systemPromptCache = '';
     return systemPromptCache;
   }
 };
@@ -271,6 +284,7 @@ const withTimeout = async (promise, timeoutMs) => {
   }
 };
 
+<<<<<<< HEAD
 const postOpenAIChatCompletion = async (payload, timeoutMs) => {
   const response = await axios.post(`${metisBaseUrl}/chat/completions`, payload, {
     headers: {
@@ -286,6 +300,11 @@ const postOpenAIChatCompletion = async (payload, timeoutMs) => {
 const callOpenAI = async (messages) => {
   if (!metisApiKey) {
     const error = new Error('METIS_API_KEY is missing');
+=======
+const callGemini = async (messages) => {
+  if (!geminiApiKey) {
+    const error = new Error('GEMINI_API_KEY/METIS_API_KEY is missing');
+>>>>>>> 537f9d8 (اپدیت UI/UX و سیسیتم پرامت)
     error.code = 'API_KEY_MISSING';
     throw error;
   }
@@ -672,8 +691,13 @@ app.post('/api/chat', async (req, res) => {
       messageLength: trimmedMessage.length
     });
 
+<<<<<<< HEAD
     if (!metisApiKey) {
       logError('api_key_missing', '/api/chat', 500, 'METIS_API_KEY is missing');
+=======
+    if (!geminiApiKey) {
+      logError('api_key_missing', '/api/chat', 500, 'GEMINI_API_KEY/METIS_API_KEY is missing');
+>>>>>>> 537f9d8 (اپدیت UI/UX و سیسیتم پرامت)
       return res.status(500).json({ error: 'کلید API تنظیم نشده است.' });
     }
 

@@ -1494,6 +1494,8 @@ function ChatApp() {
     );
   }
 
+  const canSendMessage = !isRecording && !isSending && (inputValue.trim().length > 0 || Boolean(imageBase64));
+
   return (
     <div className={`app-shell chat-shell ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="bg-blob blob-pink" />
@@ -1503,22 +1505,62 @@ function ChatApp() {
 
       <div className="chat-card">
         <header className="top-bar">
-          <button
-            className="menu-btn"
-            onClick={() => setSidebarOpen((prev) => !prev)}
-            type="button"
-            aria-label="منو"
-            aria-expanded={sidebarOpen}
-          >
-            ☰
-          </button>
-          <div className="top-title">
-            <span className="avatar">🧠</span>
-            <div>
-              <strong>
-                سلام {profile.name}👋
-              </strong>
+          <div className="top-bar-main">
+            <button
+              className="menu-btn"
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              type="button"
+              aria-label="منو"
+              aria-expanded={sidebarOpen}
+            >
+              <span className="menu-btn-line" />
+              <span className="menu-btn-line" />
+              <span className="menu-btn-line short" />
+            </button>
+
+            <div className="top-title">
+              <span className="avatar avatar-orb">
+                <span className="avatar-ring" />
+                <span className="avatar-core">🧠</span>
+              </span>
+
+              <div className="top-copy">
+                <div className="top-copy-row">
+                  <strong>دانوآ</strong>
+                  <span className="top-status-badge">
+                    <span className="status-dot" />
+                    آنلاین
+                  </span>
+                </div>
+                <div className="top-meta">
+                  <span>سلام {profile.name} 👋</span>
+                  <span className="top-meta-sep">•</span>
+                  <span>همراه گفتگوی امروز</span>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <div className="top-bar-actions">
+            <button
+              className="header-action-btn"
+              type="button"
+              onClick={handleCreateConversation}
+              aria-label="گفتگوی جدید"
+              title="گفتگوی جدید"
+            >
+              <span className="header-action-icon" aria-hidden="true">✦</span>
+              <span className="header-action-text">گفتگوی جدید</span>
+            </button>
+            <button
+              className="header-action-btn header-action-btn-secondary"
+              type="button"
+              onClick={() => setShowProfileModal(true)}
+              aria-label="تنظیمات پروفایل"
+              title="تنظیمات پروفایل"
+            >
+              <span className="header-action-icon" aria-hidden="true">⚙</span>
+            </button>
           </div>
         </header>
 
@@ -1745,93 +1787,132 @@ function ChatApp() {
         </main>
 
         <footer className="input-area" ref={inputAreaRef}>
-          <div className="chips-row">
-            <button type="button" onClick={() => void handleSendMessage('📚 کمک درسی')}>
-              📚 کمک درسی
-            </button>
-            <button type="button" onClick={() => void handleSendMessage('💬 احساسات')}>
-              💬 احساسات
-            </button>
-            <button type="button" onClick={() => void handleSendMessage('✨ داستان')}>
-              ✨ داستان
-            </button>
-          </div>
-
-          {imagePreview ? (
-            <div className="image-thumb-wrap">
-              <img className="image-thumb" src={imagePreview} alt="تصویر انتخاب‌شده" />
-              <button className="remove-thumb-btn" type="button" aria-label="حذف تصویر" onClick={handleRemoveImage}>
-                ❌
+          <div className="input-shell">
+            <div className="chips-row">
+              <button type="button" onClick={() => void handleSendMessage('📚 کمک درسی')}>
+                <span aria-hidden="true">📚</span>
+                کمک درسی
+              </button>
+              <button type="button" onClick={() => void handleSendMessage('💬 احساسات')}>
+                <span aria-hidden="true">💬</span>
+                احساسات
+              </button>
+              <button type="button" onClick={() => void handleSendMessage('✨ داستان')}>
+                <span aria-hidden="true">✨</span>
+                داستان
               </button>
             </div>
-          ) : null}
 
-          <div className="input-row">
-            <div className="message-field">
-              <textarea
-                ref={messageInputRef}
-                rows={1}
-                value={inputValue}
-                disabled={isRecording}
-                onChange={(event) => setInputValue(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault();
-                    void handleSendMessage();
-                  }
-                }}
-                placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیامت را اینجا بنویس...'}
-                aria-label="نوشتن پیام"
-              />
-              <div className="attachment-box" ref={attachmentBoxRef}>
-                <button
-                  className="attach-btn"
-                  type="button"
-                  aria-label="پیوست"
-                  onClick={() => setAttachmentMenuOpen((prev) => !prev)}
-                >
-                  📎
+            {imagePreview ? (
+              <div className="image-thumb-wrap">
+                <div className="image-thumb-meta">
+                  <img className="image-thumb" src={imagePreview} alt="تصویر انتخاب‌شده" />
+                  <div className="image-thumb-copy">
+                    <strong>تصویر آماده ارسال</strong>
+                    <span>همراه پیام بعدی فرستاده می‌شود</span>
+                  </div>
+                </div>
+                <button className="remove-thumb-btn" type="button" aria-label="حذف تصویر" onClick={handleRemoveImage}>
+                  ✕
                 </button>
-                {attachmentMenuOpen ? (
-                  <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
-                    <button type="button" onClick={handlePickImageClick}>
-                      📷 ارسال عکس
-                    </button>
-                    <button
-                      type="button"
-                      className="menu-item-disabled"
-                      onClick={() => {
-                        setAttachmentMenuOpen(false);
-                        alert('به زودی فعال میشه این بخش ...');
-                      }}
-                    >
-                      📄 ارسال فایل
-                    </button>
+              </div>
+            ) : null}
+
+            <div className={`composer-card ${isRecording ? 'recording' : ''} ${canSendMessage ? 'ready' : ''}`}>
+              <div className="composer-main">
+                {!isRecording ? (
+                  <div className="attachment-rail">
+                    <div className="attachment-box" ref={attachmentBoxRef}>
+                      <button
+                        className="attach-btn"
+                        type="button"
+                        aria-label="پیوست"
+                        onClick={() => setAttachmentMenuOpen((prev) => !prev)}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M16.2 7.8a4.3 4.3 0 0 0-6.1 0l-5 5a4.3 4.3 0 1 0 6 6.1l5.4-5.4a2.8 2.8 0 1 0-4-4l-5 5a1.3 1.3 0 1 0 1.8 1.8l4.6-4.7a.9.9 0 0 1 1.3 1.3l-4.6 4.7a3.1 3.1 0 0 1-4.5-4.4l5-5a4.7 4.7 0 1 1 6.7 6.6l-5.3 5.4a6.2 6.2 0 1 1-8.8-8.8l5-5a.9.9 0 0 1 1.3 1.3l-5 5a4.4 4.4 0 1 0 6.1 6.1l5.3-5.4a2.9 2.9 0 0 0 0-4.1Z" />
+                        </svg>
+                      </button>
+                      {attachmentMenuOpen ? (
+                        <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
+                          <button type="button" onClick={handlePickImageClick}>
+                            <span aria-hidden="true">📷</span>
+                            ارسال عکس
+                          </button>
+                          <button
+                            type="button"
+                            className="menu-item-disabled"
+                            onClick={() => {
+                              setAttachmentMenuOpen(false);
+                              alert('به زودی فعال میشه این بخش ...');
+                            }}
+                          >
+                            <span aria-hidden="true">📄</span>
+                            ارسال فایل
+                          </button>
+                        </div>
+                      ) : null}
+                      <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImageSelect} />
+                    </div>
                   </div>
                 ) : null}
-                <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImageSelect} />
+
+                <div className="message-field">
+                  <textarea
+                    ref={messageInputRef}
+                    rows={1}
+                    dir="auto"
+                    value={inputValue}
+                    disabled={isRecording}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        void handleSendMessage();
+                      }
+                    }}
+                    placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیام خود را بنویسید...'}
+                    aria-label="نوشتن پیام"
+                  />
+                  <div className="composer-hint">
+                    <span>{isRecording ? 'ضبط صدا فعال است' : 'Enter برای ارسال، Shift + Enter برای خط جدید'}</span>
+                  </div>
+                </div>
+
+                <div className="composer-actions">
+                  {isRecording ? (
+                    <>
+                      <button className="confirm-btn" type="button" onClick={handleConfirmRecording} aria-label="ارسال پیام ضبط شده">
+                        تایید
+                      </button>
+                      <button className="cancel-btn" type="button" onClick={handleCancelRecording} aria-label="لغو ضبط صدا">
+                        لغو
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="mic-btn" type="button" onClick={handleStartRecording} aria-label="شروع ضبط صدا">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
+                          <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
+                        </svg>
+                      </button>
+                      <button
+                        className="send-btn"
+                        type="button"
+                        onClick={() => void handleSendMessage()}
+                        aria-label="ارسال پیام"
+                        disabled={!canSendMessage}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-
-            {isRecording ? (
-              <>
-                <button className="confirm-btn" type="button" onClick={handleConfirmRecording} aria-label="ارسال پیام ضبط شده">
-                  تایید
-                </button>
-                <button className="cancel-btn" type="button" onClick={handleCancelRecording} aria-label="لغو ضبط صدا">
-                  لغو
-                </button>
-              </>
-            ) : (
-              <>
-                <button className="send-btn" type="button" onClick={() => void handleSendMessage()} aria-label="ارسال پیام">
-                  ارسال
-                </button>
-                <button className="mic-btn" type="button" onClick={handleStartRecording} aria-label="شروع ضبط صدا">
-                  🎤 صدا
-                </button>
-              </>
-            )}
           </div>
         </footer>
       </div>
