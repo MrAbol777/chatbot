@@ -1241,6 +1241,10 @@ textarea {
 }
 
 .bot-avatar {
+  flex: 0 0 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -2311,6 +2315,7 @@ select:focus-visible {
   }
 
   .bot-avatar {
+    flex-basis: 28px;
     width: 28px;
     height: 28px;
   }

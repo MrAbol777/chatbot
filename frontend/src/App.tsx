@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { ChatMessage, Conversation, UserProfile } from './types';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
+import defaultBotAvatar from './image.png';
 
 const PROFILE_KEY = 'chat_profile';
 const PROFILES_KEY = 'chat_profiles';
@@ -19,6 +20,7 @@ const WAITING_MESSAGES = [
 ];
 const CHAT_REQUEST_TIMEOUT_MS = 35000;
 const CHAT_MAX_RETRIES = 1;
+const BOT_AVATAR_FALLBACK_URL = '/image.png';
 
 type AppProfile = UserProfile & { id?: number | string };
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
@@ -415,6 +417,21 @@ function ChatApp() {
   const lastAssistantMessageIndex = useMemo(
     () => (activeConversation ? activeConversation.messages.map((item) => item.role).lastIndexOf('assistant') : -1),
     [activeConversation]
+  );
+  const renderBotAvatar = () => (
+    <span className="bot-avatar" aria-hidden="true">
+      <img
+        src={defaultBotAvatar || BOT_AVATAR_FALLBACK_URL}
+        alt="پروفایل ربات"
+        loading="lazy"
+        decoding="async"
+        onError={(event) => {
+          const imageElement = event.currentTarget;
+          if (imageElement.src.endsWith(BOT_AVATAR_FALLBACK_URL)) return;
+          imageElement.src = BOT_AVATAR_FALLBACK_URL;
+        }}
+      />
+    </span>
   );
 
   const applyTheme = (newTheme: 'energy' | 'calm', persist = true) => {
@@ -1757,11 +1774,7 @@ function ChatApp() {
                   }
                 }}
               >
-                {message.role === 'assistant' ? (
-                  <span className="bot-avatar">
-                    <img src="/image.png" alt="پروفایل ربات" />
-                  </span>
-                ) : null}
+                {message.role === 'assistant' ? renderBotAvatar() : null}
                 {message.role === 'assistant' ? (
                   <div className="bubble markdown-body">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
@@ -1777,9 +1790,7 @@ function ChatApp() {
 
           {isSending ? (
             <div className="message-row assistant" ref={lastMessageRef}>
-              <span className="bot-avatar">
-                <img src="/image.png" alt="پروفایل ربات" />
-              </span>
+              {renderBotAvatar()}
               <div className="bubble">
                 <span>{WAITING_MESSAGES[waitingTextIndex]}</span>
                 <span className="typing-dots" aria-hidden="true">
