@@ -1,4 +1,5 @@
-ARG NODE_IMAGE=registry.hamdocker.ir/library/node:20-alpine
+ARG BASE_REGISTRY=hub.hamdocker.ir
+ARG NODE_IMAGE=${BASE_REGISTRY}/library/node:20-alpine
 FROM ${NODE_IMAGE} AS frontend-builder
 WORKDIR /app/frontend
 
@@ -9,12 +10,22 @@ ENV NPM_CONFIG_REPLACE_REGISTRY_HOST=always
 ENV npm_config_audit=false
 ENV npm_config_fund=false
 ENV npm_config_update_notifier=false
+ENV npm_config_fetch_retries=5
+ENV npm_config_fetch_retry_mintimeout=20000
+ENV npm_config_fetch_retry_maxtimeout=120000
 
-RUN sed -i "s|dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
+RUN set -eux; \
+  ALPINE_VERSION="$(cut -d. -f1,2 /etc/alpine-release)"; \
+  printf '%s\n%s\n' \
+    "${APK_MIRROR}v${ALPINE_VERSION}/main" \
+    "${APK_MIRROR}v${ALPINE_VERSION}/community" > /etc/apk/repositories
 RUN npm config set registry ${NPM_REGISTRY} \
   && npm config set replace-registry-host always \
   && npm config set fund false \
-  && npm config set audit false
+  && npm config set audit false \
+  && npm config set fetch-retries 5 \
+  && npm config set fetch-retry-mintimeout 20000 \
+  && npm config set fetch-retry-maxtimeout 120000
 
 COPY frontend/package*.json ./
 RUN npm ci --no-audit --no-fund --registry=${NPM_REGISTRY}
@@ -33,12 +44,22 @@ ENV NPM_CONFIG_REPLACE_REGISTRY_HOST=always
 ENV npm_config_audit=false
 ENV npm_config_fund=false
 ENV npm_config_update_notifier=false
+ENV npm_config_fetch_retries=5
+ENV npm_config_fetch_retry_mintimeout=20000
+ENV npm_config_fetch_retry_maxtimeout=120000
 
-RUN sed -i "s|dl-cdn.alpinelinux.org/alpine|${APK_MIRROR}|g" /etc/apk/repositories
+RUN set -eux; \
+  ALPINE_VERSION="$(cut -d. -f1,2 /etc/alpine-release)"; \
+  printf '%s\n%s\n' \
+    "${APK_MIRROR}v${ALPINE_VERSION}/main" \
+    "${APK_MIRROR}v${ALPINE_VERSION}/community" > /etc/apk/repositories
 RUN npm config set registry ${NPM_REGISTRY} \
   && npm config set replace-registry-host always \
   && npm config set fund false \
-  && npm config set audit false
+  && npm config set audit false \
+  && npm config set fetch-retries 5 \
+  && npm config set fetch-retry-mintimeout 20000 \
+  && npm config set fetch-retry-maxtimeout 120000
 
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --omit=dev --no-audit --no-fund --registry=${NPM_REGISTRY}
