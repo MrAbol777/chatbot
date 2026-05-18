@@ -1,8 +1,9 @@
-FROM hub.hamdocker.ir/library/node:20-alpine AS frontend-builder
+ARG NODE_IMAGE=registry.hamdocker.ir/library/node:20-alpine
+FROM ${NODE_IMAGE} AS frontend-builder
 WORKDIR /app/frontend
 
 ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
-ARG APK_MIRROR=https://repo.hmirror.ir/apk
+ARG APK_MIRROR=https://repo.hmirror.ir/apk/
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 ENV NPM_CONFIG_REPLACE_REGISTRY_HOST=always
 ENV npm_config_audit=false
@@ -21,11 +22,11 @@ RUN npm ci --no-audit --no-fund --registry=${NPM_REGISTRY}
 COPY frontend/ ./
 RUN npm run build
 
-FROM hub.hamdocker.ir/library/node:20-alpine AS backend-runtime
+FROM ${NODE_IMAGE} AS backend-runtime
 WORKDIR /app
 
 ARG NPM_REGISTRY=https://repo.hmirror.ir/npm/
-ARG APK_MIRROR=https://repo.hmirror.ir/apk
+ARG APK_MIRROR=https://repo.hmirror.ir/apk/
 ARG ENABLE_SYSTEM_PROMPT_EDIT=true
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 ENV NPM_CONFIG_REPLACE_REGISTRY_HOST=always
