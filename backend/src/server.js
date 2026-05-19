@@ -96,11 +96,7 @@ process.on('unhandledRejection', (reason) => {
 if (typeof db.ensureDBFile === 'function') {
   try {
     db.ensureDBFile();
-    if (db.dbInfo?.mode === 'file') {
-      console.log(`[BOOT] DB mode=file path=${db.dbInfo.filePath}`);
-    } else {
-      console.warn('[BOOT] DB mode=memory (no writable file path found)');
-    }
+    console.log(`[BOOT] DB mode=${db.dbInfo?.mode || 'unknown'}`);
   } catch (error) {
     console.error('[BOOT] ensureDBFile failed', error);
   }
@@ -395,7 +391,7 @@ app.post('/api/send-verification-code', async (req, res) => {
       return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
     }
 
-    const phoneExists = Boolean(findUserByPhone(phone));
+    const phoneExists = Boolean(await findUserByPhone(phone));
 
     if (mode === 'signup' && phoneExists) {
       return res.status(409).json({ error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login', phoneExists });
@@ -442,12 +438,12 @@ app.post('/api/send-verification-code', async (req, res) => {
       status: error?.response?.status || null,
       responseBody: error?.response?.data || null
     });
-    logError('verification_code_failed', '/api/send-verification-code', 500, error instanceof Error ? error.message : 'unknown');
+    await logError('verification_code_failed', '/api/send-verification-code', 500, error instanceof Error ? error.message : 'unknown');
     return res.status(500).json({ error: 'ارسال کد با خطا مواجه شد.' });
   }
 });
 
-app.post('/api/auth/phone-status', (req, res) => {
+app.post('/api/auth/phone-status', async (req, res) => {
   try {
     const phone = normalizePhone(req.body?.phone);
     const mode = typeof req.body?.mode === 'string' ? req.body.mode.trim() : '';
@@ -456,7 +452,7 @@ app.post('/api/auth/phone-status', (req, res) => {
       return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
     }
 
-    const user = findUserByPhone(phone);
+    const user = await findUserByPhone(phone);
     if (user?.isBanned) {
       return res.status(403).json({ error: 'حساب شما مسدود شده است' });
     }
@@ -471,12 +467,12 @@ app.post('/api/auth/phone-status', (req, res) => {
       redirectTo: shouldRedirect ? recommendedMode : null
     });
   } catch (error) {
-    logError('phone_status_failed', '/api/auth/phone-status', 500, error instanceof Error ? error.message : 'unknown');
+    await logError('phone_status_failed', '/api/auth/phone-status', 500, error instanceof Error ? error.message : 'unknown');
     return res.status(500).json({ error: 'بررسی شماره موبایل با خطا مواجه شد.' });
   }
 });
 
-app.post('/api/verify-code', (req, res) => {
+app.post('/api/verify-code', async (req, res) => {
   try {
     const phone = normalizePhone(req.body?.phone);
     const rawCode = typeof req.body?.code === 'string' || typeof req.body?.code === 'number'
@@ -535,7 +531,7 @@ app.post('/api/verify-code', (req, res) => {
       return res.status(400).json({ success: false, error: 'کد منقضی شده یا نامعتبر است' });
     }
 
-    const phoneExists = Boolean(findUserByPhone(phone));
+    const phoneExists = Boolean(await findUserByPhone(phone));
     if (mode === 'signup' && phoneExists) {
       return res.status(409).json({ success: false, error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login' });
     }
@@ -550,12 +546,12 @@ app.post('/api/verify-code', (req, res) => {
     });
     return res.json({ success: true });
   } catch (error) {
-    logError('verify_code_failed', '/api/verify-code', 500, error instanceof Error ? error.message : 'unknown');
+    await logError('verify_code_failed', '/api/verify-code', 500, error instanceof Error ? error.message : 'unknown');
     return res.status(500).json({ success: false, error: 'تأیید کد با خطا مواجه شد.' });
   }
 });
 
-app.post('/api/register-profile', (req, res) => {
+app.post('/api/register-profile', async (req, res) => {
   try {
     const inputName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
     const rawName = inputName || 'کاربر';
@@ -568,7 +564,7 @@ app.post('/api/register-profile', (req, res) => {
       return res.status(400).json({ error: 'شماره موبایل معتبر نیست.' });
     }
 
-    const existingUser = findUserByPhone(rawPhone);
+    const existingUser = await findUserByPhone(rawPhone);
 
     console.log('[AUTH] register-profile request', {
       phone: rawPhone,
@@ -576,7 +572,7 @@ app.post('/api/register-profile', (req, res) => {
       hasInputName: Boolean(inputName),
       resolvedName: rawName
     });
-    if (isUserBannedByPhone(rawPhone)) {
+    if (await isUserBannedByPhone(rawPhone)) {
       return res.status(403).json({ error: 'حساب شما مسدود شده است' });
     }
     if (mode === 'signup' && existingUser && String(existingUser.user_id) !== String(rawId)) {
@@ -610,7 +606,7 @@ app.post('/api/register-profile', (req, res) => {
             phone: rawPhone
           };
 
-    const userId = ensureUserExists(payloadProfile);
+    const userId = await ensureUserExists(payloadProfile);
 
     return res.json({
       success: true,
@@ -626,7 +622,7 @@ app.post('/api/register-profile', (req, res) => {
     if (error && typeof error === 'object' && error.code === 'PHONE_ALREADY_IN_USE') {
       return res.status(409).json({ error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login' });
     }
-    logError('register_profile_failed', '/api/register-profile', 500, details);
+    await logError('register_profile_failed', '/api/register-profile', 500, details);
     log('REGISTER_PROFILE', 'failed', { details });
     return res.status(500).json({ error: 'ثبت پروفایل با خطا مواجه شد.' });
   }
@@ -646,7 +642,7 @@ app.post('/api/chat', async (req, res) => {
     });
 
     if (!metisApiKey) {
-      logError('api_key_missing', '/api/chat', 500, 'METIS_API_KEY is missing');
+      await logError('api_key_missing', '/api/chat', 500, 'METIS_API_KEY is missing');
       return res.status(500).json({ error: 'کلید API تنظیم نشده است.' });
     }
 
@@ -654,7 +650,7 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'پیام معتبر ارسال نشده است.' });
     }
 
-    const userId = ensureUserExists(profile || {});
+    const userId = await ensureUserExists(profile || {});
     const category = detectCategory(trimmedMessage);
     const memoryKey =
       typeof conversationId === 'string' && conversationId.trim().length > 0
@@ -663,14 +659,14 @@ app.post('/api/chat', async (req, res) => {
     const normalizedConversationId =
       typeof conversationId === 'string' && conversationId.trim().length > 0 ? conversationId.trim() : 'default';
 
-    logEvent(userId, 'message_sent', category, {
+    await logEvent(userId, 'message_sent', category, {
       messageLength: trimmedMessage.length,
       requestId
     });
 
     const normalizedHistory = normalizeHistory(history, trimmedMessage);
     const storedHistory = conversationMemory.get(memoryKey);
-    const dbHistory = getConversationMessages(userId, normalizedConversationId);
+    const dbHistory = await getConversationMessages(userId, normalizedConversationId);
     let effectiveHistory =
       Array.isArray(storedHistory) && storedHistory.length > normalizedHistory.length ? [...storedHistory] : normalizedHistory;
     if (dbHistory.length > effectiveHistory.length) {
@@ -702,9 +698,9 @@ app.post('/api/chat', async (req, res) => {
     const reply = removeExtraGreeting(rawReply, isFirstMessage);
     const nextConversationMessages = [...effectiveHistory, { role: 'assistant', content: reply }];
     conversationMemory.set(memoryKey, nextConversationMessages);
-    saveConversationMessages(userId, normalizedConversationId, nextConversationMessages);
+    await saveConversationMessages(userId, normalizedConversationId, nextConversationMessages);
 
-    logEvent(userId, 'message_received', category, {
+    await logEvent(userId, 'message_received', category, {
       responseLength: reply.length,
       requestId
     });
@@ -712,12 +708,12 @@ app.post('/api/chat', async (req, res) => {
     return res.json({ reply });
   } catch (error) {
     if (error && typeof error === 'object' && error.code === 'UPSTREAM_TIMEOUT') {
-      logError('openai_timeout', '/api/chat', 504, 'Upstream timeout reached');
+      await logError('openai_timeout', '/api/chat', 504, 'Upstream timeout reached');
       return res.status(504).json({ error: 'زمان پاسخ مدل طولانی شد. لطفاً دوباره تلاش کن.' });
     }
 
     if (error && typeof error === 'object' && error.code === 'UPSTREAM_FETCH_FAILED') {
-      logError('openai_fetch_failed', '/api/chat', 502, JSON.stringify(error.details || {}));
+      await logError('openai_fetch_failed', '/api/chat', 502, JSON.stringify(error.details || {}));
       return res.status(502).json({
         error: 'ارتباط با سرویس مدل برقرار نشد.',
         details: 'اتصال شبکه، DNS یا METIS_OPENAI_BASE_URL را بررسی کنید.'
@@ -727,7 +723,7 @@ app.post('/api/chat', async (req, res) => {
     if (error && typeof error === 'object' && error.code === 'UPSTREAM_REQUEST_FAILED') {
       const status = Number(error?.details?.status);
       const safeStatus = Number.isInteger(status) && status >= 400 ? status : 502;
-      logError('openai_upstream_error', '/api/chat', safeStatus, JSON.stringify(error.details || {}));
+      await logError('openai_upstream_error', '/api/chat', safeStatus, JSON.stringify(error.details || {}));
       return res.status(safeStatus).json({
         error: 'خطا از سرویس مدل دریافت شد.',
         details: error?.details?.details || 'unknown_upstream_error'
@@ -735,11 +731,11 @@ app.post('/api/chat', async (req, res) => {
     }
 
     if (error && typeof error === 'object' && error.code === 'EMPTY_UPSTREAM_REPLY') {
-      logError('invalid_upstream_response', '/api/chat', 502, JSON.stringify(error.details || {}));
+      await logError('invalid_upstream_response', '/api/chat', 502, JSON.stringify(error.details || {}));
       return res.status(502).json({ error: 'پاسخ نامعتبر از مدل دریافت شد.' });
     }
 
-    logError('unknown', '/api/chat', null, error instanceof Error ? error.stack || error.message : 'unknown_error');
+    await logError('unknown', '/api/chat', null, error instanceof Error ? error.stack || error.message : 'unknown_error');
 
     return res.status(500).json({
       error: 'مشکلی در سرور پیش آمد.',
@@ -748,11 +744,11 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-app.post('/api/conversations/load', (req, res) => {
+app.post('/api/conversations/load', async (req, res) => {
   try {
     const profile = req.body?.profile || {};
-    const userId = ensureUserExists(profile);
-    const items = getUserConversations(userId);
+    const userId = await ensureUserExists(profile);
+    const items = await getUserConversations(userId);
 
     return res.json({
       success: true,
@@ -760,16 +756,16 @@ app.post('/api/conversations/load', (req, res) => {
       items
     });
   } catch (error) {
-    logError('load_conversations_failed', '/api/conversations/load', 500, error instanceof Error ? error.message : 'unknown');
+    await logError('load_conversations_failed', '/api/conversations/load', 500, error instanceof Error ? error.message : 'unknown');
     return res.status(500).json({ error: 'بارگذاری گفتگوها با خطا مواجه شد.' });
   }
 });
 
-app.post('/api/conversations/sync', (req, res) => {
+app.post('/api/conversations/sync', async (req, res) => {
   try {
     const profile = req.body?.profile || {};
     const rawItems = Array.isArray(req.body?.items) ? req.body.items : [];
-    const userId = ensureUserExists(profile);
+    const userId = await ensureUserExists(profile);
 
     const normalizedItems = rawItems.map((item) => ({
       conversation_id: typeof item?.id === 'string' ? item.id : String(item?.id || 'default'),
@@ -786,10 +782,10 @@ app.post('/api/conversations/sync', (req, res) => {
         : []
     }));
 
-    const savedCount = replaceUserConversations(userId, normalizedItems);
+    const savedCount = await replaceUserConversations(userId, normalizedItems);
     return res.json({ success: true, savedCount });
   } catch (error) {
-    logError('sync_conversations_failed', '/api/conversations/sync', 500, error instanceof Error ? error.message : 'unknown');
+    await logError('sync_conversations_failed', '/api/conversations/sync', 500, error instanceof Error ? error.message : 'unknown');
     return res.status(500).json({ error: 'ذخیره گفتگوها با خطا مواجه شد.' });
   }
 });
@@ -798,7 +794,7 @@ app.post('/api/conversations/sync', (req, res) => {
 app.use('/api/sms', smsRoutes);
 console.log('[SMS] routes mounted');
 
-app.get('/api/admin/stats', (req, res) => {
+app.get('/api/admin/stats', async (req, res) => {
   if (!adminApiKey) {
     return res.status(404).json({ error: 'Not found' });
   }
@@ -808,7 +804,7 @@ app.get('/api/admin/stats', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  return res.json(getStats());
+  return res.json(await getStats());
 });
 
 const { router: adminRouter } = createAdminRouter({

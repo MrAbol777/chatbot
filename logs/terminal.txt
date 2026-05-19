@@ -1,34 +1,23 @@
-(node:12272) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:5784) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[22:08:31] FRONTEND 
-[22:08:31] FRONTEND > hemraz-frontend@1.0.0 dev
-[22:08:31] FRONTEND > vite
-[22:08:31] FRONTEND 
-[22:08:31] BACKEND 
-[22:08:31] BACKEND > hemraz-backend@1.0.0 dev
-[22:08:31] BACKEND > nodemon --config nodemon.json src/server.js
-[22:08:31] BACKEND 
-[22:08:31] BACKEND [33m[nodemon] 3.1.14[39m
-[22:08:31] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[22:08:31] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[22:08:31] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[22:08:31] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[22:08:31] FRONTEND 
-[22:08:31] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m301[22m[2m[0m ms[22m
-[22:08:31] FRONTEND 
-[22:08:31] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[22:08:31] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.72.173.176:[1m5173[22m/[39m
-[22:08:31] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[22:08:32] BACKEND [BOOT] DB mode=file path=D:\PROGEs\chatBot\backend\dev.db
-[22:08:32] BACKEND [SMS] routes mounted
-[22:08:32] BACKEND [2026-05-17T18:38:32.069Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gpt-4o-mini","baseUrl":"https://api.metisai.ir/openai/v1","timeoutMs":30000}
-[22:08:34] BACKEND [2026-05-17T18:38:34.156Z] [HTTP] request_started {"requestId":"mpa4c4a4-6xssoa","method":"POST","path":"/api/conversations/load"}
-[22:08:34] BACKEND [2026-05-17T18:38:34.168Z] [HTTP] request_finished {"requestId":"mpa4c4a4-6xssoa","method":"POST","path":"/api/conversations/load","status":200,"durationMs":12}
-[22:08:34] BACKEND [2026-05-17T18:38:34.687Z] [HTTP] request_started {"requestId":"mpa4c4ov-65klv2","method":"POST","path":"/api/conversations/load"}
-[22:08:34] BACKEND [2026-05-17T18:38:34.714Z] [HTTP] request_finished {"requestId":"mpa4c4ov-65klv2","method":"POST","path":"/api/conversations/load","status":200,"durationMs":27}
-[22:08:35] BACKEND [2026-05-17T18:38:35.084Z] [HTTP] request_started {"requestId":"mpa4c4zw-p7ioh8","method":"POST","path":"/api/conversations/load"}
-[22:08:35] BACKEND [2026-05-17T18:38:35.102Z] [HTTP] request_finished {"requestId":"mpa4c4zw-p7ioh8","method":"POST","path":"/api/conversations/load","status":200,"durationMs":18}
-[22:08:35] BACKEND [2026-05-17T18:38:35.281Z] [HTTP] request_started {"requestId":"mpa4c55d-6b9ljj","method":"POST","path":"/api/conversations/sync"}
-[22:08:35] BACKEND [2026-05-17T18:38:35.294Z] [HTTP] request_finished {"requestId":"mpa4c55d-6b9ljj","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":13}
-[22:08:35] BACKEND [2026-05-17T18:38:35.662Z] [HTTP] request_started {"requestId":"mpa4c5fy-sneqb0","method":"POST","path":"/api/conversations/sync"}
-[22:08:35] BACKEND [2026-05-17T18:38:35.676Z] [HTTP] request_finished {"requestId":"mpa4c5fy-sneqb0","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":14}
+[13:10:38] FRONTEND 
+[13:10:38] FRONTEND > hemraz-frontend@1.0.0 dev
+[13:10:38] FRONTEND > vite
+[13:10:38] FRONTEND 
+[13:10:38] BACKEND 
+[13:10:38] BACKEND > hemraz-backend@1.0.0 dev
+[13:10:38] BACKEND > nodemon --config nodemon.json src/server.js
+[13:10:38] BACKEND 
+[13:10:39] BACKEND [33m[nodemon] 3.1.14[39m
+[13:10:39] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[13:10:39] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[13:10:39] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[13:10:39] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[13:10:39] BACKEND [BOOT] DB mode=mysql
+[13:10:39] BACKEND [SMS] routes mounted
+[13:10:39] BACKEND [2026-05-19T09:40:39.706Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gpt-4o-mini","baseUrl":"https://api.metisai.ir/openai/v1","timeoutMs":30000}
+[13:10:39] FRONTEND 
+[13:10:39] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m865[22m[2m[0m ms[22m
+[13:10:39] FRONTEND 
+[13:10:39] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[13:10:39] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.38:[1m5173[22m/[39m

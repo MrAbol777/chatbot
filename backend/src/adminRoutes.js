@@ -232,44 +232,56 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
     return res.json({ admin: req.admin });
   });
 
-  router.get('/users', requireAdminAuth, (req, res) => {
-    const { q = '', phone = '', isBanned, page = '1', pageSize = '20' } = req.query;
-    const result = listUsersWithConversationStats({
-      search: q,
-      phone,
-      isBanned: parseBannedFilter(isBanned),
-      page,
-      pageSize
-    });
-    return res.json(result);
-  });
-
-  router.get('/dashboard/stats', requireAdminAuth, (_req, res) => {
-    return res.json({
-      kpis: {
-        totalUsers: getTotalUsers(),
-        activeUsersToday: getActiveUsersToday(),
-        apiCallsToday: getApiCallsToday(),
-        errorCountToday: getErrorCountToday()
-      },
-      userGrowth: getUserGrowth(7),
-      apiUsage: getApiUsage(7),
-      errorDistribution: getErrorDistribution(),
-      recentActivities: getRecentAuditLogs(10)
-    });
-  });
-
-  router.get('/users/:id', requireAdminAuth, (req, res) => {
-    const profile = getUserFullProfile(req.params.id);
-    if (!profile) {
-      return res.status(404).json({ error: 'کاربر پیدا نشد.' });
+  router.get('/users', requireAdminAuth, async (req, res) => {
+    try {
+      const { q = '', phone = '', isBanned, page = '1', pageSize = '20' } = req.query;
+      const result = await listUsersWithConversationStats({
+        search: q,
+        phone,
+        isBanned: parseBannedFilter(isBanned),
+        page,
+        pageSize
+      });
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت کاربران' });
     }
-    return res.json(profile);
+  });
+
+  router.get('/dashboard/stats', requireAdminAuth, async (_req, res) => {
+    try {
+      return res.json({
+        kpis: {
+          totalUsers: await getTotalUsers(),
+          activeUsersToday: await getActiveUsersToday(),
+          apiCallsToday: await getApiCallsToday(),
+          errorCountToday: await getErrorCountToday()
+        },
+        userGrowth: await getUserGrowth(7),
+        apiUsage: await getApiUsage(7),
+        errorDistribution: await getErrorDistribution(),
+        recentActivities: getRecentAuditLogs(10)
+      });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت آمار' });
+    }
+  });
+
+  router.get('/users/:id', requireAdminAuth, async (req, res) => {
+    try {
+      const profile = await getUserFullProfile(req.params.id);
+      if (!profile) {
+        return res.status(404).json({ error: 'کاربر پیدا نشد.' });
+      }
+      return res.json(profile);
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت کاربر' });
+    }
   });
 
   router.patch('/users/:id/ban', requireAdminAuth, async (req, res) => {
     const isBanned = Boolean(req.body?.isBanned);
-    const user = setUserBanStatus(req.params.id, isBanned);
+    const user = await setUserBanStatus(req.params.id, isBanned);
     if (!user) {
       return res.status(404).json({ error: 'کاربر پیدا نشد.' });
     }
@@ -285,7 +297,7 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
   });
 
   router.delete('/users/:id', requireAdminAuth, async (req, res) => {
-    const result = deleteUserAndConversations(req.params.id);
+    const result = await deleteUserAndConversations(req.params.id);
     if (!result.deleted) {
       return res.status(404).json({ error: 'کاربر پیدا نشد.' });
     }
@@ -300,31 +312,35 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
     return res.json({ success: true, ...result });
   });
 
-  router.get('/errors', requireAdminAuth, (req, res) => {
-    const { errorType = '', from = '', to = '' } = req.query;
-    const data = readDB();
-    let errors = Array.isArray(data.errors) ? data.errors : [];
+  router.get('/errors', requireAdminAuth, async (req, res) => {
+    try {
+      const { errorType = '', from = '', to = '' } = req.query;
+      const data = await readDB();
+      let errors = Array.isArray(data.errors) ? data.errors : [];
 
-    if (typeof errorType === 'string' && errorType.trim()) {
-      errors = errors.filter((item) => String(item.error_type || '') === errorType.trim());
-    }
-
-    if (typeof from === 'string' && from.trim()) {
-      const fromDate = new Date(from).getTime();
-      if (!Number.isNaN(fromDate)) {
-        errors = errors.filter((item) => new Date(item.created_at || 0).getTime() >= fromDate);
+      if (typeof errorType === 'string' && errorType.trim()) {
+        errors = errors.filter((item) => String(item.error_type || '') === errorType.trim());
       }
-    }
 
-    if (typeof to === 'string' && to.trim()) {
-      const toDate = new Date(to).getTime();
-      if (!Number.isNaN(toDate)) {
-        errors = errors.filter((item) => new Date(item.created_at || 0).getTime() <= toDate);
+      if (typeof from === 'string' && from.trim()) {
+        const fromDate = new Date(from).getTime();
+        if (!Number.isNaN(fromDate)) {
+          errors = errors.filter((item) => new Date(item.created_at || 0).getTime() >= fromDate);
+        }
       }
-    }
 
-    errors.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-    return res.json({ items: errors });
+      if (typeof to === 'string' && to.trim()) {
+        const toDate = new Date(to).getTime();
+        if (!Number.isNaN(toDate)) {
+          errors = errors.filter((item) => new Date(item.created_at || 0).getTime() <= toDate);
+        }
+      }
+
+      errors.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      return res.json({ items: errors });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت خطاها' });
+    }
   });
 
   router.get('/config', requireAdminAuth, async (_req, res) => {
@@ -412,12 +428,13 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
     return res.json({ success: true, message: 'پرامپت با موفقیت به‌روزرسانی شد' });
   });
 
-  router.get('/reports/csv', requireAdminAuth, (req, res) => {
-    const includeUsers = req.query.users === '1';
-    const includeErrors = req.query.errors === '1';
-    const includeConversationSummary = req.query.conversations === '1';
-    const data = readDB();
-    const lines = [];
+  router.get('/reports/csv', requireAdminAuth, async (req, res) => {
+    try {
+      const includeUsers = req.query.users === '1';
+      const includeErrors = req.query.errors === '1';
+      const includeConversationSummary = req.query.conversations === '1';
+      const data = await readDB();
+      const lines = [];
 
     if (includeUsers) {
       lines.push('USERS');
@@ -470,11 +487,14 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
       lines.push('');
     }
 
-    const csv = lines.join('\n');
-    const fileName = `admin-report-${new Date().toISOString().slice(0, 10)}.csv`;
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    return res.send(`\uFEFF${csv}`);
+      const csv = lines.join('\n');
+      const fileName = `admin-report-${new Date().toISOString().slice(0, 10)}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      return res.send(`\uFEFF${csv}`);
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در تولید گزارش' });
+    }
   });
 
   router.get('/audit-logs', requireAdminAuth, async (req, res) => {
