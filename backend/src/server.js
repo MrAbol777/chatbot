@@ -3,12 +3,14 @@ const cors = require('cors');
 const compression = require('compression');
 const axios = require('axios');
 const dotenv = require('dotenv');
-dotenv.config();
 const OpenAI = require('openai');
 const path = require('path');
 const fs = require('fs-extra');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+dotenv.config({
+  path: path.join(__dirname, '../.env')
+});
 const db = require('../db');
 const { createAdminRouter } = require('./adminRoutes');
 const smsRoutes = require('./routes/smsRoutes');
