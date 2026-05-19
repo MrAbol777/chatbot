@@ -254,7 +254,7 @@ const postOpenAIChatCompletion = async (payload, timeoutMs) => {
   return response.data;
 };
 
-const callOpenAI = async (messages) => {
+const callOpenAI = async (messages, context = {}) => {
   if (!metisApiKey) {
     const error = new Error('METIS_API_KEY is missing');
     error.code = 'API_KEY_MISSING';
@@ -270,11 +270,17 @@ const callOpenAI = async (messages) => {
   const totalTimeoutMs = Math.max(5000, runtimeConfig.timeoutMs);
   const sdkTimeoutMs = Math.min(8000, totalTimeoutMs);
   const fallbackTimeoutMs = Math.max(5000, totalTimeoutMs - sdkTimeoutMs);
+  const requestId = context.requestId || 'unknown';
 
   try {
     let response = null;
 
     try {
+      log('OPENAI', 'sdk_attempt_started', {
+        requestId,
+        model: runtimeConfig.model,
+        sdkTimeoutMs
+      });
       response = await withTimeout(
         openaiClient.chat.completions.create(payload, {
           timeout: sdkTimeoutMs,
@@ -282,7 +288,14 @@ const callOpenAI = async (messages) => {
         }),
         sdkTimeoutMs
       );
+      log('OPENAI', 'sdk_attempt_succeeded', { requestId });
     } catch (sdkError) {
+      log('OPENAI', 'sdk_attempt_failed', {
+        requestId,
+        code: sdkError?.code || null,
+        name: sdkError?.name || null,
+        message: sdkError instanceof Error ? sdkError.message : String(sdkError || '')
+      });
       const shouldFallback =
         sdkError &&
         typeof sdkError === 'object' &&
@@ -295,7 +308,12 @@ const callOpenAI = async (messages) => {
         throw sdkError;
       }
 
+      log('OPENAI', 'fallback_http_started', {
+        requestId,
+        fallbackTimeoutMs
+      });
       response = await postOpenAIChatCompletion(payload, fallbackTimeoutMs);
+      log('OPENAI', 'fallback_http_succeeded', { requestId });
     }
 
     const reply = extractReply(response);
@@ -309,6 +327,14 @@ const callOpenAI = async (messages) => {
 
     return reply;
   } catch (error) {
+    log('OPENAI', 'final_failure', {
+      requestId,
+      code: error?.code || null,
+      name: error?.name || null,
+      status: Number(error?.status || error?.cause?.status || error?.response?.status) || null,
+      message: error instanceof Error ? error.message : String(error || ''),
+      baseUrl: metisBaseUrl
+    });
     if (error && typeof error === 'object' && error.code === 'UPSTREAM_TIMEOUT') {
       throw error;
     }
@@ -696,7 +722,7 @@ app.post('/api/chat', async (req, res) => {
     ];
 
     const isFirstMessage = normalizedHistory.length === 1;
-    const rawReply = await callOpenAI(messages);
+    const rawReply = await callOpenAI(messages, { requestId });
     const reply = removeExtraGreeting(rawReply, isFirstMessage);
     const nextConversationMessages = [...effectiveHistory, { role: 'assistant', content: reply }];
     conversationMemory.set(memoryKey, nextConversationMessages);
@@ -823,6 +849,33 @@ app.get('/api/health', (_req, res) => {
     model: defaultModel,
     baseUrl: metisBaseUrl
   });
+});
+
+app.get('/api/health/upstream', async (_req, res) => {
+  try {
+    if (!metisApiKey) {
+      return res.status(500).json({ ok: false, error: 'METIS_API_KEY is missing' });
+    }
+
+    const startedAt = Date.now();
+    const response = await axios.get(`${metisBaseUrl}/models`, {
+      headers: { Authorization: `Bearer ${metisApiKey}` },
+      timeout: 10000
+    });
+
+    return res.json({
+      ok: true,
+      status: response.status,
+      durationMs: Date.now() - startedAt
+    });
+  } catch (error) {
+    return res.status(502).json({
+      ok: false,
+      code: error?.code || null,
+      status: error?.response?.status || null,
+      message: error instanceof Error ? error.message : 'upstream_check_failed'
+    });
+  }
 });
 
 // Compatibility health endpoints for platform probes.
