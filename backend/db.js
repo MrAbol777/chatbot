@@ -29,7 +29,7 @@ const initDb = async () => {
 
   initPromise = (async () => {
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE IF NOT EXISTS app_users (
         user_id VARCHAR(191) PRIMARY KEY,
         name VARCHAR(191) NOT NULL,
         age INT NOT NULL DEFAULT 0,
@@ -42,7 +42,7 @@ const initDb = async () => {
     `);
 
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS events (
+      CREATE TABLE IF NOT EXISTS app_events (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         user_id VARCHAR(191) NOT NULL,
         event_type VARCHAR(100) NOT NULL,
@@ -52,12 +52,12 @@ const initDb = async () => {
         INDEX idx_events_user_id (user_id),
         INDEX idx_events_type (event_type),
         INDEX idx_events_created (created_at),
-        CONSTRAINT fk_events_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        CONSTRAINT fk_events_user FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS app_errors (
+      CREATE TABLE IF NOT EXISTS app_app_errors (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         error_type VARCHAR(100) NOT NULL,
         endpoint VARCHAR(255) NULL,
@@ -70,7 +70,7 @@ const initDb = async () => {
     `);
 
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS conversations (
+      CREATE TABLE IF NOT EXISTS app_conversations (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         user_id VARCHAR(191) NOT NULL,
         conversation_id VARCHAR(191) NOT NULL,
@@ -82,7 +82,7 @@ const initDb = async () => {
         UNIQUE KEY uq_user_conversation (user_id, conversation_id),
         INDEX idx_conversations_user (user_id),
         INDEX idx_conversations_updated (updated_at),
-        CONSTRAINT fk_conversations_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        CONSTRAINT fk_conversations_user FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
   })();
@@ -110,7 +110,7 @@ const findUserByPhone = async (phone) => {
   await initDb();
   const normalizedPhone = sanitizePhone(phone);
   if (!normalizedPhone) return null;
-  const [rows] = await pool.query('SELECT * FROM users WHERE phone = ? LIMIT 1', [normalizedPhone]);
+  const [rows] = await pool.query('SELECT * FROM app_users WHERE phone = ? LIMIT 1', [normalizedPhone]);
   return rows[0] || null;
 };
 
@@ -124,9 +124,9 @@ const ensureUserExists = async (profile = {}) => {
   const nextAge = sanitizeAge(profile.age);
   const nextPhone = sanitizePhone(profile.phone);
 
-  const [byIdRows] = await pool.query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [userId]);
+  const [byIdRows] = await pool.query('SELECT * FROM app_users WHERE user_id = ? LIMIT 1', [userId]);
   const existingUserById = byIdRows[0] || null;
-  const [byPhoneRows] = nextPhone ? await pool.query('SELECT * FROM users WHERE phone = ? LIMIT 1', [nextPhone]) : [[]];
+  const [byPhoneRows] = nextPhone ? await pool.query('SELECT * FROM app_users WHERE phone = ? LIMIT 1', [nextPhone]) : [[]];
   const existingUserByPhone = byPhoneRows[0] || null;
 
   if (existingUserById && existingUserByPhone && existingUserById.user_id !== existingUserByPhone.user_id) {
@@ -140,12 +140,12 @@ const ensureUserExists = async (profile = {}) => {
   const timestamp = new Date();
 
   if (existingUser) {
-    await pool.query('UPDATE users SET name = ?, age = ?, phone = ?, last_active = ? WHERE user_id = ?', [nextName, nextAge, nextPhone, timestamp, existingUser.user_id]);
+    await pool.query('UPDATE app_users SET name = ?, age = ?, phone = ?, last_active = ? WHERE user_id = ?', [nextName, nextAge, nextPhone, timestamp, existingUser.user_id]);
     return existingUser.user_id;
   }
 
   await pool.query(
-    'INSERT INTO users (user_id, name, age, phone, is_banned, registered_at, last_active) VALUES (?, ?, ?, ?, 0, ?, ?)',
+    'INSERT INTO app_users (user_id, name, age, phone, is_banned, registered_at, last_active) VALUES (?, ?, ?, ?, 0, ?, ?)',
     [userId, nextName, nextAge, nextPhone, timestamp, timestamp]
   );
   return userId;
@@ -155,13 +155,13 @@ const logEvent = async (userId, eventType, category, metadata) => {
   await initDb();
   if (!userId || !eventType) return;
   const ts = new Date();
-  await pool.query('INSERT INTO events (user_id, event_type, category, metadata, created_at) VALUES (?, ?, ?, ?, ?)', [String(userId), String(eventType), category ? String(category) : null, JSON.stringify(metadata || {}), ts]);
-  await pool.query('UPDATE users SET last_active = ? WHERE user_id = ?', [ts, String(userId)]);
+  await pool.query('INSERT INTO app_events (user_id, event_type, category, metadata, created_at) VALUES (?, ?, ?, ?, ?)', [String(userId), String(eventType), category ? String(category) : null, JSON.stringify(metadata || {}), ts]);
+  await pool.query('UPDATE app_users SET last_active = ? WHERE user_id = ?', [ts, String(userId)]);
 };
 
 const logError = async (errorType, endpoint, statusCode, details) => {
   await initDb();
-  await pool.query('INSERT INTO app_errors (error_type, endpoint, status_code, details, created_at) VALUES (?, ?, ?, ?, ?)', [
+  await pool.query('INSERT INTO app_app_errors (error_type, endpoint, status_code, details, created_at) VALUES (?, ?, ?, ?, ?)', [
     errorType ? String(errorType) : 'unknown',
     endpoint ? String(endpoint) : null,
     Number.isInteger(statusCode) ? statusCode : null,
@@ -174,7 +174,7 @@ const getConversationMessages = async (userId, conversationId) => {
   await initDb();
   const normalizedUserId = typeof userId === 'string' || typeof userId === 'number' ? String(userId) : '';
   const normalizedConversationId = normalizeConversationId(conversationId);
-  const [rows] = await pool.query('SELECT messages FROM conversations WHERE user_id = ? AND conversation_id = ? LIMIT 1', [normalizedUserId, normalizedConversationId]);
+  const [rows] = await pool.query('SELECT messages FROM app_conversations WHERE user_id = ? AND conversation_id = ? LIMIT 1', [normalizedUserId, normalizedConversationId]);
   const raw = rows[0]?.messages;
   const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
   return safeJsonArray(parsed)
@@ -193,7 +193,7 @@ const saveConversationMessages = async (userId, conversationId, messages) => {
   const ts = new Date();
 
   await pool.query(
-    `INSERT INTO conversations (user_id, conversation_id, title, pinned, messages, created_at, updated_at)
+    `INSERT INTO app_conversations (user_id, conversation_id, title, pinned, messages, created_at, updated_at)
      VALUES (?, ?, '', 0, ?, ?, ?)
      ON DUPLICATE KEY UPDATE messages = VALUES(messages), updated_at = VALUES(updated_at)`,
     [normalizedUserId, normalizedConversationId, JSON.stringify(safeMessages), ts, ts]
@@ -203,10 +203,10 @@ const saveConversationMessages = async (userId, conversationId, messages) => {
 const readDB = async () => {
   await initDb();
   const [[users], [events], [errors], [conversations]] = await Promise.all([
-    pool.query('SELECT * FROM users'),
-    pool.query('SELECT * FROM events'),
-    pool.query('SELECT * FROM app_errors'),
-    pool.query('SELECT * FROM conversations')
+    pool.query('SELECT * FROM app_users'),
+    pool.query('SELECT * FROM app_events'),
+    pool.query('SELECT * FROM app_app_errors'),
+    pool.query('SELECT * FROM app_conversations')
   ]);
   return {
     users: users.map((u) => ({ ...u, isBanned: Boolean(u.is_banned) })),
@@ -249,13 +249,13 @@ const buildDailySeries = (days = 7) => {
   return items;
 };
 
-const getTotalUsers = async () => (await pool.query('SELECT COUNT(*) AS c FROM users'))[0][0].c;
-const getActiveUsersToday = async () => (await pool.query("SELECT COUNT(DISTINCT user_id) AS c FROM events WHERE event_type='message_sent' AND created_at >= ?", [new Date(Date.now() - DAY_MS)]))[0][0].c;
-const getApiCallsToday = async () => (await pool.query("SELECT COUNT(*) AS c FROM events WHERE event_type='message_sent' AND created_at >= ?", [new Date(getStartOfToday())]))[0][0].c;
-const getErrorCountToday = async () => (await pool.query('SELECT COUNT(*) AS c FROM app_errors WHERE created_at >= ?', [new Date(getStartOfToday())]))[0][0].c;
+const getTotalUsers = async () => (await pool.query('SELECT COUNT(*) AS c FROM app_users'))[0][0].c;
+const getActiveUsersToday = async () => (await pool.query("SELECT COUNT(DISTINCT user_id) AS c FROM app_events WHERE event_type='message_sent' AND created_at >= ?", [new Date(Date.now() - DAY_MS)]))[0][0].c;
+const getApiCallsToday = async () => (await pool.query("SELECT COUNT(*) AS c FROM app_events WHERE event_type='message_sent' AND created_at >= ?", [new Date(getStartOfToday())]))[0][0].c;
+const getErrorCountToday = async () => (await pool.query('SELECT COUNT(*) AS c FROM app_app_errors WHERE created_at >= ?', [new Date(getStartOfToday())]))[0][0].c;
 
 const getUserGrowth = async (days = 7) => {
-  const [rows] = await pool.query('SELECT registered_at FROM users');
+  const [rows] = await pool.query('SELECT registered_at FROM app_users');
   const series = buildDailySeries(days);
   for (const row of rows) {
     const ts = new Date(row.registered_at || 0).getTime();
@@ -265,7 +265,7 @@ const getUserGrowth = async (days = 7) => {
   return series.map(({ date, count }) => ({ date, users: count }));
 };
 const getApiUsage = async (days = 7) => {
-  const [rows] = await pool.query("SELECT created_at FROM events WHERE event_type='message_sent'");
+  const [rows] = await pool.query("SELECT created_at FROM app_events WHERE event_type='message_sent'");
   const series = buildDailySeries(days);
   for (const row of rows) {
     const ts = new Date(row.created_at || 0).getTime();
@@ -275,7 +275,7 @@ const getApiUsage = async (days = 7) => {
   return series.map(({ date, count }) => ({ date, calls: count }));
 };
 const getErrorDistribution = async () => {
-  const [rows] = await pool.query('SELECT error_type, COUNT(*) AS count FROM app_errors GROUP BY error_type');
+  const [rows] = await pool.query('SELECT error_type, COUNT(*) AS count FROM app_app_errors GROUP BY error_type');
   return rows;
 };
 
@@ -325,26 +325,26 @@ const listUsersWithConversationStats = async ({ search = '', phone = '', isBanne
 };
 
 const setUserBanStatus = async (userId, isBanned) => {
-  await pool.query('UPDATE users SET is_banned = ? WHERE user_id = ?', [Boolean(isBanned) ? 1 : 0, String(userId)]);
-  const [rows] = await pool.query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [String(userId)]);
+  await pool.query('UPDATE app_users SET is_banned = ? WHERE user_id = ?', [Boolean(isBanned) ? 1 : 0, String(userId)]);
+  const [rows] = await pool.query('SELECT * FROM app_users WHERE user_id = ? LIMIT 1', [String(userId)]);
   return rows[0] || null;
 };
 
 const deleteUserAndConversations = async (userId) => {
   const targetId = String(userId);
-  const [existingRows] = await pool.query('SELECT user_id FROM users WHERE user_id = ? LIMIT 1', [targetId]);
+  const [existingRows] = await pool.query('SELECT user_id FROM app_users WHERE user_id = ? LIMIT 1', [targetId]);
   if (!existingRows[0]) return { deleted: false, conversationCount: 0 };
-  const [convCount] = await pool.query('SELECT COUNT(*) AS c FROM conversations WHERE user_id = ?', [targetId]);
-  await pool.query('DELETE FROM users WHERE user_id = ?', [targetId]);
+  const [convCount] = await pool.query('SELECT COUNT(*) AS c FROM app_conversations WHERE user_id = ?', [targetId]);
+  await pool.query('DELETE FROM app_users WHERE user_id = ?', [targetId]);
   return { deleted: true, conversationCount: convCount[0].c };
 };
 
 const getUserFullProfile = async (userId) => {
   const targetId = String(userId);
-  const [users] = await pool.query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [targetId]);
+  const [users] = await pool.query('SELECT * FROM app_users WHERE user_id = ? LIMIT 1', [targetId]);
   const user = users[0];
   if (!user) return null;
-  const [conversationsRows] = await pool.query('SELECT * FROM conversations WHERE user_id = ? ORDER BY updated_at DESC', [targetId]);
+  const [conversationsRows] = await pool.query('SELECT * FROM app_conversations WHERE user_id = ? ORDER BY updated_at DESC', [targetId]);
   const conversations = conversationsRows.map((item) => {
     const messages = typeof item.messages === 'string' ? JSON.parse(item.messages || '[]') : item.messages;
     return { conversation_id: item.conversation_id, title: item.title || `گفتگو ${item.conversation_id}`, message_count: safeJsonArray(messages).length, last_message_at: item.updated_at || item.created_at || null, messages: safeJsonArray(messages) };
@@ -355,7 +355,7 @@ const getUserFullProfile = async (userId) => {
 const getUserConversations = async (userId) => {
   const targetId = String(userId || '').trim();
   if (!targetId) return [];
-  const [rows] = await pool.query('SELECT * FROM conversations WHERE user_id = ? ORDER BY updated_at DESC', [targetId]);
+  const [rows] = await pool.query('SELECT * FROM app_conversations WHERE user_id = ? ORDER BY updated_at DESC', [targetId]);
   return rows.map((item) => {
     const messages = typeof item.messages === 'string' ? JSON.parse(item.messages || '[]') : item.messages;
     return { conversation_id: String(item.conversation_id || 'default'), title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : null, pinned: Boolean(item.pinned), created_at: item.created_at || nowIso(), updated_at: item.updated_at || item.created_at || nowIso(), messages: safeJsonArray(messages) };
@@ -369,11 +369,11 @@ const replaceUserConversations = async (userId, conversations) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    await conn.query('DELETE FROM conversations WHERE user_id = ?', [targetId]);
+    await conn.query('DELETE FROM app_conversations WHERE user_id = ?', [targetId]);
     for (const item of safeConversations) {
       const conversationId = typeof item?.conversation_id === 'string' && item.conversation_id.trim() ? item.conversation_id.trim() : 'default';
       const safeMessages = Array.isArray(item?.messages) ? item.messages.filter((msg) => msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string' && msg.content.trim()).slice(-200).map((msg) => ({ role: msg.role, content: msg.content.trim(), timestamp: typeof msg.timestamp === 'string' ? msg.timestamp : nowIso() })) : [];
-      await conn.query('INSERT INTO conversations (user_id, conversation_id, title, pinned, messages, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [targetId, conversationId, typeof item?.title === 'string' ? item.title.trim() : '', Boolean(item?.pinned) ? 1 : 0, JSON.stringify(safeMessages), toDate(item?.created_at || nowIso()), toDate(item?.updated_at || item?.created_at || nowIso())]);
+      await conn.query('INSERT INTO app_conversations (user_id, conversation_id, title, pinned, messages, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [targetId, conversationId, typeof item?.title === 'string' ? item.title.trim() : '', Boolean(item?.pinned) ? 1 : 0, JSON.stringify(safeMessages), toDate(item?.created_at || nowIso()), toDate(item?.updated_at || item?.created_at || nowIso())]);
     }
     await conn.commit();
   } catch (error) {
@@ -412,3 +412,4 @@ module.exports = {
   getRecentAuditLogs,
   dbInfo: { mode: 'mysql', filePath: null }
 };
+

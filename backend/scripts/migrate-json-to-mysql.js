@@ -50,7 +50,7 @@ async function main() {
       const userId = String(u?.user_id || '').trim();
       if (!userId) continue;
       await conn.query(
-        `INSERT INTO users (user_id, name, age, phone, is_banned, registered_at, last_active)
+        `INSERT INTO app_users (user_id, name, age, phone, is_banned, registered_at, last_active)
          VALUES (?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE name=VALUES(name), age=VALUES(age), phone=VALUES(phone), is_banned=VALUES(is_banned), registered_at=VALUES(registered_at), last_active=VALUES(last_active)`,
         [
@@ -68,7 +68,7 @@ async function main() {
     for (const e of events) {
       const userId = String(e?.user_id || '').trim();
       if (!userId) continue;
-      const [existRows] = await conn.query('SELECT user_id FROM users WHERE user_id = ? LIMIT 1', [userId]);
+      const [existRows] = await conn.query('SELECT user_id FROM app_users WHERE user_id = ? LIMIT 1', [userId]);
       if (!existRows[0]) continue;
 
       let metadata = {};
@@ -77,14 +77,14 @@ async function main() {
       }
 
       await conn.query(
-        'INSERT INTO events (user_id, event_type, category, metadata, created_at) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO app_events (user_id, event_type, category, metadata, created_at) VALUES (?, ?, ?, ?, ?)',
         [userId, String(e?.event_type || 'unknown'), e?.category ? String(e.category) : null, JSON.stringify(metadata), toDate(e?.created_at)]
       );
     }
 
     for (const er of errors) {
       await conn.query(
-        'INSERT INTO app_errors (error_type, endpoint, status_code, details, created_at) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO app_app_errors (error_type, endpoint, status_code, details, created_at) VALUES (?, ?, ?, ?, ?)',
         [
           String(er?.error_type || 'unknown'),
           er?.endpoint ? String(er.endpoint) : null,
@@ -98,14 +98,14 @@ async function main() {
     for (const c of conversations) {
       const userId = String(c?.user_id || '').trim();
       if (!userId) continue;
-      const [existRows] = await conn.query('SELECT user_id FROM users WHERE user_id = ? LIMIT 1', [userId]);
+      const [existRows] = await conn.query('SELECT user_id FROM app_users WHERE user_id = ? LIMIT 1', [userId]);
       if (!existRows[0]) continue;
 
       const conversationId = typeof c?.conversation_id === 'string' && c.conversation_id.trim() ? c.conversation_id.trim() : 'default';
       const messages = Array.isArray(c?.messages) ? c.messages : [];
 
       await conn.query(
-        `INSERT INTO conversations (user_id, conversation_id, title, pinned, messages, created_at, updated_at)
+        `INSERT INTO app_conversations (user_id, conversation_id, title, pinned, messages, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE title=VALUES(title), pinned=VALUES(pinned), messages=VALUES(messages), created_at=VALUES(created_at), updated_at=VALUES(updated_at)`,
         [
@@ -139,3 +139,4 @@ main()
   .finally(async () => {
     await pool.end();
   });
+
