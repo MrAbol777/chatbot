@@ -96,12 +96,12 @@ class RubikaMonitorService:
         self.rubika_client.send_message(monitor.chat_id, text)
 
     def handle_update(self, payload: dict[str, Any]) -> WebhookResult:
-        message = self._extract_new_message(payload)
-        if not message:
+        extracted = self._extract_new_message(payload)
+        if not extracted:
             return WebhookResult(ok=True, message="ignored")
 
-        chat_id = str(message.get("chat_id", "")).strip()
-        text = str(message.get("text", "")).strip()
+        chat_id = extracted.get("chat_id", "")
+        text = extracted.get("text", "")
         if not chat_id or not text:
             return WebhookResult(ok=True, message="ignored")
 
@@ -114,21 +114,31 @@ class RubikaMonitorService:
         return WebhookResult(ok=True)
 
     @staticmethod
-    def _extract_new_message(payload: dict[str, Any]) -> dict[str, Any] | None:
+    def _extract_new_message(payload: dict[str, Any]) -> dict[str, str] | None:
         if not isinstance(payload, dict):
             return None
+
+        # Most Rubika webhook payloads are nested under payload.data.update
         data = payload.get("data")
         if isinstance(data, dict):
             update = data.get("update")
             if isinstance(update, dict):
                 new_message = update.get("new_message")
-                if isinstance(new_message, dict):
-                    return new_message
+                if isinstance(new_message, dict) and isinstance(new_message.get("text"), str):
+                    return {
+                        "chat_id": str(update.get("chat_id", "")).strip(),
+                        "text": new_message.get("text", "").strip(),
+                    }
+
+        # Fallback for payloads where update is top-level
         update = payload.get("update")
         if isinstance(update, dict):
             new_message = update.get("new_message")
-            if isinstance(new_message, dict):
-                return new_message
+            if isinstance(new_message, dict) and isinstance(new_message.get("text"), str):
+                return {
+                    "chat_id": str(update.get("chat_id", "")).strip(),
+                    "text": new_message.get("text", "").strip(),
+                }
         return None
 
     def _handle_command(self, chat_id: str, name: str, args: list[str]) -> None:
