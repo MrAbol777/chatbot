@@ -8,8 +8,27 @@ class BaleClient {
   }
 
   async sendMessage(chatId, text) {
-    const url = `${this.baseUrl}/sendMessage`;
-    const payload = { chat_id: chatId, text };
+    return this._call('sendMessage', { chat_id: chatId, text });
+  }
+
+  async setWebhook(url) {
+    return this._call('setWebhook', { url });
+  }
+
+  async deleteWebhook() {
+    return this._call('deleteWebhook', {});
+  }
+
+  async getWebhookInfo() {
+    return this._call('getWebhookInfo', {});
+  }
+
+  async getUpdates(offset, timeout = 0) {
+    return this._call('getUpdates', { offset, timeout });
+  }
+
+  async _call(method, payload) {
+    const url = `${this.baseUrl}/${method}`;
 
     let lastErr;
     for (let attempt = 1; attempt <= this.retries; attempt += 1) {
