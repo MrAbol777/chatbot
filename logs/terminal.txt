@@ -1,23 +1,25 @@
-(node:5784) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:15912) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[13:10:38] FRONTEND 
-[13:10:38] FRONTEND > hemraz-frontend@1.0.0 dev
-[13:10:38] FRONTEND > vite
-[13:10:38] FRONTEND 
-[13:10:38] BACKEND 
-[13:10:38] BACKEND > hemraz-backend@1.0.0 dev
-[13:10:38] BACKEND > nodemon --config nodemon.json src/server.js
-[13:10:38] BACKEND 
-[13:10:39] BACKEND [33m[nodemon] 3.1.14[39m
-[13:10:39] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[13:10:39] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[13:10:39] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[13:10:39] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[13:10:39] BACKEND [BOOT] DB mode=mysql
-[13:10:39] BACKEND [SMS] routes mounted
-[13:10:39] BACKEND [2026-05-19T09:40:39.706Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gpt-4o-mini","baseUrl":"https://api.metisai.ir/openai/v1","timeoutMs":30000}
-[13:10:39] FRONTEND 
-[13:10:39] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m865[22m[2m[0m ms[22m
-[13:10:39] FRONTEND 
-[13:10:39] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[13:10:39] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.38:[1m5173[22m/[39m
+[14:09:39] FRONTEND 
+[14:09:39] FRONTEND > hemraz-frontend@1.0.0 dev
+[14:09:39] FRONTEND > vite
+[14:09:39] FRONTEND 
+[14:09:39] BACKEND 
+[14:09:39] BACKEND > hemraz-backend@1.0.0 dev
+[14:09:39] BACKEND > nodemon --config nodemon.json src/server.js
+[14:09:39] BACKEND 
+[14:09:40] BACKEND [33m[nodemon] 3.1.14[39m
+[14:09:40] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[14:09:40] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[14:09:40] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[14:09:40] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[14:09:40] BACKEND [BOOT] DB mode=mysql
+[14:09:40] BACKEND [SMS] routes mounted
+[14:09:40] BACKEND [BALE] webhook mounted at /bale/webhook
+[14:09:40] FRONTEND 
+[14:09:40] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m856[22m[2m[0m ms[22m
+[14:09:40] FRONTEND 
+[14:09:40] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[14:09:40] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.41:[1m5173[22m/[39m
+[14:09:40] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[14:09:40] BACKEND [2026-05-20T10:39:40.864Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gpt-4o-mini","baseUrl":"https://api.metisai.ir/openai/v1","timeoutMs":30000}

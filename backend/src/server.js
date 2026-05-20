@@ -16,6 +16,7 @@ const { createAdminRouter } = require('./adminRoutes');
 const smsRoutes = require('./routes/smsRoutes');
 const otpService = require('./services/otp.service');
 const patternSmsService = require('./services/sms.service');
+const { initBaleMonitor } = require('./modules/bale_monitor');
 const {
   ensureUserExists,
   findUserByPhone,
@@ -886,6 +887,8 @@ app.get('/health', (_req, res) => {
 app.get('/healthz', (_req, res) => {
   res.status(200).send('ok');
 });
+
+initBaleMonitor(app);
 
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
