@@ -1,1 +1,1 @@
-"""tele_monitor package"""
+"""Modules package."""
