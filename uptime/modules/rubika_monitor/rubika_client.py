@@ -30,12 +30,26 @@ class RubikaClient:
                     timeout=self._timeout_seconds,
                 )
                 response.raise_for_status()
-                return response.json()
+                body = response.json()
+                self._assert_success(method, body)
+                return body
             except Exception as exc:  # noqa: BLE001
                 last_error = exc
                 if attempt < self._retries:
                     time.sleep(self._retry_delay_seconds)
         raise RuntimeError(f"Failed Rubika API call '{method}' after retries: {last_error}")
+
+    @staticmethod
+    def _assert_success(method: str, body: Dict[str, Any]) -> None:
+        # Rubika may return HTTP 200 with non-success status in body.
+        status = str(body.get("status", "")).upper()
+        ok_flag = body.get("ok")
+        if status and status not in {"OK", "SUCCESS"}:
+            raise RuntimeError(
+                f"Rubika API '{method}' failed: status={body.get('status')} detail={body.get('status_det')}"
+            )
+        if isinstance(ok_flag, bool) and not ok_flag:
+            raise RuntimeError(f"Rubika API '{method}' failed: {body}")
 
     def get_me(self) -> Dict[str, Any]:
         return self.call_method("getMe", {})

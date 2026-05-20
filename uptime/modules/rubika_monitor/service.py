@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import json
 import time
 from typing import Any
 
@@ -96,22 +97,27 @@ class RubikaMonitorService:
         self.rubika_client.send_message(monitor.chat_id, text)
 
     def handle_update(self, payload: dict[str, Any]) -> WebhookResult:
-        extracted = self._extract_new_message(payload)
-        if not extracted:
-            return WebhookResult(ok=True, message="ignored")
+        try:
+            print("[rubika_monitor] webhook payload:", json.dumps(payload, ensure_ascii=False))
+            extracted = self._extract_new_message(payload)
+            if not extracted:
+                return WebhookResult(ok=True, message="ignored")
 
-        chat_id = extracted.get("chat_id", "")
-        text = extracted.get("text", "")
-        if not chat_id or not text:
-            return WebhookResult(ok=True, message="ignored")
+            chat_id = extracted.get("chat_id", "")
+            text = extracted.get("text", "")
+            if not chat_id or not text:
+                return WebhookResult(ok=True, message="ignored")
 
-        command = parse_command(text)
-        if not command:
-            self.rubika_client.send_message(chat_id, self._help_text())
+            command = parse_command(text)
+            if not command:
+                self.rubika_client.send_message(chat_id, self._help_text())
+                return WebhookResult(ok=True)
+
+            self._handle_command(chat_id, command.name, command.args)
             return WebhookResult(ok=True)
-
-        self._handle_command(chat_id, command.name, command.args)
-        return WebhookResult(ok=True)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[rubika_monitor] handle_update error: {exc}")
+            return WebhookResult(ok=False, message=str(exc))
 
     @staticmethod
     def _extract_new_message(payload: dict[str, Any]) -> dict[str, str] | None:
