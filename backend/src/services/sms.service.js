@@ -1,26 +1,10 @@
 const axios = require('axios');
+const { normalizeIranMobileToInternational } = require('../shared/validators/phone.validator');
 
 const IPPANEL_SEND_URL = 'https://edge.ippanel.com/v1/api/send';
 
 const now = () => new Date().toISOString();
-
-const normalizePhone = (phone) => {
-  if (typeof phone !== 'string') {
-    throw new Error('phone must be a string');
-  }
-
-  const digits = phone.replace(/\D/g, '');
-
-  if (digits.startsWith('09') && digits.length === 11) {
-    return `98${digits.slice(1)}`;
-  }
-
-  if (digits.startsWith('989') && digits.length === 12) {
-    return digits;
-  }
-
-  throw new Error('Invalid Iranian mobile number. Accepted formats: 09XXXXXXXXX, 989XXXXXXXXX, +989XXXXXXXXX');
-};
+const normalizePhone = normalizeIranMobileToInternational;
 
 const getRequiredEnv = (key) => {
   const value = process.env[key];

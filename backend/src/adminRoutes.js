@@ -5,21 +5,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 
-const {
-  readDB,
-  listUsersWithConversationStats,
-  setUserBanStatus,
-  deleteUserAndConversations,
-  getUserFullProfile,
-  getTotalUsers,
-  getActiveUsersToday,
-  getApiCallsToday,
-  getErrorCountToday,
-  getUserGrowth,
-  getApiUsage,
-  getErrorDistribution,
-  getRecentAuditLogs
-} = require('../db');
+const { createAdminAnalyticsService } = require('./modules/admin/analytics/service');
+const { createAdminAnalyticsRouter } = require('./modules/admin/analytics/routes');
+const { createAdminSystemService } = require('./modules/admin/system/service');
+const { createAdminSystemRouter } = require('./modules/admin/system/routes');
+const { createAdminLogsService } = require('./modules/admin/logs/service');
+const { createAdminLogsRouter } = require('./modules/admin/logs/routes');
 
 const ADMIN_FILE_PATH = path.join(__dirname, '../admin.json');
 const CONFIG_FILE_PATH = path.join(__dirname, '../config.json');
@@ -137,9 +128,11 @@ const parseBannedFilter = (value) => {
   return undefined;
 };
 
-const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemPromptUpdated }) => {
+function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemPromptUpdated, adminApiKey = '', repositories }) {
   const router = express.Router();
-  const isSystemPromptEditEnabled = process.env.ENABLE_SYSTEM_PROMPT_EDIT !== 'false';
+  const isSystemPromptEditEnabled = () => process.env.ENABLE_SYSTEM_PROMPT_EDIT !== 'false';
+  const usersRepository = repositories?.users;
+  const analyticsRepository = repositories?.analytics;
 
   const loginLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -235,7 +228,7 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
   router.get('/users', requireAdminAuth, async (req, res) => {
     try {
       const { q = '', phone = '', isBanned, page = '1', pageSize = '20' } = req.query;
-      const result = await listUsersWithConversationStats({
+      const result = await analyticsRepository.listUsersWithConversationStats({
         search: q,
         phone,
         isBanned: parseBannedFilter(isBanned),
@@ -248,28 +241,9 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
     }
   });
 
-  router.get('/dashboard/stats', requireAdminAuth, async (_req, res) => {
-    try {
-      return res.json({
-        kpis: {
-          totalUsers: await getTotalUsers(),
-          activeUsersToday: await getActiveUsersToday(),
-          apiCallsToday: await getApiCallsToday(),
-          errorCountToday: await getErrorCountToday()
-        },
-        userGrowth: await getUserGrowth(7),
-        apiUsage: await getApiUsage(7),
-        errorDistribution: await getErrorDistribution(),
-        recentActivities: getRecentAuditLogs(10)
-      });
-    } catch (error) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت آمار' });
-    }
-  });
-
   router.get('/users/:id', requireAdminAuth, async (req, res) => {
     try {
-      const profile = await getUserFullProfile(req.params.id);
+      const profile = await usersRepository.getUserFullProfile(req.params.id);
       if (!profile) {
         return res.status(404).json({ error: 'کاربر پیدا نشد.' });
       }
@@ -281,7 +255,7 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
 
   router.patch('/users/:id/ban', requireAdminAuth, async (req, res) => {
     const isBanned = Boolean(req.body?.isBanned);
-    const user = await setUserBanStatus(req.params.id, isBanned);
+    const user = await usersRepository.setUserBanStatus(req.params.id, isBanned);
     if (!user) {
       return res.status(404).json({ error: 'کاربر پیدا نشد.' });
     }
@@ -297,7 +271,7 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
   });
 
   router.delete('/users/:id', requireAdminAuth, async (req, res) => {
-    const result = await deleteUserAndConversations(req.params.id);
+    const result = await usersRepository.deleteUserAndConversations(req.params.id);
     if (!result.deleted) {
       return res.status(404).json({ error: 'کاربر پیدا نشد.' });
     }
@@ -312,210 +286,67 @@ const createAdminRouter = ({ jwtSecret, cookieName = 'admin_token', onSystemProm
     return res.json({ success: true, ...result });
   });
 
-  router.get('/errors', requireAdminAuth, async (req, res) => {
-    try {
-      const { errorType = '', from = '', to = '' } = req.query;
-      const data = await readDB();
-      let errors = Array.isArray(data.errors) ? data.errors : [];
-
-      if (typeof errorType === 'string' && errorType.trim()) {
-        errors = errors.filter((item) => String(item.error_type || '') === errorType.trim());
-      }
-
-      if (typeof from === 'string' && from.trim()) {
-        const fromDate = new Date(from).getTime();
-        if (!Number.isNaN(fromDate)) {
-          errors = errors.filter((item) => new Date(item.created_at || 0).getTime() >= fromDate);
-        }
-      }
-
-      if (typeof to === 'string' && to.trim()) {
-        const toDate = new Date(to).getTime();
-        if (!Number.isNaN(toDate)) {
-          errors = errors.filter((item) => new Date(item.created_at || 0).getTime() <= toDate);
-        }
-      }
-
-      errors.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-      return res.json({ items: errors });
-    } catch (error) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت خطاها' });
-    }
+  const analyticsService = createAdminAnalyticsService({
+    analyticsRepository: { readDB: (...args) => analyticsRepository.readDB(...args) },
+    getTotalUsers: (...args) => analyticsRepository.getTotalUsers(...args),
+    getActiveUsersToday: (...args) => analyticsRepository.getActiveUsersToday(...args),
+    getApiCallsToday: (...args) => analyticsRepository.getApiCallsToday(...args),
+    getErrorCountToday: (...args) => analyticsRepository.getErrorCountToday(...args),
+    getUserGrowth: (...args) => analyticsRepository.getUserGrowth(...args),
+    getApiUsage: (...args) => analyticsRepository.getApiUsage(...args),
+    getErrorDistribution: (...args) => analyticsRepository.getErrorDistribution(...args),
+    getRecentAuditLogs: (...args) => analyticsRepository.getRecentAuditLogs(...args),
+    getStats: (...args) => analyticsRepository.getStats(...args)
+  });
+  const analyticsRouter = createAdminAnalyticsRouter({
+    analyticsService,
+    adminApiKey,
+    requireAdminAuth
   });
 
-  router.get('/config', requireAdminAuth, async (_req, res) => {
-    const config = await ensureConfigData();
-    return res.json(config);
+  const systemService = createAdminSystemService({
+    ensureConfigData,
+    fileStore: fs,
+    configFilePath: CONFIG_FILE_PATH,
+    appendAudit,
+    isSystemPromptEditEnabled,
+    onSystemPromptUpdated,
+    defaultConfig: DEFAULT_CONFIG,
+    readJson: fs.readJson,
+    writeJson: fs.writeJson
+  });
+  const systemRouter = createAdminSystemRouter({
+    systemService,
+    requireAdminAuth
   });
 
-  router.put('/config', requireAdminAuth, async (req, res) => {
-    const current = await ensureConfigData();
-    const nextConfig = {
-      model: typeof req.body?.model === 'string' && req.body.model.trim() ? req.body.model.trim() : current.model,
-      timeoutMs: Number.isFinite(Number(req.body?.timeoutMs)) ? Number(req.body.timeoutMs) : current.timeoutMs,
-      features: {
-        voiceInput: Boolean(req.body?.features?.voiceInput),
-        quickChips: Boolean(req.body?.features?.quickChips),
-        practiceMode: Boolean(req.body?.features?.practiceMode)
-      },
-      systemPrompt: current.systemPrompt || DEFAULT_CONFIG.systemPrompt
-    };
-
-    await fs.writeJson(CONFIG_FILE_PATH, nextConfig, { spaces: 2 });
-    await appendAudit({
-      adminUsername: req.admin?.username,
-      action: 'update_config',
-      target: 'config',
-      details: {
-        modelBefore: current.model,
-        modelAfter: nextConfig.model,
-        timeoutMsBefore: current.timeoutMs,
-        timeoutMsAfter: nextConfig.timeoutMs
-      }
-    });
-
-    if (current.model !== nextConfig.model) {
-      await appendAudit({
-        adminUsername: req.admin?.username,
-        action: 'change_model',
-        target: 'model',
-        details: { from: current.model, to: nextConfig.model }
-      });
-    }
-
-    return res.json({ success: true, config: nextConfig });
+  const logsService = createAdminLogsService({
+    readDB: (...args) => analyticsRepository.readDB(...args),
+    readAuditLogs
+  });
+  const logsRouter = createAdminLogsRouter({
+    logsService,
+    requireAdminAuth
   });
 
-  router.get('/config/system-prompt', requireAdminAuth, async (_req, res) => {
-    if (!isSystemPromptEditEnabled) {
-      return res.status(403).json({ error: 'ویرایش سیستم پرامپت غیرفعال است.' });
-    }
-    const config = await ensureConfigData();
-    return res.json({ systemPrompt: config.systemPrompt || DEFAULT_CONFIG.systemPrompt });
-  });
+  router.use(analyticsRouter);
+  router.use(systemRouter);
+  router.use(logsRouter);
 
-  router.put('/config/system-prompt', requireAdminAuth, async (req, res) => {
-    if (!isSystemPromptEditEnabled) {
-      return res.status(403).json({ error: 'ویرایش سیستم پرامپت غیرفعال است.' });
-    }
+  return {
+    router,
+    requireAdminAuth,
+    ensureAdminData,
+    ensureConfigData
+  };
+}
 
-    const nextPrompt = typeof req.body?.systemPrompt === 'string' ? req.body.systemPrompt.trim() : '';
-    if (!nextPrompt) {
-      return res.status(400).json({ error: 'متن سیستم پرامپت نمی تواند خالی باشد.' });
-    }
-
-    const current = await ensureConfigData();
-    const nextConfig = {
-      ...current,
-      systemPrompt: nextPrompt
-    };
-    await fs.writeJson(CONFIG_FILE_PATH, nextConfig, { spaces: 2 });
-
-    if (typeof onSystemPromptUpdated === 'function') {
-      onSystemPromptUpdated();
-    }
-
-    await appendAudit({
-      adminUsername: req.admin?.username,
-      action: 'update_system_prompt',
-      target: 'system_prompt',
-      details: {
-        previousLength: (current.systemPrompt || '').length,
-        nextLength: nextPrompt.length
-      }
-    });
-
-    return res.json({ success: true, message: 'پرامپت با موفقیت به‌روزرسانی شد' });
-  });
-
-  router.get('/reports/csv', requireAdminAuth, async (req, res) => {
-    try {
-      const includeUsers = req.query.users === '1';
-      const includeErrors = req.query.errors === '1';
-      const includeConversationSummary = req.query.conversations === '1';
-      const data = await readDB();
-      const lines = [];
-
-    if (includeUsers) {
-      lines.push('USERS');
-      lines.push('name,age,phone,registered_at,conversation_count');
-      const byUser = new Map();
-      for (const c of data.conversations || []) {
-        const key = String(c.user_id || '');
-        byUser.set(key, (byUser.get(key) || 0) + 1);
-      }
-      for (const user of data.users || []) {
-        lines.push(
-          [user.name || '', user.age || '', user.phone || '', user.registered_at || '', byUser.get(String(user.user_id)) || 0]
-            .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-            .join(',')
-        );
-      }
-      lines.push('');
-    }
-
-    if (includeErrors) {
-      lines.push('ERRORS');
-      lines.push('type,endpoint,status_code,message,time');
-      for (const item of data.errors || []) {
-        lines.push(
-          [item.error_type || '', item.endpoint || '', item.status_code || '', item.details || '', item.created_at || '']
-            .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-            .join(',')
-        );
-      }
-      lines.push('');
-    }
-
-    if (includeConversationSummary) {
-      let total = 0;
-      let academic = 0;
-      let emotional = 0;
-      let creative = 0;
-      for (const event of data.events || []) {
-        if (event.event_type === 'message_sent') {
-          total += 1;
-          if (event.category === 'academic') academic += 1;
-          if (event.category === 'emotional') emotional += 1;
-          if (event.category === 'creative') creative += 1;
-        }
-      }
-
-      lines.push('CONVERSATION_SUMMARY');
-      lines.push('total_messages,academic,emotional,creative');
-      lines.push([total, academic, emotional, creative].join(','));
-      lines.push('');
-    }
-
-      const csv = lines.join('\n');
-      const fileName = `admin-report-${new Date().toISOString().slice(0, 10)}.csv`;
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      return res.send(`\uFEFF${csv}`);
-    } catch (error) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در تولید گزارش' });
-    }
-  });
-
-  router.get('/audit-logs', requireAdminAuth, async (req, res) => {
-    const page = Math.max(1, Number.parseInt(String(req.query.page || '1'), 10) || 1);
-    const pageSize = Math.min(100, Math.max(1, Number.parseInt(String(req.query.pageSize || '20'), 10) || 20));
-    const logs = await readAuditLogs();
-    const start = (page - 1) * pageSize;
-    const items = logs.slice(start, start + pageSize);
-
-    return res.json({
-      items,
-      total: logs.length,
-      page,
-      pageSize
-    });
-  });
-
-  return { router, requireAdminAuth, ensureAdminData, ensureConfigData };
-};
+function createAdminRouter(deps) {
+  return createAdminModule(deps);
+}
 
 module.exports = {
+  createAdminModule,
   createAdminRouter,
   ensureConfigData,
   ensureAdminData

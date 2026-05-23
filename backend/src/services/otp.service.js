@@ -1,3 +1,5 @@
+const { getIranMobileVariants } = require('../shared/validators/phone.validator');
+
 const OTP_EXPIRE_SECONDS = Number.parseInt(process.env.OTP_EXPIRE || '120', 10);
 const OTP_EXPIRE_MS = (Number.isFinite(OTP_EXPIRE_SECONDS) ? OTP_EXPIRE_SECONDS : 120) * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;
@@ -10,24 +12,7 @@ class OTPService {
   }
 
   getPhoneVariants(phone) {
-    const raw = String(phone || '').trim();
-    const digits = raw.replace(/\D/g, '');
-    const variants = new Set();
-
-    if (digits.startsWith('09') && digits.length === 11) {
-      variants.add(digits);
-      variants.add(`98${digits.slice(1)}`);
-    } else if (digits.startsWith('989') && digits.length === 12) {
-      variants.add(digits);
-      variants.add(`0${digits.slice(2)}`);
-    } else if (digits.startsWith('9') && digits.length === 10) {
-      variants.add(`0${digits}`);
-      variants.add(`98${digits}`);
-    } else if (digits) {
-      variants.add(digits);
-    }
-
-    return Array.from(variants);
+    return getIranMobileVariants(phone);
   }
 
   generateOtp() {
