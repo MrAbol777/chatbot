@@ -18,6 +18,7 @@
 .ds-button--secondary { background: var(--color-surface-2); border-color: var(--color-border); color: var(--color-text); }
 .ds-button--ghost { background: transparent; color: var(--color-text); border-color: var(--color-border); }
 .ds-button--danger { background: var(--color-danger); color: #fff; }
+.ds-button--icon-only { width: 40px; min-width: 40px; padding: 0; }
 
 .ds-field { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
 .ds-field__label { font-size: var(--font-size-sm); color: var(--color-text); font-weight: 600; }
@@ -49,3 +50,4 @@
 .ds-demo-stack { display: grid; gap: var(--space-4); }
 .ds-auth-actions { display: flex; gap: var(--space-3); }
 .ds-auth-actions > * { flex: 1; }
+.ds-inline-actions { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }

@@ -14,6 +14,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import { Button, TextField } from './design-system/components';
 
 type User = {
   user_id: string;
@@ -254,11 +255,11 @@ function AdminPanel() {
       </div>
 
       <div className="admin-tabs">
-        <button className={`admin-tab ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}>داشبورد</button>
-        <button className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>کاربران</button>
-        <button className={`admin-tab ${tab === 'errors' ? 'active' : ''}`} onClick={() => setTab('errors')}>خطاها</button>
-        <button className={`admin-tab ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>تنظیمات</button>
-        <button className={`admin-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit</button>
+        <Button variant="secondary" className={`admin-tab ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}>داشبورد</Button>
+        <Button variant="secondary" className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>کاربران</Button>
+        <Button variant="secondary" className={`admin-tab ${tab === 'errors' ? 'active' : ''}`} onClick={() => setTab('errors')}>خطاها</Button>
+        <Button variant="secondary" className={`admin-tab ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>تنظیمات</Button>
+        <Button variant="secondary" className={`admin-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit</Button>
       </div>
 
       {tab === 'dashboard' ? (
@@ -392,13 +393,20 @@ function AdminPanel() {
       {tab === 'users' ? (
         <div className="admin-section">
           <div className="admin-controls">
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="جستجوی نام" />
+            <TextField
+              className="admin-control-field"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="جستجوی نام"
+              aria-label="جستجوی نام"
+              fullWidth={false}
+            />
             <select value={banFilter} onChange={(e) => setBanFilter(e.target.value)}>
               <option value="all">همه</option>
               <option value="true">مسدود</option>
               <option value="false">فعال</option>
             </select>
-            <button onClick={() => void loadUsers()}>اعمال فیلتر</button>
+            <Button className="admin-action-btn" onClick={() => void loadUsers()}>اعمال فیلتر</Button>
           </div>
           <table className="admin-table">
             <thead>

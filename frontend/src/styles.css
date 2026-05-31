@@ -380,6 +380,10 @@ textarea {
   transition: all 180ms ease;
 }
 
+.admin-tab.ds-button {
+  box-shadow: none;
+}
+
 .admin-tab:hover {
   transform: translateY(-1px);
   border-color: #f5b370;
@@ -474,8 +478,19 @@ textarea {
   background: #fffdfa;
 }
 
+.admin-control-field {
+  min-width: 180px;
+}
+
+.admin-control-field .ds-field__input {
+  min-height: 40px;
+}
+
+/* Legacy admin compatibility: keep native admin buttons and target only selected DS button bridges. */
 .admin-controls button,
-.admin-section button {
+.admin-section button,
+.admin-tab.ds-button,
+.admin-action-btn.ds-button {
   border: none;
   border-radius: 10px;
   background: linear-gradient(90deg, var(--admin-highlight) 0%, var(--admin-highlight-strong) 100%);
@@ -487,12 +502,15 @@ textarea {
 }
 
 .admin-controls button:hover,
-.admin-section button:hover {
+.admin-section button:hover,
+.admin-tab.ds-button:hover:not(:disabled),
+.admin-action-btn.ds-button:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(255, 111, 0, 0.22);
 }
 
-.admin-section button:disabled {
+.admin-section button:disabled,
+.admin-action-btn.ds-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;
@@ -985,7 +1003,8 @@ textarea {
   letter-spacing: -0.01em;
 }
 
-.sidebar-head button {
+.sidebar-head button,
+.sidebar-btn-head.ds-button {
   border: none;
   border-radius: 14px;
   background: #ffedd4;
@@ -1014,7 +1033,8 @@ textarea {
   gap: 8px;
 }
 
-.sidebar-footer button {
+.sidebar-footer button,
+.sidebar-btn.ds-button {
   width: 100%;
   border: none;
   border-radius: 12px;
@@ -1029,11 +1049,13 @@ textarea {
   transition: background 0.2s ease;
 }
 
-.sidebar-footer button:hover {
+.sidebar-footer button:hover,
+.sidebar-btn.ds-button:hover:not(:disabled) {
   background: #f0e2c5;
 }
 
-.sidebar-footer .danger {
+.sidebar-footer .danger,
+.sidebar-btn.ds-button.ds-button--danger {
   color: #b3261e;
 }
 
@@ -1173,7 +1195,8 @@ textarea {
   gap: 4px;
 }
 
-.conversation-actions button {
+.conversation-actions button,
+.conversation-action-btn.ds-button {
   border: none;
   background: transparent;
   cursor: pointer;
@@ -1192,6 +1215,11 @@ textarea {
   border: 1px solid #ffca87;
   border-radius: 10px;
   padding: 6px;
+}
+
+.rename-input.ds-field__input {
+  min-height: 36px;
+  padding: 6px 8px;
 }
 
 .backdrop {
@@ -2795,6 +2823,7 @@ select:focus-visible {
 
 .theme-calm .sidebar-head button,
 .theme-calm .sidebar-footer button,
+.theme-calm .sidebar-btn.ds-button,
 .theme-calm .chips-row button,
 .theme-calm .menu-btn,
 .theme-calm .auth-back-btn {
@@ -2805,6 +2834,7 @@ select:focus-visible {
 
 .theme-calm .sidebar-head button:hover,
 .theme-calm .sidebar-footer button:hover,
+.theme-calm .sidebar-btn.ds-button:hover:not(:disabled),
 .theme-calm .chips-row button:hover {
   background: var(--surface-strong);
 }
@@ -2848,6 +2878,7 @@ select:focus-visible {
   color: var(--primary-dark);
 }
 
+/* Legacy compatibility layer: keep theme-calm class selectors until all screens move to token-only styles. */
 .theme-calm .register-card input:not(.ds-field__input),
 .theme-calm .register-card select,
 .theme-calm .modal-content input:not(.ds-field__input),

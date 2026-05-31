@@ -30,6 +30,7 @@ function DesignSystemPreview() {
             <Button size="sm">اصلی کوچک</Button>
             <Button size="md">اصلی متوسط</Button>
             <Button size="lg">اصلی بزرگ</Button>
+            <Button iconOnly aria-label="تنظیمات" title="تنظیمات">⚙️</Button>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <Button>اصلی</Button>

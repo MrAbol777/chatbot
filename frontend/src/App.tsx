@@ -1574,9 +1574,9 @@ function ChatApp() {
         <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-head">
             <h3>گفتگوها</h3>
-            <button type="button" onClick={handleCreateConversation}>
+            <Button type="button" variant="secondary" size="sm" className="sidebar-btn sidebar-btn-head" onClick={handleCreateConversation}>
               + گفتگوی جدید
-            </button>
+            </Button>
           </div>
 
           <div className="conversation-list">
@@ -1604,7 +1604,7 @@ function ChatApp() {
                       >
                         <input
                           autoFocus
-                          className="rename-input"
+                          className="rename-input ds-field__input"
                           value={editingTitle}
                           onBlur={() => setEditingId(null)}
                           onChange={(event) => setEditingTitle(event.target.value)}
@@ -1619,10 +1619,14 @@ function ChatApp() {
                   </div>
 
                   <div className="conversation-actions" onClick={(event) => event.stopPropagation()}>
-                    <button
+                    <Button
                       type="button"
+                      iconOnly
+                      size="sm"
+                      variant="ghost"
+                      aria-label="سنجاق گفتگو"
                       title="سنجاق"
-                      className={conversation.pinned ? 'pinned' : ''}
+                      className={`conversation-action-btn ${conversation.pinned ? 'pinned' : ''}`}
                       onClick={() =>
                         updateConversation(conversation.id, (item) => ({
                           ...item,
@@ -1632,9 +1636,14 @@ function ChatApp() {
                       }
                     >
                       📌
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      iconOnly
+                      size="sm"
+                      variant="ghost"
+                      aria-label="تغییر نام گفتگو"
+                      className="conversation-action-btn"
                       title="تغییر نام"
                       onClick={() => {
                         setEditingId(conversation.id);
@@ -1642,10 +1651,19 @@ function ChatApp() {
                       }}
                     >
                       ✏️
-                    </button>
-                    <button type="button" title="حذف" onClick={() => handleDeleteConversation(conversation.id)}>
+                    </Button>
+                    <Button
+                      type="button"
+                      iconOnly
+                      size="sm"
+                      variant="ghost"
+                      aria-label="حذف گفتگو"
+                      className="conversation-action-btn"
+                      title="حذف"
+                      onClick={() => handleDeleteConversation(conversation.id)}
+                    >
                       🗑️
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );
@@ -1653,22 +1671,22 @@ function ChatApp() {
           </div>
 
           <div className="sidebar-footer">
-            <button type="button" onClick={handleDownloadActiveConversation} title="ذخیره گفتگوی جاری">
+            <Button type="button" variant="secondary" className="sidebar-btn" onClick={handleDownloadActiveConversation} title="ذخیره گفتگوی جاری">
               <span aria-hidden="true">📥</span>
               ذخیره گفتگو
-            </button>
-            <button type="button" onClick={() => setShowProfileModal(true)}>
+            </Button>
+            <Button type="button" variant="secondary" className="sidebar-btn" onClick={() => setShowProfileModal(true)}>
               <span aria-hidden="true">⚙️</span>
               تنظیمات پروفایل
-            </button>
-            <button type="button" className="danger" onClick={handleDeleteAllConversations}>
+            </Button>
+            <Button type="button" variant="danger" className="sidebar-btn" onClick={handleDeleteAllConversations}>
               <span aria-hidden="true">🗑️</span>
               حذف همه گفتگوها
-            </button>
-            <button type="button" className="danger" onClick={handleLogout}>
+            </Button>
+            <Button type="button" variant="danger" className="sidebar-btn" onClick={handleLogout}>
               <span aria-hidden="true">🚪</span>
               خروج ار حساب کاربری
-            </button>
+            </Button>
           </div>
         </aside>
         {sidebarOpen ? (
@@ -1697,7 +1715,7 @@ function ChatApp() {
 
               <div className="profile-section">
                 <label>تم سایت</label>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <div className="ds-inline-actions" style={{ marginTop: '8px' }}>
                   <Button
                     type="button"
                     className={`theme-btn ${theme === 'energy' ? 'active' : ''}`}
