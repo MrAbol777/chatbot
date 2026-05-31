@@ -5,6 +5,8 @@ import { ChatMessage, Conversation, UserProfile } from './types';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
 import defaultBotAvatar from './image.png';
+import { Button, Dialog, TextAreaField, TextField, ToastProvider, useToast } from './design-system/components';
+import DesignSystemPreview from './design-system/preview/DesignSystemPreview';
 
 const PROFILE_KEY = 'chat_profile';
 const PROFILES_KEY = 'chat_profiles';
@@ -382,6 +384,7 @@ function ChatApp() {
   const [profileFormAge, setProfileFormAge] = useState('');
   const [profileFormErrors, setProfileFormErrors] = useState<{ name?: string; age?: string }>({});
   const [theme, setTheme] = useState<'energy' | 'calm'>('energy');
+  const { pushToast } = useToast();
 
   const [inputValue, setInputValue] = useState('');
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
@@ -436,11 +439,9 @@ function ChatApp() {
 
   const applyTheme = (newTheme: 'energy' | 'calm', persist = true) => {
     const root = document.documentElement;
-    if (newTheme === 'calm') {
-      root.classList.add('theme-calm');
-    } else {
-      root.classList.remove('theme-calm');
-    }
+    root.setAttribute('data-theme', newTheme);
+    if (newTheme === 'calm') root.classList.add('theme-calm');
+    else root.classList.remove('theme-calm');
     if (persist) {
       localStorage.setItem(THEME_KEY, newTheme);
     }
@@ -1387,9 +1388,7 @@ function ChatApp() {
               {errors.age ? <small className="error">{errors.age}</small> : null}
             </label>
 
-            <button type="submit" className="start-btn">
-              ادامه
-            </button>
+            <Button type="submit" className="start-btn">ادامه</Button>
           </form>
         ) : registrationStep === 2 ? (
           <form className={authCardClass} onSubmit={handleRegisterStepTwo}>
@@ -1418,26 +1417,23 @@ function ChatApp() {
               کد تایید از طریق پیامک ارسال می شود.
             </p>
 
-            <label>
-              شماره موبایل
-              <input
-                value={phone}
-                onChange={(event) => setPhone(event.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="09123456789"
-                type="tel"
-                inputMode="numeric"
-                maxLength={11}
-                autoComplete="tel"
-              />
-              <small className="hint">فرمت معتبر: 09XXXXXXXXX</small>
-              {errors.phone ? <small className="error">{errors.phone}</small> : null}
-            </label>
+            <TextField
+              label="شماره موبایل"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="09123456789"
+              type="tel"
+              inputMode="numeric"
+              maxLength={11}
+              autoComplete="tel"
+              helperText="فرمت معتبر: 09XXXXXXXXX"
+              errorText={errors.phone}
+            />
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
+            <div className="ds-auth-actions">
+              <Button
                 type="button"
-                className="danger"
-                style={{ flex: 1 }}
+                variant="danger"
                 onClick={() => {
                   if (authMode === 'login') {
                     setAuthTransition('back');
@@ -1449,10 +1445,10 @@ function ChatApp() {
                 }}
               >
                 {authMode === 'login' ? 'صفحه اول' : 'بازگشت'}
-              </button>
-              <button type="submit" className="start-btn" style={{ flex: 2 }} disabled={isSendingVerification || isCheckingPhone}>
+              </Button>
+              <Button type="submit" className="start-btn" disabled={isSendingVerification || isCheckingPhone}>
                 {isCheckingPhone ? 'در حال بررسی شماره...' : isSendingVerification ? 'در حال ارسال...' : 'ادامه'}
-              </button>
+              </Button>
             </div>
           </form>
         ) : (
@@ -1474,25 +1470,22 @@ function ChatApp() {
             <p className="subtitle">{authMode === 'login' ? 'ورود: کد 6 رقمی تأیید' : 'مرحله 3 از 3: کد 6 رقمی تأیید'}</p>
             <p className="helper onboarding-help">کد ارسال شده را در این بخش وارد کنید.</p>
 
-            <label>
-              کد تایید
-              <input
-                value={verificationCode}
-                onChange={(event) => setVerificationCode(event.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="123456"
-                type="tel"
-                inputMode="numeric"
-                maxLength={6}
-                autoComplete="one-time-code"
-              />
-              {errors.code ? <small className="error">{errors.code}</small> : null}
-            </label>
+            <TextField
+              label="کد تایید"
+              value={verificationCode}
+              onChange={(event) => setVerificationCode(event.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="123456"
+              type="tel"
+              inputMode="numeric"
+              maxLength={6}
+              autoComplete="one-time-code"
+              errorText={errors.code}
+            />
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
+            <div className="ds-auth-actions">
+              <Button
                 type="button"
-                className="danger"
-                style={{ flex: 1 }}
+                variant="danger"
                 onClick={() => {
                   setRegistrationStep(2);
                   setVerificationCode('');
@@ -1500,10 +1493,10 @@ function ChatApp() {
                 }}
               >
                 تغییر شماره
-              </button>
-              <button type="submit" className="start-btn" style={{ flex: 2 }} disabled={isVerifyingCode}>
+              </Button>
+              <Button type="submit" className="start-btn" disabled={isVerifyingCode}>
                 {isVerifyingCode ? 'در حال بررسی...' : 'تأیید'}
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -1691,34 +1684,14 @@ function ChatApp() {
         ) : null}
 
         {showProfileModal ? (
-          <div className="modal-overlay" onClick={() => setShowProfileModal(false)} role="presentation">
-            <div className="modal-content" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+          <Dialog open={showProfileModal} title="تنظیمات پروفایل" onClose={() => setShowProfileModal(false)}>
               <h3>تنظیمات پروفایل</h3>
 
-              <label>
-                نام
-                <input type="text" value={profileFormName} onChange={(event) => setProfileFormName(event.target.value)} />
-                {profileFormErrors.name ? <small className="error">{profileFormErrors.name}</small> : null}
-              </label>
+              <TextField label="نام" type="text" value={profileFormName} onChange={(event) => setProfileFormName(event.target.value)} errorText={profileFormErrors.name} />
 
-              <label>
-                سن
-                <input
-                  type="number"
-                  min={8}
-                  max={18}
-                  inputMode="numeric"
-                  value={profileFormAge}
-                  onChange={(event) => setProfileFormAge(event.target.value)}
-                />
-                {profileFormErrors.age ? <small className="error">{profileFormErrors.age}</small> : null}
-              </label>
+              <TextField label="سن" type="number" min={8} max={18} inputMode="numeric" value={profileFormAge} onChange={(event) => setProfileFormAge(event.target.value)} errorText={profileFormErrors.age} />
 
-              <label>
-                شماره موبایل
-                <input type="text" value={profile.phone || '-'} readOnly />
-                <small className="helper">شماره موبایل فقط هنگام ثبت نام تعیین می شود.</small>
-              </label>
+              <TextField label="شماره موبایل" type="text" value={profile.phone || '-'} readOnly helperText="شماره موبایل فقط هنگام ثبت نام تعیین می شود." />
 
               <div className="profile-id-box">
                 <span>شناسه یکتا:</span>
@@ -1728,35 +1701,34 @@ function ChatApp() {
               <div className="profile-section">
                 <label>تم سایت</label>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                  <button
+                  <Button
                     type="button"
                     className={`theme-btn ${theme === 'energy' ? 'active' : ''}`}
                     onClick={() => applyTheme('energy')}
                   >
                     انرژی
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     className={`theme-btn ${theme === 'calm' ? 'active' : ''}`}
                     onClick={() => applyTheme('calm')}
                   >
                     آرامش
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               <div className="parent-panel-soon">پنل والد به زودی فعال می‌شود</div>
 
               <div className="modal-buttons">
-                <button type="button" className="start-btn" onClick={handleSaveProfileSettings}>
+                <Button type="button" className="start-btn" onClick={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}>
                   ذخیره تغییرات
-                </button>
-                <button type="button" className="danger" onClick={() => setShowProfileModal(false)}>
+                </Button>
+                <Button type="button" variant="danger" onClick={() => setShowProfileModal(false)}>
                   انصراف
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+          </Dialog>
         ) : null}
 
         <main className="messages-area" ref={messagesContainerRef}>
@@ -1875,9 +1847,8 @@ function ChatApp() {
                 ) : null}
 
                 <div className="message-field">
-                  <textarea
+                  <TextAreaField
                     ref={messageInputRef}
-                    rows={1}
                     dir="auto"
                     value={inputValue}
                     disabled={isRecording}
@@ -1899,12 +1870,12 @@ function ChatApp() {
                 <div className="composer-actions">
                   {isRecording ? (
                     <>
-                      <button className="confirm-btn" type="button" onClick={handleConfirmRecording} aria-label="ارسال پیام ضبط شده">
+                      <Button className="confirm-btn" type="button" onClick={handleConfirmRecording} aria-label="ارسال پیام ضبط شده">
                         تایید
-                      </button>
-                      <button className="cancel-btn" type="button" onClick={handleCancelRecording} aria-label="لغو ضبط صدا">
+                      </Button>
+                      <Button className="cancel-btn" variant="secondary" type="button" onClick={handleCancelRecording} aria-label="لغو ضبط صدا">
                         لغو
-                      </button>
+                      </Button>
                     </>
                   ) : (
                     <>
@@ -1914,7 +1885,7 @@ function ChatApp() {
                           <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
                         </svg>
                       </button>
-                      <button
+                      <Button
                         className="send-btn"
                         type="button"
                         onClick={() => void handleSendMessage()}
@@ -1924,7 +1895,7 @@ function ChatApp() {
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                           <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
                         </svg>
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>
@@ -1940,6 +1911,7 @@ function ChatApp() {
 function App() {
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
   const adminPath = '/admin-secure-9x7k';
+  document.documentElement.setAttribute('dir', 'rtl');
 
   if (pathname === '/admin/login') {
     return <AdminLogin onLoginSuccess={() => { window.location.href = adminPath; }} />;
@@ -1949,7 +1921,19 @@ function App() {
     return <AdminPanel />;
   }
 
-  return <ChatApp />;
+  if (pathname === '/design-system-preview') {
+    return (
+      <ToastProvider>
+        <DesignSystemPreview />
+      </ToastProvider>
+    );
+  }
+
+  return (
+    <ToastProvider>
+      <ChatApp />
+    </ToastProvider>
+  );
 }
 
 export default App;

@@ -1,0 +1,85 @@
+:root {
+  --font-family-base: 'Vazirmatn', 'Tahoma', sans-serif;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.375rem;
+  --line-height-base: 1.5;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 2px 8px rgba(58, 43, 31, 0.08);
+  --shadow-md: 0 8px 24px rgba(58, 43, 31, 0.14);
+  --shadow-lg: 0 20px 44px rgba(58, 43, 31, 0.18);
+
+  --z-base: 1;
+  --z-dropdown: 20;
+  --z-sticky: 40;
+  --z-modal: 80;
+  --z-toast: 120;
+
+  --motion-fast: 140ms;
+  --motion-normal: 220ms;
+  --motion-slow: 320ms;
+  --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --color-bg: #fff9f2;
+  --color-surface: #ffffff;
+  --color-surface-2: #fffdfa;
+  --color-text: #3a2b1f;
+  --color-muted: #8a5a2b;
+  --color-border: #f0e2c5;
+  --color-primary: #ff8f1f;
+  --color-primary-contrast: #ffffff;
+  --color-primary-soft: #fff1df;
+  --color-success: #1d8f47;
+  --color-warning: #b06c00;
+  --color-danger: #b3261e;
+  --color-focus-ring: rgba(255, 143, 31, 0.25);
+}
+
+[data-theme='energy'] {
+  --color-bg: #fff9f2;
+  --color-surface: #ffffff;
+  --color-surface-2: #fffdfa;
+  --color-text: #3a2b1f;
+  --color-muted: #8a5a2b;
+  --color-border: #f0e2c5;
+  --color-primary: #ff8f1f;
+  --color-primary-contrast: #ffffff;
+  --color-primary-soft: #fff1df;
+  --color-success: #1d8f47;
+  --color-warning: #b06c00;
+  --color-danger: #b3261e;
+  --color-focus-ring: rgba(255, 143, 31, 0.25);
+}
+
+[data-theme='calm'] {
+  --color-bg: #eaf7ff;
+  --color-surface: #f8fdff;
+  --color-surface-2: #ffffff;
+  --color-text: #1f3644;
+  --color-muted: #406070;
+  --color-border: #b9e7ee;
+  --color-primary: #00a8a8;
+  --color-primary-contrast: #ffffff;
+  --color-primary-soft: #e7f9f9;
+  --color-success: #1f9967;
+  --color-warning: #8f661f;
+  --color-danger: #b33d35;
+  --color-focus-ring: rgba(0, 168, 168, 0.24);
+}
