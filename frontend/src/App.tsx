@@ -5,7 +5,7 @@ import { ChatMessage, Conversation, UserProfile } from './types';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
 import defaultBotAvatar from './image.png';
-import { Button, Dialog, TextAreaField, TextField, ToastProvider, useToast } from './design-system/components';
+import { Button, Dialog, TextField, ToastProvider, useToast } from './design-system/components';
 import DesignSystemPreview from './design-system/preview/DesignSystemPreview';
 
 const PROFILE_KEY = 'chat_profile';
@@ -1311,7 +1311,7 @@ function ChatApp() {
               به دانوآ خوش آمدید <span>🌤️</span>
             </h1>
             <p className="subtitle">همراه یادگیری تو، با حال خوب و گفتگوی هوشمند</p>
-            <button
+            <Button
               type="button"
               className="start-btn landing-btn"
               onClick={() => {
@@ -1324,10 +1324,11 @@ function ChatApp() {
               }}
             >
               حساب کاربری دارم
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               className="start-btn landing-btn secondary"
+              variant="secondary"
               onClick={() => {
                 setAuthTransition('forward');
                 setAuthMode('signup');
@@ -1337,7 +1338,7 @@ function ChatApp() {
               }}
             >
               حساب کاربری ندارم
-            </button>
+            </Button>
             <p className="helper onboarding-help">
               {hasSavedAccount ? 'حساب قبلی روی این مرورگر پیدا شد ✅' : 'اگر اولین بارته، ثبت نام را انتخاب کن.'}
             </p>
@@ -1361,32 +1362,28 @@ function ChatApp() {
             <p className="subtitle">دانوآ، همون دوستی که همیشه برات می‌مونه!</p>
             <p className="helper onboarding-help">مرحله 1 از 3: نام و سن را وارد کن ✨</p>
 
-            <label>
-              نام
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="مثلا: علی"
-                type="text"
-                autoComplete="name"
-              />
-              {errors.name ? <small className="error">{errors.name}</small> : null}
-            </label>
+            <TextField
+              label="نام"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="مثلا: علی"
+              type="text"
+              autoComplete="name"
+              errorText={errors.name}
+            />
 
-            <label>
-              سن
-              <input
-                value={age}
-                onChange={(event) => setAge(event.target.value)}
-                placeholder="فقط عدد"
-                type="number"
-                min={8}
-                max={18}
-                inputMode="numeric"
-              />
-              <small className="hint">محدوده سنی مجاز: 8 تا 18 سال</small>
-              {errors.age ? <small className="error">{errors.age}</small> : null}
-            </label>
+            <TextField
+              label="سن"
+              value={age}
+              onChange={(event) => setAge(event.target.value)}
+              placeholder="فقط عدد"
+              type="number"
+              min={8}
+              max={18}
+              inputMode="numeric"
+              helperText="محدوده سنی مجاز: 8 تا 18 سال"
+              errorText={errors.age}
+            />
 
             <Button type="submit" className="start-btn">ادامه</Button>
           </form>
@@ -1684,7 +1681,7 @@ function ChatApp() {
         ) : null}
 
         {showProfileModal ? (
-          <Dialog open={showProfileModal} title="تنظیمات پروفایل" onClose={() => setShowProfileModal(false)}>
+          <Dialog open={showProfileModal} title="تنظیمات پروفایل" onClose={() => setShowProfileModal(false)} showFooter={false}>
               <h3>تنظیمات پروفایل</h3>
 
               <TextField label="نام" type="text" value={profileFormName} onChange={(event) => setProfileFormName(event.target.value)} errorText={profileFormErrors.name} />
@@ -1847,8 +1844,9 @@ function ChatApp() {
                 ) : null}
 
                 <div className="message-field">
-                  <TextAreaField
+                  <textarea
                     ref={messageInputRef}
+                    rows={1}
                     dir="auto"
                     value={inputValue}
                     disabled={isRecording}
@@ -1870,12 +1868,12 @@ function ChatApp() {
                 <div className="composer-actions">
                   {isRecording ? (
                     <>
-                      <Button className="confirm-btn" type="button" onClick={handleConfirmRecording} aria-label="ارسال پیام ضبط شده">
+                      <button className="confirm-btn" type="button" onClick={handleConfirmRecording} aria-label="ارسال پیام ضبط شده">
                         تایید
-                      </Button>
-                      <Button className="cancel-btn" variant="secondary" type="button" onClick={handleCancelRecording} aria-label="لغو ضبط صدا">
+                      </button>
+                      <button className="cancel-btn" type="button" onClick={handleCancelRecording} aria-label="لغو ضبط صدا">
                         لغو
-                      </Button>
+                      </button>
                     </>
                   ) : (
                     <>
@@ -1885,7 +1883,7 @@ function ChatApp() {
                           <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
                         </svg>
                       </button>
-                      <Button
+                      <button
                         className="send-btn"
                         type="button"
                         onClick={() => void handleSendMessage()}
@@ -1895,7 +1893,7 @@ function ChatApp() {
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                           <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
                         </svg>
-                      </Button>
+                      </button>
                     </>
                   )}
                 </div>
@@ -1911,7 +1909,9 @@ function ChatApp() {
 function App() {
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
   const adminPath = '/admin-secure-9x7k';
-  document.documentElement.setAttribute('dir', 'rtl');
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
 
   if (pathname === '/admin/login') {
     return <AdminLogin onLoginSuccess={() => { window.location.href = adminPath; }} />;

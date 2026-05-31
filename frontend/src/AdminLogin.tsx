@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { Button, Card, TextField } from './design-system/components';
 
 type Props = {
   onLoginSuccess: () => void;
@@ -37,28 +38,24 @@ function AdminLogin({ onLoginSuccess }: Props) {
   };
 
   return (
-    <div style={{ maxWidth: 420, margin: '60px auto', padding: 24, border: '1px solid #ddd', borderRadius: 12 }}>
-      <h2>ورود ادمین</h2>
+    <Card style={{ maxWidth: 420, margin: '60px auto' }}>
+      <h2 style={{ marginTop: 0 }}>ورود ادمین</h2>
       <form onSubmit={handleSubmit}>
-        <label>
-          نام کاربری
-          <input value={username} onChange={(event) => setUsername(event.target.value)} style={{ width: '100%', marginTop: 6 }} />
-        </label>
-        <label style={{ display: 'block', marginTop: 12 }}>
-          رمز عبور
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            style={{ width: '100%', marginTop: 6 }}
-          />
-        </label>
-        {error ? <p style={{ color: 'crimson' }}>{error}</p> : null}
-        <button type="submit" disabled={loading} style={{ marginTop: 16 }}>
+        <TextField label="نام کاربری" value={username} onChange={(event) => setUsername(event.target.value)} />
+        <div style={{ height: 12 }} />
+        <TextField
+          label="رمز عبور"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          errorText={error || undefined}
+        />
+        <div style={{ height: 16 }} />
+        <Button type="submit" disabled={loading}>
           {loading ? 'در حال ورود...' : 'ورود'}
-        </button>
+        </Button>
       </form>
-    </div>
+    </Card>
   );
 }
 

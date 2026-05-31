@@ -1,9 +1,26 @@
 # Design System (RTL)
 
-## Goals
-- Use semantic tokens only (no direct hard-coded design values in components).
-- Keep RTL as the default for all product UI.
-- Keep theme switching stable via `data-theme`.
+## Scope
+This design system is integrated incrementally into the existing app. It is **not** a full rewrite.
+
+## What is migrated
+- Foundations:
+  - `src/design-system/tokens/tokens.css`
+  - `src/design-system/styles/base.css`
+  - `src/design-system/styles/components.css`
+- Components:
+  - `Button`, `TextField`, `TextAreaField`, `Card`, `Dialog`, `ToastProvider`
+- Screens/areas:
+  - Landing/auth actions (high-visibility buttons)
+  - Auth step 1, step 2, OTP step (shared form fields/actions)
+  - Profile settings modal (Dialog + TextField + Button + Toast)
+  - Admin login (Card + TextField + Button)
+  - Internal preview route: `/design-system-preview`
+
+## Still legacy (temporary)
+- Large parts of `src/styles.css` still contain class-based theme and component styling.
+- Chat composer button visuals (`send-btn`, `mic-btn`, `attach-btn`, `confirm-btn`, `cancel-btn`) remain legacy for stability.
+- Sidebar action buttons and some admin panel controls are legacy classes.
 
 ## Tokens
 Defined in `src/design-system/tokens/tokens.css`.
@@ -16,31 +33,71 @@ Defined in `src/design-system/tokens/tokens.css`.
 - Z-index: `--z-base`, `--z-dropdown`, `--z-sticky`, `--z-modal`, `--z-toast`
 - Motion: `--motion-fast/normal/slow`, `--motion-ease-standard`
 
-## Theme switching
-Themes are configured with:
+## Theme usage rules
+Themes are controlled with `data-theme` on the root element:
 - `[data-theme='energy']`
 - `[data-theme='calm']`
 
-Runtime usage (already wired):
-```ts
-const root = document.documentElement;
-root.setAttribute('data-theme', 'energy');
+Current compatibility:
+- Legacy `.theme-calm` styles still exist and should be considered transitional.
+- New components should rely on semantic tokens, not `.theme-calm` selectors.
+
+## Component usage examples
+
+### Button
+```tsx
+<Button>ذخیره</Button>
+<Button variant="secondary">بازگشت</Button>
+<Button variant="danger" size="sm">حذف</Button>
+<Button loading>در حال انجام</Button>
 ```
 
-## Components
-Location: `src/design-system/components/`
+### TextField / TextAreaField
+```tsx
+<TextField label="نام" placeholder="مثال: علی" helperText="این یک راهنماست" />
+<TextField label="کد تایید" errorText="کد نامعتبر است" />
+<TextAreaField label="پیام" placeholder="پیام خود را بنویسید" />
+```
 
-- `Button`: variants (`primary`, `secondary`, `ghost`, `danger`), sizes (`sm`, `md`, `lg`), loading, icon slots.
-- `TextField` and `TextAreaField`: label, helper, error, disabled, full width.
-- `Card`: token-based surface wrapper.
-- `Dialog`: overlay + ESC close + tab focus trap.
-- `ToastProvider` + `useToast`: lightweight notification system.
+### Dialog
+```tsx
+<Dialog open={open} title="تنظیمات" onClose={() => setOpen(false)}>
+  <TextField label="نام" />
+</Dialog>
+```
 
-## Preview route
-Use `/design-system-preview` in browser to inspect core components.
+For custom footer controls:
+```tsx
+<Dialog open={open} title="پروفایل" onClose={close} showFooter={false}>
+  ...custom actions...
+</Dialog>
+```
 
-## Contribution rules
-- Do not add new hard-coded colors/shadows/spacing in feature code.
-- Reuse design-system components where possible.
-- If a new visual style is needed, add token(s) first, then component API.
-- Keep RTL behavior and keyboard focus-visible support on every component.
+### Toast
+```tsx
+const { pushToast } = useToast();
+pushToast('ذخیره شد', 'success');
+pushToast('خطا رخ داد', 'danger');
+```
+
+## Do / Don't
+- Do: use semantic tokens for color/spacing/radius/shadow.
+- Do: preserve RTL (`dir="rtl"` on app shell, logical spacing when possible).
+- Do: keep keyboard focus-visible and aria labels.
+- Don't: add new hard-coded colors in feature components.
+- Don't: add one-off button/input styles when DS components can be reused.
+- Don't: remove legacy styles aggressively without migration of consumers.
+
+## Migration rules for future work
+1. Prefer replacing repeated UI patterns first (buttons/inputs/modals).
+2. Keep class names for legacy visuals only where needed.
+3. If replacing a legacy block, add token-based equivalent before deleting old styles.
+4. Validate with both themes and RTL before merging.
+5. For risky areas (chat composer), migrate in smaller sub-steps.
+
+## How to add a new component correctly
+1. Create component in `src/design-system/components/` with strict TypeScript props.
+2. Style it in `src/design-system/styles/components.css` using only semantic tokens.
+3. Export from `src/design-system/components/index.ts`.
+4. Add usage block to `/design-system-preview`.
+5. Add docs update in this file.

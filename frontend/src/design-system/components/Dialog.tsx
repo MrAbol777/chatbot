@@ -9,9 +9,10 @@ type Props = {
   confirmText?: string;
   cancelText?: string;
   onConfirm?: () => void;
+  showFooter?: boolean;
 };
 
-function Dialog({ open, title, onClose, children, confirmText, cancelText = 'انصراف', onConfirm }: Props) {
+function Dialog({ open, title, onClose, children, confirmText, cancelText = 'انصراف', onConfirm, showFooter = true }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -42,6 +43,15 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'ا�
     firstFocusable?.focus();
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (
@@ -49,10 +59,12 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'ا�
       <div className="ds-dialog-panel" role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()} ref={panelRef}>
         <h3>{title}</h3>
         {children}
-        <div className="ds-dialog-actions">
-          {onConfirm && confirmText ? <Button onClick={onConfirm}>{confirmText}</Button> : null}
-          <Button variant="secondary" onClick={onClose}>{cancelText}</Button>
-        </div>
+        {showFooter ? (
+          <div className="ds-dialog-actions">
+            {onConfirm && confirmText ? <Button onClick={onConfirm}>{confirmText}</Button> : null}
+            <Button variant="secondary" onClick={onClose}>{cancelText}</Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
