@@ -14,7 +14,7 @@
   - `FieldGroup`
   - `InlineMessage`
   - `Dialog`
-  - `Toast`
+  - `Toast` 
 - Adoption انجام‌شده:
   - `AdminLogin` با DS هماهنگ شده است.
   - بخش‌هایی از `AdminPanel` (از جمله Config و برخی actionها) مهاجرت شده‌اند.
