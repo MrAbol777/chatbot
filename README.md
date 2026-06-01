@@ -2,6 +2,28 @@
 
 یک چت‌بات امن و دوستانه برای سنین ۸ تا ۱۸ سال با `React + TypeScript + Vite` در فرانت‌اند و `Node.js + Express` در بک‌اند.
 
+## وضعیت فعلی Design System (خرداد ۱۴۰۵)
+
+- وضعیت کلی: **Foundation پایدار است، ولی هنوز Full Adoption کامل نشده است**.
+- مسیر DS: `frontend/src/design-system/`
+- Primitiveهای موجود:
+  - `Button`
+  - `TextField`
+  - `TextAreaField`
+  - `Card`
+  - `FieldGroup`
+  - `InlineMessage`
+  - `Dialog`
+  - `Toast`
+- Adoption انجام‌شده:
+  - `AdminLogin` با DS هماهنگ شده است.
+  - بخش‌هایی از `AdminPanel` (از جمله Config و برخی actionها) مهاجرت شده‌اند.
+  - بخشی از `App` (quick chips) به DS Button/FieldGroup مهاجرت شده است.
+- کارهای باقی‌مانده برای Full Adoption:
+  - جایگزینی کنترل‌های raw باقی‌مانده در `App.tsx` (composer controls، textarea، برخی buttonها)
+  - جایگزینی کنترل‌های raw در `AdminPanel.tsx` (checkbox/select)
+  - استانداردسازی کامل message/help/error rendering روی DS
+
 ## امکانات اصلی
 
 - ورود/ثبت‌نام با شماره موبایل و کد تأیید
@@ -15,6 +37,7 @@
 ## تغییرات جدید
 
 - مهاجرت سرویس مدل از GapGPT به Gemini (از طریق `GEMINI_BASE_URL`)
+- افزودن و تثبیت اولیه Design System و migration مرحله‌ای UIها
 - اضافه شدن احراز هویت پیامکی در بک‌اند:
   - `POST /api/send-verification-code`
   - `POST /api/verify-code`
@@ -85,6 +108,23 @@ npm run dev
 - `npm run dev`
 - `npm run build`
 - `npm run preview`
+
+## چک سریع کیفیت (قبل از Merge)
+
+برای تغییرات فرانت‌اند/Design System:
+
+```bash
+cd frontend
+npm run build
+```
+
+چک دستی پیشنهادی:
+
+- مسیرهای ورود/ثبت‌نام بدون تغییر رفتار کار کنند.
+- در `AdminPanel` دکمه‌های `پروفایل` / `مسدود-رفع مسدود` / `حذف` فعال باشند.
+- در چت، quick chips همچنان پیام صحیح ارسال کنند.
+- ناوبری کیبورد (Tab/Enter/Space) روی کنترل‌های جدید درست عمل کند.
+- روی موبایل و دسکتاپ شکست CSS نداشته باشیم.
 
 ### backend
 
