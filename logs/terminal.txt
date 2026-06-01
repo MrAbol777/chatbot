@@ -1,25 +1,99 @@
-(node:15912) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:22392) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[14:09:39] FRONTEND 
-[14:09:39] FRONTEND > hemraz-frontend@1.0.0 dev
-[14:09:39] FRONTEND > vite
-[14:09:39] FRONTEND 
-[14:09:39] BACKEND 
-[14:09:39] BACKEND > hemraz-backend@1.0.0 dev
-[14:09:39] BACKEND > nodemon --config nodemon.json src/server.js
-[14:09:39] BACKEND 
-[14:09:40] BACKEND [33m[nodemon] 3.1.14[39m
-[14:09:40] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[14:09:40] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[14:09:40] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[14:09:40] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[14:09:40] BACKEND [BOOT] DB mode=mysql
-[14:09:40] BACKEND [SMS] routes mounted
-[14:09:40] BACKEND [BALE] webhook mounted at /bale/webhook
-[14:09:40] FRONTEND 
-[14:09:40] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m856[22m[2m[0m ms[22m
-[14:09:40] FRONTEND 
-[14:09:40] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[14:09:40] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.41:[1m5173[22m/[39m
-[14:09:40] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[14:09:40] BACKEND [2026-05-20T10:39:40.864Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gpt-4o-mini","baseUrl":"https://api.metisai.ir/openai/v1","timeoutMs":30000}
+[12:39:38] BACKEND 
+[12:39:38] BACKEND > hemraz-backend@1.0.0 dev
+[12:39:38] BACKEND > nodemon --config nodemon.json src/server.js
+[12:39:38] BACKEND 
+[12:39:38] FRONTEND 
+[12:39:38] FRONTEND > hemraz-frontend@1.0.0 dev
+[12:39:38] FRONTEND > vite
+[12:39:38] FRONTEND 
+[12:39:38] BACKEND [33m[nodemon] 3.1.14[39m
+[12:39:38] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[12:39:38] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[12:39:38] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[12:39:38] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[12:39:38] FRONTEND 
+[12:39:38] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m350[22m[2m[0m ms[22m
+[12:39:38] FRONTEND 
+[12:39:38] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[12:39:38] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.33:[1m5173[22m/[39m
+[12:39:38] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[12:39:39] BACKEND [BOOT] DB mode=mysql
+[12:39:39] BACKEND [SMS] routes mounted
+[12:39:39] BACKEND [BALE] webhook mounted at /bale/webhook
+[12:39:39] BACKEND [2026-06-01T09:09:39.496Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gpt-4o-mini","baseUrl":"https://api.metisai.ir/openai/v1","timeoutMs":30000}
+[12:39:39] BACKEND [BALE] webhook configured {
+[12:39:39] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
+[12:39:39] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
+[12:39:39] BACKEND }
+[12:39:50] BACKEND [2026-06-01T09:09:50.512Z] [HTTP] request_started {"requestId":"mpuzmib4-hkm7qi","method":"POST","path":"/api/conversations/load"}
+[12:39:51] BACKEND [FATAL] unhandledRejection Error: getaddrinfo ENOTFOUND danoa.abolfazl-dostgol.svc
+[12:39:51] BACKEND     at PromisePool.query (D:\PROGEs\chatBot\backend\node_modules\mysql2\lib\promise\pool.js:36:22)
+[12:39:51] BACKEND     at D:\PROGEs\chatBot\backend\src\repositories\DatabaseClient.js:29:23
+[12:39:51] BACKEND     at DatabaseClient.init (D:\PROGEs\chatBot\backend\src\repositories\DatabaseClient.js:86:7)
+[12:39:51] BACKEND     at UserRepository.ensureUserExists (D:\PROGEs\chatBot\backend\src\repositories\UserRepository.js:27:19)
+[12:39:51] BACKEND     at Object.ensureUserExists (D:\PROGEs\chatBot\backend\src\server.js:137:55)
+[12:39:51] BACKEND     at Object.loadConversations (D:\PROGEs\chatBot\backend\src\modules\conversations\service.js:4:42)
+[12:39:51] BACKEND     at load (D:\PROGEs\chatBot\backend\src\modules\conversations\controller.js:4:49)
+[12:39:51] BACKEND     at Layer.handle [as handle_request] (D:\PROGEs\chatBot\backend\node_modules\express\lib\router\layer.js:95:5)
+[12:39:51] BACKEND     at next (D:\PROGEs\chatBot\backend\node_modules\express\lib\router\route.js:149:13)
+[12:39:51] BACKEND     at Route.dispatch (D:\PROGEs\chatBot\backend\node_modules\express\lib\router\route.js:119:3) {
+[12:39:51] BACKEND   code: 'ENOTFOUND',
+[12:39:51] BACKEND   errno: -3008,
+[12:39:51] BACKEND   sql: undefined,
+[12:39:51] BACKEND   sqlState: undefined,
+[12:39:51] BACKEND   sqlMessage: undefined
+[12:39:51] BACKEND }
+[12:40:53] BACKEND [2026-06-01T09:10:53.737Z] [HTTP] request_started {"requestId":"mpuznv3c-ndueg0","method":"GET","path":"/api/admin/dashboard/stats"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.742Z] [HTTP] request_finished {"requestId":"mpuznv3c-ndueg0","method":"GET","path":"/api/admin/dashboard/stats","status":401,"durationMs":6}
+[12:40:53] BACKEND [2026-06-01T09:10:53.747Z] [HTTP] request_started {"requestId":"mpuznv3n-x2pixj","method":"GET","path":"/api/admin/errors"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.752Z] [HTTP] request_finished {"requestId":"mpuznv3n-x2pixj","method":"GET","path":"/api/admin/errors","status":401,"durationMs":5}
+[12:40:53] BACKEND [2026-06-01T09:10:53.755Z] [HTTP] request_started {"requestId":"mpuznv3v-pttqqz","method":"GET","path":"/api/admin/users?"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.756Z] [HTTP] request_finished {"requestId":"mpuznv3v-pttqqz","method":"GET","path":"/api/admin/users?","status":401,"durationMs":1}
+[12:40:53] BACKEND [2026-06-01T09:10:53.757Z] [HTTP] request_started {"requestId":"mpuznv3x-vpvcup","method":"GET","path":"/api/admin/config/system-prompt"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.768Z] [HTTP] request_finished {"requestId":"mpuznv3x-vpvcup","method":"GET","path":"/api/admin/config/system-prompt","status":401,"durationMs":11}
+[12:40:53] BACKEND [2026-06-01T09:10:53.770Z] [HTTP] request_started {"requestId":"mpuznv4a-sng3ma","method":"GET","path":"/api/admin/config"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.772Z] [HTTP] request_finished {"requestId":"mpuznv4a-sng3ma","method":"GET","path":"/api/admin/config","status":401,"durationMs":2}
+[12:40:53] BACKEND [2026-06-01T09:10:53.780Z] [HTTP] request_started {"requestId":"mpuznv4k-3w21yp","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.784Z] [HTTP] request_finished {"requestId":"mpuznv4k-3w21yp","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":401,"durationMs":4}
+[12:40:53] BACKEND [2026-06-01T09:10:53.809Z] [HTTP] request_started {"requestId":"mpuznv5d-f2cmpr","method":"GET","path":"/api/admin/dashboard/stats"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.810Z] [HTTP] request_finished {"requestId":"mpuznv5d-f2cmpr","method":"GET","path":"/api/admin/dashboard/stats","status":401,"durationMs":1}
+[12:40:53] BACKEND [2026-06-01T09:10:53.815Z] [HTTP] request_started {"requestId":"mpuznv5j-pxqtmz","method":"GET","path":"/api/admin/errors"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.816Z] [HTTP] request_finished {"requestId":"mpuznv5j-pxqtmz","method":"GET","path":"/api/admin/errors","status":401,"durationMs":1}
+[12:40:53] BACKEND [2026-06-01T09:10:53.817Z] [HTTP] request_started {"requestId":"mpuznv5l-ba8opt","method":"GET","path":"/api/admin/users?"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.818Z] [HTTP] request_finished {"requestId":"mpuznv5l-ba8opt","method":"GET","path":"/api/admin/users?","status":401,"durationMs":1}
+[12:40:53] BACKEND [2026-06-01T09:10:53.819Z] [HTTP] request_started {"requestId":"mpuznv5n-50myeh","method":"GET","path":"/api/admin/config/system-prompt"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.820Z] [HTTP] request_finished {"requestId":"mpuznv5n-50myeh","method":"GET","path":"/api/admin/config/system-prompt","status":401,"durationMs":1}
+[12:40:53] BACKEND [2026-06-01T09:10:53.823Z] [HTTP] request_started {"requestId":"mpuznv5r-8pxy5r","method":"GET","path":"/api/admin/config"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.824Z] [HTTP] request_finished {"requestId":"mpuznv5r-8pxy5r","method":"GET","path":"/api/admin/config","status":401,"durationMs":1}
+[12:40:53] BACKEND [2026-06-01T09:10:53.830Z] [HTTP] request_started {"requestId":"mpuznv5y-8qw3ih","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
+[12:40:53] BACKEND [2026-06-01T09:10:53.831Z] [HTTP] request_finished {"requestId":"mpuznv5y-8qw3ih","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":401,"durationMs":1}
+[12:40:55] BACKEND [2026-06-01T09:10:55.567Z] [HTTP] request_started {"requestId":"mpuznwi7-qu74v9","method":"POST","path":"/api/admin/login"}
+[12:40:55] BACKEND [2026-06-01T09:10:55.799Z] [HTTP] request_finished {"requestId":"mpuznwi7-qu74v9","method":"POST","path":"/api/admin/login","status":200,"durationMs":232}
+[12:40:55] BACKEND [2026-06-01T09:10:55.946Z] [HTTP] request_started {"requestId":"mpuznwsq-rpeckw","method":"GET","path":"/api/admin/dashboard/stats"}
+[12:40:55] BACKEND [2026-06-01T09:10:55.951Z] [HTTP] request_finished {"requestId":"mpuznwsq-rpeckw","method":"GET","path":"/api/admin/dashboard/stats","status":500,"durationMs":5}
+[12:40:55] BACKEND [2026-06-01T09:10:55.952Z] [HTTP] request_started {"requestId":"mpuznwsw-xmqmos","method":"GET","path":"/api/admin/users?"}
+[12:40:55] BACKEND [2026-06-01T09:10:55.956Z] [HTTP] request_finished {"requestId":"mpuznwsw-xmqmos","method":"GET","path":"/api/admin/users?","status":500,"durationMs":4}
+[12:40:55] BACKEND [2026-06-01T09:10:55.958Z] [HTTP] request_started {"requestId":"mpuznwt2-z0dfhk","method":"GET","path":"/api/admin/errors"}
+[12:40:55] BACKEND [2026-06-01T09:10:55.964Z] [HTTP] request_finished {"requestId":"mpuznwt2-z0dfhk","method":"GET","path":"/api/admin/errors","status":500,"durationMs":6}
+[12:40:55] BACKEND [2026-06-01T09:10:55.965Z] [HTTP] request_started {"requestId":"mpuznwt9-pic6vz","method":"GET","path":"/api/admin/config"}
+[12:40:55] BACKEND [2026-06-01T09:10:55.967Z] [HTTP] request_started {"requestId":"mpuznwtb-71p5xs","method":"GET","path":"/api/admin/config/system-prompt"}
+[12:40:55] BACKEND [2026-06-01T09:10:55.971Z] [HTTP] request_started {"requestId":"mpuznwtf-y56wu4","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
+[12:40:55] BACKEND [2026-06-01T09:10:55.985Z] [HTTP] request_finished {"requestId":"mpuznwtf-y56wu4","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":200,"durationMs":14}
+[12:40:55] BACKEND [2026-06-01T09:10:55.992Z] [HTTP] request_started {"requestId":"mpuznwu0-gqvg6i","method":"GET","path":"/api/admin/users?"}
+[12:40:55] BACKEND [2026-06-01T09:10:55.998Z] [HTTP] request_finished {"requestId":"mpuznwu0-gqvg6i","method":"GET","path":"/api/admin/users?","status":500,"durationMs":6}
+[12:40:55] BACKEND [2026-06-01T09:10:55.999Z] [HTTP] request_started {"requestId":"mpuznwu7-ktaovr","method":"GET","path":"/api/admin/dashboard/stats"}
+[12:40:56] BACKEND [2026-06-01T09:10:56.003Z] [HTTP] request_finished {"requestId":"mpuznwu7-ktaovr","method":"GET","path":"/api/admin/dashboard/stats","status":500,"durationMs":4}
+[12:40:56] BACKEND [2026-06-01T09:10:56.005Z] [HTTP] request_started {"requestId":"mpuznwud-shrgma","method":"GET","path":"/api/admin/errors"}
+[12:40:56] BACKEND [2026-06-01T09:10:56.010Z] [HTTP] request_finished {"requestId":"mpuznwud-shrgma","method":"GET","path":"/api/admin/errors","status":500,"durationMs":6}
+[12:40:56] BACKEND [2026-06-01T09:10:56.013Z] [HTTP] request_started {"requestId":"mpuznwul-dj7sfd","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50"}
+[12:40:56] BACKEND [2026-06-01T09:10:56.032Z] [HTTP] request_finished {"requestId":"mpuznwul-dj7sfd","method":"GET","path":"/api/admin/audit-logs?page=1&pageSize=50","status":304,"durationMs":19}
+[12:40:56] BACKEND [2026-06-01T09:10:56.042Z] [HTTP] request_finished {"requestId":"mpuznwt9-pic6vz","method":"GET","path":"/api/admin/config","status":200,"durationMs":77}
+[12:40:56] BACKEND [2026-06-01T09:10:56.043Z] [HTTP] request_finished {"requestId":"mpuznwtb-71p5xs","method":"GET","path":"/api/admin/config/system-prompt","status":200,"durationMs":76}
+[12:40:56] BACKEND [2026-06-01T09:10:56.050Z] [HTTP] request_started {"requestId":"mpuznwvm-4vaexj","method":"GET","path":"/api/admin/config"}
+[12:40:56] BACKEND [2026-06-01T09:10:56.052Z] [HTTP] request_started {"requestId":"mpuznwvo-iev5a1","method":"GET","path":"/api/admin/config/system-prompt"}
+[12:40:56] BACKEND [2026-06-01T09:10:56.055Z] [HTTP] request_finished {"requestId":"mpuznwvm-4vaexj","method":"GET","path":"/api/admin/config","status":304,"durationMs":5}
+[12:40:56] BACKEND [2026-06-01T09:10:56.061Z] [HTTP] request_finished {"requestId":"mpuznwvo-iev5a1","method":"GET","path":"/api/admin/config/system-prompt","status":304,"durationMs":9}
+[12:41:37] BACKEND [2026-06-01T09:11:37.715Z] [HTTP] request_started {"requestId":"mpuzot0z-s7ss3r","method":"GET","path":"/api/admin/reports/csv?users=1"}
+[12:41:37] BACKEND [2026-06-01T09:11:37.718Z] [HTTP] request_finished {"requestId":"mpuzot0z-s7ss3r","method":"GET","path":"/api/admin/reports/csv?users=1","status":500,"durationMs":3}

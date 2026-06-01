@@ -9,6 +9,8 @@ ARG APK_MIRROR
 
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 ENV NPM_CONFIG_REPLACE_REGISTRY_HOST=always
+ENV npm_config_registry=${NPM_REGISTRY}
+ENV npm_config_replace_registry_host=always
 ENV npm_config_audit=false
 ENV npm_config_fund=false
 ENV npm_config_update_notifier=false
@@ -25,16 +27,17 @@ RUN set -eux; \
   npm config set registry "${NPM_REGISTRY}"; \
   npm config set replace-registry-host always; \
   npm config set fund false; \
-  npm config set audit false; \
-  npm config set fetch-retries 5; \
-  npm config set fetch-retry-mintimeout 20000; \
-  npm config set fetch-retry-maxtimeout 120000
+    npm config set audit false; \
+    npm config set fetch-retries 5; \
+    npm config set fetch-retry-mintimeout 20000; \
+    npm config set fetch-retry-maxtimeout 120000; \
+    npm config set update-notifier false
 
 FROM base-node AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
-RUN npm ci --no-audit --no-fund --registry=${NPM_REGISTRY}
+RUN npm ci --no-audit --no-fund
 
 COPY frontend/ ./
 RUN npm run build
@@ -45,7 +48,7 @@ WORKDIR /app
 ARG ENABLE_SYSTEM_PROMPT_EDIT=true
 
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --omit=dev --no-audit --no-fund --registry=${NPM_REGISTRY}
+RUN cd backend && npm ci --omit=dev --no-audit --no-fund
 
 COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
