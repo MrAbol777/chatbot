@@ -9,6 +9,8 @@ const path = require('path');
 const fs = require('fs-extra');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
 const { loadRuntimeConfig } = require('./bootstrap/config');
 const { now, log, attachProcessErrorLogging } = require('./bootstrap/logging');
 dotenv.config({
@@ -27,6 +29,48 @@ const { createRepositories } = require('./repositories');
 
 const app = express();
 const repositories = createRepositories();
+const uploadsDir = path.join(__dirname, '../uploads');
+const allowedImageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const imageIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+fs.ensureDirSync(uploadsDir);
+
+const getAllowedExtension = (filename = '') => {
+  const ext = path.extname(filename || '').toLowerCase();
+  return allowedImageExtensions.has(ext) ? ext : null;
+};
+
+const uploadStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = getAllowedExtension(file.originalname);
+    if (!ext) {
+      cb(new Error('INVALID_FILE_TYPE'));
+      return;
+    }
+    const imageId = uuidv4();
+    cb(null, `${imageId}${ext}`);
+  }
+});
+
+const uploadImagesMiddleware = multer({
+  storage: uploadStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 5
+  },
+  fileFilter: (_req, file, cb) => {
+    const ext = getAllowedExtension(file.originalname);
+    if (!allowedImageMimeTypes.has(file.mimetype) || !ext) {
+      cb(new Error('INVALID_FILE_TYPE'));
+      return;
+    }
+    cb(null, true);
+  }
+});
 
 const {
   port,
@@ -101,6 +145,92 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+app.post('/api/uploads/images', (req, res) => {
+  uploadImagesMiddleware.array('images', 5)(req, res, (error) => {
+    if (error) {
+      if (error.message === 'INVALID_FILE_TYPE') {
+        console.warn('[UPLOAD][images][invalid_type]', {
+          ip: req.ip,
+          message: error.message
+        });
+        return res.status(400).json({
+          error: 'INVALID_FILE_TYPE',
+          message: 'Only jpg, jpeg, png, webp files are allowed.'
+        });
+      }
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          console.warn('[UPLOAD][images][too_large]', {
+            ip: req.ip,
+            code: error.code
+          });
+          return res.status(413).json({
+            error: 'FILE_TOO_LARGE',
+            message: 'Each file must be 5MB or smaller.'
+          });
+        }
+        if (error.code === 'LIMIT_FILE_COUNT' || error.code === 'LIMIT_UNEXPECTED_FILE') {
+          console.warn('[UPLOAD][images][too_many]', {
+            ip: req.ip,
+            code: error.code
+          });
+          return res.status(400).json({
+            error: 'TOO_MANY_FILES',
+            message: 'Maximum 5 files are allowed per upload.'
+          });
+        }
+      }
+      console.error('[UPLOAD][images][failed]', {
+        ip: req.ip,
+        error: error.message
+      });
+      return res.status(500).json({
+        error: 'INTERNAL_UPLOAD_ERROR',
+        message: 'Unexpected upload error.'
+      });
+    }
+
+    const uploadedFiles = Array.isArray(req.files) ? req.files : [];
+    const images = uploadedFiles.map((file) => ({
+      imageId: path.parse(file.filename).name,
+      filename: file.filename,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size
+    }));
+
+    console.log('[UPLOAD][images][success]', {
+      ip: req.ip,
+      count: images.length
+    });
+
+    return res.status(200).json({ images });
+  });
+});
+
+app.get('/api/uploads/images/:imageId', async (req, res) => {
+  const { imageId } = req.params;
+  if (!imageIdPattern.test(imageId)) {
+    return res.status(400).json({ error: 'INVALID_IMAGE_ID' });
+  }
+
+  for (const ext of allowedImageExtensions) {
+    const candidate = path.join(uploadsDir, `${imageId}${ext}`);
+    if (await fs.pathExists(candidate)) {
+      if (ext === '.jpg' || ext === '.jpeg') {
+        res.type('image/jpeg');
+      } else if (ext === '.png') {
+        res.type('image/png');
+      } else if (ext === '.webp') {
+        res.type('image/webp');
+      }
+      return fs.createReadStream(candidate).pipe(res);
+    }
+  }
+
+  return res.status(404).json({ error: 'IMAGE_NOT_FOUND' });
 });
 
 

@@ -37,6 +37,15 @@ type PersonalityProfile = {
 type AuthMode = 'login' | 'signup';
 type ApiErrorData = { error?: string; details?: string; redirectTo?: AuthMode | null };
 type ApiError = Error & { redirectTo?: AuthMode | null };
+type AttachmentStatus = 'pending' | 'uploading' | 'uploaded' | 'error';
+type ImageAttachment = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  status: AttachmentStatus;
+  imageId?: string;
+  error?: string;
+};
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const RETRYABLE_API_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
@@ -191,6 +200,9 @@ const createApiError = (message: string, redirectTo?: AuthMode | null): ApiError
   }
   return error;
 };
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MAX_ATTACHMENT_COUNT = 5;
+const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
 
 const checkPhoneStatus = async (phone: string, mode: AuthMode): Promise<{ exists: boolean; redirectTo: AuthMode | null }> => {
   const response = await fetch('/api/auth/phone-status', {
@@ -388,8 +400,7 @@ function ChatApp() {
 
   const [inputValue, setInputValue] = useState('');
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [waitingTextIndex, setWaitingTextIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -410,6 +421,7 @@ function ChatApp() {
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentBoxRef = useRef<HTMLDivElement | null>(null);
+  const attachmentUrlsRef = useRef<Set<string>>(new Set());
 
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === activeConversationId) ?? null,
@@ -962,7 +974,7 @@ function ChatApp() {
     }
 
     const content = (value ?? inputValue).trim();
-    if (!content && !imageBase64) {
+    if (!content && attachments.length === 0) {
       return;
     }
 
@@ -998,6 +1010,73 @@ function ChatApp() {
     setIsSending(true);
 
     try {
+      const pendingOrErrorAttachments = attachments.filter((item) => item.status === 'pending' || item.status === 'error');
+      if (pendingOrErrorAttachments.length > 0) {
+        setAttachments((prev) =>
+          prev.map((item) =>
+            pendingOrErrorAttachments.some((target) => target.id === item.id)
+              ? { ...item, status: 'uploading', error: undefined }
+              : item
+          )
+        );
+
+        const formData = new FormData();
+        pendingOrErrorAttachments.forEach((attachment) => {
+          formData.append('images', attachment.file);
+        });
+
+        let uploadResponse: Response;
+        let uploadData: any = {};
+        try {
+          uploadResponse = await fetch('/api/uploads/images', {
+            method: 'POST',
+            body: formData
+          });
+          uploadData = await uploadResponse.json();
+        } catch (_uploadNetworkError) {
+          setAttachments((prev) =>
+            prev.map((item) =>
+              pendingOrErrorAttachments.some((target) => target.id === item.id)
+                ? { ...item, status: 'error', error: 'آپلود تصویر با خطا مواجه شد.' }
+                : item
+            )
+          );
+          pushToast('آپلود تصویر ناموفق: خطای شبکه', 'error');
+          return;
+        }
+
+        if (!uploadResponse.ok) {
+          const uploadError = uploadData?.message || uploadData?.error || 'آپلود تصویر ناموفق بود.';
+          setAttachments((prev) =>
+            prev.map((item) =>
+              pendingOrErrorAttachments.some((target) => target.id === item.id)
+                ? { ...item, status: 'error', error: String(uploadError) }
+                : item
+            )
+          );
+          pushToast(`آپلود تصویر ناموفق: ${String(uploadError)}`, 'error');
+          return;
+        }
+
+        const uploadedItems = Array.isArray(uploadData?.images) ? uploadData.images : [];
+        const uploadedImageIds: string[] = [];
+        setAttachments((prev) =>
+          prev.map((item) => {
+            const pendingIndex = pendingOrErrorAttachments.findIndex((target) => target.id === item.id);
+            if (pendingIndex === -1) {
+              return item;
+            }
+            const imageId = uploadedItems[pendingIndex]?.imageId;
+            if (!imageId) {
+              return { ...item, status: 'error', error: 'imageId دریافت نشد.' };
+            }
+            uploadedImageIds.push(String(imageId));
+            return { ...item, status: 'uploaded', imageId: String(imageId), error: undefined };
+          })
+        );
+        console.log('[UPLOAD][success][imageIds]', uploadedImageIds);
+      }
+
       const history = updatedMessages.map((msg) => ({
         role: msg.role,
         content: msg.content
@@ -1005,16 +1084,11 @@ function ChatApp() {
 
       const response = await postChatWithRetry({
         message: content,
-        image: imageBase64 ?? undefined,
         profile: nextProfile,
         personality: nextPersonality,
         history,
         conversationId: currentConversation.id
       });
-
-      if (imageBase64) {
-        console.log('تصویر آماده ارسال است');
-      }
 
       if (!response.ok) {
         const message = await buildRequestErrorMessage(response);
@@ -1035,8 +1109,6 @@ function ChatApp() {
         messages: [...item.messages, botMessage],
         updatedAt: new Date().toISOString()
       }));
-      setImageBase64(null);
-      setImagePreview(null);
     } catch (error) {
       const fallbackText =
         error instanceof Error && error.message.trim()
@@ -1065,41 +1137,63 @@ function ChatApp() {
   };
 
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const selectedFiles = Array.from(event.target.files || []);
     event.target.value = '';
-    if (!file) {
+    if (selectedFiles.length === 0) {
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      alert('فایل انتخابی تصویر نیست.');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert('حداکثر حجم عکس باید ۵ مگابایت باشد.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
-      if (!result) {
-        alert('خواندن تصویر ناموفق بود. دوباره تلاش کن.');
-        return;
+    const next: ImageAttachment[] = [];
+    for (const file of selectedFiles) {
+      if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+        pushToast(`فرمت ${file.name} مجاز نیست.`, 'error');
+        continue;
       }
-      setImageBase64(result);
-      setImagePreview(result);
-    };
-    reader.onerror = () => {
-      alert('خواندن تصویر ناموفق بود. دوباره تلاش کن.');
-    };
-    reader.readAsDataURL(file);
+      if (file.size > MAX_ATTACHMENT_SIZE) {
+        pushToast(`حجم ${file.name} بیشتر از ۵ مگابایت است.`, 'error');
+        continue;
+      }
+      next.push({
+        id: `${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: 'pending'
+      });
+    }
+
+    if (next.length === 0) {
+      return;
+    }
+
+    setAttachments((prev) => {
+      const merged = [...prev, ...next];
+      if (merged.length > MAX_ATTACHMENT_COUNT) {
+        pushToast('حداکثر ۵ عکس قابل انتخاب است. فقط ۵ مورد اول نگه داشته شد.', 'warning');
+      }
+      const limited = merged.slice(0, MAX_ATTACHMENT_COUNT);
+      const removed = merged.slice(MAX_ATTACHMENT_COUNT);
+      removed.forEach((item) => {
+        URL.revokeObjectURL(item.previewUrl);
+        attachmentUrlsRef.current.delete(item.previewUrl);
+      });
+      limited.forEach((item) => attachmentUrlsRef.current.add(item.previewUrl));
+      return limited;
+    });
   };
 
-  const handleRemoveImage = () => {
-    setImageBase64(null);
-    setImagePreview(null);
+  const handleRemoveImage = (id: string) => {
+    setAttachments((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+        attachmentUrlsRef.current.delete(target.previewUrl);
+      }
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
+  const handleRetryUpload = (id: string) => {
+    setAttachments((prev) => prev.map((item) => (item.id === id ? { ...item, status: 'pending', error: undefined } : item)));
   };
 
   useEffect(() => {
@@ -1114,6 +1208,13 @@ function ChatApp() {
     textarea.style.height = 'auto';
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [inputValue]);
+
+  useEffect(() => {
+    return () => {
+      attachmentUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      attachmentUrlsRef.current.clear();
+    };
+  }, []);
 
   const handleCreateConversation = () => {
     const fresh = createConversation();
@@ -1501,7 +1602,7 @@ function ChatApp() {
     );
   }
 
-  const canSendMessage = !isRecording && !isSending && (inputValue.trim().length > 0 || Boolean(imageBase64));
+  const canSendMessage = !isRecording && !isSending && (inputValue.trim().length > 0 || attachments.length > 0);
 
   return (
     <div className={`app-shell chat-shell ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
@@ -1807,18 +1908,30 @@ function ChatApp() {
               </Button>
             </FieldGroup>
 
-            {imagePreview ? (
-              <div className="image-thumb-wrap">
-                <div className="image-thumb-meta">
-                  <img className="image-thumb" src={imagePreview} alt="تصویر انتخاب‌شده" />
-                  <div className="image-thumb-copy">
-                    <strong>تصویر آماده ارسال</strong>
-                    <span>همراه پیام بعدی فرستاده می‌شود</span>
+            {attachments.length > 0 ? (
+              <div className="image-thumb-grid">
+                {attachments.map((attachment) => (
+                  <div className="image-thumb-wrap" key={attachment.id}>
+                    <div className="image-thumb-meta">
+                      <img className="image-thumb" src={attachment.previewUrl} alt={attachment.file.name} />
+                      <div className="image-thumb-copy">
+                        <strong>{attachment.file.name}</strong>
+                        <span>وضعیت: {attachment.status}</span>
+                        {attachment.error ? <span>{attachment.error}</span> : null}
+                      </div>
+                    </div>
+                    <div className="image-thumb-actions">
+                      {attachment.status === 'error' ? (
+                        <button className="retry-thumb-btn" type="button" onClick={() => handleRetryUpload(attachment.id)}>
+                          تلاش مجدد
+                        </button>
+                      ) : null}
+                      <button className="remove-thumb-btn" type="button" aria-label="حذف تصویر" onClick={() => handleRemoveImage(attachment.id)}>
+                        ✕
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <button className="remove-thumb-btn" type="button" aria-label="حذف تصویر" onClick={handleRemoveImage}>
-                  ✕
-                </button>
+                ))}
               </div>
             ) : null}
 
@@ -1856,7 +1969,7 @@ function ChatApp() {
                           </button>
                         </div>
                       ) : null}
-                      <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImageSelect} />
+                      <input ref={imageInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden onChange={handleImageSelect} />
                     </div>
                   </div>
                 ) : null}
