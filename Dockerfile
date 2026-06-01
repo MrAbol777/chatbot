@@ -48,7 +48,7 @@ WORKDIR /app
 ARG ENABLE_SYSTEM_PROMPT_EDIT=true
 
 COPY backend/package*.json ./backend/
-RUN cd backend && npm install --omit=dev --no-audit --no-fund
+RUN cd backend && npm ci --omit=dev --no-audit --no-fund
 
 COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
