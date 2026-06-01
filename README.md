@@ -24,6 +24,16 @@
   - جایگزینی کنترل‌های raw در `AdminPanel.tsx` (checkbox/select)
   - استانداردسازی کامل message/help/error rendering روی DS
 
+## Guardrailهای فرانت/DS (Stage 5)
+
+- برای UI جدید یا تغییر UI، ابتدا از primitiveهای موجود DS استفاده شود.
+- اگر primitive مناسب وجود ندارد، در PR جداگانه پیشنهاد شود (نیاز + API + A11y).
+- migrationها باید behavior-preserving باشند (بدون تغییر API/state/business logic).
+- CSS تغییرات باید scoped باشد و از leak روی legacy DOM جلوگیری شود.
+- برای هر PR فرانت:
+  - `frontend: npm run build` پاس شود.
+  - یک manual test checklist ارائه شود.
+
 ## امکانات اصلی
 
 - ورود/ثبت‌نام با شماره موبایل و کد تأیید

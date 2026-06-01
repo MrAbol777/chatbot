@@ -9,6 +9,8 @@ const path = require('path');
 const fs = require('fs-extra');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+const { loadRuntimeConfig } = require('./bootstrap/config');
+const { now, log, attachProcessErrorLogging } = require('./bootstrap/logging');
 dotenv.config({
   path: path.join(__dirname, '../.env')
 });
@@ -26,47 +28,25 @@ const { createRepositories } = require('./repositories');
 const app = express();
 const repositories = createRepositories();
 
-const now = () => new Date().toISOString();
-const log = (scope, message, meta) => {
-  if (meta && typeof meta === 'object') {
-    console.log(`[${now()}] [${scope}] ${message} ${JSON.stringify(meta)}`);
-    return;
-  }
-  console.log(`[${now()}] [${scope}] ${message}`);
-};
-
-const normalizePort = (value, fallback = 3000) => {
-  const parsed = Number.parseInt(String(value || ''), 10);
-  if (Number.isInteger(parsed) && parsed > 0 && parsed <= 65535) {
-    return parsed;
-  }
-  return fallback;
-};
-const normalizeBaseUrl = (value, fallback) => String(value || fallback).replace(/\/+$/, '');
-
-const port = normalizePort(process.env.PORT, 3000);
-const host = '0.0.0.0';
-const metisBaseUrl = normalizeBaseUrl(
-  process.env.METIS_OPENAI_BASE_URL || process.env.OPENAI_BASE_URL,
-  'https://api.metisai.ir/openai/v1'
-);
-const defaultModel = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-const metisApiKey =
-  typeof (process.env.METIS_API_KEY || process.env.OPENAI_API_KEY) === 'string'
-    ? (process.env.METIS_API_KEY || process.env.OPENAI_API_KEY).trim()
-    : '';
-const defaultTimeoutMs = Number(process.env.GAPGPT_TIMEOUT_MS || 30000);
-const adminApiKey = typeof process.env.ADMIN_API_KEY === 'string' ? process.env.ADMIN_API_KEY.trim() : '';
-const adminJwtSecret = typeof process.env.ADMIN_JWT_SECRET === 'string' ? process.env.ADMIN_JWT_SECRET.trim() : 'danoa-admin-secret';
-const authJwtSecret = typeof process.env.AUTH_JWT_SECRET === 'string' ? process.env.AUTH_JWT_SECRET.trim() : adminJwtSecret;
-const adminPanelPath = process.env.ADMIN_PANEL_PATH || '/admin-secure-9x7k';
-const adminCookieName = process.env.ADMIN_COOKIE_NAME || 'admin_token';
-const adminConfigPath = path.join(__dirname, '../config.json');
+const {
+  port,
+  host,
+  metisBaseUrl,
+  defaultModel,
+  metisApiKey,
+  defaultTimeoutMs,
+  adminApiKey,
+  adminJwtSecret,
+  authJwtSecret,
+  adminCookieName,
+  adminConfigPath,
+  systemPromptPath,
+  frontendDistPath
+} = loadRuntimeConfig(process.env);
 const openaiClient = new OpenAI({
   apiKey: metisApiKey || 'missing-metis-api-key',
   baseURL: metisBaseUrl
 });
-const systemPromptPath = path.join(__dirname, '../system-prompt.txt');
 
 const promptService = createPromptService({
   fileStore: fs,
@@ -90,13 +70,7 @@ const invalidateSystemPromptCache = () => {
   promptService.invalidateSystemPromptCache();
 };
 
-process.on('uncaughtException', (error) => {
-  console.error('[FATAL] uncaughtException', error);
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('[FATAL] unhandledRejection', reason);
-});
+attachProcessErrorLogging();
 
 console.log('[BOOT] DB mode=mysql');
 
@@ -197,10 +171,10 @@ app.use(createHealthRouter({
 
 initBaleMonitor(app);
 
-app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+app.use(express.static(frontendDistPath));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
 const server = app.listen(port, host, () => {
