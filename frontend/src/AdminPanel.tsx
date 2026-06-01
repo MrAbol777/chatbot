@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-import { Button, TextField } from './design-system/components';
+import { Button, FieldGroup, InlineMessage, TextField } from './design-system/components';
 
 type User = {
   user_id: string;
@@ -459,18 +459,21 @@ function AdminPanel() {
         <div className="admin-section config-panel">
           <h3>پیکربندی سیستم</h3>
           <p className="admin-note">تنظیمات کلی مدل و ویژگی های تجربه کاربری را از این بخش مدیریت کنید.</p>
-          <div className="config-grid">
-            <label className="config-field">
-              <span>Model</span>
-              <input value={config.model || ''} onChange={(e) => setConfig({ ...config, model: e.target.value })} />
-              <small>نام مدل مورد استفاده در پاسخ دهی دستیار</small>
-            </label>
-            <label className="config-field">
-              <span>Timeout (ms)</span>
-              <input type="number" value={config.timeoutMs || 30000} onChange={(e) => setConfig({ ...config, timeoutMs: Number(e.target.value) })} />
-              <small>حداکثر زمان انتظار برای هر درخواست</small>
-            </label>
-          </div>
+          <FieldGroup direction="row">
+            <TextField
+              label="Model"
+              value={config.model || ''}
+              onChange={(e) => setConfig({ ...config, model: e.target.value })}
+              helperText="نام مدل مورد استفاده در پاسخ دهی دستیار"
+            />
+            <TextField
+              label="Timeout (ms)"
+              type="number"
+              value={String(config.timeoutMs || 30000)}
+              onChange={(e) => setConfig({ ...config, timeoutMs: Number(e.target.value) })}
+              helperText="حداکثر زمان انتظار برای هر درخواست"
+            />
+          </FieldGroup>
           <h4>ویژگی ها</h4>
           <div className="config-flags">
             <label><input type="checkbox" checked={Boolean(config.features?.voiceInput)} onChange={(e) => setConfig({ ...config, features: { ...config.features, voiceInput: e.target.checked } })} /> voiceInput</label>
@@ -478,14 +481,10 @@ function AdminPanel() {
             <label><input type="checkbox" checked={Boolean(config.features?.practiceMode)} onChange={(e) => setConfig({ ...config, features: { ...config.features, practiceMode: e.target.checked } })} /> practiceMode</label>
           </div>
           <div className="config-actions">
-            <button onClick={() => void saveConfig()} disabled={configSaving}>
+            <Button onClick={() => void saveConfig()} disabled={configSaving}>
               {configSaving ? 'در حال ذخیره...' : 'ذخیره'}
-            </button>
-            {configMessage ? (
-              <span className={configMessage.includes('موفقیت') ? 'admin-success' : 'admin-error'}>
-                {configMessage}
-              </span>
-            ) : null}
+            </Button>
+            {configMessage ? <InlineMessage text={configMessage} variant={configMessage.includes('موفقیت') ? 'success' : 'error'} /> : null}
           </div>
 
           <div className="system-prompt-box">
@@ -500,13 +499,11 @@ function AdminPanel() {
               rows={14}
             />
             <div className="config-actions">
-              <button onClick={() => void saveSystemPrompt()} disabled={systemPromptSaving || systemPromptLoading}>
+              <Button onClick={() => void saveSystemPrompt()} disabled={systemPromptSaving || systemPromptLoading}>
                 {systemPromptSaving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
-              </button>
+              </Button>
               {systemPromptMessage ? (
-                <span className={systemPromptMessage.includes('موفقیت') ? 'admin-success' : 'admin-error'}>
-                  {systemPromptMessage}
-                </span>
+                <InlineMessage text={systemPromptMessage} variant={systemPromptMessage.includes('موفقیت') ? 'success' : 'error'} />
               ) : null}
             </div>
           </div>
