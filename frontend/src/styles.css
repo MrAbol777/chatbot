@@ -667,6 +667,24 @@ textarea {
   padding-top: 14px;
 }
 
+.admin-row-actions.ds-field-group--row > * {
+  min-width: auto;
+  flex: 0 0 auto;
+}
+
+.admin-report-options {
+  margin-top: 8px;
+}
+
+.admin-report-options.ds-field-group--row > * {
+  min-width: auto;
+  flex: 0 0 auto;
+}
+
+.admin-report-actions {
+  margin-top: 12px;
+}
+
 @keyframes admin-skeleton {
   0% {
     background-position: 100% 50%;
@@ -1361,6 +1379,11 @@ textarea {
   overflow-x: auto;
   padding: 0 2px 2px;
   scrollbar-width: thin;
+}
+
+.chips-row.ds-field-group--row > * {
+  flex: 0 0 auto;
+  min-width: auto;
 }
 
 .chips-row button {

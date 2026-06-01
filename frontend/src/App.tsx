@@ -5,7 +5,7 @@ import { ChatMessage, Conversation, UserProfile } from './types';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
 import defaultBotAvatar from './image.png';
-import { Button, Dialog, TextField, ToastProvider, useToast } from './design-system/components';
+import { Button, Dialog, FieldGroup, TextField, ToastProvider, useToast } from './design-system/components';
 import DesignSystemPreview from './design-system/preview/DesignSystemPreview';
 
 const PROFILE_KEY = 'chat_profile';
@@ -1792,20 +1792,20 @@ function ChatApp() {
 
         <footer className="input-area" ref={inputAreaRef}>
           <div className="input-shell">
-            <div className="chips-row">
-              <button type="button" onClick={() => void handleSendMessage('📚 کمک درسی')}>
+            <FieldGroup direction="row" className="chips-row">
+              <Button type="button" variant="ghost" size="sm" onClick={() => void handleSendMessage('📚 کمک درسی')}>
                 <span aria-hidden="true">📚</span>
                 کمک درسی
-              </button>
-              <button type="button" onClick={() => void handleSendMessage('💬 احساسات')}>
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => void handleSendMessage('💬 احساسات')}>
                 <span aria-hidden="true">💬</span>
                 احساسات
-              </button>
-              <button type="button" onClick={() => void handleSendMessage('✨ داستان')}>
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => void handleSendMessage('✨ داستان')}>
                 <span aria-hidden="true">✨</span>
                 داستان
-              </button>
-            </div>
+              </Button>
+            </FieldGroup>
 
             {imagePreview ? (
               <div className="image-thumb-wrap">

@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-import { Button, FieldGroup, InlineMessage, TextField } from './design-system/components';
+import { Button, FieldGroup, InlineMessage, TextAreaField, TextField } from './design-system/components';
 
 type User = {
   user_id: string;
@@ -418,9 +418,17 @@ function AdminPanel() {
                   <td>{user.name}</td><td>{user.age}</td><td>{user.phone || '-'}</td><td>{user.registered_at || '-'}</td>
                   <td>{user.conversationCount || 0}</td><td>{user.last_activity || '-'}</td>
                   <td>
-                    <button onClick={() => void openUser(user.user_id)}>پروفایل</button>{' '}
-                    <button onClick={() => void toggleBan(user)}>{user.isBanned ? 'رفع مسدود' : 'مسدود'}</button>{' '}
-                    <button onClick={() => void deleteUser(user)}>حذف</button>
+                    <FieldGroup direction="row" className="admin-row-actions">
+                      <Button variant="ghost" size="sm" onClick={() => void openUser(user.user_id)}>
+                        پروفایل
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => void toggleBan(user)}>
+                        {user.isBanned ? 'رفع مسدود' : 'مسدود'}
+                      </Button>
+                      <Button variant="danger" size="sm" onClick={() => void deleteUser(user)}>
+                        حذف
+                      </Button>
+                    </FieldGroup>
                   </td>
                 </tr>
               ))}
@@ -475,37 +483,38 @@ function AdminPanel() {
             />
           </FieldGroup>
           <h4>ویژگی ها</h4>
-          <div className="config-flags">
+          <FieldGroup direction="row" className="config-flags">
             <label><input type="checkbox" checked={Boolean(config.features?.voiceInput)} onChange={(e) => setConfig({ ...config, features: { ...config.features, voiceInput: e.target.checked } })} /> voiceInput</label>
             <label><input type="checkbox" checked={Boolean(config.features?.quickChips)} onChange={(e) => setConfig({ ...config, features: { ...config.features, quickChips: e.target.checked } })} /> quickChips</label>
             <label><input type="checkbox" checked={Boolean(config.features?.practiceMode)} onChange={(e) => setConfig({ ...config, features: { ...config.features, practiceMode: e.target.checked } })} /> practiceMode</label>
-          </div>
-          <div className="config-actions">
+          </FieldGroup>
+          <FieldGroup direction="row" className="config-actions">
             <Button onClick={() => void saveConfig()} disabled={configSaving}>
               {configSaving ? 'در حال ذخیره...' : 'ذخیره'}
             </Button>
             {configMessage ? <InlineMessage text={configMessage} variant={configMessage.includes('موفقیت') ? 'success' : 'error'} /> : null}
-          </div>
+          </FieldGroup>
 
           <div className="system-prompt-box">
             <h4>سیستم پرامپت (System Prompt)</h4>
             <p className="admin-note">متن دستور پایه مدل در این بخش مدیریت می شود و بدون ری استارت سرور اعمال خواهد شد.</p>
-            {systemPromptLoading ? <p className="admin-note">در حال بارگذاری پرامپت...</p> : null}
-            <textarea
+            {systemPromptLoading ? <InlineMessage text="در حال بارگذاری پرامپت..." variant="help" /> : null}
+            <TextAreaField
               className="system-prompt-textarea"
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder="متن سیستم پرامپت را وارد کنید"
               rows={14}
+              aria-label="سیستم پرامپت"
             />
-            <div className="config-actions">
+            <FieldGroup direction="row" className="config-actions">
               <Button onClick={() => void saveSystemPrompt()} disabled={systemPromptSaving || systemPromptLoading}>
                 {systemPromptSaving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
               </Button>
               {systemPromptMessage ? (
                 <InlineMessage text={systemPromptMessage} variant={systemPromptMessage.includes('موفقیت') ? 'success' : 'error'} />
               ) : null}
-            </div>
+            </FieldGroup>
           </div>
         </div>
       ) : null}
@@ -523,10 +532,14 @@ function AdminPanel() {
 
       <div className="admin-section admin-report">
         <h3>گزارش CSV</h3>
-        <label><input type="checkbox" checked={reportOptions.users} onChange={(e) => setReportOptions({ ...reportOptions, users: e.target.checked })} /> لیست کاربران</label>
-        <label><input type="checkbox" checked={reportOptions.errors} onChange={(e) => setReportOptions({ ...reportOptions, errors: e.target.checked })} /> خطاها</label>
-        <label><input type="checkbox" checked={reportOptions.conversations} onChange={(e) => setReportOptions({ ...reportOptions, conversations: e.target.checked })} /> خلاصه گفتگوها</label>
-        <div><button onClick={downloadReport}>دانلود گزارش</button></div>
+        <FieldGroup direction="row" className="admin-report-options">
+          <label><input type="checkbox" checked={reportOptions.users} onChange={(e) => setReportOptions({ ...reportOptions, users: e.target.checked })} /> لیست کاربران</label>
+          <label><input type="checkbox" checked={reportOptions.errors} onChange={(e) => setReportOptions({ ...reportOptions, errors: e.target.checked })} /> خطاها</label>
+          <label><input type="checkbox" checked={reportOptions.conversations} onChange={(e) => setReportOptions({ ...reportOptions, conversations: e.target.checked })} /> خلاصه گفتگوها</label>
+        </FieldGroup>
+        <FieldGroup direction="row" className="admin-report-actions">
+          <Button variant="secondary" onClick={downloadReport}>دانلود گزارش</Button>
+        </FieldGroup>
       </div>
     </div>
   );
