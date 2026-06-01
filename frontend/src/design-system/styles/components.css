@@ -51,3 +51,54 @@
 .ds-auth-actions { display: flex; gap: var(--space-3); }
 .ds-auth-actions > * { flex: 1; }
 .ds-inline-actions { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+
+/* FieldGroup */
+.ds-field-group {
+  display: flex;
+  gap: var(--ds-spacing-md, var(--space-4));
+}
+
+.ds-field-group--column {
+  flex-direction: column;
+}
+
+.ds-field-group--row {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.ds-field-group--row > * {
+  flex: 1 1 0;
+  min-width: 200px;
+}
+
+/* InlineMessage */
+.ds-inline-message {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.ds-inline-message__icon {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.ds-inline-message__text {
+  flex: 1;
+}
+
+.ds-inline-message--error {
+  color: var(--color-danger);
+}
+
+.ds-inline-message--success {
+  color: var(--color-success);
+}
+
+.ds-inline-message--help {
+  color: var(--color-muted);
+}

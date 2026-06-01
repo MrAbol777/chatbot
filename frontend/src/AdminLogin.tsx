@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Button, Card, TextField } from './design-system/components';
+import { Button, Card, FieldGroup, TextField } from './design-system/components';
 
 type Props = {
   onLoginSuccess: () => void;
@@ -41,19 +41,25 @@ function AdminLogin({ onLoginSuccess }: Props) {
     <Card style={{ maxWidth: 420, margin: '60px auto' }}>
       <h2 style={{ marginTop: 0 }}>ورود ادمین</h2>
       <form onSubmit={handleSubmit}>
-        <TextField label="نام کاربری" value={username} onChange={(event) => setUsername(event.target.value)} />
-        <div style={{ height: 12 }} />
-        <TextField
-          label="رمز عبور"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          errorText={error || undefined}
-        />
-        <div style={{ height: 16 }} />
-        <Button type="submit" disabled={loading}>
-          {loading ? 'در حال ورود...' : 'ورود'}
-        </Button>
+        <FieldGroup direction="column">
+          <TextField 
+            label="نام کاربری" 
+            value={username} 
+            onChange={(event) => setUsername(event.target.value)} 
+          />
+          
+          <TextField
+            label="رمز عبور"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            errorText={error || undefined}
+          />
+
+          <Button type="submit" disabled={loading}>
+            {loading ? 'در حال ورود...' : 'ورود'}
+          </Button>
+        </FieldGroup>
       </form>
     </Card>
   );
