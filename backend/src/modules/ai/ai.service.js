@@ -26,18 +26,39 @@ const normalizeHistory = (history, currentMessage) => {
   return clean;
 };
 
+const isValidChatContentPart = (part) => {
+  if (!part || typeof part !== 'object') {
+    return false;
+  }
+
+  if (part.type === 'text') {
+    return typeof part.text === 'string' && part.text.trim().length > 0;
+  }
+
+  if (part.type === 'image_url') {
+    return typeof part.image_url?.url === 'string' && part.image_url.url.startsWith('data:image/');
+  }
+
+  return false;
+};
+
 const buildChatMessages = (messages) =>
   (Array.isArray(messages) ? messages : [])
     .filter(
       (item) =>
         item &&
         (item.role === 'system' || item.role === 'user' || item.role === 'assistant') &&
-        typeof item.content === 'string' &&
-        item.content.trim().length > 0
+        ((typeof item.content === 'string' && item.content.trim().length > 0) ||
+          (item.role === 'user' && Array.isArray(item.content) && item.content.some(isValidChatContentPart)))
     )
     .map((item) => ({
       role: item.role,
-      content: item.content.trim()
+      content:
+        typeof item.content === 'string'
+          ? item.content.trim()
+          : item.content.filter(isValidChatContentPart).map((part) =>
+              part.type === 'text' ? { type: 'text', text: part.text.trim() } : part
+            )
     }));
 
 const extractReply = (response) => {
@@ -76,6 +97,50 @@ const detectCategory = (msg) => {
   return 'general';
 };
 
+const imageIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const normalizeImageIds = (imageIds) => {
+  if (!Array.isArray(imageIds)) {
+    return [];
+  }
+
+  const seen = new Set();
+  const clean = [];
+  for (const item of imageIds) {
+    if (typeof item !== 'string') {
+      continue;
+    }
+    const value = item.trim();
+    if (!value || !imageIdPattern.test(value) || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    clean.push(value);
+    if (clean.length >= 5) {
+      break;
+    }
+  }
+  return clean;
+};
+
+const buildImageContentParts = (message, images) => {
+  const text =
+    typeof message === 'string' && message.trim()
+      ? message.trim()
+      : 'این عکس را با زبان ساده توصیف کن و اگر سوال، نوشته، تمرین یا نکته‌ای در تصویر هست، به همان پاسخ بده.';
+
+  return [
+    { type: 'text', text },
+    ...images.map((image) => ({
+      type: 'image_url',
+      image_url: {
+        url: `data:${image.mimeType};base64,${image.base64}`,
+        detail: 'auto'
+      }
+    }))
+  ];
+};
+
 const withTimeout = async (promise, timeoutMs) => {
   let timer = null;
 
@@ -107,6 +172,7 @@ function createAiService({
   usersRepository,
   conversationsRepository,
   eventsRepository,
+  uploadedImagesRepository = null,
   logger = console
 }) {
   const log = (scope, message, meta) => {
@@ -245,14 +311,18 @@ function createAiService({
     }
   };
 
-  const sendChatMessage = async ({ message, profile, history, conversationId, requestId }) => {
+  const sendChatMessage = async ({ message, profile, history, conversationId, imageIds, requestId }) => {
     const trimmedMessage = typeof message === 'string' ? message.trim() : '';
+    const rawImageIds = Array.isArray(imageIds) ? imageIds : [];
+    const normalizedImageIds = normalizeImageIds(imageIds);
+    const hasImages = normalizedImageIds.length > 0;
 
     log('CHAT', 'incoming_message', {
       requestId,
       hasProfile: Boolean(profile),
       historyCount: Array.isArray(history) ? history.length : 0,
-      messageLength: trimmedMessage.length
+      messageLength: trimmedMessage.length,
+      imageCount: normalizedImageIds.length
     });
 
     if (!apiKey) {
@@ -261,24 +331,51 @@ function createAiService({
       throw error;
     }
 
-    if (!trimmedMessage) {
+    if (!trimmedMessage && !hasImages) {
       const error = new Error('INVALID_MESSAGE');
       error.code = 'INVALID_MESSAGE';
       throw error;
     }
 
+    if (
+      rawImageIds.some((item) => typeof item !== 'string' || !imageIdPattern.test(item.trim()))
+    ) {
+      const error = new Error('INVALID_IMAGE');
+      error.code = 'INVALID_IMAGE';
+      throw error;
+    }
+
+    if (hasImages && !uploadedImagesRepository) {
+      const error = new Error('INVALID_IMAGE');
+      error.code = 'INVALID_IMAGE';
+      throw error;
+    }
+
+    const resolvedImages = hasImages ? await uploadedImagesRepository.getByIds(normalizedImageIds) : [];
+    if (resolvedImages.length !== normalizedImageIds.length) {
+      const error = new Error('IMAGE_NOT_FOUND');
+      error.code = 'IMAGE_NOT_FOUND';
+      error.details = {
+        requested: normalizedImageIds.length,
+        found: resolvedImages.length
+      };
+      throw error;
+    }
+
     const userId = await usersRepository.ensureUserExists(profile || {});
-    const category = detectCategory(trimmedMessage);
+    const messageForHistory = trimmedMessage || '📷 عکس ارسال شد';
+    const category = detectCategory(messageForHistory);
     const normalizedConversationId =
       typeof conversationId === 'string' && conversationId.trim().length > 0 ? conversationId.trim() : 'default';
     const memoryKey = `${userId}:${normalizedConversationId}`;
 
     await eventsRepository.logEvent(userId, 'message_sent', category, {
-      messageLength: trimmedMessage.length,
+      messageLength: messageForHistory.length,
+      imageCount: normalizedImageIds.length,
       requestId
     });
 
-    const normalizedHistory = normalizeHistory(history, trimmedMessage);
+    const normalizedHistory = normalizeHistory(history, messageForHistory);
     const storedHistory = conversationStore.get(memoryKey);
     const dbHistory = await conversationsRepository.getConversationMessages(userId, normalizedConversationId);
     let effectiveHistory =
@@ -287,8 +384,8 @@ function createAiService({
       effectiveHistory = [...dbHistory];
     }
     const lastItem = effectiveHistory[effectiveHistory.length - 1];
-    if (!lastItem || lastItem.role !== 'user' || lastItem.content !== trimmedMessage) {
-      effectiveHistory.push({ role: 'user', content: trimmedMessage });
+    if (!lastItem || lastItem.role !== 'user' || lastItem.content !== messageForHistory) {
+      effectiveHistory.push({ role: 'user', content: messageForHistory });
     }
     if (normalizedHistory.length > 50) {
       log('CHAT', 'long_conversation_warning', {
@@ -299,12 +396,23 @@ function createAiService({
     }
 
     const systemPrompt = await promptService.getSystemPrompt();
+    const modelHistory = [...effectiveHistory];
+    if (resolvedImages.length > 0) {
+      const lastUserIndex = modelHistory.findLastIndex((item) => item.role === 'user');
+      if (lastUserIndex >= 0) {
+        modelHistory[lastUserIndex] = {
+          ...modelHistory[lastUserIndex],
+          content: buildImageContentParts(trimmedMessage, resolvedImages)
+        };
+      }
+    }
+
     const messages = [
       {
         role: 'system',
         content: systemPrompt
       },
-      ...effectiveHistory
+      ...modelHistory
     ];
 
     const isFirstMessage = normalizedHistory.length === 1;

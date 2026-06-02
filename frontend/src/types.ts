@@ -17,6 +17,10 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  images?: Array<{
+    url: string;
+    alt?: string;
+  }>;
 }
 
 export interface Conversation {

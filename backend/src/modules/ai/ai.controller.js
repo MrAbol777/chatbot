@@ -1,12 +1,13 @@
 function createAiController({ aiService, errorsRepository }) {
   const postChat = async (req, res) => {
     try {
-      const { message, profile, history, conversationId } = req.body || {};
+      const { message, profile, history, conversationId, imageIds } = req.body || {};
       const result = await aiService.sendChatMessage({
         message,
         profile,
         history,
         conversationId,
+        imageIds,
         requestId: res.locals.requestId
       });
 
@@ -19,6 +20,14 @@ function createAiController({ aiService, errorsRepository }) {
 
       if (error && typeof error === 'object' && error.code === 'INVALID_MESSAGE') {
         return res.status(400).json({ error: 'پیام معتبر ارسال نشده است.' });
+      }
+
+      if (error && typeof error === 'object' && error.code === 'INVALID_IMAGE') {
+        return res.status(400).json({ error: 'تصویر معتبر ارسال نشده است.' });
+      }
+
+      if (error && typeof error === 'object' && error.code === 'IMAGE_NOT_FOUND') {
+        return res.status(404).json({ error: 'تصویر ارسال شده پیدا نشد. لطفاً دوباره آپلود کن.' });
       }
 
       if (error && typeof error === 'object' && error.code === 'UPSTREAM_TIMEOUT') {

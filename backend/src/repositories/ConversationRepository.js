@@ -111,7 +111,16 @@ class ConversationRepository {
               .map((msg) => ({
                 role: msg.role,
                 content: msg.content.trim(),
-                timestamp: typeof msg.timestamp === 'string' ? msg.timestamp : nowIso()
+                timestamp: typeof msg.timestamp === 'string' ? msg.timestamp : nowIso(),
+                images: Array.isArray(msg.images)
+                  ? msg.images
+                      .filter((image) => image && typeof image.url === 'string' && image.url.trim())
+                      .slice(0, 5)
+                      .map((image) => ({
+                        url: image.url.trim(),
+                        alt: typeof image.alt === 'string' ? image.alt.trim() : ''
+                      }))
+                  : undefined
               }))
           : [];
 

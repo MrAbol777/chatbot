@@ -26,7 +26,16 @@ function createConversationsService({ usersRepository, conversationsRepository, 
         ? item.messages.map((msg) => ({
             role: msg?.role,
             content: msg?.content,
-            timestamp: msg?.timestamp
+            timestamp: msg?.timestamp,
+            images: Array.isArray(msg?.images)
+              ? msg.images
+                  .filter((image) => image && typeof image.url === 'string' && image.url.trim())
+                  .slice(0, 5)
+                  .map((image) => ({
+                    url: image.url.trim(),
+                    alt: typeof image.alt === 'string' ? image.alt.trim() : ''
+                  }))
+              : undefined
           }))
         : []
     }));

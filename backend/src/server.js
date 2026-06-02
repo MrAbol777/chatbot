@@ -32,6 +32,12 @@ const repositories = createRepositories();
 const uploadsDir = path.join(__dirname, '../uploads');
 const allowedImageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const imageMimeTypeByExtension = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp'
+};
 const imageIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 fs.ensureDirSync(uploadsDir);
@@ -39,6 +45,43 @@ fs.ensureDirSync(uploadsDir);
 const getAllowedExtension = (filename = '') => {
   const ext = path.extname(filename || '').toLowerCase();
   return allowedImageExtensions.has(ext) ? ext : null;
+};
+
+const getUploadedImageById = async (imageId) => {
+  if (typeof imageId !== 'string' || !imageIdPattern.test(imageId)) {
+    return null;
+  }
+
+  for (const ext of allowedImageExtensions) {
+    const candidate = path.join(uploadsDir, `${imageId}${ext}`);
+    if (await fs.pathExists(candidate)) {
+      const stat = await fs.stat(candidate);
+      if (!stat.isFile() || stat.size > 5 * 1024 * 1024) {
+        return null;
+      }
+      const buffer = await fs.readFile(candidate);
+      return {
+        imageId,
+        mimeType: imageMimeTypeByExtension[ext],
+        base64: buffer.toString('base64')
+      };
+    }
+  }
+
+  return null;
+};
+
+const uploadedImagesRepository = {
+  getByIds: async (imageIds) => {
+    const images = [];
+    for (const imageId of Array.isArray(imageIds) ? imageIds : []) {
+      const image = await getUploadedImageById(imageId);
+      if (image) {
+        images.push(image);
+      }
+    }
+    return images;
+  }
 };
 
 const uploadStorage = multer.diskStorage({
@@ -257,6 +300,7 @@ app.use(createAiRouter({
   conversationsRepository: repositories.conversations,
   eventsRepository: repositories.events,
   errorsRepository: repositories.errors,
+  uploadedImagesRepository,
   logger: {
     log
   }

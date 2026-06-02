@@ -35,7 +35,7 @@ type PersonalityProfile = {
   lastTopics: string[];
 };
 type AuthMode = 'login' | 'signup';
-type ApiErrorData = { error?: string; details?: string; redirectTo?: AuthMode | null };
+type ApiErrorData = { error?: string; message?: string; details?: string; redirectTo?: AuthMode | null };
 type ApiError = Error & { redirectTo?: AuthMode | null };
 type AttachmentStatus = 'pending' | 'uploading' | 'uploaded' | 'error';
 type ImageAttachment = {
@@ -139,7 +139,7 @@ const updatePersonalityFromMessage = (current: PersonalityProfile, message: stri
 
 const postChatWithRetry = async (payload: {
   message: string;
-  image?: string;
+  imageIds?: string[];
   profile: UserProfile;
   personality: PersonalityProfile;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -188,6 +188,14 @@ const parseApiError = async (response: Response): Promise<ApiErrorData> => {
 const buildRequestErrorMessage = async (response: Response) => {
   if (response.status === 401 || response.status === 403) {
     return 'احراز هویت API نامعتبر است. لطفاً کلید API را در بک اند بررسی کن.';
+  }
+
+  const payload = await parseApiError(response);
+  if (payload.error?.trim()) {
+    return payload.error.trim();
+  }
+  if (payload.message?.trim()) {
+    return payload.message.trim();
   }
 
   return 'پاسخ سرور دریافت نشد.';
@@ -293,7 +301,7 @@ const loadRemoteConversations = async (profile: UserProfile & { id?: string | nu
       pinned?: boolean;
       created_at?: string;
       updated_at?: string;
-      messages?: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string }>;
+      messages?: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string; images?: Array<{ url: string; alt?: string }> }>;
     }>;
   };
 };
@@ -333,7 +341,7 @@ const normalizeConversationFromServer = (item: {
   pinned?: boolean;
   created_at?: string;
   updated_at?: string;
-  messages?: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string }>;
+  messages?: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string; images?: Array<{ url: string; alt?: string }> }>;
 }): Conversation => {
   const createdAt = item.created_at || new Date().toISOString();
   const updatedAt = item.updated_at || createdAt;
@@ -341,7 +349,15 @@ const normalizeConversationFromServer = (item: {
     ? item.messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
-        timestamp: msg.timestamp || updatedAt
+        timestamp: msg.timestamp || updatedAt,
+        images: Array.isArray(msg.images)
+          ? msg.images
+              .filter((image) => image && typeof image.url === 'string' && image.url.trim().length > 0)
+              .map((image) => ({
+                url: image.url.trim(),
+                alt: typeof image.alt === 'string' && image.alt.trim() ? image.alt.trim() : 'تصویر ارسال شده'
+              }))
+          : undefined
       }))
     : [];
 
@@ -974,11 +990,13 @@ function ChatApp() {
     }
 
     const content = (value ?? inputValue).trim();
-    if (!content && attachments.length === 0) {
+    const hasAttachments = attachments.length > 0;
+    if (!content && !hasAttachments) {
       return;
     }
 
-    const nextPersonality = updatePersonalityFromMessage(normalizePersonality(profile.personality), content);
+    const effectiveUserText = content || 'لطفاً محتوای عکس را توضیح بده.';
+    const nextPersonality = updatePersonalityFromMessage(normalizePersonality(profile.personality), effectiveUserText);
     const nextProfile: AppProfile = {
       ...profile,
       personality: nextPersonality
@@ -989,14 +1007,14 @@ function ChatApp() {
     const currentConversation = ensureConversation();
     const userMessage: ChatMessage = {
       role: 'user',
-      content,
+      content: content || '📷 عکس ارسال شد',
       timestamp: new Date().toISOString()
     };
 
     const updatedMessages = [...currentConversation.messages, userMessage];
     const nextTitle =
       currentConversation.title === DEFAULT_TITLE && currentConversation.messages.length === 0
-        ? inferTitle(content)
+        ? inferTitle(content || 'عکس')
         : currentConversation.title;
 
     updateConversation(currentConversation.id, (item) => ({
@@ -1010,6 +1028,9 @@ function ChatApp() {
     setIsSending(true);
 
     try {
+      const uploadedImageIds = attachments
+        .filter((item) => item.status === 'uploaded' && typeof item.imageId === 'string' && item.imageId.trim().length > 0)
+        .map((item) => String(item.imageId));
       const pendingOrErrorAttachments = attachments.filter((item) => item.status === 'pending' || item.status === 'error');
       if (pendingOrErrorAttachments.length > 0) {
         setAttachments((prev) =>
@@ -1059,7 +1080,6 @@ function ChatApp() {
         }
 
         const uploadedItems = Array.isArray(uploadData?.images) ? uploadData.images : [];
-        const uploadedImageIds: string[] = [];
         setAttachments((prev) =>
           prev.map((item) => {
             const pendingIndex = pendingOrErrorAttachments.findIndex((target) => target.id === item.id);
@@ -1077,6 +1097,22 @@ function ChatApp() {
         console.log('[UPLOAD][success][imageIds]', uploadedImageIds);
       }
 
+      if (uploadedImageIds.length > 0) {
+        const messageImages = uploadedImageIds.map((imageId, index) => ({
+          url: `/api/uploads/images/${imageId}`,
+          alt: `تصویر ارسال شده ${index + 1}`
+        }));
+        updateConversation(currentConversation.id, (item) => ({
+          ...item,
+          messages: item.messages.map((message) =>
+            message.role === 'user' && message.timestamp === userMessage.timestamp
+              ? { ...message, images: messageImages }
+              : message
+          ),
+          updatedAt: new Date().toISOString()
+        }));
+      }
+
       const history = updatedMessages.map((msg) => ({
         role: msg.role,
         content: msg.content
@@ -1084,6 +1120,7 @@ function ChatApp() {
 
       const response = await postChatWithRetry({
         message: content,
+        imageIds: uploadedImageIds,
         profile: nextProfile,
         personality: nextPersonality,
         history,
@@ -1109,6 +1146,13 @@ function ChatApp() {
         messages: [...item.messages, botMessage],
         updatedAt: new Date().toISOString()
       }));
+      setAttachments((prev) => {
+        prev.forEach((item) => {
+          URL.revokeObjectURL(item.previewUrl);
+          attachmentUrlsRef.current.delete(item.previewUrl);
+        });
+        return [];
+      });
     } catch (error) {
       const fallbackText =
         error instanceof Error && error.message.trim()
@@ -1868,7 +1912,23 @@ function ChatApp() {
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                   </div>
                 ) : (
-                  <div className="bubble">{message.content}</div>
+                  <div className="bubble">
+                    {message.content ? <div>{message.content}</div> : null}
+                    {Array.isArray(message.images) && message.images.length > 0 ? (
+                      <div className="message-image-grid">
+                        {message.images.map((image, imageIndex) => (
+                          <img
+                            key={`${image.url}-${imageIndex}`}
+                            className="message-image"
+                            src={image.url}
+                            alt={image.alt || 'تصویر ارسال شده'}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 )}
               </div>
             ))
