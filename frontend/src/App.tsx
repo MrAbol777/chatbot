@@ -990,7 +990,9 @@ function ChatApp() {
     }
 
     const content = (value ?? inputValue).trim();
-    const hasAttachments = attachments.length > 0;
+    const attachmentsAtSend = [...attachments];
+    const sentAttachmentIds = new Set(attachmentsAtSend.map((item) => item.id));
+    const hasAttachments = attachmentsAtSend.length > 0;
     if (!content && !hasAttachments) {
       return;
     }
@@ -1005,10 +1007,15 @@ function ChatApp() {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
 
     const currentConversation = ensureConversation();
+    const previewImages = attachmentsAtSend.map((attachment, index) => ({
+      url: attachment.previewUrl,
+      alt: attachment.file.name || `تصویر ارسال شده ${index + 1}`
+    }));
     const userMessage: ChatMessage = {
       role: 'user',
       content: content || '📷 عکس ارسال شد',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      images: previewImages.length > 0 ? previewImages : undefined
     };
 
     const updatedMessages = [...currentConversation.messages, userMessage];
@@ -1025,24 +1032,17 @@ function ChatApp() {
     }));
 
     setInputValue('');
+    if (sentAttachmentIds.size > 0) {
+      setAttachments((prev) => prev.filter((item) => !sentAttachmentIds.has(item.id)));
+    }
     setIsSending(true);
 
     try {
-      const attachmentsAtSend = [...attachments];
-      const sentAttachmentIds = new Set(attachmentsAtSend.map((item) => item.id));
       const uploadedImageIds = attachmentsAtSend
         .filter((item) => item.status === 'uploaded' && typeof item.imageId === 'string' && item.imageId.trim().length > 0)
         .map((item) => String(item.imageId));
       const pendingOrErrorAttachments = attachmentsAtSend.filter((item) => item.status === 'pending' || item.status === 'error');
       if (pendingOrErrorAttachments.length > 0) {
-        setAttachments((prev) =>
-          prev.map((item) =>
-            pendingOrErrorAttachments.some((target) => target.id === item.id)
-              ? { ...item, status: 'uploading', error: undefined }
-              : item
-          )
-        );
-
         const formData = new FormData();
         pendingOrErrorAttachments.forEach((attachment) => {
           formData.append('images', attachment.file);
@@ -1057,26 +1057,28 @@ function ChatApp() {
           });
           uploadData = await uploadResponse.json();
         } catch (_uploadNetworkError) {
-          setAttachments((prev) =>
-            prev.map((item) =>
-              pendingOrErrorAttachments.some((target) => target.id === item.id)
-                ? { ...item, status: 'error', error: 'آپلود تصویر با خطا مواجه شد.' }
-                : item
-            )
-          );
+          setAttachments((prev) => [
+            ...pendingOrErrorAttachments.map((item) => ({
+              ...item,
+              status: 'error' as AttachmentStatus,
+              error: 'آپلود تصویر با خطا مواجه شد.'
+            })),
+            ...prev
+          ]);
           pushToast('آپلود تصویر ناموفق: خطای شبکه', 'danger');
           return;
         }
 
         if (!uploadResponse.ok) {
           const uploadError = uploadData?.message || uploadData?.error || 'آپلود تصویر ناموفق بود.';
-          setAttachments((prev) =>
-            prev.map((item) =>
-              pendingOrErrorAttachments.some((target) => target.id === item.id)
-                ? { ...item, status: 'error', error: String(uploadError) }
-                : item
-            )
-          );
+          setAttachments((prev) => [
+            ...pendingOrErrorAttachments.map((item) => ({
+              ...item,
+              status: 'error' as AttachmentStatus,
+              error: String(uploadError)
+            })),
+            ...prev
+          ]);
           pushToast(`آپلود تصویر ناموفق: ${String(uploadError)}`, 'danger');
           return;
         }
@@ -1090,27 +1092,19 @@ function ChatApp() {
           nextUploadedImageIds.length !== pendingOrErrorAttachments.length ||
           nextUploadedImageIds.some((imageId: string) => !imageId)
         ) {
-          setAttachments((prev) =>
-            prev.map((item) =>
-              pendingOrErrorAttachments.some((target) => target.id === item.id)
-                ? { ...item, status: 'error', error: 'imageId دریافت نشد.' }
-                : item
-            )
-          );
+          setAttachments((prev) => [
+            ...pendingOrErrorAttachments.map((item) => ({
+              ...item,
+              status: 'error' as AttachmentStatus,
+              error: 'imageId دریافت نشد.'
+            })),
+            ...prev
+          ]);
           pushToast('آپلود تصویر ناموفق: شناسه تصویر دریافت نشد.', 'danger');
           return;
         }
 
         uploadedImageIds.push(...nextUploadedImageIds);
-        setAttachments((prev) =>
-          prev.map((item) => {
-            const pendingIndex = pendingOrErrorAttachments.findIndex((target) => target.id === item.id);
-            if (pendingIndex === -1) {
-              return item;
-            }
-            return { ...item, status: 'uploaded', imageId: nextUploadedImageIds[pendingIndex], error: undefined };
-          })
-        );
         console.log('[UPLOAD][success][imageIds]', uploadedImageIds);
       }
 
@@ -1128,18 +1122,9 @@ function ChatApp() {
           ),
           updatedAt: new Date().toISOString()
         }));
-      }
-
-      if (sentAttachmentIds.size > 0) {
-        setAttachments((prev) => {
-          const remaining = prev.filter((item) => !sentAttachmentIds.has(item.id));
-          prev.forEach((item) => {
-            if (sentAttachmentIds.has(item.id)) {
-              URL.revokeObjectURL(item.previewUrl);
-              attachmentUrlsRef.current.delete(item.previewUrl);
-            }
-          });
-          return remaining;
+        attachmentsAtSend.forEach((attachment) => {
+          URL.revokeObjectURL(attachment.previewUrl);
+          attachmentUrlsRef.current.delete(attachment.previewUrl);
         });
       }
 
