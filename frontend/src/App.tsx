@@ -1028,10 +1028,12 @@ function ChatApp() {
     setIsSending(true);
 
     try {
-      const uploadedImageIds = attachments
+      const attachmentsAtSend = [...attachments];
+      const sentAttachmentIds = new Set(attachmentsAtSend.map((item) => item.id));
+      const uploadedImageIds = attachmentsAtSend
         .filter((item) => item.status === 'uploaded' && typeof item.imageId === 'string' && item.imageId.trim().length > 0)
         .map((item) => String(item.imageId));
-      const pendingOrErrorAttachments = attachments.filter((item) => item.status === 'pending' || item.status === 'error');
+      const pendingOrErrorAttachments = attachmentsAtSend.filter((item) => item.status === 'pending' || item.status === 'error');
       if (pendingOrErrorAttachments.length > 0) {
         setAttachments((prev) =>
           prev.map((item) =>
@@ -1080,18 +1082,33 @@ function ChatApp() {
         }
 
         const uploadedItems = Array.isArray(uploadData?.images) ? uploadData.images : [];
+        const nextUploadedImageIds = uploadedItems
+          .slice(0, pendingOrErrorAttachments.length)
+          .map((item: { imageId?: unknown }) => (typeof item?.imageId === 'string' ? item.imageId.trim() : ''));
+
+        if (
+          nextUploadedImageIds.length !== pendingOrErrorAttachments.length ||
+          nextUploadedImageIds.some((imageId: string) => !imageId)
+        ) {
+          setAttachments((prev) =>
+            prev.map((item) =>
+              pendingOrErrorAttachments.some((target) => target.id === item.id)
+                ? { ...item, status: 'error', error: 'imageId دریافت نشد.' }
+                : item
+            )
+          );
+          pushToast('آپلود تصویر ناموفق: شناسه تصویر دریافت نشد.', 'danger');
+          return;
+        }
+
+        uploadedImageIds.push(...nextUploadedImageIds);
         setAttachments((prev) =>
           prev.map((item) => {
             const pendingIndex = pendingOrErrorAttachments.findIndex((target) => target.id === item.id);
             if (pendingIndex === -1) {
               return item;
             }
-            const imageId = uploadedItems[pendingIndex]?.imageId;
-            if (!imageId) {
-              return { ...item, status: 'error', error: 'imageId دریافت نشد.' };
-            }
-            uploadedImageIds.push(String(imageId));
-            return { ...item, status: 'uploaded', imageId: String(imageId), error: undefined };
+            return { ...item, status: 'uploaded', imageId: nextUploadedImageIds[pendingIndex], error: undefined };
           })
         );
         console.log('[UPLOAD][success][imageIds]', uploadedImageIds);
@@ -1111,6 +1128,19 @@ function ChatApp() {
           ),
           updatedAt: new Date().toISOString()
         }));
+      }
+
+      if (sentAttachmentIds.size > 0) {
+        setAttachments((prev) => {
+          const remaining = prev.filter((item) => !sentAttachmentIds.has(item.id));
+          prev.forEach((item) => {
+            if (sentAttachmentIds.has(item.id)) {
+              URL.revokeObjectURL(item.previewUrl);
+              attachmentUrlsRef.current.delete(item.previewUrl);
+            }
+          });
+          return remaining;
+        });
       }
 
       const history = updatedMessages.map((msg) => ({
@@ -1146,13 +1176,6 @@ function ChatApp() {
         messages: [...item.messages, botMessage],
         updatedAt: new Date().toISOString()
       }));
-      setAttachments((prev) => {
-        prev.forEach((item) => {
-          URL.revokeObjectURL(item.previewUrl);
-          attachmentUrlsRef.current.delete(item.previewUrl);
-        });
-        return [];
-      });
     } catch (error) {
       const fallbackText =
         error instanceof Error && error.message.trim()
