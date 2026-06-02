@@ -45,6 +45,7 @@
 .ds-toast-region { position: fixed; inset-inline-start: var(--space-4); inset-block-end: var(--space-4); z-index: var(--z-toast); display: grid; gap: var(--space-2); }
 .ds-toast { min-width: 240px; max-width: 340px; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); box-shadow: var(--shadow-md); }
 .ds-toast[data-variant='success'] { border-color: var(--color-success); }
+.ds-toast[data-variant='warning'] { border-color: var(--color-warning); }
 .ds-toast[data-variant='danger'] { border-color: var(--color-danger); }
 
 .ds-demo-stack { display: grid; gap: var(--space-4); }

@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 
-type ToastVariant = 'default' | 'success' | 'danger';
+type ToastVariant = 'default' | 'success' | 'warning' | 'danger';
 
 type ToastItem = {
   id: number;

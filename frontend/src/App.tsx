@@ -1041,7 +1041,7 @@ function ChatApp() {
                 : item
             )
           );
-          pushToast('آپلود تصویر ناموفق: خطای شبکه', 'error');
+          pushToast('آپلود تصویر ناموفق: خطای شبکه', 'danger');
           return;
         }
 
@@ -1054,7 +1054,7 @@ function ChatApp() {
                 : item
             )
           );
-          pushToast(`آپلود تصویر ناموفق: ${String(uploadError)}`, 'error');
+          pushToast(`آپلود تصویر ناموفق: ${String(uploadError)}`, 'danger');
           return;
         }
 
@@ -1146,11 +1146,11 @@ function ChatApp() {
     const next: ImageAttachment[] = [];
     for (const file of selectedFiles) {
       if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-        pushToast(`فرمت ${file.name} مجاز نیست.`, 'error');
+        pushToast(`فرمت ${file.name} مجاز نیست.`, 'danger');
         continue;
       }
       if (file.size > MAX_ATTACHMENT_SIZE) {
-        pushToast(`حجم ${file.name} بیشتر از ۵ مگابایت است.`, 'error');
+        pushToast(`حجم ${file.name} بیشتر از ۵ مگابایت است.`, 'danger');
         continue;
       }
       next.push({
