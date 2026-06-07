@@ -22,6 +22,7 @@ const { createHealthRouter } = require('./modules/health/health.routes');
 const { createSmsRouter } = require('./modules/sms/sms.routes');
 const { createSmsService } = require('./modules/sms/sms.service');
 const { createAiRouter } = require('./modules/ai/ai.routes');
+const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createPromptService } = require('./modules/ai/prompt.service');
 const { createAuthModule } = require('./modules/auth/auth.module');
 const { createConversationsModule } = require('./modules/conversations');
@@ -304,6 +305,12 @@ app.use(createAiRouter({
   logger: {
     log
   }
+}));
+
+app.use('/api/generate-image', createImageGenerationRouter({
+  httpClient: axios,
+  metisApiKey: process.env.METIS_API_KEY,
+  baseUrl: process.env.GEMINI_BASE_URL || 'https://api.metisai.ir'
 }));
 
 const { router: conversationRouter } = createConversationsModule({

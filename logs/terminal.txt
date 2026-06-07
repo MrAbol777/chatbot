@@ -1,174 +1,35 @@
-(node:7540) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:5436) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[19:19:03] FRONTEND 
-[19:19:03] FRONTEND > hemraz-frontend@1.0.0 dev
-[19:19:03] FRONTEND > vite
-[19:19:03] FRONTEND 
-[19:19:03] BACKEND 
-[19:19:03] BACKEND > hemraz-backend@1.0.0 dev
-[19:19:03] BACKEND > nodemon --config nodemon.json src/server.js
-[19:19:03] BACKEND 
-[19:19:04] BACKEND [33m[nodemon] 3.1.14[39m
-[19:19:04] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[19:19:04] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[19:19:04] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[19:19:04] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[19:19:04] FRONTEND 
-[19:19:04] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m911[22m[2m[0m ms[22m
-[19:19:04] FRONTEND 
-[19:19:04] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[19:19:04] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.101:[1m5173[22m/[39m
-[19:19:04] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
-[19:19:04] BACKEND node:internal/modules/cjs/loader:1424
-[19:19:04] BACKEND   throw err;
-[19:19:04] BACKEND   ^
-[19:19:04] BACKEND 
-[19:19:04] BACKEND Error: Cannot find module 'multer'
-[19:19:04] BACKEND Require stack:
-[19:19:04] BACKEND - D:\PROGEs\chatBot\backend\src\server.js
-[19:19:04] BACKEND     at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)
-[19:19:04] BACKEND     at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)
-[19:19:04] BACKEND     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)
-[19:19:04] BACKEND     at Module._load (node:internal/modules/cjs/loader:1227:37)
-[19:19:04] BACKEND     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
-[19:19:04] BACKEND     at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
-[19:19:04] BACKEND     at Module.require (node:internal/modules/cjs/loader:1504:12)
-[19:19:04] BACKEND     at require (node:internal/modules/helpers:152:16)
-[19:19:04] BACKEND     at Object.<anonymous> (D:\PROGEs\chatBot\backend\src\server.js:12:16)
-[19:19:04] BACKEND     at Module._compile (node:internal/modules/cjs/loader:1761:14) {
-[19:19:04] BACKEND   code: 'MODULE_NOT_FOUND',
-[19:19:04] BACKEND   requireStack: [ 'D:\\PROGEs\\chatBot\\backend\\src\\server.js' ]
-[19:19:04] BACKEND }
-[19:19:04] BACKEND 
-[19:19:04] BACKEND Node.js v24.11.1
-[19:19:04] BACKEND [31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/dashboard/stats[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/users?[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/errors[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/config[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/config/system-prompt[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/audit-logs?page=1&pageSize=50[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/dashboard/stats[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/users?[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/errors[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/config[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/config/system-prompt[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:14] FRONTEND [2m7:19:14 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/admin/audit-logs?page=1&pageSize=50[39m
-[19:19:14] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:14] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:14] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:27] FRONTEND [2m7:19:27 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:19:27] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:27] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:27] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:29] FRONTEND [2m7:19:29 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:19:29] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:29] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:29] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:19:30] FRONTEND [2m7:19:30 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:19:30] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:19:30] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:19:30] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:10] FRONTEND [2m7:20:10 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:20:10] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:20:10] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:20:10] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:13] FRONTEND [2m7:20:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
-[19:20:19] FRONTEND [2m7:20:19 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:20:19] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:20:19] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:20:19] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:21] FRONTEND [2m7:20:21 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:20:21] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:20:21] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:20:21] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:21] FRONTEND [2m7:20:21 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:20:21] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:20:21] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:20:21] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:21] FRONTEND [2m7:20:21 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:20:21] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:20:21] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:20:21] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:21] FRONTEND [2m7:20:21 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:20:21] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:20:21] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:20:21] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:21] FRONTEND [2m7:20:21 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:20:21] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:20:21] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:20:21] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:22] FRONTEND [2m7:20:22 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:20:22] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:20:22] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:20:22] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:29] FRONTEND [2m7:20:29 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:20:29] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:20:29] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:20:29] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:20:33] BACKEND [32m[nodemon] restarting due to changes...[39m
-[19:20:33] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[19:20:33] BACKEND node:internal/modules/cjs/loader:1424
-[19:20:33] BACKEND   throw err;
-[19:20:33] BACKEND   ^
-[19:20:33] BACKEND 
-[19:20:33] BACKEND Error: Cannot find module 'multer'
-[19:20:33] BACKEND Require stack:
-[19:20:33] BACKEND - D:\PROGEs\chatBot\backend\src\server.js
-[19:20:33] BACKEND     at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)
-[19:20:33] BACKEND     at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)
-[19:20:33] BACKEND     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)
-[19:20:33] BACKEND     at Module._load (node:internal/modules/cjs/loader:1227:37)
-[19:20:33] BACKEND     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
-[19:20:33] BACKEND     at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
-[19:20:33] BACKEND     at Module.require (node:internal/modules/cjs/loader:1504:12)
-[19:20:33] BACKEND     at require (node:internal/modules/helpers:152:16)
-[19:20:33] BACKEND     at Object.<anonymous> (D:\PROGEs\chatBot\backend\src\server.js:12:16)
-[19:20:33] BACKEND     at Module._compile (node:internal/modules/cjs/loader:1761:14) {
-[19:20:33] BACKEND   code: 'MODULE_NOT_FOUND',
-[19:20:33] BACKEND   requireStack: [ 'D:\\PROGEs\\chatBot\\backend\\src\\server.js' ]
-[19:20:33] BACKEND }
-[19:20:33] BACKEND 
-[19:20:33] BACKEND Node.js v24.11.1
-[19:20:33] BACKEND [31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[19:21:35] FRONTEND [2m7:21:35 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:21:35] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:21:35] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:21:35] FRONTEND     at afterConnectMultiple (node:net:1715:7)
-[19:21:58] FRONTEND [2m7:21:58 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/phone-status[39m
-[19:21:58] FRONTEND AggregateError [ECONNREFUSED]: 
-[19:21:58] FRONTEND     at internalConnectMultiple (node:net:1134:18)
-[19:21:58] FRONTEND     at afterConnectMultiple (node:net:1715:7)
+[20:59:45] FRONTEND 
+[20:59:45] FRONTEND > hemraz-frontend@1.0.0 dev
+[20:59:45] FRONTEND > vite
+[20:59:45] FRONTEND 
+[20:59:45] BACKEND 
+[20:59:45] BACKEND > hemraz-backend@1.0.0 dev
+[20:59:45] BACKEND > nodemon --config nodemon.json src/server.js
+[20:59:45] BACKEND 
+[20:59:45] BACKEND 'nodemon' is not recognized as an internal or external command,
+[20:59:45] BACKEND operable program or batch file.
+[20:59:45] BACKEND npm run dev --prefix backend exited with code 1
+[20:59:50] FRONTEND 
+[20:59:50] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m4534[22m[2m[0m ms[22m
+[20:59:50] FRONTEND 
+[20:59:50] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[20:59:50] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.31.16.1:[1m5173[22m/[39m
+[20:59:50] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.40.217.176:[1m5173[22m/[39m
+[21:00:21] FRONTEND [2m9:00:21 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/conversations/load[39m
+[21:00:21] FRONTEND AggregateError [ECONNREFUSED]: 
+[21:00:21] FRONTEND     at internalConnectMultiple (node:net:1134:18)
+[21:00:21] FRONTEND     at afterConnectMultiple (node:net:1715:7)
+[21:00:21] FRONTEND [2m9:00:21 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/conversations/sync[39m
+[21:00:21] FRONTEND AggregateError [ECONNREFUSED]: 
+[21:00:21] FRONTEND     at internalConnectMultiple (node:net:1134:18)
+[21:00:21] FRONTEND     at afterConnectMultiple (node:net:1715:7)
+[21:00:40] FRONTEND [2m9:00:40 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/generate-image[39m
+[21:00:40] FRONTEND AggregateError [ECONNREFUSED]: 
+[21:00:40] FRONTEND     at internalConnectMultiple (node:net:1134:18)
+[21:00:40] FRONTEND     at afterConnectMultiple (node:net:1715:7)
+[21:00:41] FRONTEND [2m9:00:41 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/conversations/sync[39m
+[21:00:41] FRONTEND AggregateError [ECONNREFUSED]: 
+[21:00:41] FRONTEND     at internalConnectMultiple (node:net:1134:18)
+[21:00:41] FRONTEND     at afterConnectMultiple (node:net:1715:7)

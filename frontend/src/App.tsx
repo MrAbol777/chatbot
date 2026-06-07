@@ -5,6 +5,7 @@ import { ChatMessage, Conversation, UserProfile } from './types';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
 import defaultBotAvatar from './image.png';
+import { generateImage } from './services/imageGeneration';
 import { Button, Dialog, FieldGroup, TextField, ToastProvider, useToast } from './design-system/components';
 import DesignSystemPreview from './design-system/preview/DesignSystemPreview';
 
@@ -417,11 +418,14 @@ function ChatApp() {
   const [inputValue, setInputValue] = useState('');
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
-  const [isSending, setIsSending] = useState(false);
-  const [waitingTextIndex, setWaitingTextIndex] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
+ const [isSending, setIsSending] = useState(false);
+ const [waitingTextIndex, setWaitingTextIndex] = useState(0);
+ const [isRecording, setIsRecording] = useState(false);
+ const [showImageGenModal, setShowImageGenModal] = useState(false);
+ const [imageGenPrompt, setImageGenPrompt] = useState('');
+ const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+ const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -1403,15 +1407,80 @@ function ChatApp() {
   };
 
   const handleCancelRecording = () => {
-    if (!recognitionRef.current) {
-      return;
-    }
-    recordingActionRef.current = 'cancel';
-    keepRecordingRef.current = false;
-    recognitionRef.current.stop();
-  };
+   if (!recognitionRef.current) {
+     return;
+   }
+   recordingActionRef.current = 'cancel';
+   keepRecordingRef.current = false;
+   recognitionRef.current.stop();
+ };
 
-  const handleSaveProfileSettings = () => {
+ const handleGenerateImageClick = () => {
+   setAttachmentMenuOpen(false);
+   setImageGenPrompt('');
+   setShowImageGenModal(true);
+ };
+
+ const handleGenerateImageSubmit = async () => {
+   const prompt = imageGenPrompt.trim();
+   if (!prompt) {
+     pushToast('لطفاً توضیح عکس را بنویس', 'danger');
+     return;
+   }
+
+   setIsGeneratingImage(true);
+   setShowImageGenModal(false);
+
+   const currentConversation = ensureConversation();
+   const userMessage: ChatMessage = {
+     role: 'user',
+     content: `🎨 درخواست ساخت عکس: ${prompt}`,
+     timestamp: new Date().toISOString()
+   };
+
+   updateConversation(currentConversation.id, (item) => ({
+     ...item,
+     messages: [...item.messages, userMessage],
+     updatedAt: new Date().toISOString()
+   }));
+
+   try {
+     const imageUrl = await generateImage(prompt);
+
+     const botMessage: ChatMessage = {
+       role: 'assistant',
+       content: 'عکس آماده شد! 🎉',
+       timestamp: new Date().toISOString(),
+       images: [{ url: imageUrl, alt: prompt }]
+     };
+
+     updateConversation(currentConversation.id, (item) => ({
+       ...item,
+       messages: [...item.messages, botMessage],
+       updatedAt: new Date().toISOString()
+     }));
+
+     pushToast('عکس با موفقیت ساخته شد', 'success');
+   } catch (error) {
+     const errorMessage: ChatMessage = {
+       role: 'assistant',
+       content: error instanceof Error ? error.message : 'مشکلی در ساخت عکس پیش آمد.',
+       timestamp: new Date().toISOString()
+     };
+
+     updateConversation(currentConversation.id, (item) => ({
+       ...item,
+       messages: [...item.messages, errorMessage],
+       updatedAt: new Date().toISOString()
+     }));
+
+     pushToast('ساخت عکس ناموفق بود', 'danger');
+   } finally {
+     setIsGeneratingImage(false);
+   }
+ };
+
+ const handleSaveProfileSettings = () => {
     if (!profile) {
       return;
     }
@@ -1897,9 +1966,45 @@ function ChatApp() {
                 </Button>
               </div>
           </Dialog>
-        ) : null}
+       ) : null}
 
-        <main className="messages-area" ref={messagesContainerRef}>
+       {showImageGenModal ? (
+         <Dialog open={showImageGenModal} title="ساخت عکس با هوش مصنوعی" onClose={() => setShowImageGenModal(false)} showFooter={false}>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+             <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+               توضیح بده چه عکسی می‌خوای تا برات بسازم
+             </p>
+             <TextField
+               label="توضیح عکس"
+               type="text"
+               value={imageGenPrompt}
+               onChange={(e) => setImageGenPrompt(e.target.value)}
+               placeholder="مثلاً: یک گربه قرمز روی میز"
+               disabled={isGeneratingImage}
+             />
+             <div className="modal-buttons">
+               <Button
+                 type="button"
+                 className="start-btn"
+                 onClick={handleGenerateImageSubmit}
+                 disabled={isGeneratingImage || !imageGenPrompt.trim()}
+               >
+                 {isGeneratingImage ? 'در حال ساخت...' : 'بساز'}
+               </Button>
+               <Button
+                 type="button"
+                 variant="danger"
+                 onClick={() => setShowImageGenModal(false)}
+                 disabled={isGeneratingImage}
+               >
+                 انصراف
+               </Button>
+             </div>
+           </div>
+         </Dialog>
+       ) : null}
+
+       <main className="messages-area" ref={messagesContainerRef}>
           {activeConversation?.messages.length ? (
             activeConversation.messages.map((message, index) => (
               <div
@@ -2019,14 +2124,18 @@ function ChatApp() {
                         </svg>
                       </button>
                       {attachmentMenuOpen ? (
-                        <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
-                          <button type="button" onClick={handlePickImageClick}>
-                            <span aria-hidden="true">📷</span>
-                            ارسال عکس
-                          </button>
-                          <button
-                            type="button"
-                            className="menu-item-disabled"
+                       <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
+                         <button type="button" onClick={handlePickImageClick}>
+                           <span aria-hidden="true">📷</span>
+                           ارسال عکس
+                         </button>
+                         <button type="button" onClick={handleGenerateImageClick}>
+                           <span aria-hidden="true">🎨</span>
+                           ساخت عکس با هوش مصنوعی
+                         </button>
+                         <button
+                           type="button"
+                           className="menu-item-disabled"
                             onClick={() => {
                               setAttachmentMenuOpen(false);
                               alert('به زودی فعال میشه این بخش ...');
