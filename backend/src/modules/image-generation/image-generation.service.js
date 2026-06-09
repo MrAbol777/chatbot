@@ -68,10 +68,14 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
       const data = response?.data;
       const status = data?.status || 'UNKNOWN';
 
-      console.log('[image-generation] getImageStatus RESPONSE:', { taskId, status, data });
+      console.log('[image-generation] getImageStatus RESPONSE:', { taskId, status, generations: data?.generations, data: { ...data, generations: undefined } });
 
       if (status === 'COMPLETED') {
-        const imageUrl = data?.generations?.[0]?.url;
+        // MetisAI returns generations array with url, contentType, content fields
+        // Try url first, then content as fallback
+        const generation = data?.generations?.[0];
+        console.log('[image-generation] COMPLETED generation details:', JSON.stringify(generation));
+        const imageUrl = generation?.url || generation?.content || null;
         if (!imageUrl) {
           throw new Error(`Image URL not found. Full response: ${JSON.stringify(data)}`);
         }
