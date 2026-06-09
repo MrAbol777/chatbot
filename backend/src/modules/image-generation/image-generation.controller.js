@@ -27,11 +27,13 @@ function createImageGenerationController({ imageGenerationService, db }) {
       const taskId = await imageGenerationService.createImageGeneration(prompt);
 
       // 2. Save the task record in DB
-      await db.query(
+      console.log('[image-generation] DB INSERT attempt:', { userId, taskId, prompt: prompt.slice(0, 50) });
+      const insertResult = await db.query(
         `INSERT INTO image_generations (user_id, task_id, prompt, status)
          VALUES (?, ?, ?, 'QUEUE')`,
         [userId, taskId, prompt]
       );
+      console.log('[image-generation] DB INSERT result:', JSON.stringify(insertResult).slice(0, 200));
 
       return res.status(202).json({
         success: true,
@@ -39,7 +41,13 @@ function createImageGenerationController({ imageGenerationService, db }) {
         message: 'Image generation started. Use GET /api/images/status/:taskId to check progress.'
       });
     } catch (error) {
-      console.error('[image-generation] generateImage failed:', error?.message || error);
+      console.error('[image-generation] generateImage failed:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : null,
+        code: error?.code || null,
+        sqlMessage: error?.sqlMessage || null,
+        sqlState: error?.sqlState || null
+      });
       return res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Image generation failed.'

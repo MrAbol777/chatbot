@@ -318,6 +318,7 @@ function createAiService({
 
     // Route Gemini models to the Metis Gemini wrapper
     if (isGeminiModel(runtimeConfig.model)) {
+      log('CHAT', 'model_routed', { requestId, model: runtimeConfig.model, engine: 'gemini' });
       return callGemini(messages, totalTimeoutMs, requestId);
     }
 

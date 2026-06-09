@@ -1,5 +1,5 @@
 {
-  "model": "gpt-4o-mini",
+  "model": "gemini-2.5-flash",
   "timeoutMs": 30000,
   "features": {
     "voiceInput": true,

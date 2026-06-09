@@ -310,7 +310,7 @@ app.use(createAiRouter({
 app.use('/api/images', createImageGenerationRouter({
   httpClient: axios,
   metisApiKey,
-  baseUrl: metisBaseUrl,
+  baseUrl: metisBaseUrl.replace(/\/openai\/v1$/, ''),
   db: repositories.db,
   authJwtSecret
 }));
