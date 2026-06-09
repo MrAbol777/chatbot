@@ -227,15 +227,13 @@ function createAiService({
       throw error;
     }
 
-    const payload = buildGeminiPayload(messages);
-
-    // Extract model name from runtime config for the Gemini endpoint
     const runtimeConfig = await promptService.getRuntimeConfig();
     const geminiModel = runtimeConfig.model || 'gemini-2.5-flash';
     const geminiEndpoint = `https://api.metisai.ir/v1beta/models/${geminiModel}:generateContent`;
+    const payload = buildGeminiPayload(messages);
 
     try {
-      log('GEMINI', 'request_started', { requestId, timeoutMs, model: geminiModel });
+      log('GEMINI', 'request_started', { requestId, timeoutMs, model: geminiModel, endpoint: geminiEndpoint });
 
       const response = await httpClient.post(
         geminiEndpoint,
