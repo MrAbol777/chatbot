@@ -1,6 +1,6 @@
 function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'https://api.metisai.ir' }) {
   const getHeaders = () => ({
-    Authorization: `Bearer ${metisApiKey}`,
+    'x-api-key': metisApiKey,
     'Content-Type': 'application/json'
   });
 
@@ -9,10 +9,10 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
    * Returns the task_id from MetisAI.
    */
   const createImageGeneration = async (prompt) => {
-    const url = `${baseUrl}/api/v2/generate`;
+    const url = `${baseUrl}/api/v1/generate`;
     const body = {
       name: 'openai',
-      model: 'gpt-image-1.5',
+      model: 'imagination, gpt-image-1',
       args: { prompt }
     };
 
@@ -58,7 +58,7 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
    * Returns { status, imageUrl?, error? }.
    */
   const getImageStatus = async (taskId) => {
-    const url = `${baseUrl}/api/v2/generate/${taskId}`;
+    const url = `${baseUrl}/api/v1/generate/${taskId}`;
 
     try {
       const response = await httpClient.get(url, {
