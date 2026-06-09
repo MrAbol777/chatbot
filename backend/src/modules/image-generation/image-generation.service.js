@@ -1,25 +1,23 @@
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'https://api.metisai.ir' }) {
   const getHeaders = () => ({
     Authorization: `Bearer ${metisApiKey}`,
     'Content-Type': 'application/json'
   });
 
-  const generateImageTask = async (prompt) => {
+  /**
+   * Sends a POST request to MetisAI to start an image generation task.
+   * Returns the task_id from MetisAI.
+   */
+  const createImageGeneration = async (prompt) => {
     try {
       const response = await httpClient.post(
         `${baseUrl}/api/v2/generate`,
         {
           name: 'google',
-          model: 'nano-banana',
-          args: {
-            prompt
-          }
+          model: 'nano-banana-pro',
+          args: { prompt }
         },
-        {
-          headers: getHeaders()
-        }
+        { headers: getHeaders() }
       );
 
       const taskId = response?.data?.id;
@@ -29,46 +27,49 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
 
       return taskId;
     } catch (error) {
-      console.error('[image-generation] generateImageTask failed:', error?.response?.data || error?.message || error);
-      throw error;
+      const apiError = error?.response?.data;
+      const message = apiError?.error || apiError?.message || error?.message || 'Unknown MetisAI error';
+      console.error('[image-generation] createImageGeneration failed:', message);
+      throw new Error(message);
     }
   };
 
-  const pollForResult = async (taskId, maxAttempts = 60, intervalMs = 3000) => {
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      try {
-        const response = await httpClient.get(`${baseUrl}/api/v2/generate/${taskId}`, {
-          headers: getHeaders()
-        });
-        const status = response?.data?.status;
+  /**
+   * Sends a GET request to MetisAI to check the status of an async task.
+   * Returns { status, imageUrl?, error? }.
+   */
+  const getImageStatus = async (taskId) => {
+    try {
+      const response = await httpClient.get(`${baseUrl}/api/v2/generate/${taskId}`, {
+        headers: getHeaders()
+      });
 
-        if (status === 'COMPLETED') {
-          const url = response?.data?.generations?.[0]?.url;
-          if (!url) {
-            throw new Error('Image URL not found in completed task response.');
-          }
-          return url;
-        }
+      const data = response?.data;
+      const status = data?.status || 'UNKNOWN';
 
-        if (status === 'ERROR') {
-          throw new Error(response?.data?.error || 'Metis image generation task failed.');
+      if (status === 'COMPLETED') {
+        const imageUrl = data?.generations?.[0]?.url;
+        if (!imageUrl) {
+          throw new Error('Image URL not found in completed task response.');
         }
-      } catch (error) {
-        console.error('[image-generation] pollForResult failed:', error?.response?.data || error?.message || error);
-        throw error;
+        return { status: 'COMPLETED', imageUrl };
       }
 
-      if (attempt < maxAttempts) {
-        await delay(intervalMs);
+      if (status === 'ERROR') {
+        return { status: 'ERROR', error: data?.error || 'MetisAI task failed.' };
       }
+
+      return { status };
+    } catch (error) {
+      const message = error?.response?.data?.error || error?.message || 'Failed to fetch task status.';
+      console.error('[image-generation] getImageStatus failed:', message);
+      throw new Error(message);
     }
-
-    throw new Error('Image generation timed out.');
   };
 
   return {
-    generateImageTask,
-    pollForResult
+    createImageGeneration,
+    getImageStatus
   };
 }
 

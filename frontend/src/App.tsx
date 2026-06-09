@@ -5,7 +5,7 @@ import { ChatMessage, Conversation, UserProfile } from './types';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
 import defaultBotAvatar from './image.png';
-import { generateImage } from './services/imageGeneration';
+import { generateImageWithPolling } from './services/imageGeneration';
 import { Button, Dialog, FieldGroup, TextField, ToastProvider, useToast } from './design-system/components';
 import DesignSystemPreview from './design-system/preview/DesignSystemPreview';
 
@@ -268,7 +268,7 @@ const registerProfile = async (profile: {
   phone: string;
   id: number | string;
   mode: AuthMode;
-}): Promise<{ userId: string; profile: { name: string; age: number; phone: string } }> => {
+}): Promise<{ userId: string; profile: { name: string; age: number; phone: string }; token?: string }> => {
   const response = await fetch('/api/register-profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -281,7 +281,7 @@ const registerProfile = async (profile: {
     throw createApiError(payload.error?.trim() || fallback || 'ثبت پروفایل انجام نشد.', payload.redirectTo ?? null);
   }
 
-  return (await response.json()) as { userId: string; profile: { name: string; age: number; phone: string } };
+  return (await response.json()) as { userId: string; profile: { name: string; age: number; phone: string }; token?: string };
 };
 
 const loadRemoteConversations = async (profile: UserProfile & { id?: string | number }) => {
@@ -424,9 +424,16 @@ function ChatApp() {
  const [showImageGenModal, setShowImageGenModal] = useState(false);
  const [imageGenPrompt, setImageGenPrompt] = useState('');
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+ const [imageGenStatus, setImageGenStatus] = useState<string>('');
+ const [imageGenError, setImageGenError] = useState<string>('');
 
  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+
+  // Detect stale session: logged in but missing JWT token (from before the token-save fix)
+  const hasAuthToken = (() => {
+    try { return !!localStorage.getItem('chat_auth_token'); } catch { return false; }
+  })();
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const recordingActionRef = useRef<RecordingAction>('idle');
@@ -928,6 +935,11 @@ function ChatApp() {
           personality: createDefaultPersonality()
         };
 
+        // Save JWT token for authenticated API calls (e.g. image generation)
+        if (registrationResult.token) {
+          localStorage.setItem('chat_auth_token', registrationResult.token);
+        }
+
         setHasHydratedRemoteConversations(false);
         setProfile(normalizedProfile);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(normalizedProfile));
@@ -959,6 +971,12 @@ function ChatApp() {
         mode: 'signup'
       });
       payload.id = registrationResult.userId || payload.id;
+
+      // Save JWT token for authenticated API calls (e.g. image generation)
+      if (registrationResult.token) {
+        localStorage.setItem('chat_auth_token', registrationResult.token);
+      }
+
       setHasHydratedRemoteConversations(false);
       setProfile(payload);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
@@ -999,6 +1017,17 @@ function ChatApp() {
     const hasAttachments = attachmentsAtSend.length > 0;
     if (!content && !hasAttachments) {
       return;
+    }
+
+    // Detect /imagine command — route to image generation instead of chat
+    const imagineMatch = content.match(/^\/imagine\s+(.+)/i);
+    if (imagineMatch && !hasAttachments) {
+      const imaginePrompt = imagineMatch[1].trim();
+      if (imaginePrompt) {
+        await handleImagineCommand(imaginePrompt);
+        setInputValue('');
+        return;
+      }
     }
 
     const effectiveUserText = content || 'لطفاً محتوای عکس را توضیح بده.';
@@ -1358,6 +1387,7 @@ function ChatApp() {
     localStorage.removeItem(PROFILE_KEY);
     localStorage.removeItem(CONVERSATIONS_KEY);
     localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
+    localStorage.removeItem('chat_auth_token');
 
     setProfile(null);
     setLandingStep('landing');
@@ -1418,7 +1448,100 @@ function ChatApp() {
  const handleGenerateImageClick = () => {
    setAttachmentMenuOpen(false);
    setImageGenPrompt('');
+   setImageGenError('');
    setShowImageGenModal(true);
+ };
+
+ /**
+  * Handles the /imagine <prompt> command from the chat input.
+  * Adds user + bot messages to the conversation and polls for the result.
+  */
+ const handleImagineCommand = async (prompt: string) => {
+   if (!profile || isSending) {
+     return;
+   }
+
+   // Check for JWT token before starting image generation
+   if (!localStorage.getItem('chat_auth_token')) {
+     pushToast('توکن احراز هویت موجود نیست. لطفاً یک‌بار خارج و دوباره وارد شوید.', 'danger');
+     return;
+   }
+
+   const currentConversation = ensureConversation();
+
+   // Add user message showing the command
+   const userMessage: ChatMessage = {
+     role: 'user',
+     content: `🎨 /imagine ${prompt}`,
+     timestamp: new Date().toISOString()
+   };
+
+   const updatedMessages = [...currentConversation.messages, userMessage];
+   const tempBotIndex = updatedMessages.length;
+   const tempBotMessage: ChatMessage = {
+     role: 'assistant',
+     content: '🎨 در حال ساخت عکس... لطفاً صبر کن',
+     timestamp: new Date().toISOString()
+   };
+
+   updateConversation(currentConversation.id, (item) => ({
+     ...item,
+     title: item.title === DEFAULT_TITLE ? `🎨 ${prompt.slice(0, 28)}...` : item.title,
+     messages: [...updatedMessages, tempBotMessage],
+     updatedAt: new Date().toISOString()
+   }));
+
+   setIsSending(true);
+
+   try {
+     const imageUrl = await generateImageWithPolling(prompt, (status, attempt) => {
+       const statusLabel = status === 'QUEUE' ? 'در صف انتظار...' : 'در حال ساخت عکس...';
+       updateConversation(currentConversation.id, (item) => ({
+         ...item,
+         messages: item.messages.map((msg, idx) =>
+           idx === tempBotIndex
+             ? { ...msg, content: `🎨 ${statusLabel} (مرحله ${attempt})` }
+             : msg
+         ),
+         updatedAt: new Date().toISOString()
+       }));
+     });
+
+     const botMessage: ChatMessage = {
+       role: 'assistant',
+       content: 'عکس آماده شد! 🎉',
+       timestamp: new Date().toISOString(),
+       images: [{ url: imageUrl, alt: prompt }]
+     };
+
+     updateConversation(currentConversation.id, (item) => ({
+       ...item,
+       messages: item.messages.map((msg, idx) =>
+         idx === tempBotIndex ? botMessage : msg
+       ),
+       updatedAt: new Date().toISOString()
+     }));
+
+     pushToast('عکس با موفقیت ساخته شد', 'success');
+   } catch (error) {
+     const errorMessage: ChatMessage = {
+       role: 'assistant',
+       content: error instanceof Error ? error.message : 'مشکلی در ساخت عکس پیش آمد.',
+       timestamp: new Date().toISOString()
+     };
+
+     updateConversation(currentConversation.id, (item) => ({
+       ...item,
+       messages: item.messages.map((msg, idx) =>
+         idx === tempBotIndex ? errorMessage : msg
+       ),
+       updatedAt: new Date().toISOString()
+     }));
+
+     pushToast('ساخت عکس ناموفق بود', 'danger');
+   } finally {
+     setIsSending(false);
+   }
  };
 
  const handleGenerateImageSubmit = async () => {
@@ -1428,7 +1551,16 @@ function ChatApp() {
      return;
    }
 
+   // Check for JWT token before starting image generation
+   if (!localStorage.getItem('chat_auth_token')) {
+     pushToast('توکن احراز هویت موجود نیست. لطفاً یک‌بار خارج و دوباره وارد شوید.', 'danger');
+     setImageGenError('برای ساخت عکس نیاز به ورود مجدد دارید.');
+     return;
+   }
+
    setIsGeneratingImage(true);
+   setImageGenStatus('در حال ارسال درخواست...');
+   setImageGenError('');
    setShowImageGenModal(false);
 
    const currentConversation = ensureConversation();
@@ -1444,9 +1576,37 @@ function ChatApp() {
      updatedAt: new Date().toISOString()
    }));
 
-   try {
-     const imageUrl = await generateImage(prompt);
+   // Show a temporary "generating" bot message
+   const tempBotIndex = currentConversation.messages.length + 1;
+   const tempBotMessage: ChatMessage = {
+     role: 'assistant',
+     content: '🎨 در حال ساخت عکس... لطفاً صبر کن',
+     timestamp: new Date().toISOString()
+   };
 
+   updateConversation(currentConversation.id, (item) => ({
+     ...item,
+     messages: [...item.messages, tempBotMessage],
+     updatedAt: new Date().toISOString()
+   }));
+
+   try {
+     const imageUrl = await generateImageWithPolling(prompt, (status, attempt) => {
+       const statusLabel = status === 'QUEUE' ? 'در صف انتظار...' : 'در حال ساخت عکس...';
+       setImageGenStatus(statusLabel);
+       // Update the temp bot message with progress
+       updateConversation(currentConversation.id, (item) => ({
+         ...item,
+         messages: item.messages.map((msg, idx) =>
+           idx === tempBotIndex
+             ? { ...msg, content: `🎨 ${statusLabel} (مرحله ${attempt})` }
+             : msg
+         ),
+         updatedAt: new Date().toISOString()
+       }));
+     });
+
+     // Replace the temp message with the final result
      const botMessage: ChatMessage = {
        role: 'assistant',
        content: 'عکس آماده شد! 🎉',
@@ -1456,7 +1616,9 @@ function ChatApp() {
 
      updateConversation(currentConversation.id, (item) => ({
        ...item,
-       messages: [...item.messages, botMessage],
+       messages: item.messages.map((msg, idx) =>
+         idx === tempBotIndex ? botMessage : msg
+       ),
        updatedAt: new Date().toISOString()
      }));
 
@@ -1470,13 +1632,17 @@ function ChatApp() {
 
      updateConversation(currentConversation.id, (item) => ({
        ...item,
-       messages: [...item.messages, errorMessage],
+       messages: item.messages.map((msg, idx) =>
+         idx === tempBotIndex ? errorMessage : msg
+       ),
        updatedAt: new Date().toISOString()
      }));
 
      pushToast('ساخت عکس ناموفق بود', 'danger');
    } finally {
      setIsGeneratingImage(false);
+     setImageGenStatus('');
+     setImageGenError('');
    }
  };
 
@@ -1733,6 +1899,42 @@ function ChatApp() {
       <div className="bg-blob blob-purple" />
 
       <div className="chat-card">
+        {/* Warning banner for users logged in without a JWT token (pre-fix session) */}
+        {!hasAuthToken && (
+          <div className="auth-token-warning" style={{
+            background: '#fff3cd',
+            color: '#856404',
+            padding: '8px 16px',
+            fontSize: '13px',
+            textAlign: 'center',
+            borderBottom: '1px solid #ffc107',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            flexShrink: 0
+          }}>
+            <span>⚠️</span>
+            <span>توکن احراز هویت شما ذخیره نشده. برای استفاده از ساخت عکس، لطفاً یک‌بار خارج و دوباره وارد شوید.</span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              style={{
+                background: '#ffc107',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '4px 12px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: '#856404',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              خروج و ورود مجدد
+            </button>
+          </div>
+        )}
         <header className="top-bar">
           <div className="top-bar-main">
             <button
@@ -1981,7 +2183,13 @@ function ChatApp() {
                onChange={(e) => setImageGenPrompt(e.target.value)}
                placeholder="مثلاً: یک گربه قرمز روی میز"
                disabled={isGeneratingImage}
+               errorText={imageGenError}
              />
+             {imageGenStatus && (
+               <div style={{ fontSize: '14px', color: 'var(--accent)', textAlign: 'center' }}>
+                 {imageGenStatus}
+               </div>
+             )}
              <div className="modal-buttons">
                <Button
                  type="button"
@@ -1994,7 +2202,7 @@ function ChatApp() {
                <Button
                  type="button"
                  variant="danger"
-                 onClick={() => setShowImageGenModal(false)}
+                 onClick={() => { setShowImageGenModal(false); setImageGenError(''); setImageGenStatus(''); }}
                  disabled={isGeneratingImage}
                >
                  انصراف

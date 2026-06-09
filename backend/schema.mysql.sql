@@ -63,3 +63,21 @@ CREATE TABLE IF NOT EXISTS app_conversations (
     REFERENCES app_users(user_id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS image_generations (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(191) NOT NULL,
+  task_id VARCHAR(255) NOT NULL UNIQUE,
+  prompt TEXT NOT NULL,
+  status ENUM('QUEUE', 'IN_PROGRESS', 'COMPLETED', 'ERROR') NOT NULL DEFAULT 'QUEUE',
+  image_url TEXT NULL,
+  error TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_image_generations_task_id (task_id),
+  INDEX idx_image_generations_user_status (user_id, status),
+  CONSTRAINT fk_image_generations_user
+    FOREIGN KEY (user_id)
+    REFERENCES app_users(user_id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

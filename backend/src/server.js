@@ -307,10 +307,12 @@ app.use(createAiRouter({
   }
 }));
 
-app.use('/api/generate-image', createImageGenerationRouter({
+app.use('/api/images', createImageGenerationRouter({
   httpClient: axios,
-  metisApiKey: process.env.METIS_API_KEY,
-  baseUrl: process.env.GEMINI_BASE_URL || 'https://api.metisai.ir'
+  metisApiKey,
+  baseUrl: metisBaseUrl,
+  db: repositories.db,
+  authJwtSecret
 }));
 
 const { router: conversationRouter } = createConversationsModule({
