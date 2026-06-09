@@ -17,7 +17,7 @@ function loadRuntimeConfig(env = process.env) {
     env.METIS_OPENAI_BASE_URL || env.OPENAI_BASE_URL,
     'https://api.metisai.ir/openai/v1'
   );
-  const defaultModel = env.OPENAI_MODEL || 'gpt-4o-mini';
+  const defaultModel = env.OPENAI_MODEL || 'gemini-2.5-flash';
   const metisApiKey =
     typeof (env.METIS_API_KEY || env.OPENAI_API_KEY) === 'string'
       ? (env.METIS_API_KEY || env.OPENAI_API_KEY).trim()

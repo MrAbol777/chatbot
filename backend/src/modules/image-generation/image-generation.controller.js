@@ -95,13 +95,32 @@ function createImageGenerationController({ imageGenerationService, db }) {
       }
 
       // 3. Query MetisAI for the latest status
-      const metisResult = await imageGenerationService.getImageStatus(taskId);
+      let metisResult;
+      try {
+        metisResult = await imageGenerationService.getImageStatus(taskId);
+      } catch (metisError) {
+        // Metis is unreachable — return current DB status with a warning
+        console.warn('[image-generation] getImageStatus Metis unreachable:', metisError?.message || metisError);
+        return res.json({
+          success: true,
+          taskId,
+          status: record.status,
+          imageUrl: record.image_url || null,
+          error: record.error || null,
+          metisUnreachable: true,
+          createdAt: record.created_at,
+          updatedAt: record.updated_at
+        });
+      }
 
       let newStatus = record.status;
       let imageUrl = record.image_url;
       let errorText = record.error;
 
-      // 4. Update DB if status changed
+      // 4. Update DB based on Metis response
+      // Metis statuses: QUEUE, WAITING, RUNNING, COMPLETED, ERROR, CANCELLED
+      const VALID_STATUSES = new Set(['QUEUE', 'WAITING', 'RUNNING', 'COMPLETED', 'ERROR', 'CANCELLED']);
+
       if (metisResult.status === 'COMPLETED') {
         newStatus = 'COMPLETED';
         imageUrl = metisResult.imageUrl;
@@ -116,12 +135,26 @@ function createImageGenerationController({ imageGenerationService, db }) {
           `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
           [errorText, record.id]
         );
-      } else if (metisResult.status === 'IN_PROGRESS') {
-        newStatus = 'IN_PROGRESS';
-        if (record.status === 'QUEUE') {
+      } else if (metisResult.status === 'CANCELLED') {
+        newStatus = 'CANCELLED';
+        errorText = metisResult.error || 'Task was cancelled.';
+        await db.query(
+          `UPDATE image_generations SET status = 'CANCELLED', error = ? WHERE id = ?`,
+          [errorText, record.id]
+        );
+      } else {
+        // Pass through non-terminal Metis statuses directly (QUEUE, WAITING, RUNNING)
+        const metisStatus = String(metisResult.status || '').toUpperCase();
+        if (VALID_STATUSES.has(metisStatus)) {
+          newStatus = metisStatus;
+        } else {
+          // Unknown status → default to QUEUE
+          newStatus = 'QUEUE';
+        }
+        if (record.status !== newStatus) {
           await db.query(
-            `UPDATE image_generations SET status = 'IN_PROGRESS' WHERE id = ?`,
-            [record.id]
+            `UPDATE image_generations SET status = ? WHERE id = ?`,
+            [newStatus, record.id]
           );
         }
       }

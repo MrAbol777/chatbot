@@ -62,6 +62,15 @@ const buildChatMessages = (messages) =>
     }));
 
 const extractReply = (response) => {
+  // Gemini format: candidates[0].content.parts[0].text
+  if (Array.isArray(response?.candidates)) {
+    const text = response.candidates[0]?.content?.parts?.[0]?.text;
+    if (typeof text === 'string') {
+      return text.trim();
+    }
+  }
+
+  // OpenAI format: choices[0].message.content
   const content = response?.choices?.[0]?.message?.content;
   if (typeof content === 'string') {
     return content.trim();
@@ -181,6 +190,102 @@ function createAiService({
     }
   };
 
+  const isGeminiModel = (modelName) =>
+    typeof modelName === 'string' && modelName.toLowerCase().includes('gemini');
+
+  // ─── Gemini (Metis wrapper) helpers ──────────────────────────────
+  const buildGeminiPayload = (messages) => {
+    const systemMessage = messages.find((m) => m.role === 'system');
+    const chatMessages = messages.filter((m) => m.role !== 'system');
+
+    const contents = chatMessages.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [
+        {
+          text: typeof msg.content === 'string'
+            ? msg.content
+            : msg.content?.find((p) => p.type === 'text')?.text || ''
+        }
+      ]
+    }));
+
+    const payload = { contents };
+
+    if (systemMessage && typeof systemMessage.content === 'string') {
+      payload.systemInstruction = {
+        parts: [{ text: systemMessage.content }]
+      };
+    }
+
+    return payload;
+  };
+
+  const callGemini = async (messages, timeoutMs, requestId) => {
+    if (!apiKey) {
+      const error = new Error('METIS_API_KEY is missing');
+      error.code = 'API_KEY_MISSING';
+      throw error;
+    }
+
+    const payload = buildGeminiPayload(messages);
+
+    try {
+      log('GEMINI', 'request_started', { requestId, timeoutMs });
+
+      const response = await httpClient.post(
+        'https://api.metisai.ir/v1beta/models/gemini-2.5-pro:generateContent',
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
+          },
+          timeout: timeoutMs
+        }
+      );
+
+      const reply = extractReply(response?.data);
+
+      if (!reply) {
+        const error = new Error('EMPTY_UPSTREAM_REPLY');
+        error.code = 'EMPTY_UPSTREAM_REPLY';
+        error.details = response?.data;
+        throw error;
+      }
+
+      log('GEMINI', 'request_succeeded', { requestId, replyLength: reply.length });
+      return reply;
+    } catch (error) {
+      log('GEMINI', 'request_failed', {
+        requestId,
+        code: error?.code || null,
+        status: Number(error?.response?.status) || null,
+        message: error instanceof Error ? error.message : String(error || '')
+      });
+
+      if (error && typeof error === 'object' && error.code === 'ECONNABORTED') {
+        const timeoutError = new Error('UPSTREAM_TIMEOUT');
+        timeoutError.code = 'UPSTREAM_TIMEOUT';
+        throw timeoutError;
+      }
+
+      const status = Number(error?.response?.status);
+      const details = error?.response?.data || (error instanceof Error ? error.message : 'unknown');
+
+      if (!Number.isInteger(status)) {
+        const networkError = new Error('UPSTREAM_FETCH_FAILED');
+        networkError.code = 'UPSTREAM_FETCH_FAILED';
+        networkError.details = { cause: details };
+        throw networkError;
+      }
+
+      const upstreamError = new Error('UPSTREAM_REQUEST_FAILED');
+      upstreamError.code = 'UPSTREAM_REQUEST_FAILED';
+      upstreamError.details = { status, details };
+      throw upstreamError;
+    }
+  };
+
   const postOpenAIChatCompletion = async (payload, timeoutMs) => {
     const response = await httpClient.post(`${baseUrl}/chat/completions`, payload, {
       headers: {
@@ -210,6 +315,11 @@ function createAiService({
     const sdkTimeoutMs = Math.min(8000, totalTimeoutMs);
     const fallbackTimeoutMs = Math.max(5000, totalTimeoutMs - sdkTimeoutMs);
     const requestId = context.requestId || 'unknown';
+
+    // Route Gemini models to the Metis Gemini wrapper
+    if (isGeminiModel(runtimeConfig.model)) {
+      return callGemini(messages, totalTimeoutMs, requestId);
+    }
 
     try {
       let response = null;

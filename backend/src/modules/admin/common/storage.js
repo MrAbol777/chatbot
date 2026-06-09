@@ -8,7 +8,7 @@ const AUDIT_LOG_PATH = path.join(__dirname, '../../../../audit.log');
 const SYSTEM_PROMPT_PATH = path.join(__dirname, '../../../../system-prompt.txt');
 
 const DEFAULT_CONFIG = {
-  model: 'gpt-4o-mini',
+  model: 'gemini-2.5-flash',
   timeoutMs: 30000,
   features: {
     voiceInput: true,

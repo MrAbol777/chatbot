@@ -13,8 +13,8 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
       const response = await httpClient.post(
         `${baseUrl}/api/v2/generate`,
         {
-          name: 'google',
-          model: 'nano-banana-pro',
+          name: 'openai',
+          model: 'gpt-image-1.5',
           args: { prompt }
         },
         { headers: getHeaders() }

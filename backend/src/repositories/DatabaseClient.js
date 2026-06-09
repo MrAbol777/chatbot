@@ -90,7 +90,7 @@ class DatabaseClient {
           user_id VARCHAR(191) NOT NULL,
           task_id VARCHAR(255) NOT NULL UNIQUE,
           prompt TEXT NOT NULL,
-          status ENUM('QUEUE', 'IN_PROGRESS', 'COMPLETED', 'ERROR') NOT NULL DEFAULT 'QUEUE',
+          status ENUM('QUEUE', 'WAITING', 'RUNNING', 'COMPLETED', 'ERROR', 'CANCELLED') NOT NULL DEFAULT 'QUEUE',
           image_url TEXT NULL,
           error TEXT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
