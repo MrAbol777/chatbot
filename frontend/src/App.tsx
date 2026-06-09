@@ -1579,7 +1579,8 @@ function ChatApp() {
    }));
 
    // Show a temporary "generating" bot message
-   const tempBotIndex = currentConversation.messages.length + 1;
+   // Index = messages length after adding user message (item.messages.length + 1 from original + 1 for user)
+   const tempBotIndex = currentConversation.messages.length + 2;
    const tempBotMessage: ChatMessage = {
      role: 'assistant',
      content: '🎨 در حال ساخت عکس... لطفاً صبر کن',

@@ -95,7 +95,7 @@ function createImageGenerationController({ imageGenerationService, db }) {
           success: true,
           taskId: record.task_id,
           status: record.status,
-          imageUrl: record.image_url || null,
+          imageUrl: record.image_url ? `/api/images/serve/${record.task_id}` : null,
           error: record.error || null,
           createdAt: record.created_at,
           updatedAt: record.updated_at
@@ -113,7 +113,7 @@ function createImageGenerationController({ imageGenerationService, db }) {
           success: true,
           taskId,
           status: record.status,
-          imageUrl: record.image_url || null,
+          imageUrl: record.image_url ? `/api/images/serve/${taskId}` : null,
           error: record.error || null,
           metisUnreachable: true,
           createdAt: record.created_at,
@@ -186,7 +186,7 @@ function createImageGenerationController({ imageGenerationService, db }) {
         success: true,
         taskId,
         status: newStatus,
-        imageUrl: imageUrl || null,
+        imageUrl: imageUrl ? `/api/images/serve/${taskId}` : null,
         error: errorText || null,
         createdAt: record.created_at,
         updatedAt: record.updated_at
