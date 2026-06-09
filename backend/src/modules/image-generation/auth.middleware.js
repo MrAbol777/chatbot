@@ -17,7 +17,7 @@ function createAuthMiddleware({ jwtSecret }) {
     const token = authHeader.split(' ')[1];
     try {
       const decoded = jwt.verify(token, jwtSecret);
-      req.user = { id: decoded.id || decoded.userId };
+      req.user = { id: decoded.id || decoded.userId || decoded.sub };
       return next();
     } catch (error) {
       return res.status(401).json({
