@@ -37,7 +37,7 @@ function initBaleMonitor(app) {
   }
 
   const storage = new MonitorStorage(cfg.dbPath);
-  const client = new BaleClient(cfg.token, 10000, 2);
+  const client = new BaleClient(cfg.token, 30000, 2);
 
   const scheduler = new MonitorScheduler({
     storage,

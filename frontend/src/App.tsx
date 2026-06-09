@@ -1507,6 +1507,8 @@ function ChatApp() {
        }));
      });
 
+     console.log('[IMAGE-GEN][handleImagine] imageUrl received:', imageUrl ? `${imageUrl.slice(0, 80)}...` : 'MISSING');
+
      const botMessage: ChatMessage = {
        role: 'assistant',
        content: 'عکس آماده شد! 🎉',
@@ -2245,6 +2247,19 @@ function ChatApp() {
                             alt={image.alt || 'تصویر ارسال شده'}
                             loading="lazy"
                             decoding="async"
+                            onError={(e) => {
+                              console.error('[image-load-error]', {
+                                url: image.url,
+                                index: imageIndex,
+                                error: 'Failed to load image'
+                              });
+                              const target = e.currentTarget;
+                              target.style.display = 'none';
+                              const errorDiv = document.createElement('div');
+                              errorDiv.className = 'image-load-error';
+                              errorDiv.textContent = '⚠️ خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید';
+                              target.parentElement?.appendChild(errorDiv);
+                            }}
                           />
                         ))}
                       </div>

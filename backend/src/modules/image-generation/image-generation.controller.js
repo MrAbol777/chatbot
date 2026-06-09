@@ -145,6 +145,7 @@ function createImageGenerationController({ imageGenerationService, db }) {
       if (metisResult.status === 'COMPLETED') {
         newStatus = toDbStatus(metisResult.status);
         imageUrl = metisResult.imageUrl;
+        console.log('[image-generation] COMPLETED → imageUrl:', imageUrl ? `${imageUrl.slice(0, 80)}...` : 'MISSING');
         if (record.status !== newStatus) {
           await db.query(
             `UPDATE image_generations SET status = 'COMPLETED', image_url = ? WHERE id = ?`,
@@ -199,9 +200,56 @@ function createImageGenerationController({ imageGenerationService, db }) {
     }
   };
 
+  /**
+   * GET /api/images/serve/:taskId
+   * Proxies the generated image through the backend to avoid CORS issues.
+   */
+  const serveImage = async (req, res) => {
+    try {
+      const { taskId } = req.params;
+      const userId = req.user?.id;
+
+      if (!taskId) {
+        return res.status(400).json({ success: false, error: 'taskId is required.' });
+      }
+
+      // Find the record in DB
+      const [rows] = await db.query(
+        `SELECT id, task_id, image_url, status FROM image_generations WHERE task_id = ? AND user_id = ? LIMIT 1`,
+        [taskId, userId]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, error: 'Task not found.' });
+      }
+
+      const record = rows[0];
+
+      if (record.status !== 'COMPLETED' || !record.image_url) {
+        return res.status(404).json({ success: false, error: 'Image not available yet.' });
+      }
+
+      // Fetch image from Metis/Azure and proxy it
+      const axios = require('axios');
+      const imageResponse = await axios.get(record.image_url, {
+        responseType: 'arraybuffer',
+        timeout: 30000
+      });
+
+      const contentType = imageResponse.headers['content-type'] || 'image/jpeg';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(imageResponse.data);
+    } catch (error) {
+      console.error('[image-generation] serveImage failed:', error?.message || error);
+      return res.status(500).json({ success: false, error: 'Failed to serve image.' });
+    }
+  };
+
   return {
     generateImage,
-    getImageStatus
+    getImageStatus,
+    serveImage
   };
 }
 

@@ -4,12 +4,16 @@
  * Uses the async endpoints:
  *   POST /api/images/generate  → returns { taskId }
  *   GET  /api/images/status/:taskId  → returns { status, imageUrl?, error? }
+ *   GET  /api/images/serve/:taskId   → proxies the image (avoids CORS)
  *
  * Polling is built-in: `generateImageWithPolling()` starts a task and polls
  * until COMPLETED / ERROR or timeout.
  *
  * BUG FIX: Added Authorization header from stored JWT token.
  * The backend auth middleware requires Bearer token for all /api/images/* routes.
+ *
+ * CORS FIX: Image URLs from MetisAI point to Azure Blob Storage which may have
+ * CORS restrictions. We use the /api/images/serve/:taskId proxy endpoint instead.
  */
 
 const POLL_INTERVAL_MS = 3000;
@@ -110,7 +114,7 @@ export async function getImageStatus(taskId: string): Promise<ImageStatusRespons
  *
  * @param prompt - Image description text
  * @param onProgress - Optional callback called on each non-terminal poll cycle
- * @returns The final imageUrl when COMPLETED
+ * @returns The proxy imageUrl when COMPLETED (served via /api/images/serve/:taskId to avoid CORS)
  * @throws Error on ERROR status, timeout, or API failure
  */
 export async function generateImageWithPolling(
@@ -126,7 +130,8 @@ export async function generateImageWithPolling(
 
     if (result.status === 'COMPLETED') {
       if (result.imageUrl) {
-        return result.imageUrl;
+        // Return proxy URL instead of direct Azure Blob URL to avoid CORS issues
+        return `/api/images/serve/${taskId}`;
       }
       throw new Error('تسک تکمیل شد اما لینک عکس دریافت نشد.');
     }

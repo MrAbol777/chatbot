@@ -28,6 +28,7 @@ function createImageGenerationRouter(deps) {
 
   router.post('/generate', controller.generateImage);
   router.get('/status/:taskId', controller.getImageStatus);
+  router.get('/serve/:taskId', controller.serveImage);
 
   return router;
 }
