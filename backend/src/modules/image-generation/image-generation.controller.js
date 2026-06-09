@@ -127,38 +127,52 @@ function createImageGenerationController({ imageGenerationService, db }) {
 
       // 4. Update DB based on Metis response
       // Metis statuses: QUEUE, WAITING, RUNNING, COMPLETED, ERROR, CANCELLED
-      const VALID_STATUSES = new Set(['QUEUE', 'WAITING', 'RUNNING', 'COMPLETED', 'ERROR', 'CANCELLED']);
+      // Map Metis statuses to safe DB-compatible values (works with both old and new ENUM)
+      // Old ENUM: QUEUE, IN_PROGRESS, COMPLETED, ERROR
+      // New ENUM: QUEUE, WAITING, RUNNING, COMPLETED, ERROR, CANCELLED
+
+      const toDbStatus = (metisStatus) => {
+        const normalized = String(metisStatus || '').toUpperCase();
+        if (['COMPLETED'].includes(normalized)) return 'COMPLETED';
+        if (['ERROR', 'CANCELLED'].includes(normalized)) return 'ERROR';
+        // Map running/waiting states to IN_PROGRESS (exists in both old and new ENUM)
+        if (['RUNNING', 'WAITING', 'IN_PROGRESS'].includes(normalized)) return 'IN_PROGRESS';
+        if (['QUEUE'].includes(normalized)) return 'QUEUE';
+        // Fallback for unknown statuses
+        return 'QUEUE';
+      };
 
       if (metisResult.status === 'COMPLETED') {
-        newStatus = 'COMPLETED';
+        newStatus = toDbStatus(metisResult.status);
         imageUrl = metisResult.imageUrl;
-        await db.query(
-          `UPDATE image_generations SET status = 'COMPLETED', image_url = ? WHERE id = ?`,
-          [imageUrl, record.id]
-        );
-      } else if (metisResult.status === 'ERROR') {
-        newStatus = 'ERROR';
-        errorText = metisResult.error;
-        await db.query(
-          `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
-          [errorText, record.id]
-        );
-      } else if (metisResult.status === 'CANCELLED') {
-        newStatus = 'CANCELLED';
-        errorText = metisResult.error || 'Task was cancelled.';
-        await db.query(
-          `UPDATE image_generations SET status = 'CANCELLED', error = ? WHERE id = ?`,
-          [errorText, record.id]
-        );
-      } else {
-        // Pass through non-terminal Metis statuses directly (QUEUE, WAITING, RUNNING)
-        const metisStatus = String(metisResult.status || '').toUpperCase();
-        if (VALID_STATUSES.has(metisStatus)) {
-          newStatus = metisStatus;
-        } else {
-          // Unknown status → default to QUEUE
-          newStatus = 'QUEUE';
+        if (record.status !== newStatus) {
+          await db.query(
+            `UPDATE image_generations SET status = 'COMPLETED', image_url = ? WHERE id = ?`,
+            [imageUrl, record.id]
+          );
         }
+      } else if (metisResult.status === 'ERROR') {
+        newStatus = toDbStatus(metisResult.status);
+        errorText = metisResult.error;
+        if (record.status !== newStatus) {
+          await db.query(
+            `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
+            [errorText, record.id]
+          );
+        }
+      } else if (metisResult.status === 'CANCELLED') {
+        // Old ENUM doesn't have CANCELLED — map to ERROR
+        newStatus = 'ERROR';
+        errorText = metisResult.error || 'Task was cancelled.';
+        if (record.status !== newStatus) {
+          await db.query(
+            `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
+            [errorText, record.id]
+          );
+        }
+      } else {
+        // Non-terminal Metis statuses (QUEUE, WAITING, RUNNING) → map to safe DB value
+        newStatus = toDbStatus(metisResult.status);
         if (record.status !== newStatus) {
           await db.query(
             `UPDATE image_generations SET status = ? WHERE id = ?`,
