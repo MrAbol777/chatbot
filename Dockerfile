@@ -8,15 +8,13 @@ ARG NPM_REGISTRY
 ARG APK_MIRROR
 
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
-ENV NPM_CONFIG_REPLACE_REGISTRY_HOST=always
-ENV npm_config_registry=${NPM_REGISTRY}
-ENV npm_config_replace_registry_host=always
+ENV npm_config_replace-registry-host=always
 ENV npm_config_audit=false
 ENV npm_config_fund=false
-ENV npm_config_update_notifier=false
-ENV npm_config_fetch_retries=5
-ENV npm_config_fetch_retry_mintimeout=20000
-ENV npm_config_fetch_retry_maxtimeout=120000
+ENV npm_config_update-notifier=false
+ENV npm_config_fetch-retries=5
+ENV npm_config_fetch-retry-mintimeout=20000
+ENV npm_config_fetch-retry-maxtimeout=120000
 
 RUN set -eux; \
   ALPINE_VERSION="$(cut -d. -f1,2 /etc/alpine-release)"; \
@@ -26,12 +24,12 @@ RUN set -eux; \
   apk add --no-cache ca-certificates wget; \
   npm config set registry "${NPM_REGISTRY}"; \
   npm config set replace-registry-host always; \
+  npm config set audit false; \
   npm config set fund false; \
-    npm config set audit false; \
-    npm config set fetch-retries 5; \
-    npm config set fetch-retry-mintimeout 20000; \
-    npm config set fetch-retry-maxtimeout 120000; \
-    npm config set update-notifier false
+  npm config set fetch-retries 5; \
+  npm config set fetch-retry-mintimeout 20000; \
+  npm config set fetch-retry-maxtimeout 120000; \
+  npm config set update-notifier false
 
 FROM base-node AS frontend-builder
 WORKDIR /app/frontend
