@@ -15,7 +15,8 @@ function createImageGenerationRouter(deps) {
     createImageGenerationService({
       httpClient: deps.httpClient,
       metisApiKey: deps.metisApiKey,
-      baseUrl: deps.baseUrl
+      baseUrl: deps.baseUrl,
+      imageModel: deps.metisImageModel || 'gpt-image-1'
     });
 
   const controller = createImageGenerationController({

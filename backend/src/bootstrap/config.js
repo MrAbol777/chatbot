@@ -32,12 +32,15 @@ function loadRuntimeConfig(env = process.env) {
   const systemPromptPath = path.join(__dirname, '../../system-prompt.txt');
   const frontendDistPath = path.join(__dirname, '../../../frontend/dist');
 
+  const metisImageModel = env.METIS_IMAGE_MODEL || 'gpt-image-1';
+
   return {
     port,
     host,
     metisBaseUrl,
     defaultModel,
     metisApiKey,
+    metisImageModel,
     defaultTimeoutMs,
     adminApiKey,
     adminJwtSecret,

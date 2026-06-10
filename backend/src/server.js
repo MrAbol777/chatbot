@@ -123,6 +123,7 @@ const {
   defaultModel,
   metisApiKey,
   defaultTimeoutMs,
+  metisImageModel,
   adminApiKey,
   adminJwtSecret,
   authJwtSecret,
@@ -312,7 +313,8 @@ const imageGenerationModule = createImageGenerationRouter({
   metisApiKey,
   baseUrl: metisBaseUrl.replace(/\/openai\/v1$/, ''),
   db: repositories.db,
-  authJwtSecret
+  authJwtSecret,
+  metisImageModel
 });
 // Public serve endpoint (no auth — img tags can't send Authorization headers)
 app.use('/api/images', imageGenerationModule.publicRouter);

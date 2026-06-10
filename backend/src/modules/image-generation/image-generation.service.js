@@ -1,4 +1,16 @@
-function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'https://api.metisai.ir' }) {
+function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'https://api.metisai.ir', imageModel = 'gpt-image-1' }) {
+  // Determine provider from model name
+  const getProvider = (model) => {
+    const openaiModels = ['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'dall-e-3', 'dall-e-2'];
+    const googleModels = ['nano-banana', 'nano-banana-pro', 'nano-banana-2'];
+    const m = (model || '').toLowerCase();
+    if (openaiModels.includes(m)) return 'openai';
+    if (googleModels.includes(m)) return 'google';
+    return 'openai'; // default
+  };
+
+  const provider = getProvider(imageModel);
+
   const getHeaders = () => ({
     Authorization: `Bearer ${metisApiKey}`,
     'Content-Type': 'application/json'
@@ -11,7 +23,7 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
   const createImageGeneration = async (prompt) => {
     const url = `${baseUrl}/api/v2/generate`;
     const body = {
-      model: { name: 'google', model: 'nano-banana' },
+      model: { name: provider, model: imageModel },
       operation: 'Imagine',
       args: { prompt }
     };
