@@ -1,4 +1,4 @@
-function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'https://api.metisai.ir', imageModel = 'gpt-image-1' }) {
+function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'https://api.metisai.ir', imageModel = 'nano-banana-2' }) {
   // Determine provider from model name
   const getProvider = (model) => {
     const openaiModels = ['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'dall-e-3', 'dall-e-2'];
