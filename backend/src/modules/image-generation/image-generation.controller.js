@@ -152,6 +152,8 @@ function createImageGenerationController({ imageGenerationService, db }) {
             [imageUrl, record.id]
           );
         }
+        // Always use the latest imageUrl from Metis (even if DB status didn't change)
+        imageUrl = metisResult.imageUrl;
       } else if (metisResult.status === 'ERROR') {
         newStatus = toDbStatus(metisResult.status);
         errorText = metisResult.error;
@@ -207,16 +209,15 @@ function createImageGenerationController({ imageGenerationService, db }) {
   const serveImage = async (req, res) => {
     try {
       const { taskId } = req.params;
-      const userId = req.user?.id;
 
       if (!taskId) {
         return res.status(400).json({ success: false, error: 'taskId is required.' });
       }
 
-      // Find the record in DB
+      // Find the record in DB (public endpoint — taskId acts as access control)
       const [rows] = await db.query(
-        `SELECT id, task_id, image_url, status FROM image_generations WHERE task_id = ? AND user_id = ? LIMIT 1`,
-        [taskId, userId]
+        `SELECT id, task_id, image_url, status FROM image_generations WHERE task_id = ? LIMIT 1`,
+        [taskId]
       );
 
       if (rows.length === 0) {
@@ -226,8 +227,11 @@ function createImageGenerationController({ imageGenerationService, db }) {
       const record = rows[0];
 
       if (record.status !== 'COMPLETED' || !record.image_url) {
+        console.log('[image-generation] serveImage → not ready:', { status: record.status, hasUrl: !!record.image_url });
         return res.status(404).json({ success: false, error: 'Image not available yet.' });
       }
+
+      console.log('[image-generation] serveImage → proxying:', record.image_url.slice(0, 80) + '...');
 
       // Fetch image from Metis/Azure and proxy it
       const axios = require('axios');
@@ -239,6 +243,7 @@ function createImageGenerationController({ imageGenerationService, db }) {
       const contentType = imageResponse.headers['content-type'] || 'image/jpeg';
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Access-Control-Allow-Origin', '*');
       return res.send(imageResponse.data);
     } catch (error) {
       console.error('[image-generation] serveImage failed:', error?.message || error);

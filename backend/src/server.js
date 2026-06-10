@@ -307,13 +307,17 @@ app.use(createAiRouter({
   }
 }));
 
-app.use('/api/images', createImageGenerationRouter({
+const imageGenerationModule = createImageGenerationRouter({
   httpClient: axios,
   metisApiKey,
   baseUrl: metisBaseUrl.replace(/\/openai\/v1$/, ''),
   db: repositories.db,
   authJwtSecret
-}));
+});
+// Public serve endpoint (no auth — img tags can't send Authorization headers)
+app.use('/api/images', imageGenerationModule.publicRouter);
+// Protected endpoints (generate, status)
+app.use('/api/images', imageGenerationModule.router);
 
 const { router: conversationRouter } = createConversationsModule({
   usersRepository: {

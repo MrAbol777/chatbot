@@ -28,9 +28,14 @@ function createImageGenerationRouter(deps) {
 
   router.post('/generate', controller.generateImage);
   router.get('/status/:taskId', controller.getImageStatus);
-  router.get('/serve/:taskId', controller.serveImage);
 
-  return router;
+  // Serve endpoint must be public — img tags can't send Authorization headers.
+  // The taskId itself acts as access control (you need to know it to access the image).
+  // We register it BEFORE the auth middleware by creating a separate router.
+  const publicRouter = express.Router();
+  publicRouter.get('/serve/:taskId', controller.serveImage);
+
+  return { router, publicRouter };
 }
 
 module.exports = { createImageGenerationRouter };
