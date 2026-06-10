@@ -214,6 +214,8 @@ function createImageGenerationController({ imageGenerationService, db }) {
         return res.status(400).json({ success: false, error: 'taskId is required.' });
       }
 
+      console.log('[image-generation] serveImage REQUEST → taskId:', taskId);
+
       // Find the record in DB (public endpoint — taskId acts as access control)
       const [rows] = await db.query(
         `SELECT id, task_id, image_url, status FROM image_generations WHERE task_id = ? LIMIT 1`,
@@ -221,10 +223,12 @@ function createImageGenerationController({ imageGenerationService, db }) {
       );
 
       if (rows.length === 0) {
+        console.log('[image-generation] serveImage → NOT FOUND in DB');
         return res.status(404).json({ success: false, error: 'Task not found.' });
       }
 
       const record = rows[0];
+      console.log('[image-generation] serveImage → DB record:', { status: record.status, hasUrl: !!record.image_url, urlPreview: record.image_url ? record.image_url.slice(0, 60) + '...' : null });
 
       if (record.status !== 'COMPLETED' || !record.image_url) {
         console.log('[image-generation] serveImage → not ready:', { status: record.status, hasUrl: !!record.image_url });
@@ -241,12 +245,17 @@ function createImageGenerationController({ imageGenerationService, db }) {
       });
 
       const contentType = imageResponse.headers['content-type'] || 'image/jpeg';
+      console.log('[image-generation] serveImage → SUCCESS, size:', imageResponse.data.length, 'contentType:', contentType);
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=86400');
       res.setHeader('Access-Control-Allow-Origin', '*');
       return res.send(imageResponse.data);
     } catch (error) {
-      console.error('[image-generation] serveImage failed:', error?.message || error);
+      console.error('[image-generation] serveImage FAILED:', {
+        message: error?.message || error,
+        statusCode: error?.response?.status,
+        responseError: error?.response?.data
+      });
       return res.status(500).json({ success: false, error: 'Failed to serve image.' });
     }
   };
