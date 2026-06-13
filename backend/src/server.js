@@ -387,16 +387,27 @@ app.use((err, req, res, _next) => {
   });
 });
 
-const server = app.listen(port, host, () => {
-  log('BOOT', 'backend_started', {
-    host,
-    port,
-    model: defaultModel,
-    baseUrl: metisBaseUrl,
-    timeoutMs: defaultTimeoutMs
-  });
-});
+// ─── Wait for DB initialization before starting server ───
+(async () => {
+  try {
+    await repositories.db.init();
+    console.log('[BOOT] Database initialized');
+  } catch (err) {
+    console.error('[BOOT] Database initialization failed:', err.message);
+    process.exit(1);
+  }
 
-server.keepAliveTimeout = 65000;
-server.headersTimeout = 66000;
-server.requestTimeout = 30000;
+  const server = app.listen(port, host, () => {
+    log('BOOT', 'backend_started', {
+      host,
+      port,
+      model: defaultModel,
+      baseUrl: metisBaseUrl,
+      timeoutMs: defaultTimeoutMs
+    });
+  });
+
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
+  server.requestTimeout = 30000;
+})();

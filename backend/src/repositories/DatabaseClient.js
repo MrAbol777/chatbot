@@ -26,6 +26,7 @@ class DatabaseClient {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
+      console.log('[DB] Connecting to local MySQL...');
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS app_users (
           user_id VARCHAR(191) PRIMARY KEY,
@@ -103,6 +104,8 @@ class DatabaseClient {
             ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
+
+      console.log('[DB] Connected to local MySQL');
     })();
 
     return this.initPromise;

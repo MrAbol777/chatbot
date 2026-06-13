@@ -1,0 +1,48 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: chatbot-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: chatbot
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chatbot-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://root:@mysql:3306/chatbot
+      - PORT=3000
+      - METIS_API_KEY=${METIS_API_KEY}
+      - METIS_OPENAI_BASE_URL=${METIS_OPENAI_BASE_URL}
+      - OPENAI_MODEL=${OPENAI_MODEL}
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - IPPANEL_API_KEY=${IPPANEL_API_KEY}
+      - IPPANEL_PATTERN_CODE=${IPPANEL_PATTERN_CODE}
+      - IPPANEL_SENDER=${IPPANEL_SENDER}
+      - OTP_EXPIRE=${OTP_EXPIRE}
+      - BALE_BOT_TOKEN=${BALE_BOT_TOKEN}
+      - BALE_WEBHOOK_PUBLIC_URL=${BALE_WEBHOOK_PUBLIC_URL}
+      - METIS_IMAGE_MODEL=${METIS_IMAGE_MODEL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql-data:

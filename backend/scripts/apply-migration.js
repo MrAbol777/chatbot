@@ -2,18 +2,18 @@
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-  host: '91c1e35c-a26b-4ef4-9bb2-4ee4b76cc911.hadb.ir',
-  port: 29496,
+  host: 'localhost',
+  port: 3306,
   user: 'root',
-  password: 'GCeETqyMW9RcllloW0cu',
-  database: 'mysql',
+  password: '',
+  database: 'chatbot',
   charset: 'utf8mb4',
   connectTimeout: 30000
 });
 
 (async () => {
   try {
-    console.log('Connecting to remote MySQL...');
+    console.log('Connecting to local MySQL...');
     const conn = await pool.getConnection();
     console.log('✅ Connected!');
 

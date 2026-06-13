@@ -1,28 +1,41 @@
-(node:21888) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:21292) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[19:26:51] FRONTEND 
-[19:26:51] FRONTEND > hemraz-frontend@1.0.0 dev
-[19:26:51] FRONTEND > vite
-[19:26:51] FRONTEND 
-[19:26:51] BACKEND 
-[19:26:51] BACKEND > hemraz-backend@1.0.0 dev
-[19:26:51] BACKEND > nodemon --config nodemon.json src/server.js
-[19:26:51] BACKEND 
-[19:26:51] BACKEND [33m[nodemon] 3.1.14[39m
-[19:26:51] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[19:26:51] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[19:26:51] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[19:26:51] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[19:26:51] FRONTEND 
-[19:26:51] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m306[22m[2m[0m ms[22m
-[19:26:51] FRONTEND 
-[19:26:51] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[19:26:51] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.102:[1m5173[22m/[39m
-[19:26:52] BACKEND [BOOT] DB mode=mysql
-[19:26:52] BACKEND [SMS] routes mounted
-[19:26:52] BACKEND [BALE] webhook mounted at /bale/webhook
-[19:26:52] BACKEND [2026-06-09T15:56:52.843Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.5-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[19:26:53] BACKEND [BALE] webhook configured {
-[19:26:53] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
-[19:26:53] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
-[19:26:53] BACKEND }
+[11:33:13] FRONTEND 
+[11:33:13] FRONTEND > hemraz-frontend@1.0.0 dev
+[11:33:13] FRONTEND > vite
+[11:33:13] FRONTEND 
+[11:33:13] BACKEND 
+[11:33:13] BACKEND > hemraz-backend@1.0.0 dev
+[11:33:13] BACKEND > nodemon --config nodemon.json src/server.js
+[11:33:13] BACKEND 
+[11:33:14] BACKEND [33m[nodemon] 3.1.14[39m
+[11:33:14] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[11:33:14] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[11:33:14] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[11:33:14] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[11:33:14] FRONTEND 
+[11:33:14] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m389[22m[2m[0m ms[22m
+[11:33:14] FRONTEND 
+[11:33:14] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[11:33:14] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.133:[1m5173[22m/[39m
+[11:33:14] BACKEND [BOOT] DB mode=mysql
+[11:33:14] BACKEND [SMS] routes mounted
+[11:33:14] BACKEND [BALE] webhook mounted at /bale/webhook
+[11:33:14] BACKEND [DB] Connecting to local MySQL...
+[11:33:14] BACKEND [DB] Connected to local MySQL
+[11:33:14] BACKEND [BOOT] Database initialized
+[11:33:14] BACKEND [FATAL] uncaughtException Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
+[11:33:14] BACKEND     at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+[11:33:14] BACKEND     at listenInCluster (node:net:1997:12)
+[11:33:14] BACKEND     at node:net:2206:7
+[11:33:14] BACKEND     at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {
+[11:33:14] BACKEND   code: 'EADDRINUSE',
+[11:33:14] BACKEND   errno: -4091,
+[11:33:14] BACKEND   syscall: 'listen',
+[11:33:14] BACKEND   address: '0.0.0.0',
+[11:33:14] BACKEND   port: 3000
+[11:33:14] BACKEND }
+[11:33:14] BACKEND [BALE] webhook configured {
+[11:33:14] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
+[11:33:14] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
+[11:33:14] BACKEND }
