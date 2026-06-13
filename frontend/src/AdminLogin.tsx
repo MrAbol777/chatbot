@@ -31,7 +31,7 @@ function AdminLogin({ onLoginSuccess }: Props) {
 
       onLoginSuccess();
     } catch (_error) {
-      setError('خطا در ارتباط با سرور.');
+      setError('اتصال به سرور برقرار نشد. لطفاً اینترنت خود را بررسی کنید.');
     } finally {
       setLoading(false);
     }

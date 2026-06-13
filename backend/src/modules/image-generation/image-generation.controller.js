@@ -251,11 +251,22 @@ function createImageGenerationController({ imageGenerationService, db }) {
       res.setHeader('Access-Control-Allow-Origin', '*');
       return res.send(imageResponse.data);
     } catch (error) {
+      const statusCode = error?.response?.status;
       console.error('[image-generation] serveImage FAILED:', {
         message: error?.message || error,
-        statusCode: error?.response?.status,
+        statusCode,
         responseError: error?.response?.data
       });
+
+      if (statusCode === 404) {
+        return res.status(404).json({ success: false, error: 'Image not found on storage.' });
+      }
+      if (statusCode === 403) {
+        return res.status(403).json({ success: false, error: 'Access denied to image.' });
+      }
+      if (statusCode === 410) {
+        return res.status(410).json({ success: false, error: 'Image has been removed.' });
+      }
       return res.status(500).json({ success: false, error: 'Failed to serve image.' });
     }
   };

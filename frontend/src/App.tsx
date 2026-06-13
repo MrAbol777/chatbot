@@ -50,6 +50,22 @@ type ImageAttachment = {
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const RETRYABLE_API_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
+/**
+ * Wrap fetch with network-level error handling.
+ * Catches DNS failures, offline, connection refused, etc.
+ */
+const safeFetch = async (url: string, init?: RequestInit): Promise<Response> => {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('درخواست بیش از حد طول کشید. لطفاً دوباره تلاش کنید.');
+    }
+    throw new Error('اتصال به سرور برقرار نشد. اینترنت خود را بررسی کنید.');
+  }
+};
+
 const PERSIAN_PHONE_REGEX = /^09[0-9]{9}$/;
 const INTEREST_PATTERNS = [
   /(?:عاشق|دوست دارم|علاقه دارم)\s+([آ-یa-zA-Z0-9\s‌]+)/i,
@@ -151,7 +167,7 @@ const postChatWithRetry = async (payload: {
     const timeoutId = window.setTimeout(() => controller.abort(), CHAT_REQUEST_TIMEOUT_MS);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await safeFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -214,7 +230,7 @@ const MAX_ATTACHMENT_COUNT = 5;
 const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
 
 const checkPhoneStatus = async (phone: string, mode: AuthMode): Promise<{ exists: boolean; redirectTo: AuthMode | null }> => {
-  const response = await fetch('/api/auth/phone-status', {
+  const response = await safeFetch('/api/auth/phone-status', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, mode })
@@ -230,7 +246,7 @@ const checkPhoneStatus = async (phone: string, mode: AuthMode): Promise<{ exists
 };
 
 const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void> => {
-  const response = await fetch('/api/send-verification-code', {
+  const response = await safeFetch('/api/send-verification-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, mode })
@@ -249,7 +265,7 @@ const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
 
-  const response = await fetch('/api/verify-code', {
+  const response = await safeFetch('/api/verify-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, code: normalizedCode, mode })
@@ -269,7 +285,7 @@ const registerProfile = async (profile: {
   id: number | string;
   mode: AuthMode;
 }): Promise<{ userId: string; profile: { name: string; age: number; phone: string }; token?: string }> => {
-  const response = await fetch('/api/register-profile', {
+  const response = await safeFetch('/api/register-profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(profile)
@@ -285,7 +301,7 @@ const registerProfile = async (profile: {
 };
 
 const loadRemoteConversations = async (profile: UserProfile & { id?: string | number }) => {
-  const response = await fetch('/api/conversations/load', {
+  const response = await safeFetch('/api/conversations/load', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ profile })
@@ -308,11 +324,18 @@ const loadRemoteConversations = async (profile: UserProfile & { id?: string | nu
 };
 
 const syncRemoteConversations = async (profile: UserProfile & { id?: string | number }, conversations: Conversation[]) => {
-  await fetch('/api/conversations/sync', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ profile, items: conversations })
-  });
+  try {
+    const response = await safeFetch('/api/conversations/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile, items: conversations })
+    });
+    if (!response.ok) {
+      console.warn('[conversations] Sync failed:', response.status);
+    }
+  } catch (error) {
+    console.error('[conversations] Sync error:', error);
+  }
 };
 
 const createConversation = (): Conversation => {
@@ -426,6 +449,7 @@ function ChatApp() {
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
  const [imageGenError, setImageGenError] = useState<string>('');
+ const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -491,12 +515,10 @@ function ChatApp() {
     const loadProfile = () => {
       try {
         const rawProfile = localStorage.getItem(PROFILE_KEY);
-        console.log('[DEBUG] rawProfile on load:', rawProfile);
         if (!rawProfile) return null;
 
         const parsed = JSON.parse(rawProfile) as Partial<AppProfile>;
         if (!parsed?.name || typeof parsed.name !== 'string' || !Number.isFinite(Number(parsed.age))) {
-          console.warn('[DEBUG] Invalid profile structure');
           return null;
         }
 
@@ -508,7 +530,7 @@ function ChatApp() {
         };
         return hydrated;
       } catch (err) {
-        console.error('[DEBUG] Failed to load profile:', err);
+        console.error('[profile] Failed to load profile:', err);
         return null;
       }
     };
@@ -594,8 +616,9 @@ function ChatApp() {
         localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(sorted));
         localStorage.setItem(ACTIVE_CONVERSATION_KEY, nextActiveId);
         setHasHydratedRemoteConversations(true);
-      } catch (_error) {
+      } catch (error) {
         // Keep local data if remote load fails.
+        console.error('[conversations] Remote load failed, keeping local data:', error);
       } finally {
         setHasHydratedRemoteConversations(true);
       }
@@ -653,6 +676,7 @@ function ChatApp() {
   useEffect(() => {
     if (activeConversationId) {
       localStorage.setItem(ACTIVE_CONVERSATION_KEY, activeConversationId);
+      setBrokenImages(new Set());
     }
   }, [activeConversationId]);
 
@@ -753,7 +777,7 @@ function ChatApp() {
       keepRecordingRef.current = false;
       recordingActionRef.current = 'cancel';
       setIsRecording(false);
-      alert('دسترسی به میکروفن برقرار نشد. لطفاً دوباره تلاش کن.');
+      pushToast('دسترسی به میکروفن برقرار نشد. لطفاً دوباره تلاش کن.', 'danger');
     };
 
     recognition.onend = () => {
@@ -764,7 +788,7 @@ function ChatApp() {
         } catch {
           keepRecordingRef.current = false;
           setIsRecording(false);
-          alert('ضبط برای مدت طولانی ادامه پیدا نکرد. لطفاً دوباره تلاش کن.');
+          pushToast('ضبط برای مدت طولانی ادامه پیدا نکرد. لطفاً دوباره تلاش کن.', 'warning');
           return;
         }
       }
@@ -793,7 +817,7 @@ function ChatApp() {
       recognition.stop();
       recognitionRef.current = null;
     };
-  }, []);
+  }, [pushToast]);
 
   const updateConversation = (conversationId: string, updater: (conversation: Conversation) => Conversation) => {
     setConversations((prev) => prev.map((item) => (item.id === conversationId ? updater(item) : item)));
@@ -1084,7 +1108,7 @@ function ChatApp() {
         let uploadResponse: Response;
         let uploadData: any = {};
         try {
-          uploadResponse = await fetch('/api/uploads/images', {
+          uploadResponse = await safeFetch('/api/uploads/images', {
             method: 'POST',
             body: formData
           });
@@ -1138,7 +1162,6 @@ function ChatApp() {
         }
 
         uploadedImageIds.push(...nextUploadedImageIds);
-        console.log('[UPLOAD][success][imageIds]', uploadedImageIds);
       }
 
       if (uploadedImageIds.length > 0) {
@@ -1195,6 +1218,14 @@ function ChatApp() {
         updatedAt: new Date().toISOString()
       }));
     } catch (error) {
+      const isNetworkError = error instanceof Error && error.message.includes('اتصال به سرور');
+      const isTimeoutError = error instanceof Error && error.message.includes('بیش از حد طول کشید');
+
+      let toastType: 'danger' | 'warning' = 'danger';
+      if (isNetworkError || isTimeoutError) {
+        toastType = 'warning';
+      }
+
       const fallbackText =
         error instanceof Error && error.message.trim()
           ? error.message
@@ -1204,6 +1235,13 @@ function ChatApp() {
         content: fallbackText,
         timestamp: new Date().toISOString()
       };
+
+      pushToast(
+        isNetworkError ? 'خطای شبکه — لطفاً اتصال اینترنت خود را بررسی کنید و دوباره تلاش کنید' :
+        isTimeoutError ? 'درخواست بیش از حد طول کشید. لطفاً دوباره تلاش کنید' :
+        'خطا در دریافت پاسخ — لطفاً دوباره تلاش کنید',
+        toastType
+      );
 
       updateConversation(currentConversation.id, (item) => ({
         ...item,
@@ -1277,8 +1315,36 @@ function ChatApp() {
     });
   };
 
-  const handleRetryUpload = (id: string) => {
-    setAttachments((prev) => prev.map((item) => (item.id === id ? { ...item, status: 'pending', error: undefined } : item)));
+  const handleRetryUpload = async (id: string) => {
+    const attachment = attachments.find((item) => item.id === id);
+    if (!attachment) return;
+
+    setAttachments((prev) => prev.map((item) => (item.id === id ? { ...item, status: 'uploading' as AttachmentStatus, error: undefined } : item)));
+
+    try {
+      const formData = new FormData();
+      formData.append('images', attachment.file);
+      const response = await safeFetch('/api/uploads/images', { method: 'POST', body: formData });
+      const data = await response.json();
+
+      if (!response.ok || !Array.isArray(data?.images) || data.images.length === 0) {
+        throw new Error(data?.message || data?.error || 'آپلود ناموفق');
+      }
+
+      const imageId = data.images[0].imageId;
+      setAttachments((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, status: 'uploaded' as AttachmentStatus, imageId } : item
+        )
+      );
+    } catch {
+      setAttachments((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, status: 'error' as AttachmentStatus, error: 'آپلود تصویر با خطا مواجه شد.' } : item
+        )
+      );
+      pushToast('آپلود تصویر ناموفق. لطفاً دوباره تلاش کنید.', 'danger');
+    }
   };
 
   useEffect(() => {
@@ -1352,7 +1418,7 @@ function ChatApp() {
 
   const handleDownloadActiveConversation = () => {
     if (!activeConversation) {
-      alert('گفتگوی فعالی برای ذخیره وجود ندارد.');
+      pushToast('گفتگوی فعالی برای ذخیره وجود ندارد.', 'warning');
       return;
     }
 
@@ -1410,7 +1476,7 @@ function ChatApp() {
 
   const handleStartRecording = () => {
     if (!recognitionRef.current) {
-      alert('مرورگر تو از ضبط صدا پشتیبانی نمی کند.');
+      pushToast('مرورگر تو از ضبط صدا پشتیبانی نمی کند.', 'warning');
       return;
     }
 
@@ -1423,7 +1489,7 @@ function ChatApp() {
     } catch {
       keepRecordingRef.current = false;
       setIsRecording(false);
-      alert('فعلاً نتوانستم ضبط را شروع کنم. دوباره امتحان کن.');
+      pushToast('فعلاً نتوانستم ضبط را شروع کنم. دوباره امتحان کن.', 'danger');
     }
   };
 
@@ -1506,8 +1572,6 @@ function ChatApp() {
          updatedAt: new Date().toISOString()
        }));
      });
-
-     console.log('[IMAGE-GEN][handleImagine] imageUrl received:', imageUrl ? `${imageUrl.slice(0, 80)}...` : 'MISSING');
 
      const botMessage: ChatMessage = {
        role: 'assistant',
@@ -2240,29 +2304,33 @@ function ChatApp() {
                     {message.content ? <div>{message.content}</div> : null}
                     {Array.isArray(message.images) && message.images.length > 0 ? (
                       <div className="message-image-grid">
-                        {message.images.map((image, imageIndex) => (
-                          <img
-                            key={`${image.url}-${imageIndex}`}
-                            className="message-image"
-                            src={image.url}
-                            alt={image.alt || 'تصویر ارسال شده'}
-                            loading="lazy"
-                            decoding="async"
-                            onError={(e) => {
-                              console.error('[image-load-error]', {
-                                url: image.url,
-                                index: imageIndex,
-                                error: 'Failed to load image'
-                              });
-                              const target = e.currentTarget;
-                              target.style.display = 'none';
-                              const errorDiv = document.createElement('div');
-                              errorDiv.className = 'image-load-error';
-                              errorDiv.textContent = '⚠️ خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید';
-                              target.parentElement?.appendChild(errorDiv);
-                            }}
-                          />
-                        ))}
+                        {message.images.map((image, imageIndex) => {
+                          const imageKey = `${image.url}-${imageIndex}`;
+                          if (brokenImages.has(imageKey)) {
+                            return (
+                              <div key={imageKey} className="image-load-error">
+                                ⚠️ خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید
+                              </div>
+                            );
+                          }
+                          return (
+                            <img
+                              key={imageKey}
+                              className="message-image"
+                              src={image.url}
+                              alt={image.alt || 'تصویر ارسال شده'}
+                              loading="lazy"
+                              decoding="async"
+                              onError={() => {
+                                setBrokenImages((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(imageKey);
+                                  return next;
+                                });
+                              }}
+                            />
+                          );
+                        })}
                       </div>
                     ) : null}
                   </div>
@@ -2362,7 +2430,7 @@ function ChatApp() {
                            className="menu-item-disabled"
                             onClick={() => {
                               setAttachmentMenuOpen(false);
-                              alert('به زودی فعال میشه این بخش ...');
+                              pushToast('به زودی فعال میشه این بخش ...', 'warning');
                             }}
                           >
                             <span aria-hidden="true">📄</span>

@@ -1,0 +1,14 @@
+{
+  "name": "metis-image-generator",
+  "version": "1.0.0",
+  "description": "Simple Metis AI image generation script",
+  "main": "generate.js",
+  "type": "module",
+  "scripts": {
+    "start": "node generate.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0"
+  }
+}

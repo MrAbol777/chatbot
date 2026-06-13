@@ -366,6 +366,27 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
+// ─── Global error handler (must be LAST, after all routes) ───
+app.use((err, req, res, _next) => {
+  const requestId = res.locals.requestId || 'unknown';
+  const isProd = process.env.NODE_ENV === 'production';
+
+  console.error(`[ERROR][${requestId}]`, {
+    message: err.message,
+    stack: err.stack,
+    path: req.originalUrl,
+    method: req.method,
+    status: err.status || err.statusCode || null,
+    code: err.code || null
+  });
+
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    error: isProd ? 'خطای داخلی سرور' : err.message,
+    requestId
+  });
+});
+
 const server = app.listen(port, host, () => {
   log('BOOT', 'backend_started', {
     host,

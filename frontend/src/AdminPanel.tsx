@@ -58,6 +58,24 @@ type DashboardStats = {
 
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
 
+// ─── Shared error helpers for admin routes ───
+const handleAdminResponse = async (response: Response, fallback: string): Promise<{ ok: boolean; data?: any }> => {
+  if (response.status === 401) {
+    window.location.href = '/admin/login';
+    return { ok: false };
+  }
+  if (!response.ok) {
+    let message = fallback;
+    try {
+      const payload = await response.json();
+      if (payload?.error || payload?.message) message = payload.error || payload.message;
+    } catch { /* ignore JSON parse error */ }
+    throw new Error(message);
+  }
+  const data = await response.json();
+  return { ok: true, data };
+};
+
 function AdminPanel() {
   const [tab, setTab] = useState<'dashboard' | 'users' | 'errors' | 'config' | 'audit'>('dashboard');
   const [users, setUsers] = useState<User[]>([]);
@@ -77,18 +95,22 @@ function AdminPanel() {
   const [systemPromptLoading, setSystemPromptLoading] = useState(false);
   const [systemPromptSaving, setSystemPromptSaving] = useState(false);
   const [systemPromptMessage, setSystemPromptMessage] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
 
   const loadUsers = async () => {
+    setLoadError('');
     const params = new URLSearchParams();
     if (query.trim()) params.set('q', query.trim());
     if (banFilter !== 'all') params.set('isBanned', banFilter);
-    const response = await fetch(`/api/admin/users?${params.toString()}`, { credentials: 'include' });
-    if (response.status === 401) {
-      window.location.href = '/admin/login';
-      return;
+    try {
+      const response = await fetch(`/api/admin/users?${params.toString()}`, { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری کاربران ناموفق بود.');
+      if (!result.ok) return;
+      setUsers(result.data.items || []);
+    } catch {
+      setLoadError('اتصال به سرور برقرار نشد. لطفاً دوباره تلاش کنید.');
     }
-    const payload = await response.json();
-    setUsers(payload.items || []);
   };
 
   const loadDashboard = async () => {
@@ -114,15 +136,23 @@ function AdminPanel() {
   };
 
   const loadErrors = async () => {
-    const response = await fetch('/api/admin/errors', { credentials: 'include' });
-    const payload = await response.json();
-    setErrors(payload.items || []);
+    try {
+      const response = await fetch('/api/admin/errors', { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری خطاها ناموفق بود.');
+      if (result.ok) setErrors(result.data.items || []);
+    } catch {
+      console.error('[admin] loadErrors failed');
+    }
   };
 
   const loadConfig = async () => {
-    const response = await fetch('/api/admin/config', { credentials: 'include' });
-    const payload = await response.json();
-    setConfig(payload);
+    try {
+      const response = await fetch('/api/admin/config', { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری تنظیمات ناموفق بود.');
+      if (result.ok) setConfig(result.data);
+    } catch {
+      console.error('[admin] loadConfig failed');
+    }
   };
 
   const loadSystemPrompt = async () => {
@@ -147,9 +177,13 @@ function AdminPanel() {
   };
 
   const loadLogs = async () => {
-    const response = await fetch('/api/admin/audit-logs?page=1&pageSize=50', { credentials: 'include' });
-    const payload = await response.json();
-    setLogs(payload.items || []);
+    try {
+      const response = await fetch('/api/admin/audit-logs?page=1&pageSize=50', { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری لاگ ها ناموفق بود.');
+      if (result.ok) setLogs(result.data.items || []);
+    } catch {
+      console.error('[admin] loadLogs failed');
+    }
   };
 
   useEffect(() => {
@@ -164,27 +198,44 @@ function AdminPanel() {
   const visibleUsers = useMemo(() => users, [users]);
 
   const toggleBan = async (user: User) => {
-    await fetch(`/api/admin/users/${user.user_id}/ban`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ isBanned: !user.isBanned })
-    });
-    await loadUsers();
+    setActionError('');
+    try {
+      const response = await fetch(`/api/admin/users/${user.user_id}/ban`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isBanned: !user.isBanned })
+      });
+      await handleAdminResponse(response, 'تغییر وضعیت کاربر ناموفق بود.');
+      await loadUsers();
+    } catch {
+      setActionError('عملیات با خطا مواجه شد. لطفاً دوباره تلاش کنید.');
+    }
   };
 
   const deleteUser = async (user: User) => {
     if (!window.confirm('حذف کاربر و گفتگوها انجام شود؟')) return;
-    await fetch(`/api/admin/users/${user.user_id}`, { method: 'DELETE', credentials: 'include' });
-    setSelectedUser(null);
-    await loadUsers();
-    await loadDashboard();
+    setActionError('');
+    try {
+      const response = await fetch(`/api/admin/users/${user.user_id}`, { method: 'DELETE', credentials: 'include' });
+      await handleAdminResponse(response, 'حذف کاربر ناموفق بود.');
+      setSelectedUser(null);
+      await loadUsers();
+      await loadDashboard();
+    } catch {
+      setActionError('حذف کاربر با خطا مواجه شد. لطفاً دوباره تلاش کنید.');
+    }
   };
 
   const openUser = async (userId: string) => {
-    const response = await fetch(`/api/admin/users/${userId}`, { credentials: 'include' });
-    const payload = await response.json();
-    setSelectedUser(payload);
+    setActionError('');
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری پروفایل کاربر ناموفق بود.');
+      if (result.ok) setSelectedUser(result.data);
+    } catch {
+      setActionError('اتصال به سرور برقرار نشد. لطفاً دوباره تلاش کنید.');
+    }
   };
 
   const saveConfig = async () => {
@@ -239,7 +290,6 @@ function AdminPanel() {
         throw new Error(payload.error || 'save_failed');
       }
       setSystemPromptMessage(payload.message || 'پرامپت با موفقیت به‌روزرسانی شد');
-      alert(payload.message || 'پرامپت با موفقیت به‌روزرسانی شد');
     } catch (error) {
       setSystemPromptMessage(error instanceof Error ? error.message : 'ذخیره سیستم پرامپت ناموفق بود.');
     } finally {
@@ -261,6 +311,13 @@ function AdminPanel() {
         <Button variant="secondary" className={`admin-tab ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>تنظیمات</Button>
         <Button variant="secondary" className={`admin-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit</Button>
       </div>
+
+      {loadError && (
+        <InlineMessage text={loadError} variant="error" />
+      )}
+      {actionError && (
+        <InlineMessage text={actionError} variant="error" />
+      )}
 
       {tab === 'dashboard' ? (
         <div className="admin-section">

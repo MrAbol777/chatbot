@@ -18,6 +18,8 @@
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_MAX_ATTEMPTS = 120; // 6 minutes total
+const STATUS_POLL_RETRIES = 2; // retry a failed status poll before giving up
+const STATUS_POLL_RETRY_DELAY_MS = 1500;
 
 type ImageTaskStatus = 'QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'ERROR';
 
@@ -35,6 +37,24 @@ interface ImageStatusResponse {
   error?: string | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/**
+ * Helper: wrap fetch with network-level error handling.
+ * Catches DNS failures, offline, timeout, etc. and returns a Persian message.
+ */
+async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('اتصال به سرور برقرار نشد. اینترنت خود را بررسی کنید.');
+    }
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('درخواست بیش از حد طول کشید. لطفاً دوباره تلاش کنید.');
+    }
+    throw new Error('خطای شبکه. لطفاً اتصال اینترنت را بررسی کنید.');
+  }
 }
 
 /**
@@ -67,7 +87,7 @@ function authHeaders(): Record<string, string> {
  * Returns: taskId string
  */
 export async function generateImage(prompt: string): Promise<string> {
-  const response = await fetch('/api/images/generate', {
+  const response = await safeFetch('/api/images/generate', {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ prompt })
@@ -93,7 +113,7 @@ export async function generateImage(prompt: string): Promise<string> {
  * GET /api/images/status/:taskId
  */
 export async function getImageStatus(taskId: string): Promise<ImageStatusResponse> {
-  const response = await fetch(`/api/images/status/${taskId}`, {
+  const response = await safeFetch(`/api/images/status/${taskId}`, {
     method: 'GET',
     headers: authHeaders()
   });
@@ -107,6 +127,22 @@ export async function getImageStatus(taskId: string): Promise<ImageStatusRespons
   }
 
   return (await response.json()) as ImageStatusResponse;
+}
+
+/**
+ * Wrapper around getImageStatus with transient-failure retry.
+ * If a poll fails (network blip, 500), retry before giving up.
+ */
+async function getImageStatusWithRetry(taskId: string): Promise<ImageStatusResponse | null> {
+  for (let attempt = 0; attempt <= STATUS_POLL_RETRIES; attempt += 1) {
+    try {
+      return await getImageStatus(taskId);
+    } catch {
+      if (attempt >= STATUS_POLL_RETRIES) return null;
+      await new Promise((resolve) => setTimeout(resolve, STATUS_POLL_RETRY_DELAY_MS));
+    }
+  }
+  return null;
 }
 
 /**
@@ -126,7 +162,11 @@ export async function generateImageWithPolling(
   for (let attempt = 1; attempt <= POLL_MAX_ATTEMPTS; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
 
-    const result = await getImageStatus(taskId);
+    const result = await getImageStatusWithRetry(taskId);
+    if (!result) {
+      // Poll failed after retries — skip this cycle and keep polling
+      continue;
+    }
 
     if (result.status === 'COMPLETED') {
       if (result.imageUrl) {
