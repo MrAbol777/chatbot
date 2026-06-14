@@ -1,6 +1,6 @@
 const express = require('express');
 const { createTestimageController } = require('./testimage.controller');
-const { createAuthMiddleware } = require('./auth.middleware');
+const { createAuthMiddleware } = require('../image-generation/auth.middleware');
 
 function createTestimageRouter(deps) {
   const router = express.Router();
