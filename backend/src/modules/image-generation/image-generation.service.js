@@ -3,9 +3,17 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
   const getProvider = (model) => {
     const openaiModels = ['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'dall-e-3', 'dall-e-2'];
     const googleModels = ['nano-banana', 'nano-banana-pro', 'nano-banana-2'];
+    const blackForestModels = ['flux-pro', 'flux-schnell', 'flux-kontext-max', 'flux-kontext-pro'];
+    const qwenModels = ['qwen-image-edit'];
+    const nightmareModels = ['real-esrgan', 'remove-bg'];
+    const fofrModels = ['face-to-sticker', 'become-image'];
     const m = (model || '').toLowerCase();
     if (openaiModels.includes(m)) return 'openai';
     if (googleModels.includes(m)) return 'google';
+    if (blackForestModels.includes(m)) return 'black-forest-labs';
+    if (qwenModels.includes(m)) return 'qwen';
+    if (nightmareModels.includes(m)) return 'nightmareai';
+    if (fofrModels.includes(m)) return 'fofr';
     return 'openai'; // default
   };
 

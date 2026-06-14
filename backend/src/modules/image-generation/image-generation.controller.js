@@ -241,7 +241,21 @@ function createImageGenerationController({ imageGenerationService, db }) {
 
       // Fetch image from Metis/Azure and proxy it
       const axios = require('axios');
-      const imageResponse = await axios.get(record.image_url, {
+      let imageUrl = record.image_url;
+
+      // MetisAI /api/tpsgsbxstoragecontainer/... returns JSON with externalUrl (direct Azure Blob link)
+      // Try fetching as JSON first to extract the real image URL
+      try {
+        const metaResponse = await axios.get(record.image_url, { timeout: 10000 });
+        if (metaResponse.data && typeof metaResponse.data === 'object' && metaResponse.data.externalUrl) {
+          imageUrl = metaResponse.data.externalUrl;
+          console.log('[image-generation] serveImage → resolved externalUrl:', imageUrl.slice(0, 80) + '...');
+        }
+      } catch {
+        // Not JSON or failed — use original URL
+      }
+
+      const imageResponse = await axios.get(imageUrl, {
         responseType: 'arraybuffer',
         timeout: 30000
       });
