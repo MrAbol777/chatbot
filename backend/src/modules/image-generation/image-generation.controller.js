@@ -135,8 +135,10 @@ function createImageGenerationController({ imageGenerationService, db }) {
         const normalized = String(metisStatus || '').toUpperCase();
         if (['COMPLETED'].includes(normalized)) return 'COMPLETED';
         if (['ERROR', 'CANCELLED'].includes(normalized)) return 'ERROR';
-        // Map running/waiting states to IN_PROGRESS (exists in both old and new ENUM)
-        if (['RUNNING', 'WAITING', 'IN_PROGRESS'].includes(normalized)) return 'IN_PROGRESS';
+        // Running/waiting states — use exact enum values that exist in DB
+        if (normalized === 'RUNNING') return 'RUNNING';
+        if (normalized === 'WAITING') return 'WAITING';
+        if (normalized === 'IN_PROGRESS') return 'RUNNING';
         if (['QUEUE'].includes(normalized)) return 'QUEUE';
         // Fallback for unknown statuses
         return 'QUEUE';
