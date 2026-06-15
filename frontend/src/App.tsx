@@ -1515,6 +1515,7 @@ function ChatApp() {
    setAttachmentMenuOpen(false);
    setImageGenPrompt('');
    setImageGenError('');
+   setImageGenStatus('');
    setShowImageGenModal(true);
  };
 
@@ -1560,8 +1561,7 @@ function ChatApp() {
    setIsSending(true);
 
    try {
-     const imageUrl = await generateImageWithPolling(prompt, (status, attempt) => {
-       const statusLabel = status === 'QUEUE' ? 'در صف انتظار...' : 'در حال ساخت عکس...';
+     const imageUrl = await generateImageWithPolling(prompt, (statusLabel, attempt) => {
        updateConversation(currentConversation.id, (item) => ({
          ...item,
          messages: item.messages.map((msg, idx) =>
@@ -1642,9 +1642,7 @@ function ChatApp() {
      updatedAt: new Date().toISOString()
    }));
 
-   // Show a temporary "generating" bot message
-   // Index = messages length after adding user message (item.messages.length + 1 from original + 1 for user)
-   const tempBotIndex = currentConversation.messages.length + 2;
+   // Add a temporary "generating" bot message to show progress
    const tempBotMessage: ChatMessage = {
      role: 'assistant',
      content: '🎨 در حال ساخت عکس... لطفاً صبر کن',
@@ -1658,14 +1656,13 @@ function ChatApp() {
    }));
 
    try {
-     const imageUrl = await generateImageWithPolling(prompt, (status, attempt) => {
-       const statusLabel = status === 'QUEUE' ? 'در صف انتظار...' : 'در حال ساخت عکس...';
+     const imageUrl = await generateImageWithPolling(prompt, (statusLabel, attempt) => {
        setImageGenStatus(statusLabel);
        // Update the temp bot message with progress
        updateConversation(currentConversation.id, (item) => ({
          ...item,
          messages: item.messages.map((msg, idx) =>
-           idx === tempBotIndex
+           idx === item.messages.length - 1
              ? { ...msg, content: `🎨 ${statusLabel} (مرحله ${attempt})` }
              : msg
          ),
@@ -1684,7 +1681,7 @@ function ChatApp() {
      updateConversation(currentConversation.id, (item) => ({
        ...item,
        messages: item.messages.map((msg, idx) =>
-         idx === tempBotIndex ? botMessage : msg
+         idx === item.messages.length - 1 ? botMessage : msg
        ),
        updatedAt: new Date().toISOString()
      }));
@@ -1700,7 +1697,7 @@ function ChatApp() {
      updateConversation(currentConversation.id, (item) => ({
        ...item,
        messages: item.messages.map((msg, idx) =>
-         idx === tempBotIndex ? errorMessage : msg
+         idx === item.messages.length - 1 ? errorMessage : msg
        ),
        updatedAt: new Date().toISOString()
      }));

@@ -23,7 +23,6 @@ const { createSmsRouter } = require('./modules/sms/sms.routes');
 const { createSmsService } = require('./modules/sms/sms.service');
 const { createAiRouter } = require('./modules/ai/ai.routes');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
-const { createTestimageRouter } = require('./modules/testimage-generator/testimage.routes');
 const { createPromptService } = require('./modules/ai/prompt.service');
 const { createAuthModule } = require('./modules/auth/auth.module');
 const { createConversationsModule } = require('./modules/conversations');
@@ -322,18 +321,6 @@ app.use('/api/images', imageGenerationModule.publicRouter);
 // Protected endpoints (generate, status)
 app.use('/api/images', imageGenerationModule.router);
 
-// ── testimage-generator (local file save) ───
-const testimageModule = createTestimageRouter({
-  authJwtSecret,
-  metisApiKey,
-  metisBaseUrl: metisBaseUrl.replace(/\/openai\/v1$/, ''),
-  metisImageModel,
-});
-// Public serve endpoint (no auth)
-app.use('/api/local-images', testimageModule.publicRouter);
-// Protected generate endpoint
-app.use('/api/local-images', testimageModule.router);
-console.log('[TESTIMAGE] routes mounted, output dir:', require('./modules/testimage-generator/testimage.service').OUTPUT_DIR);
 
 const { router: conversationRouter } = createConversationsModule({
   usersRepository: {

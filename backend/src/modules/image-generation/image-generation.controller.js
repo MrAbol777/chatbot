@@ -1,39 +1,106 @@
+/**
+ * Image generation controller — handles generate / status / serve routes.
+ *
+ * Task lifecycle: QUEUE → RUNNING → COMPLETED | ERROR
+ * Metis v2 async API is used internally:
+ *   POST /api/v2/generate        → returns { id: metisTaskId }
+ *   GET  /api/v2/generate/:taskId → returns { status, generations[] }
+ */
 function createImageGenerationController({ imageGenerationService, db }) {
 
   /**
    * POST /api/images/generate
    * Body: { prompt: string }
    * Returns: { success, taskId }
+   *
+   * Calls Metis to create an async task, saves the Metis task_id in DB,
+   * then fires a background poller to update status as it completes.
    */
   const generateImage = async (req, res) => {
     try {
       const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
       if (!prompt) {
-        return res.status(400).json({
-          success: false,
-          error: 'Prompt is required.'
-        });
+        return res.status(400).json({ success: false, error: 'Prompt is required.' });
       }
 
       const userId = req.user?.id;
       if (!userId) {
-        return res.status(401).json({
-          success: false,
-          error: 'Authentication required.'
-        });
+        return res.status(401).json({ success: false, error: 'Authentication required.' });
       }
 
-      // 1. Call MetisAI to create the async task
-      const taskId = await imageGenerationService.createImageGeneration(prompt);
+      // 1. Call Metis to start async task
+      const metisTaskId = await imageGenerationService.createImageGeneration(prompt);
+      console.log('[image-generation] generateImage: Metis task created', { metisTaskId, userId, prompt: prompt.slice(0, 50) });
 
-      // 2. Save the task record in DB
-      console.log('[image-generation] DB INSERT attempt:', { userId, taskId, prompt: prompt.slice(0, 50) });
-      const insertResult = await db.query(
+      // 2. Insert DB record with Metis task_id so frontend can poll
+      const [insertResult] = await db.query(
         `INSERT INTO image_generations (user_id, task_id, prompt, status)
          VALUES (?, ?, ?, 'QUEUE')`,
-        [userId, taskId, prompt]
+        [userId, metisTaskId, prompt]
       );
-      console.log('[image-generation] DB INSERT result:', JSON.stringify(insertResult).slice(0, 200));
+      const dbRecordId = insertResult.insertId;
+      const taskId = String(dbRecordId);
+
+      // 3. Fire-and-forget: poll Metis until terminal state, update DB
+      (async () => {
+        try {
+          await db.query(`UPDATE image_generations SET status = 'RUNNING' WHERE id = ?`, [dbRecordId]);
+
+          const POLL_INTERVAL_MS = 2000;
+          const MAX_POLLS = 90;
+          let polls = 0;
+
+          while (polls < MAX_POLLS) {
+            await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+            polls += 1;
+
+            let metisResult;
+            try {
+              metisResult = await imageGenerationService.getImageStatus(metisTaskId);
+            } catch (pollError) {
+              console.warn('[image-generation] poll Metis unreachable:', pollError?.message);
+              continue; // keep polling
+            }
+
+            if (metisResult.status === 'COMPLETED') {
+              await db.query(
+                `UPDATE image_generations SET status = 'COMPLETED', image_url = ? WHERE id = ?`,
+                [metisResult.imageUrl, dbRecordId]
+              );
+              console.log('[image-generation] generateImage: task completed', { dbRecordId, urlPreview: metisResult.imageUrl?.slice(0, 80) });
+              return;
+            }
+
+            if (metisResult.status === 'ERROR') {
+              await db.query(
+                `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
+                [metisResult.error || 'MetisAI task failed.', dbRecordId]
+              );
+              console.log('[image-generation] generateImage: task errored', { dbRecordId, error: metisResult.error });
+              return;
+            }
+
+            // Non-terminal (QUEUE, WAITING, RUNNING) — keep polling
+          }
+
+          // Timed out
+          await db.query(
+            `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
+            ['ساخت عکس بیش از حد طول کشید.', dbRecordId]
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error('[image-generation] generateImage background poller failed:', { dbRecordId, message });
+          try {
+            await db.query(
+              `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
+              [message, dbRecordId]
+            );
+          } catch {
+            // DB write failed — nothing we can do
+          }
+        }
+      })();
 
       return res.status(202).json({
         success: true,
@@ -41,13 +108,7 @@ function createImageGenerationController({ imageGenerationService, db }) {
         message: 'Image generation started. Use GET /api/images/status/:taskId to check progress.'
       });
     } catch (error) {
-      console.error('[image-generation] generateImage failed:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : null,
-        code: error?.code || null,
-        sqlMessage: error?.sqlMessage || null,
-        sqlState: error?.sqlState || null
-      });
+      console.error('[image-generation] generateImage failed:', error instanceof Error ? error.message : String(error));
       return res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Image generation failed.'
@@ -58,6 +119,9 @@ function createImageGenerationController({ imageGenerationService, db }) {
   /**
    * GET /api/images/status/:taskId
    * Returns: { success, taskId, status, imageUrl?, error? }
+   *
+   * Reads from DB; if still non-terminal (RUNNING), also polls Metis once
+   * and updates the DB record so the next poll is faster.
    */
   const getImageStatus = async (req, res) => {
     try {
@@ -65,19 +129,16 @@ function createImageGenerationController({ imageGenerationService, db }) {
       const userId = req.user?.id;
 
       if (!taskId) {
-        return res.status(400).json({
-          success: false,
-          error: 'taskId is required.'
-        });
+        return res.status(400).json({ success: false, error: 'taskId is required.' });
       }
 
-      // 1. Find the record in DB (scoped to the authenticated user)
+      // Find by DB numeric id or stored metis task_id
       const [rows] = await db.query(
         `SELECT id, task_id, prompt, status, image_url, error, created_at, updated_at
          FROM image_generations
-         WHERE task_id = ? AND user_id = ?
+         WHERE (id = ? OR task_id = ?) AND user_id = ?
          LIMIT 1`,
-        [taskId, userId]
+        [taskId, taskId, userId]
       );
 
       if (rows.length === 0) {
@@ -89,31 +150,31 @@ function createImageGenerationController({ imageGenerationService, db }) {
 
       const record = rows[0];
 
-      // 2. If already in a terminal state, return immediately
+      // Terminal states — return immediately from DB
       if (record.status === 'COMPLETED' || record.status === 'ERROR') {
         return res.json({
           success: true,
           taskId: record.task_id,
           status: record.status,
-          imageUrl: record.image_url ? `/api/images/serve/${record.task_id}` : null,
+          imageUrl: record.image_url ? `/api/images/serve/${record.id}` : null,
           error: record.error || null,
           createdAt: record.created_at,
           updatedAt: record.updated_at
         });
       }
 
-      // 3. Query MetisAI for the latest status
+      // Non-terminal — poll Metis once and update DB
       let metisResult;
       try {
-        metisResult = await imageGenerationService.getImageStatus(taskId);
+        metisResult = await imageGenerationService.getImageStatus(record.task_id);
       } catch (metisError) {
-        // Metis is unreachable — return current DB status with a warning
-        console.warn('[image-generation] getImageStatus Metis unreachable:', metisError?.message || metisError);
+        console.warn('[image-generation] getImageStatus Metis unreachable:', metisError?.message);
+        // Return current DB state with a warning
         return res.json({
           success: true,
-          taskId,
+          taskId: record.task_id,
           status: record.status,
-          imageUrl: record.image_url ? `/api/images/serve/${taskId}` : null,
+          imageUrl: record.image_url ? `/api/images/serve/${record.id}` : null,
           error: record.error || null,
           metisUnreachable: true,
           createdAt: record.created_at,
@@ -125,60 +186,34 @@ function createImageGenerationController({ imageGenerationService, db }) {
       let imageUrl = record.image_url;
       let errorText = record.error;
 
-      // 4. Update DB based on Metis response
-      // Metis statuses: QUEUE, WAITING, RUNNING, COMPLETED, ERROR, CANCELLED
-      // Map Metis statuses to safe DB-compatible values (works with both old and new ENUM)
-      // Old ENUM: QUEUE, IN_PROGRESS, COMPLETED, ERROR
-      // New ENUM: QUEUE, WAITING, RUNNING, COMPLETED, ERROR, CANCELLED
-
-      const toDbStatus = (metisStatus) => {
-        const normalized = String(metisStatus || '').toUpperCase();
-        if (['COMPLETED'].includes(normalized)) return 'COMPLETED';
-        if (['ERROR', 'CANCELLED'].includes(normalized)) return 'ERROR';
-        // Running/waiting states — use exact enum values that exist in DB
-        if (normalized === 'RUNNING') return 'RUNNING';
-        if (normalized === 'WAITING') return 'WAITING';
-        if (normalized === 'IN_PROGRESS') return 'RUNNING';
-        if (['QUEUE'].includes(normalized)) return 'QUEUE';
-        // Fallback for unknown statuses
-        return 'QUEUE';
-      };
-
       if (metisResult.status === 'COMPLETED') {
-        newStatus = toDbStatus(metisResult.status);
+        newStatus = 'COMPLETED';
         imageUrl = metisResult.imageUrl;
-        console.log('[image-generation] COMPLETED → imageUrl:', imageUrl ? `${imageUrl.slice(0, 80)}...` : 'MISSING');
-        if (record.status !== newStatus) {
-          await db.query(
-            `UPDATE image_generations SET status = 'COMPLETED', image_url = ? WHERE id = ?`,
-            [imageUrl, record.id]
-          );
-        }
-        // Always use the latest imageUrl from Metis (even if DB status didn't change)
-        imageUrl = metisResult.imageUrl;
+        await db.query(
+          `UPDATE image_generations SET status = 'COMPLETED', image_url = ? WHERE id = ?`,
+          [imageUrl, record.id]
+        );
       } else if (metisResult.status === 'ERROR') {
-        newStatus = toDbStatus(metisResult.status);
-        errorText = metisResult.error;
-        if (record.status !== newStatus) {
-          await db.query(
-            `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
-            [errorText, record.id]
-          );
-        }
-      } else if (metisResult.status === 'CANCELLED') {
-        // Old ENUM doesn't have CANCELLED — map to ERROR
         newStatus = 'ERROR';
-        errorText = metisResult.error || 'Task was cancelled.';
-        if (record.status !== newStatus) {
-          await db.query(
-            `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
-            [errorText, record.id]
-          );
-        }
+        errorText = metisResult.error || 'MetisAI task failed.';
+        await db.query(
+          `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
+          [errorText, record.id]
+        );
       } else {
-        // Non-terminal Metis statuses (QUEUE, WAITING, RUNNING) → map to safe DB value
+        // Metis is still working — update to the current status
+        const toDbStatus = (s) => {
+          const u = String(s || '').toUpperCase();
+          if (['COMPLETED'].includes(u)) return 'COMPLETED';
+          if (['ERROR', 'CANCELLED'].includes(u)) return 'ERROR';
+          if (u === 'RUNNING') return 'RUNNING';
+          if (u === 'WAITING') return 'RUNNING';
+          if (u === 'IN_PROGRESS') return 'RUNNING';
+          if (u === 'QUEUE') return 'QUEUE';
+          return record.status; // keep DB value for unknown
+        };
         newStatus = toDbStatus(metisResult.status);
-        if (record.status !== newStatus) {
+        if (newStatus !== record.status) {
           await db.query(
             `UPDATE image_generations SET status = ? WHERE id = ?`,
             [newStatus, record.id]
@@ -188,15 +223,15 @@ function createImageGenerationController({ imageGenerationService, db }) {
 
       return res.json({
         success: true,
-        taskId,
+        taskId: record.task_id,
         status: newStatus,
-        imageUrl: imageUrl ? `/api/images/serve/${taskId}` : null,
+        imageUrl: imageUrl ? `/api/images/serve/${record.id}` : null,
         error: errorText || null,
         createdAt: record.created_at,
         updatedAt: record.updated_at
       });
     } catch (error) {
-      console.error('[image-generation] getImageStatus failed:', error?.message || error);
+      console.error('[image-generation] getImageStatus failed:', error instanceof Error ? error.message : String(error));
       return res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch task status.'
@@ -206,7 +241,8 @@ function createImageGenerationController({ imageGenerationService, db }) {
 
   /**
    * GET /api/images/serve/:taskId
-   * Proxies the generated image through the backend to avoid CORS issues.
+   * Public endpoint — proxies the generated image through the backend.
+   * No auth required; the taskId itself acts as access control.
    */
   const serveImage = async (req, res) => {
     try {
@@ -216,73 +252,40 @@ function createImageGenerationController({ imageGenerationService, db }) {
         return res.status(400).json({ success: false, error: 'taskId is required.' });
       }
 
-      console.log('[image-generation] serveImage REQUEST → taskId:', taskId);
-
-      // Find the record in DB (public endpoint — taskId acts as access control)
       const [rows] = await db.query(
-        `SELECT id, task_id, image_url, status FROM image_generations WHERE task_id = ? LIMIT 1`,
-        [taskId]
+        `SELECT id, task_id, image_url, status FROM image_generations WHERE id = ? OR task_id = ? LIMIT 1`,
+        [taskId, taskId]
       );
 
       if (rows.length === 0) {
-        console.log('[image-generation] serveImage → NOT FOUND in DB');
         return res.status(404).json({ success: false, error: 'Task not found.' });
       }
 
       const record = rows[0];
-      console.log('[image-generation] serveImage → DB record:', { status: record.status, hasUrl: !!record.image_url, urlPreview: record.image_url ? record.image_url.slice(0, 60) + '...' : null });
 
       if (record.status !== 'COMPLETED' || !record.image_url) {
-        console.log('[image-generation] serveImage → not ready:', { status: record.status, hasUrl: !!record.image_url });
         return res.status(404).json({ success: false, error: 'Image not available yet.' });
       }
 
-      console.log('[image-generation] serveImage → proxying:', record.image_url.slice(0, 80) + '...');
-
-      // Fetch image from Metis/Azure and proxy it
-      const axios = require('axios');
-      let imageUrl = record.image_url;
-
-      // MetisAI /api/tpsgsbxstoragecontainer/... returns JSON with externalUrl (direct Azure Blob link)
-      // Try fetching as JSON first to extract the real image URL
+      // Proxy remote image URL
       try {
-        const metaResponse = await axios.get(record.image_url, { timeout: 10000 });
-        if (metaResponse.data && typeof metaResponse.data === 'object' && metaResponse.data.externalUrl) {
-          imageUrl = metaResponse.data.externalUrl;
-          console.log('[image-generation] serveImage → resolved externalUrl:', imageUrl.slice(0, 80) + '...');
+        const imageResponse = await fetch(record.image_url);
+        if (!imageResponse.ok) {
+          return res.status(imageResponse.status).json({ success: false, error: 'Failed to fetch image.' });
         }
+
+        const buffer = Buffer.from(await imageResponse.arrayBuffer());
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.send(buffer);
       } catch {
-        // Not JSON or failed — use original URL
+        // If proxy fails, redirect the client to the raw URL
+        return res.redirect(record.image_url);
       }
-
-      const imageResponse = await axios.get(imageUrl, {
-        responseType: 'arraybuffer',
-        timeout: 30000
-      });
-
-      const contentType = imageResponse.headers['content-type'] || 'image/jpeg';
-      console.log('[image-generation] serveImage → SUCCESS, size:', imageResponse.data.length, 'contentType:', contentType);
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      return res.send(imageResponse.data);
     } catch (error) {
-      const statusCode = error?.response?.status;
-      console.error('[image-generation] serveImage FAILED:', {
-        message: error?.message || error,
-        statusCode,
-        responseError: error?.response?.data
-      });
-
-      if (statusCode === 404) {
-        return res.status(404).json({ success: false, error: 'Image not found on storage.' });
-      }
-      if (statusCode === 403) {
-        return res.status(403).json({ success: false, error: 'Access denied to image.' });
-      }
-      if (statusCode === 410) {
-        return res.status(410).json({ success: false, error: 'Image has been removed.' });
-      }
+      console.error('[image-generation] serveImage failed:', error instanceof Error ? error.message : String(error));
       return res.status(500).json({ success: false, error: 'Failed to serve image.' });
     }
   };

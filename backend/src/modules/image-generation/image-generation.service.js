@@ -1,5 +1,14 @@
+/**
+ * Image generation service — calls Metis AI v2 async API.
+ *
+ * Endpoints:
+ *   POST /api/v2/generate        → creates async task → { id: metisTaskId }
+ *   GET  /api/v2/generate/:taskId → polls status     → { status, generations[] }
+ *
+ * Auth: Authorization: Bearer ${METIS_API_KEY}
+ */
 function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'https://api.metisai.ir', imageModel = 'nano-banana-2' }) {
-  // Determine provider from model name
+
   const getProvider = (model) => {
     const openaiModels = ['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'dall-e-3', 'dall-e-2'];
     const googleModels = ['nano-banana', 'nano-banana-pro', 'nano-banana-2'];
@@ -14,19 +23,19 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
     if (qwenModels.includes(m)) return 'qwen';
     if (nightmareModels.includes(m)) return 'nightmareai';
     if (fofrModels.includes(m)) return 'fofr';
-    return 'openai'; // default
+    return 'openai';
   };
 
   const provider = getProvider(imageModel);
 
   const getHeaders = () => ({
     Authorization: `Bearer ${metisApiKey}`,
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json; charset=utf-8'
   });
 
   /**
-   * Sends a POST request to MetisAI to start an image generation task.
-   * Returns the task_id from MetisAI.
+   * POST /api/v2/generate — creates an async image generation task.
+   * Returns the Metis task ID.
    */
   const createImageGeneration = async (prompt) => {
     const url = `${baseUrl}/api/v2/generate`;
@@ -38,7 +47,8 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
 
     console.log('[image-generation] createImageGeneration REQUEST:', {
       url,
-      body,
+      model: provider + '/' + imageModel,
+      promptLength: prompt.length,
       hasApiKey: Boolean(metisApiKey),
       keyPrefix: metisApiKey ? metisApiKey.substring(0, 8) : null
     });
@@ -48,7 +58,6 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
 
       console.log('[image-generation] createImageGeneration RESPONSE:', {
         status: response.status,
-        data: response.data,
         taskId: response?.data?.id
       });
 
@@ -74,27 +83,26 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
   };
 
   /**
-   * Sends a GET request to MetisAI to check the status of an async task.
+   * GET /api/v2/generate/:taskId — polls the status of an async task.
    * Returns { status, imageUrl?, error? }.
    */
   const getImageStatus = async (taskId) => {
     const url = `${baseUrl}/api/v2/generate/${taskId}`;
 
     try {
-      const response = await httpClient.get(url, {
-        headers: getHeaders()
-      });
+      const response = await httpClient.get(url, { headers: getHeaders() });
 
       const data = response?.data;
       const status = data?.status || 'UNKNOWN';
 
-      console.log('[image-generation] getImageStatus RESPONSE:', { taskId, status, generations: data?.generations, data: { ...data, generations: undefined } });
+      console.log('[image-generation] getImageStatus RESPONSE:', {
+        taskId,
+        status,
+        hasGenerations: Boolean(data?.generations?.length)
+      });
 
       if (status === 'COMPLETED') {
-        // MetisAI returns generations array with url, contentType, content fields
-        // Try url first, then content as fallback
         const generation = data?.generations?.[0];
-        console.log('[image-generation] COMPLETED generation details:', JSON.stringify(generation));
         const imageUrl = generation?.url || generation?.content || null;
         if (!imageUrl) {
           throw new Error(`Image URL not found. Full response: ${JSON.stringify(data)}`);
@@ -113,8 +121,7 @@ function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'http
       console.error('[image-generation] getImageStatus failed:', {
         message,
         statusCode,
-        taskId,
-        apiError: error?.response?.data
+        taskId
       });
       throw new Error(message);
     }

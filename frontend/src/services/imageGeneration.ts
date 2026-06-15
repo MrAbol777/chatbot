@@ -1,11 +1,12 @@
 /**
- * Image generation service — local file-save based API.
+ * Image generation service — Metis AI (OpenAI-compatible) backend.
  *
- * Uses the new testimage-generator endpoints:
- *   POST /api/local-images/generate  → blocks until done, returns image URLs
- *   GET  /api/local-images/serve/:fileName → serves saved image
+ * Endpoints:
+ *   POST /api/images/generate  → { success, taskId }
+ *   GET  /api/images/status/:taskId → { success, status, imageUrl?, error? }
+ *   GET  /api/images/serve/:taskId → serves image (public, no auth)
  *
- * No polling needed — the backend handles everything synchronously.
+ * Flow: idle → submitting → polling → done | error
  */
 
 /**
@@ -48,22 +49,35 @@ function authHeaders(): Record<string, string> {
   return headers;
 }
 
-interface GenerateLocalImageResponse {
+/* ── Types ────────────────────────────────────────────────────── */
+
+export type ImageTaskStatus = 'QUEUE' | 'RUNNING' | 'WAITING' | 'COMPLETED' | 'ERROR';
+
+interface GenerateImageResponse {
   success: boolean;
   taskId: string;
-  imageUrls: string[];
+  message?: string;
   error?: string;
 }
 
+interface ImageStatusResponse {
+  success: boolean;
+  taskId: string;
+  status: ImageTaskStatus;
+  imageUrl?: string | null;
+  error?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/* ── Public API ───────────────────────────────────────────────── */
+
 /**
- * POST /api/local-images/generate
- * Body: { prompt: string }
- * Returns: { success, taskId, imageUrls: string[] }
- *
- * This endpoint blocks until generation is complete — no polling needed.
+ * POST /api/images/generate
+ * Starts an image generation task. Returns { taskId } immediately.
  */
-export async function generateImageLocal(prompt: string): Promise<string[]> {
-  const response = await safeFetch('/api/local-images/generate', {
+export async function startImageGeneration(prompt: string): Promise<{ taskId: string }> {
+  const response = await safeFetch('/api/images/generate', {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ prompt })
@@ -77,43 +91,84 @@ export async function generateImageLocal(prompt: string): Promise<string[]> {
     throw new Error(errorData.error || 'ساخت عکس ناموفق بود.');
   }
 
-  const data = (await response.json()) as GenerateLocalImageResponse;
-  if (data.success && data.imageUrls && data.imageUrls.length > 0) {
-    return data.imageUrls;
+  const data = (await response.json()) as GenerateImageResponse;
+  if (!data.success || !data.taskId) {
+    throw new Error(data.error || 'شناسه تسک دریافت نشد.');
   }
 
-  throw new Error(data.error || 'شناسه تسک یا لینک عکس دریافت نشد.');
+  return { taskId: data.taskId };
 }
 
 /**
- * Legacy wrapper for backwards compatibility with existing callers.
- * Calls the new local endpoint and returns the first image URL.
+ * GET /api/images/status/:taskId
+ * Returns { status, imageUrl?, error? }.
  */
-export async function generateImageWithPolling(
-  prompt: string,
-  _onProgress?: (_status: string, _attempt: number) => void
-): Promise<string> {
-  const urls = await generateImageLocal(prompt);
-  return urls[0];
-}
-
-// Re-export old types for compatibility
-type ImageTaskStatus = 'QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'ERROR';
-
-interface GenerateImageResponse {
-  success: boolean;
-  taskId: string;
-  message?: string;
-}
-
-interface ImageStatusResponse {
-  success: boolean;
-  taskId: string;
+export async function getImageGenerationStatus(taskId: string): Promise<{
   status: ImageTaskStatus;
   imageUrl?: string | null;
   error?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+}> {
+  const response = await safeFetch(`/api/images/status/${taskId}`, {
+    headers: authHeaders()
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      throw new Error('احراز هویت نامعتبر. لطفاً دوباره وارد شوید.');
+    }
+    if (response.status === 404) {
+      throw new Error(errorData.error || 'تسک یافت نشد.');
+    }
+    throw new Error(errorData.error || 'بررسی وضعیت انجام نشد.');
+  }
+
+  const data = (await response.json()) as ImageStatusResponse;
+  return {
+    status: data.status,
+    imageUrl: data.imageUrl,
+    error: data.error
+  };
 }
 
-export type { ImageTaskStatus, GenerateImageResponse, ImageStatusResponse };
+/**
+ * Poll for image generation completion.
+ * Starts a task, then polls status until COMPLETED or ERROR.
+ * Calls onProgress(status, attempt) on each poll.
+ * Returns the final imageUrl.
+ */
+export async function generateImageWithPolling(
+  prompt: string,
+  onProgress?: (status: string, attempt: number) => void
+): Promise<string> {
+  const { taskId } = await startImageGeneration(prompt);
+
+  const POLL_INTERVAL_MS = 2000;
+  const MAX_POLLS = 90; // ~3 minutes total
+  let attempt = 0;
+
+  while (attempt < MAX_POLLS) {
+    await new Promise((resolve) => window.setTimeout(resolve, POLL_INTERVAL_MS));
+    attempt += 1;
+
+    const { status, imageUrl, error } = await getImageGenerationStatus(taskId);
+
+    if (status === 'COMPLETED' && imageUrl) {
+      // Resolve the full URL for the img tag
+      const fullUrl = imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl}`;
+      return fullUrl;
+    }
+
+    if (status === 'ERROR') {
+      throw new Error(error || 'ساخت عکس با خطا مواجه شد.');
+    }
+
+    // Non-terminal: QUEUE, RUNNING, WAITING
+    const statusLabel = status === 'QUEUE' ? 'در صف انتظار...' : 'در حال ساخت عکس...';
+    onProgress?.(statusLabel, attempt);
+  }
+
+  throw new Error('ساخت عکس بیش از حد طول کشید. لطفاً دوباره تلاش کنید.');
+}
+
+export type { GenerateImageResponse, ImageStatusResponse };

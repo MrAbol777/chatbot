@@ -4,8 +4,8 @@
  */
 
 export {
-  generateImage,
-  getImageStatus,
+  startImageGeneration,
+  getImageGenerationStatus,
   generateImageWithPolling
 } from './imageGeneration';
 

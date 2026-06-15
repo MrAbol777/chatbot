@@ -13,7 +13,7 @@ function createImageGenerationRouter(deps) {
   const imageGenerationService =
     deps.imageGenerationService ||
     createImageGenerationService({
-      httpClient: deps.httpClient,
+      httpClient: deps.httpClient || axios,
       metisApiKey: deps.metisApiKey,
       baseUrl: deps.baseUrl,
       imageModel: deps.metisImageModel || 'nano-banana-2'
@@ -24,15 +24,13 @@ function createImageGenerationRouter(deps) {
     db: deps.db
   });
 
-  // All routes require authentication
+  // Protected routes (generate, status)
   router.use(authMiddleware);
-
   router.post('/generate', controller.generateImage);
   router.get('/status/:taskId', controller.getImageStatus);
 
-  // Serve endpoint must be public — img tags can't send Authorization headers.
-  // The taskId itself acts as access control (you need to know it to access the image).
-  // We register it BEFORE the auth middleware by creating a separate router.
+  // Serve endpoint is public — img tags can't send Authorization headers.
+  // The taskId itself acts as access control.
   const publicRouter = express.Router();
   publicRouter.get('/serve/:taskId', controller.serveImage);
 
