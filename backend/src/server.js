@@ -39,7 +39,8 @@ const imageMimeTypeByExtension = {
   '.png': 'image/png',
   '.webp': 'image/webp'
 };
-const imageIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Accepts UUIDs or numeric DB primary keys (e.g. "17")
+const imageIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$|^[1-9]\d*$|^0$/i;
 
 fs.ensureDirSync(uploadsDir);
 
@@ -261,6 +262,7 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
     return res.status(400).json({ error: 'INVALID_IMAGE_ID' });
   }
 
+  // 1. Check uploaded images (original pattern)
   for (const ext of allowedImageExtensions) {
     const candidate = path.join(uploadsDir, `${imageId}${ext}`);
     if (await fs.pathExists(candidate)) {
@@ -273,6 +275,13 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
       }
       return fs.createReadStream(candidate).pipe(res);
     }
+  }
+
+  // 2. Check generated images: uploads/images-generated/{id}.webp
+  const generatedPath = path.join(uploadsDir, 'images-generated', `${imageId}.webp`);
+  if (await fs.pathExists(generatedPath)) {
+    res.type('image/webp');
+    return fs.createReadStream(generatedPath).pipe(res);
   }
 
   return res.status(404).json({ error: 'IMAGE_NOT_FOUND' });

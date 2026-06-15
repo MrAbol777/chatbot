@@ -1544,7 +1544,6 @@ function ChatApp() {
    };
 
    const updatedMessages = [...currentConversation.messages, userMessage];
-   const tempBotIndex = updatedMessages.length;
    const tempBotMessage: ChatMessage = {
      role: 'assistant',
      content: '🎨 در حال ساخت عکس... لطفاً صبر کن',
@@ -1561,18 +1560,24 @@ function ChatApp() {
    setIsSending(true);
 
    try {
-     const imageUrl = await generateImageWithPolling(prompt, (statusLabel, attempt) => {
-       updateConversation(currentConversation.id, (item) => ({
-         ...item,
-         messages: item.messages.map((msg, idx) =>
-           idx === tempBotIndex
-             ? { ...msg, content: `🎨 ${statusLabel} (مرحله ${attempt})` }
-             : msg
-         ),
-         updatedAt: new Date().toISOString()
-       }));
+     const imageUrl = await generateImageWithPolling(prompt, (statusLabel) => {
+       // Use timestamp to find temp message instead of index
+       const conv = conversations.find(c => c.id === currentConversation.id);
+       const tempMsg = conv?.messages.find(m => m.content === '🎨 در حال ساخت عکس... لطفاً صبر کن');
+       if (tempMsg) {
+         updateConversation(currentConversation.id, (item) => ({
+           ...item,
+           messages: item.messages.map((msg) =>
+             msg.timestamp === tempMsg.timestamp
+               ? { ...msg, content: `🎨 ${statusLabel}` }
+               : msg
+           ),
+           updatedAt: new Date().toISOString()
+         }));
+       }
      });
 
+     // generateImageWithPolling returns full URL (http://localhost:3000/api/uploads/images/:id), use directly
      const botMessage: ChatMessage = {
        role: 'assistant',
        content: 'عکس آماده شد! 🎉',
@@ -1582,11 +1587,12 @@ function ChatApp() {
 
      updateConversation(currentConversation.id, (item) => ({
        ...item,
-       messages: item.messages.map((msg, idx) =>
-         idx === tempBotIndex ? botMessage : msg
-       ),
+       messages: [...item.messages, botMessage],
        updatedAt: new Date().toISOString()
      }));
+
+     // Trigger immediate re-render by updating state
+     setConversations((prev) => [...prev]);
 
      pushToast('عکس با موفقیت ساخته شد', 'success');
    } catch (error) {
@@ -1598,9 +1604,7 @@ function ChatApp() {
 
      updateConversation(currentConversation.id, (item) => ({
        ...item,
-       messages: item.messages.map((msg, idx) =>
-         idx === tempBotIndex ? errorMessage : msg
-       ),
+       messages: [...item.messages, errorMessage],
        updatedAt: new Date().toISOString()
      }));
 
@@ -1656,21 +1660,11 @@ function ChatApp() {
    }));
 
    try {
-     const imageUrl = await generateImageWithPolling(prompt, (statusLabel, attempt) => {
+     const imageUrl = await generateImageWithPolling(prompt, (statusLabel) => {
        setImageGenStatus(statusLabel);
-       // Update the temp bot message with progress
-       updateConversation(currentConversation.id, (item) => ({
-         ...item,
-         messages: item.messages.map((msg, idx) =>
-           idx === item.messages.length - 1
-             ? { ...msg, content: `🎨 ${statusLabel} (مرحله ${attempt})` }
-             : msg
-         ),
-         updatedAt: new Date().toISOString()
-       }));
      });
 
-     // Replace the temp message with the final result
+     // generateImageWithPolling returns absolute URL from backend, use directly
      const botMessage: ChatMessage = {
        role: 'assistant',
        content: 'عکس آماده شد! 🎉',
@@ -1678,13 +1672,15 @@ function ChatApp() {
        images: [{ url: imageUrl, alt: prompt }]
      };
 
+     // Append new message (don't replace temp)
      updateConversation(currentConversation.id, (item) => ({
        ...item,
-       messages: item.messages.map((msg, idx) =>
-         idx === item.messages.length - 1 ? botMessage : msg
-       ),
+       messages: [...item.messages, botMessage],
        updatedAt: new Date().toISOString()
      }));
+
+     // Trigger immediate re-render by updating state
+     setConversations((prev) => [...prev]);
 
      pushToast('عکس با موفقیت ساخته شد', 'success');
    } catch (error) {
@@ -1696,9 +1692,7 @@ function ChatApp() {
 
      updateConversation(currentConversation.id, (item) => ({
        ...item,
-       messages: item.messages.map((msg, idx) =>
-         idx === item.messages.length - 1 ? errorMessage : msg
-       ),
+       messages: [...item.messages, errorMessage],
        updatedAt: new Date().toISOString()
      }));
 
@@ -2295,6 +2289,37 @@ function ChatApp() {
                 {message.role === 'assistant' ? (
                   <div className="bubble markdown-body">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    {Array.isArray(message.images) && message.images.length > 0 ? (
+                      <div className="message-image-grid">
+                        {message.images.map((image, imageIndex) => {
+                          const imageKey = `${image.url}-${imageIndex}`;
+                          if (brokenImages.has(imageKey)) {
+                            return (
+                              <div key={imageKey} className="image-load-error">
+                                ⚠️ خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید
+                              </div>
+                            );
+                          }
+                          return (
+                            <img
+                              key={imageKey}
+                              className="message-image"
+                              src={image.url}
+                              alt={image.alt || 'تصویر ارسال شده'}
+                              loading="lazy"
+                              decoding="async"
+                              onError={() => {
+                                setBrokenImages((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(imageKey);
+                                  return next;
+                                });
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="bubble">
