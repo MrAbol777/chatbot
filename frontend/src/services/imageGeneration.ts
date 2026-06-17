@@ -71,6 +71,7 @@ export async function getImageGenerationStatus(taskId: string): Promise<{
 
 /**
  * Starts generation, polls until COMPLETED or ERROR, returns the final imageUrl.
+ * Includes retry logic for 404 on image load (race condition fix).
  */
 export async function generateImageWithPolling(
   prompt: string,
@@ -90,7 +91,25 @@ export async function generateImageWithPolling(
 
     if (status === 'COMPLETED' && imageUrl) {
       // Backend returns absolute URL like http://localhost:3000/api/uploads/images/:id
-      // Use as-is
+      // Retry if 404 (file might still be flushing to disk)
+      const maxRetries = 5;
+      for (let retry = 0; retry < maxRetries; retry++) {
+        try {
+          const imgRes = await safeFetch(imageUrl, { method: 'HEAD' });
+          if (imgRes.ok) {
+            return imageUrl;
+          }
+          if (imgRes.status !== 404) {
+            // Other error, return anyway
+            return imageUrl;
+          }
+        } catch {
+          // Network error, try again
+        }
+        // Wait before retry
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      // If all retries failed, return URL anyway (let img tag handle error)
       return imageUrl;
     }
     if (status === 'ERROR') throw new Error(error || 'ساخت عکس با خطا مواجه شد.');

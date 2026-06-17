@@ -284,6 +284,9 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
     return fs.createReadStream(generatedPath).pipe(res);
   }
 
+  // Don't cache 404 — file might be created by concurrent request
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
   return res.status(404).json({ error: 'IMAGE_NOT_FOUND' });
 });
 

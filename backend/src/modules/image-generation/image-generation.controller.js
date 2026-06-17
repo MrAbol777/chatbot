@@ -73,13 +73,34 @@ function createImageGenerationController({ imageGenerationService, db }) {
                 }
                 const buffer = Buffer.from(await imageResponse.arrayBuffer());
                 await fs.writeFile(fullPath, buffer);
-                console.log('[image-generation] Image saved to:', fullPath, 'size:', buffer.length);
+
+                // Verify file is actually readable before marking COMPLETED (fixes race condition)
+                let retries = 0;
+                const maxRetries = 5;
+                while (retries < maxRetries) {
+                  try {
+                    const stat = await fs.stat(fullPath);
+                    if (stat.size > 0) {
+                      // Read a small portion to verify file is accessible
+                      const fd = await fs.open(fullPath, 'r');
+                      await fd.close();
+                      console.log('[image-generation] Image saved to:', fullPath, 'size:', buffer.length);
+                      break;
+                    }
+                  } catch (verifyError) {
+                    retries++;
+                    if (retries >= maxRetries) {
+                      throw new Error(`File verification failed after ${maxRetries} retries`);
+                    }
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+                  }
+                }
               } catch (downloadError) {
                 console.error('[image-generation] Download failed:', downloadError?.message);
                 // Still mark as completed — the serve endpoint will try from Metis URL as fallback
               }
 
-              // Update DB BEFORE returning so frontend can immediately see COMPLETED
+              // Update DB AFTER verifying file is accessible
               await db.query(
                 `UPDATE image_generations SET status = 'COMPLETED', image_url = ? WHERE id = ?`,
                 [localPath, dbRecordId]

@@ -89,11 +89,16 @@ async function pollTask(taskId, intervalMs = 3000) {
 async function downloadImage(url, filePath) {
   let imageUrl = url;
 
+  // Fix double extension issue (e.g., "..png" -> ".png")
+  imageUrl = imageUrl.replace(/\.(\w+)\.\1$/, '.$1');
+
   // MetisAI /api/tpsgsbxstoragecontainer/... returns JSON with externalUrl
   try {
     const metaResponse = await axios.get(url, { timeout: 10000 });
     if (metaResponse.data && typeof metaResponse.data === 'object' && metaResponse.data.externalUrl) {
       imageUrl = metaResponse.data.externalUrl;
+      // Also fix double extension in externalUrl
+      imageUrl = imageUrl.replace(/\.(\w+)\.\1$/, '.$1');
       console.log(`[testimage] Resolved externalUrl: ${imageUrl.slice(0, 80)}...`);
     }
   } catch {
