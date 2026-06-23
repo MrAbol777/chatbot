@@ -11,6 +11,7 @@ html {
 :root {
   font-family: var(--font-family-base);
   font-size: 16px;
+  font-weight: var(--font-weight-body);
   line-height: var(--line-height-base);
 }
 
@@ -21,9 +22,25 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-family-base);
+  font-weight: var(--font-weight-body);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-family-heading);
+  font-weight: var(--font-weight-heading);
+  line-height: 1.5;
+}
+
+h1 {
+  font-weight: var(--font-weight-display);
 }
 
 *,

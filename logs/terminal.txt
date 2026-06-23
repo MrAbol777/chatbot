@@ -1,0 +1,32 @@
+(node:7520) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[19:02:09] FRONTEND 
+[19:02:09] FRONTEND > hemraz-frontend@1.0.0 dev
+[19:02:09] FRONTEND > vite
+[19:02:09] FRONTEND 
+[19:02:09] BACKEND 
+[19:02:09] BACKEND > hemraz-backend@1.0.0 dev
+[19:02:09] BACKEND > nodemon --config nodemon.json src/server.js
+[19:02:09] BACKEND 
+[19:02:09] BACKEND [33m[nodemon] 3.1.14[39m
+[19:02:09] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[19:02:09] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[19:02:09] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[19:02:09] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[19:02:09] FRONTEND 
+[19:02:09] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m402[22m[2m[0m ms[22m
+[19:02:09] FRONTEND 
+[19:02:09] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[19:02:09] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.5.0.2:[1m5173[22m/[39m
+[19:02:09] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.103:[1m5173[22m/[39m
+[19:02:10] BACKEND [BOOT] DB mode=mysql
+[19:02:10] BACKEND [SMS] routes mounted
+[19:02:10] BACKEND [BALE] webhook mounted at /bale/webhook
+[19:02:10] BACKEND [DB] Connecting to local MySQL...
+[19:02:10] BACKEND [DB] Connected to local MySQL
+[19:02:10] BACKEND [BOOT] Database initialized
+[19:02:10] BACKEND [2026-06-23T15:32:10.989Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.5-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[19:02:18] BACKEND [2026-06-23T15:32:18.095Z] [HTTP] request_started {"requestId":"mqqsz3fz-lf8d20","method":"POST","path":"/api/conversations/load"}
+[19:02:18] BACKEND [2026-06-23T15:32:18.125Z] [HTTP] request_finished {"requestId":"mqqsz3fz-lf8d20","method":"POST","path":"/api/conversations/load","status":200,"durationMs":30}
+[19:02:18] BACKEND [2026-06-23T15:32:18.672Z] [HTTP] request_started {"requestId":"mqqsz3w0-u2vh38","method":"POST","path":"/api/conversations/sync"}
+[19:02:18] BACKEND [2026-06-23T15:32:18.717Z] [HTTP] request_finished {"requestId":"mqqsz3w0-u2vh38","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":45}

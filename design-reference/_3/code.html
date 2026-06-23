@@ -1,0 +1,188 @@
+<!DOCTYPE html><html dir="rtl" lang="fa" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Math Homework Help - Danua App</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Soft pastel background inspired by the reference image */
+        .bg-pastel-clouds {
+            background: linear-gradient(180deg, #F0F4FF 0%, #F5F7FA 50%, #E6F0FA 100%);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-fixed": "#ffdcc5",
+                        "outline-variant": "#ccc3d8",
+                        "on-primary-container": "#ede0ff",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "outline": "#7b7487",
+                        "on-error": "#ffffff",
+                        "surface-container": "#eceef0",
+                        "on-background": "#191c1e",
+                        "surface-tint": "#732ee4",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "background": "#f7f9fb",
+                        "on-tertiary-fixed": "#301400",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed": "#00201d",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#005049",
+                        "surface-container-high": "#e6e8ea",
+                        "primary": "#630ed4",
+                        "inverse-surface": "#2d3133",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-container": "#7c3aed",
+                        "inverse-primary": "#d2bbff",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "on-surface-variant": "#4a4455",
+                        "secondary": "#006a61",
+                        "on-primary-fixed": "#25005a",
+                        "on-tertiary-container": "#ffdfcb",
+                        "surface-bright": "#f7f9fb",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#a05100",
+                        "tertiary": "#7c3d00",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#89f5e7",
+                        "surface-variant": "#e0e3e5",
+                        "on-secondary-container": "#006f66",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "primary-fixed": "#eaddff",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#d8dadc",
+                        "secondary-container": "#86f2e4",
+                        "surface-container-low": "#f2f4f6"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "4xl": "2rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "xs": "4px",
+                        "gutter": "16px",
+                        "base": "8px",
+                        "sm": "12px",
+                        "container-margin-desktop": "40px",
+                        "md": "20px",
+                        "xl": "48px",
+                        "lg": "32px",
+                        "container-margin-mobile": "16px"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex justify-center items-start min-h-screen p-4 bg-surface-dim">
+<!-- Standalone Mobile Screen Container -->
+<div class="w-[375px] h-[812px] bg-pastel-clouds rounded-[2.5rem] shadow-xl overflow-hidden relative flex flex-col border-[8px] border-white ring-1 ring-surface-container-highest">
+<!-- Status Bar Placeholder -->
+<div class="h-12 flex items-center justify-between px-6 pt-2 text-sm font-medium text-on-surface">
+<span class="">9:41</span>
+<div class="flex gap-1.5 items-center">
+<span class="material-symbols-outlined text-[16px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[16px]">wifi</span>
+<span class="material-symbols-outlined text-[16px]">battery_full</span>
+</div>
+</div>
+<!-- Header -->
+<header class="flex justify-between items-center px-6 py-4 bg-white/40 backdrop-blur-md z-10 sticky top-0 border-b border-white/20">
+<button class="w-10 h-10 text-primary flex items-center justify-center rounded-full hover:bg-white/50 transition-colors">
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<div class="flex items-center gap-2">
+<h1 class="text-lg font-bold text-on-surface">کمک درسی ریاضی</h1>
+<span class="text-xl">📖</span>
+</div>
+<button class="w-10 h-10 text-primary flex items-center justify-center rounded-full hover:bg-white/50 transition-colors">
+<span class="material-symbols-outlined">ios_share</span>
+</button>
+</header>
+<!-- Chat Area -->
+<main class="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-hide">
+<!-- User Message -->
+<div class="flex flex-col items-start mb-2 w-full pl-8">
+<div class="bg-white/90 backdrop-blur-sm text-on-surface px-5 py-4 rounded-[1.5rem] rounded-tr-sm shadow-sm w-full border border-white relative">
+<p class="text-[15px] leading-relaxed text-right font-medium">سلام دانوآ! می‌تونی در مورد معادله درجه دوم بهم توضیح بدی؟</p>
+<span class="text-[10px] text-on-surface-variant absolute -bottom-5 left-2">10:30</span>
+</div>
+</div>
+<!-- Bot Message -->
+<div class="flex gap-3 mb-2 w-full pr-2">
+<div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center shrink-0 shadow-sm overflow-hidden z-10 mt-2">
+<span class="text-xl">🤖</span>
+</div>
+<div class="bg-primary text-white px-5 py-5 rounded-[1.5rem] rounded-tl-sm shadow-md w-full relative">
+<p class="text-[15px] leading-relaxed mb-4 text-right">سلام عزیزم! 😉<br>معادله درجه دوم به شکل</p>
+<div class="bg-white/20 text-white font-bold text-center py-3 px-4 rounded-xl mb-4 font-mono tracking-widest text-lg mx-2 backdrop-blur-sm shadow-inner">
+                        ax² + bx + c = 0
+                    </div>
+<p class="text-[15px] leading-relaxed text-right">هست که در آن a ≠ 0 می‌باشد.</p>
+<span class="text-[10px] text-white/70 absolute -bottom-5 right-2">10:31</span>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex flex-col items-start mb-2 w-full pl-8 mt-8">
+<div class="bg-white/90 backdrop-blur-sm text-on-surface px-5 py-4 rounded-[1.5rem] rounded-tr-sm shadow-sm w-full border border-white relative">
+<p class="text-[15px] leading-relaxed text-right font-medium">ممنون! می‌تونی یه مثال بزنی؟</p>
+<span class="text-[10px] text-on-surface-variant absolute -bottom-5 left-2">10:32</span>
+</div>
+</div>
+<!-- Bot Message -->
+<div class="flex gap-3 mb-2 w-full pr-2">
+<div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center shrink-0 shadow-sm overflow-hidden z-10 mt-2">
+<span class="text-xl">🤖</span>
+</div>
+<div class="bg-primary text-white px-5 py-5 rounded-[1.5rem] rounded-tl-sm shadow-md w-full relative">
+<p class="text-[15px] leading-relaxed text-right mb-4">حتما! مثلا</p>
+<div class="bg-white/20 text-white font-bold text-center py-3 px-4 rounded-xl mb-4 font-mono tracking-widest text-lg mx-2 backdrop-blur-sm shadow-inner">
+                        x² + 5x + 6 = 0
+                    </div>
+<p class="text-[15px] leading-relaxed text-right mb-3">در این معادله:</p>
+<div class="text-center text-primary-fixed-dim font-bold mb-2 font-mono text-lg tracking-wider">
+                        a = 1 , b = 5 , c = 6
+                    </div>
+<span class="text-[10px] text-white/70 absolute -bottom-5 right-2">10:33</span>
+</div>
+</div>
+<div class="h-4"></div> <!-- Bottom padding -->
+</main>
+<!-- Input Area -->
+<div class="px-4 pb-8 pt-4 bg-gradient-to-t from-background/90 via-background/80 to-transparent sticky bottom-0 backdrop-blur-sm">
+<div class="flex items-center gap-2 bg-white rounded-full p-1.5 shadow-md border border-surface-container-high relative"><button class="w-11 h-11 rounded-full bg-primary text-white flex items-center justify-center shrink-0 shadow-sm hover:bg-primary/90 transition-colors"><span class="material-symbols-outlined transform -rotate-180 text-[20px]">send</span></button><input class="flex-1 bg-transparent border-none focus:ring-0 text-[15px] text-right px-2 placeholder-on-surface-variant/60 font-medium" dir="rtl" placeholder="پیام خودت رو بنویس..." type="text"><div class="flex items-center gap-1 shrink-0 pr-2 text-on-surface-variant"><button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"><span class="material-symbols-outlined text-[24px]">image</span></button><button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"><span class="material-symbols-outlined text-[24px]">mic</span></button></div></div>
+</div>
+</div>
+
+
+
+
+</body></html>

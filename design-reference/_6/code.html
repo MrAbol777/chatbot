@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+
+<html class="light" dir="rtl" lang="fa"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Danua - Subscription Plans</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f7f9fb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#ffdfcb",
+                        "secondary-fixed": "#89f5e7",
+                        "tertiary-container": "#a05100",
+                        "tertiary": "#7c3d00",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#d2bbff",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "on-surface-variant": "#4a4455",
+                        "secondary": "#006a61",
+                        "on-primary-fixed": "#25005a",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "primary-fixed": "#eaddff",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#d8dadc",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary-container": "#86f2e4",
+                        "surface-variant": "#e0e3e5",
+                        "on-secondary-container": "#006f66",
+                        "surface-container": "#eceef0",
+                        "on-error": "#ffffff",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed": "#ffdcc5",
+                        "outline-variant": "#ccc3d8",
+                        "on-primary-container": "#ede0ff",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "outline": "#7b7487",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed": "#00201d",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-container": "#7c3aed",
+                        "on-secondary-fixed-variant": "#005049",
+                        "surface-container-high": "#e6e8ea",
+                        "primary": "#630ed4",
+                        "inverse-surface": "#2d3133",
+                        "surface-tint": "#732ee4",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed": "#301400",
+                        "surface": "#f7f9fb",
+                        "background": "#f7f9fb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "48px",
+                        "lg": "32px",
+                        "container-margin-mobile": "16px",
+                        "base": "8px",
+                        "sm": "12px",
+                        "container-margin-desktop": "40px",
+                        "md": "20px",
+                        "xs": "4px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "caption": ["Be Vietnam Pro"],
+                        "display-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "label-md": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "40px", "fontWeight": "800" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "display-lg": ["40px", { "lineHeight": "52px", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col pb-24 relative overflow-x-hidden">
+<!-- Decorative Background Shapes -->
+<div class="fixed top-0 left-0 w-full h-64 bg-gradient-to-b from-primary-fixed/30 to-transparent pointer-events-none -z-10"></div>
+<div class="fixed top-[-50px] right-[-50px] w-64 h-64 bg-secondary-fixed/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<div class="fixed top-20 left-[-30px] w-48 h-48 bg-primary-fixed/40 rounded-full blur-2xl pointer-events-none -z-10"></div>
+<!-- Top Navigation Container -->
+<div class="sticky top-0 z-40 bg-background/80 backdrop-blur-md">
+<!-- TopAppBar (Simulated specific to this screen based on instructions) -->
+<div class="flex flex-row-reverse justify-between items-center w-full px-container-margin-mobile py-sm h-16">
+<button aria-label="Back" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors active:scale-95">
+<span class="material-symbols-outlined text-on-surface text-2xl">arrow_forward</span>
+</button>
+<div class="flex-1"></div>
+</div>
+</div>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-container-margin-mobile md:max-w-md md:mx-auto w-full flex flex-col items-center">
+<!-- Header Section -->
+<div class="text-center w-full mb-8 mt-2">
+<h1 class="font-headline-md text-headline-md text-on-surface mb-2 flex items-center justify-center gap-2">
+                پلن‌های اشتراک <span class="text-3xl">👑</span>
+</h1>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center justify-center gap-1">
+                پلنی که بهت میخوره رو انتخاب کن <span class="text-lg">✨</span>
+</p>
+</div>
+<!-- Toggle Switch -->
+<div class="bg-surface-container-high rounded-full p-1 flex relative w-full max-w-[280px] mb-8 shadow-sm">
+<!-- Active indicator background -->
+<div class="absolute inset-y-1 left-1 w-[calc(50%-4px)] bg-primary-container rounded-full shadow-sm transition-all duration-300"></div>
+<button class="relative flex-1 py-2 rounded-full font-label-md text-label-md text-on-surface-variant z-10 transition-colors">
+                روزانه
+            </button>
+<button class="relative flex-1 py-2 rounded-full font-label-md text-label-md text-on-primary-container z-10 transition-colors">
+                ماهانه
+            </button>
+</div>
+<!-- Plan Cards Container -->
+<div class="w-full flex flex-col gap-4">
+<!-- Free Plan -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/50 flex flex-col items-center relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer group">
+<div class="w-16 h-16 mb-2 flex items-center justify-center">
+<span class="text-5xl">😊</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-1 group-hover:text-primary transition-colors">رایگان</h2>
+<p class="font-caption text-caption text-on-surface-variant mb-4">مناسب برای شروع</p>
+<button class="w-full py-3 rounded-full bg-surface-container-highest text-on-surface font-label-md text-label-md mb-6 hover:bg-surface-variant transition-colors">
+                    رایگان
+                </button>
+<ul class="w-full flex flex-col gap-3">
+<li class="flex items-center justify-between text-on-surface font-body-md text-body-md text-sm">
+<span>۲۰ پیام در روز</span>
+<span class="material-symbols-outlined text-secondary text-sm">check_circle</span>
+</li>
+</ul>
+</div>
+<!-- Gold Plan (Popular) -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_8px_24px_rgba(99,14,212,0.08)] border-2 border-tertiary-fixed-dim/50 flex flex-col items-center relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer group">
+<div class="absolute top-0 w-full flex justify-center mt-[-1px]">
+<span class="bg-tertiary-container text-on-tertiary font-caption text-[10px] px-3 py-1 rounded-b-lg font-bold shadow-sm">
+                        محبوب‌ترین انتخاب
+                    </span>
+</div>
+<div class="absolute inset-0 bg-gradient-to-br from-tertiary-fixed/10 to-transparent pointer-events-none"></div>
+<div class="w-16 h-16 mb-2 mt-4 flex items-center justify-center bg-tertiary-fixed rounded-full shadow-sm">
+<span class="text-4xl text-tertiary">⭐</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-1 group-hover:text-primary transition-colors">طلایی</h2>
+<div class="flex items-baseline gap-1 mb-6">
+<span class="font-display-lg-mobile text-display-lg-mobile text-on-surface">۹۹,۰۰۰</span>
+<span class="font-caption text-caption text-on-surface-variant">/تومان</span>
+</div>
+<ul class="w-full flex flex-col gap-3 mb-2">
+<li class="flex items-center justify-between text-on-surface font-body-md text-body-md text-sm">
+<span>۱۰۰ پیام در روز</span>
+<span class="material-symbols-outlined text-secondary text-sm">check_circle</span>
+</li>
+<li class="flex items-center justify-between text-on-surface font-body-md text-body-md text-sm">
+<span>ساخت ۱۰ تصویر در روز</span>
+<span class="material-symbols-outlined text-secondary text-sm">check_circle</span>
+</li>
+</ul>
+</div>
+<!-- Diamond Plan -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/50 flex flex-col items-center relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer group">
+<div class="w-16 h-16 mb-2 flex items-center justify-center bg-inverse-primary/30 rounded-full shadow-sm">
+<span class="text-4xl text-primary">💎</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-1 group-hover:text-primary transition-colors">الماسی</h2>
+<p class="font-caption text-caption text-on-surface-variant mb-4">بدون محدودیت</p>
+<div class="flex items-baseline gap-1 mb-6">
+<span class="font-display-lg-mobile text-display-lg-mobile text-on-surface">۱۹۹,۰۰۰</span>
+<span class="font-caption text-caption text-on-surface-variant">/تومان</span>
+</div>
+<ul class="w-full flex flex-col gap-3">
+<li class="flex items-center justify-between text-on-surface font-body-md text-body-md text-sm">
+<span>پیام نامحدود</span>
+<span class="material-symbols-outlined text-secondary text-sm">check_circle</span>
+</li>
+<li class="flex items-center justify-between text-on-surface font-body-md text-body-md text-sm">
+<span>ساخت تصویر نامحدود</span>
+<span class="material-symbols-outlined text-secondary text-sm">check_circle</span>
+</li>
+</ul>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Shared Component Rendered as instructed) -->
+<!-- The "Profile" tab is set as active since Subscription management usually lives under Profile/Settings intent -->
+<nav class="md:hidden fixed bottom-0 w-full rounded-t-xl z-50 backdrop-blur-xl bg-surface-container-lowest/80 border-t border-outline-variant/30 shadow-[0_-4px_12px_rgba(99,14,212,0.08)] flex flex-row-reverse justify-around items-center h-20 px-4 pb-safe">
+<!-- Inactive Tab 1: خانه -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-90 duration-200">
+<span class="material-symbols-outlined text-[28px] mb-1">home</span>
+<span class="font-label-md text-[10px]">خانه</span>
+</button>
+<!-- Inactive Tab 2: گفتگو -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-90 duration-200">
+<span class="material-symbols-outlined text-[28px] mb-1">chat_bubble</span>
+<span class="font-label-md text-[10px]">گفتگو</span>
+</button>
+<!-- Inactive Tab 3: ابزارها -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors active:scale-90 duration-200">
+<span class="material-symbols-outlined text-[28px] mb-1">build_circle</span>
+<span class="font-label-md text-[10px]">ابزارها</span>
+</button>
+<!-- Active Tab 4: پروفایل (Intent match for Settings/Subscriptions) -->
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 hover:text-primary transition-colors active:scale-90 duration-200">
+<span class="material-symbols-outlined text-[28px] mb-1" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-md text-[10px]">پروفایل</span>
+</button>
+</nav>
+<!-- Desktop Navigation Cluster (Hidden on Mobile) -->
+<div class="hidden md:flex fixed right-0 top-16 bottom-0 w-64 bg-surface-container-lowest/80 backdrop-blur-md border-l border-outline-variant/30 p-6 flex-col gap-4 shadow-sm z-30">
+<h3 class="font-headline-md text-headline-md text-primary mb-4 border-b border-outline-variant/20 pb-2">دانوآ</h3>
+<button class="flex items-center gap-3 w-full text-right py-3 px-4 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">خانه</span>
+</button>
+<button class="flex items-center gap-3 w-full text-right py-3 px-4 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-md text-label-md">گفتگو</span>
+</button>
+<button class="flex items-center gap-3 w-full text-right py-3 px-4 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
+<span class="material-symbols-outlined">build_circle</span>
+<span class="font-label-md text-label-md">ابزارها</span>
+</button>
+<button class="flex items-center gap-3 w-full text-right py-3 px-4 rounded-lg bg-primary-container text-on-primary-container transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-md text-label-md">پروفایل</span>
+</button>
+</div>
+</body></html>

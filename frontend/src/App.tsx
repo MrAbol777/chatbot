@@ -5,6 +5,8 @@ import { ChatMessage, Conversation, UserProfile } from './types';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
 import DanuaLanding from './DanuaLanding';
+import PlansPage from './PlansPage';
+import PaymentSuccessPage from './PaymentSuccessPage';
 import defaultBotAvatar from './image.png';
 import { generateImageWithPolling } from './services/imageGeneration';
 import { Button, Dialog, FieldGroup, TextField, ToastProvider, useToast } from './design-system/components';
@@ -29,6 +31,7 @@ const BOT_AVATAR_FALLBACK_URL = '/image.png';
 type AppProfile = UserProfile & { id?: number | string };
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
 type LandingStep = 'landing' | 'login' | 'signup' | 'chat';
+type AppView = 'home' | 'chat';
 type PersonalityProfile = {
   interests: string[];
   preferredStyle: 'formal' | 'casual' | 'playful';
@@ -38,7 +41,10 @@ type PersonalityProfile = {
 };
 type AuthMode = 'login' | 'signup';
 type ApiErrorData = { error?: string; message?: string; details?: string; redirectTo?: AuthMode | null };
+
+const getAppViewFromPath = (pathname: string): AppView => (pathname === '/chat' ? 'chat' : 'home');
 type ApiError = Error & { redirectTo?: AuthMode | null };
+type ChatRequestError = Error & { status?: number; payload?: ApiErrorData };
 type AttachmentStatus = 'pending' | 'uploading' | 'uploaded' | 'error';
 type ImageAttachment = {
   id: string;
@@ -226,6 +232,35 @@ const createApiError = (message: string, redirectTo?: AuthMode | null): ApiError
   }
   return error;
 };
+
+const createChatRequestError = (message: string, status: number, payload?: ApiErrorData): ChatRequestError => {
+  const error = new Error(message) as ChatRequestError;
+  error.status = status;
+  error.payload = payload;
+  return error;
+};
+
+const isMessageLimitError = (error: unknown): error is ChatRequestError => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const requestError = error as ChatRequestError;
+  const payloadText = [requestError.message, requestError.payload?.error, requestError.payload?.message, requestError.payload?.details]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return (
+    requestError.status === 402 ||
+    payloadText.includes('message limit') ||
+    payloadText.includes('limit reached') ||
+    payloadText.includes('daily limit') ||
+    payloadText.includes('quota') ||
+    payloadText.includes('سقف پیام') ||
+    payloadText.includes('محدودیت پیام') ||
+    payloadText.includes('پیام‌های رایگان') ||
+    payloadText.includes('پیام رایگان')
+  );
+};
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_ATTACHMENT_COUNT = 5;
 const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
@@ -360,6 +395,54 @@ const sortConversations = (items: Conversation[]): Conversation[] => {
   });
 };
 
+const conversationVisuals = [
+  { icon: '📖', tone: 'yellow' },
+  { icon: '🌙', tone: 'indigo' },
+  { icon: '🎨', tone: 'orange' },
+  { icon: '🤖', tone: 'teal' },
+  { icon: '❓', tone: 'blue' }
+];
+
+const formatConversationDate = (value: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const diffDays = Math.round((startOfToday - startOfDate) / 86400000);
+
+  if (diffDays <= 0) {
+    return new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' }).format(date);
+  }
+
+  if (diffDays === 1) {
+    return 'دیروز';
+  }
+
+  if (diffDays < 7) {
+    return `${new Intl.NumberFormat('fa-IR').format(diffDays)} روز پیش`;
+  }
+
+  return new Intl.DateTimeFormat('fa-IR', { month: 'short', day: 'numeric' }).format(date);
+};
+
+const getConversationPreview = (conversation: Conversation): string => {
+  const lastMessage = [...conversation.messages].reverse().find((message) => message.content.trim());
+  return lastMessage?.content.trim() || `${new Intl.NumberFormat('fa-IR').format(conversation.messages.length)} پیام`;
+};
+
+const formatMessageTime = (value: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' }).format(date);
+};
+
 const normalizeConversationFromServer = (item: {
   conversation_id: string;
   title?: string | null;
@@ -431,8 +514,12 @@ export const loadProfile = (): AppProfile | null => {
 };
 
 function ChatApp() {
-  const [profile, setProfile] = useState<AppProfile | null>(null);
+  const [profile, setProfile] = useState<AppProfile | null>(() => (typeof window === 'undefined' ? null : loadProfile()));
   const [landingStep, setLandingStep] = useState<LandingStep>('landing');
+  const [currentView, setCurrentView] = useState<AppView>(() =>
+    typeof window === 'undefined' ? 'home' : getAppViewFromPath(window.location.pathname)
+  );
+  const [hasCheckedSession, setHasCheckedSession] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
   const [authTransition, setAuthTransition] = useState<'forward' | 'back'>('forward');
   const [hasSavedAccount, setHasSavedAccount] = useState(false);
@@ -452,7 +539,7 @@ function ChatApp() {
   const [hasHydratedRemoteConversations, setHasHydratedRemoteConversations] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.matchMedia('(min-width: 1024px)').matches;
+    return window.location.pathname === '/home';
   });
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileFormName, setProfileFormName] = useState('');
@@ -468,6 +555,7 @@ function ChatApp() {
  const [waitingTextIndex, setWaitingTextIndex] = useState(0);
  const [isRecording, setIsRecording] = useState(false);
  const [showImageGenModal, setShowImageGenModal] = useState(false);
+ const [showMessageLimitModal, setShowMessageLimitModal] = useState(false);
  const [imageGenPrompt, setImageGenPrompt] = useState('');
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
@@ -534,6 +622,32 @@ function ChatApp() {
     setTheme(newTheme);
   };
 
+  const navigateToView = (view: AppView, mode: 'push' | 'replace' = 'push') => {
+    const nextPath = view === 'home' ? '/home' : '/chat';
+    if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
+      if (mode === 'replace') {
+        window.history.replaceState({}, '', nextPath);
+      } else {
+        window.history.pushState({}, '', nextPath);
+      }
+    }
+    setCurrentView(view);
+    setSidebarOpen(view === 'home');
+  };
+
+  const handleBackToHome = () => {
+    navigateToView('home');
+  };
+
+  const handleViewPlans = () => {
+    setShowMessageLimitModal(false);
+    window.location.href = '/plans';
+  };
+
+  const handleRemindMessageLimitLater = () => {
+    setShowMessageLimitModal(false);
+  };
+
   useEffect(() => {
     try {
       const authParam = new URLSearchParams(window.location.search).get('auth');
@@ -550,6 +664,7 @@ function ChatApp() {
       }
 
       const profileData = loadProfile();
+      const routeView = getAppViewFromPath(window.location.pathname);
       const savedTheme = localStorage.getItem(THEME_KEY) as 'energy' | 'calm' | null;
       if (savedTheme === 'energy' || savedTheme === 'calm') {
         applyTheme(savedTheme, false);
@@ -563,6 +678,8 @@ function ChatApp() {
       if (profileData) {
         setProfile(profileData);
         setLandingStep('chat');
+        setCurrentView(routeView);
+        setSidebarOpen(routeView === 'home');
         setHasSavedAccount(true);
       } else if (requestedAuthMode === 'login') {
         setAuthMode('login');
@@ -573,6 +690,10 @@ function ChatApp() {
         setRegistrationStep(1);
         setLandingStep('signup');
       } else {
+        if (window.location.pathname === '/home' || window.location.pathname === '/chat') {
+          window.location.replace('/');
+          return;
+        }
         setLandingStep('landing');
       }
 
@@ -599,7 +720,29 @@ function ChatApp() {
       const fallbackConversation = createConversation();
       setConversations([fallbackConversation]);
       setActiveConversationId(fallbackConversation.id);
+    } finally {
+      setHasCheckedSession(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const pathname = window.location.pathname;
+      if (pathname === '/home' || pathname === '/chat') {
+        const nextView = getAppViewFromPath(pathname);
+        setCurrentView(nextView);
+        setSidebarOpen(nextView === 'home');
+        if (!loadProfile() && !new URLSearchParams(window.location.search).get('auth')) {
+          window.location.replace('/');
+        }
+        return;
+      }
+
+      window.location.href = pathname || '/';
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   useEffect(() => {
@@ -986,6 +1129,7 @@ function ChatApp() {
         });
         localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, normalizedProfile]));
         setLandingStep('chat');
+        navigateToView('home');
         return;
       }
 
@@ -1015,6 +1159,7 @@ function ChatApp() {
       setProfile(payload);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
       setLandingStep('chat');
+      navigateToView('home');
       const rawProfiles = localStorage.getItem(PROFILES_KEY);
       const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
       const profiles = Array.isArray(parsedProfiles) ? parsedProfiles : [];
@@ -1209,8 +1354,14 @@ function ChatApp() {
       });
 
       if (!response.ok) {
-        const message = await buildRequestErrorMessage(response);
-        throw new Error(message);
+        const payload = await parseApiError(response);
+        const message =
+          payload.error?.trim() ||
+          payload.message?.trim() ||
+          (response.status === 401 || response.status === 403
+            ? 'احراز هویت API نامعتبر است. لطفاً کلید API را در بک اند بررسی کن.'
+            : 'پاسخ سرور دریافت نشد.');
+        throw createChatRequestError(message, response.status, payload);
       }
 
       const data = (await response.json()) as { reply?: string };
@@ -1228,6 +1379,11 @@ function ChatApp() {
         updatedAt: new Date().toISOString()
       }));
     } catch (error) {
+      if (isMessageLimitError(error)) {
+        setShowMessageLimitModal(true);
+        return;
+      }
+
       const isNetworkError = error instanceof Error && error.message.includes('اتصال به سرور');
       const isTimeoutError = error instanceof Error && error.message.includes('بیش از حد طول کشید');
 
@@ -1383,6 +1539,7 @@ function ChatApp() {
     setActiveConversationId(fresh.id);
     setSidebarOpen(false);
     setInputValue('');
+    navigateToView('chat');
   };
 
   const handleDeleteConversation = (conversationId: string) => {
@@ -1424,6 +1581,7 @@ function ChatApp() {
     setInputValue('');
     localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify([freshConversation]));
     localStorage.setItem(ACTIVE_CONVERSATION_KEY, freshConversation.id);
+    navigateToView('chat');
   };
 
   const handleDownloadActiveConversation = () => {
@@ -1482,6 +1640,10 @@ function ChatApp() {
     setIsSending(false);
     setIsRecording(false);
     setHasSavedAccount(Boolean(localStorage.getItem(PROFILES_KEY)));
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/');
+      window.location.href = '/';
+    }
   };
 
   const handleStartRecording = () => {
@@ -1752,6 +1914,10 @@ function ChatApp() {
     setShowProfileModal(false);
   };
 
+  if (!hasCheckedSession && !profile) {
+    return null;
+  }
+
   if (!profile) {
     const authCardClass = `register-card auth-card ${authTransition === 'back' ? 'slide-back' : 'slide-forward'}`;
     return (
@@ -1960,7 +2126,7 @@ function ChatApp() {
   const canSendMessage = !isRecording && !isSending && (inputValue.trim().length > 0 || attachments.length > 0);
 
   return (
-    <div className={`app-shell chat-shell ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+    <div className={`app-shell chat-shell view-${currentView} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="bg-blob blob-pink" />
       <div className="bg-blob blob-orange" />
       <div className="bg-blob blob-yellow" />
@@ -2003,38 +2169,24 @@ function ChatApp() {
             </button>
           </div>
         )}
+        {currentView === 'chat' ? (
         <header className="top-bar">
           <div className="top-bar-main">
             <button
-              className={`menu-btn ${sidebarOpen ? 'open' : ''}`}
-              onClick={() => setSidebarOpen((prev) => !prev)}
+              className="menu-btn chat-back-btn"
+              onClick={handleBackToHome}
               type="button"
-              aria-label={sidebarOpen ? 'بستن منو' : 'باز کردن منو'}
-              aria-expanded={sidebarOpen}
+              aria-label="برگشت به گفتگوها"
+              title="برگشت به گفتگوها"
             >
-              <span className="menu-btn-line" />
-              <span className="menu-btn-line" />
-              <span className="menu-btn-line short" />
+              <span aria-hidden="true">→</span>
             </button>
 
             <div className="top-title">
-              <span className="avatar avatar-orb">
-                <span className="avatar-ring" />
-                <span className="avatar-core">🧠</span>
-              </span>
-
               <div className="top-copy">
                 <div className="top-copy-row">
-                  <strong>دانوآ</strong>
-                  <span className="top-status-badge">
-                    <span className="status-dot" />
-                    آنلاین
-                  </span>
-                </div>
-                <div className="top-meta">
-                  <span>سلام {profile.name} 👋</span>
-                  <span className="top-meta-sep">•</span>
-                  <span>همراه گفتگوی امروز</span>
+                  <strong>{activeConversation?.title || DEFAULT_TITLE}</strong>
+                  <span className="chat-title-icon" aria-hidden="true">📖</span>
                 </div>
               </div>
             </div>
@@ -2042,48 +2194,75 @@ function ChatApp() {
 
           <div className="top-bar-actions">
             <button
-              className="header-action-btn"
+              className="header-action-btn header-action-btn-secondary chat-share-btn"
               type="button"
+              onClick={handleDownloadActiveConversation}
+              aria-label="اشتراک‌گذاری گفتگو"
+              title="اشتراک‌گذاری گفتگو"
+            >
+              <span className="header-action-icon" aria-hidden="true">↥</span>
+            </button>
+          </div>
+        </header>
+        ) : null}
+
+        {currentView === 'home' ? (
+        <aside className={`sidebar conversation-home ${sidebarOpen ? 'open' : ''}`}>
+          <header className="conversation-home-header">
+            <button
+              type="button"
+              className="conversation-home-icon-btn conversation-home-icon-btn--warm"
               onClick={handleCreateConversation}
               aria-label="گفتگوی جدید"
               title="گفتگوی جدید"
             >
-              <span className="header-action-icon" aria-hidden="true">✦</span>
-              <span className="header-action-text">گفتگوی جدید</span>
+              +
             </button>
-            <button
-              className="header-action-btn header-action-btn-secondary"
-              type="button"
-              onClick={() => setShowProfileModal(true)}
-              aria-label="تنظیمات پروفایل"
-              title="تنظیمات پروفایل"
-            >
-              <span className="header-action-icon" aria-hidden="true">⚙</span>
-            </button>
-          </div>
-        </header>
+            <h3>گفتگوهای من</h3>
+            <div className="conversation-home-tools">
+              <button
+                type="button"
+                className="conversation-home-icon-btn conversation-home-icon-btn--cool"
+                onClick={handleCreateConversation}
+                aria-label="افزودن مکالمه جدید"
+                title="افزودن مکالمه جدید"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                className="conversation-home-icon-btn conversation-home-icon-btn--search"
+                aria-label="جستجو"
+                title="جستجو"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M21 21l-5.2-5.2m1.7-4.55a6.25 6.25 0 11-12.5 0 6.25 6.25 0 0112.5 0z" />
+                </svg>
+              </button>
+            </div>
+          </header>
 
-        <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-          <div className="sidebar-head">
-            <h3>گفتگوها</h3>
-            <Button type="button" variant="secondary" size="sm" className="sidebar-btn sidebar-btn-head" onClick={handleCreateConversation}>
-              + گفتگوی جدید
-            </Button>
-          </div>
-
-          <div className="conversation-list">
-            {orderedConversations.map((conversation) => {
+          <div className="conversation-list conversation-home-list">
+            {orderedConversations.map((conversation, index) => {
               const isActive = conversation.id === activeConversationId;
               const isEditing = editingId === conversation.id;
+              const visual = conversationVisuals[index % conversationVisuals.length];
+              const preview = getConversationPreview(conversation);
+              const dateLabel = formatConversationDate(conversation.updatedAt || conversation.createdAt);
               return (
                 <div
-                  className={`conversation-row ${isActive ? 'active' : ''}`}
+                  className={`conversation-row conversation-card ${isActive ? 'active' : ''}`}
                   key={conversation.id}
                   onClick={() => {
                     setActiveConversationId(conversation.id);
                     setSidebarOpen(false);
+                    navigateToView('chat');
                   }}
                 >
+                  <div className={`conversation-card-icon conversation-card-icon--${visual.tone}`} aria-hidden="true">
+                    {visual.icon}
+                  </div>
+
                   <div className="conversation-main">
                     {isEditing ? (
                       <form
@@ -2105,12 +2284,17 @@ function ChatApp() {
                     ) : (
                       <>
                         <p>{conversation.title || DEFAULT_TITLE}</p>
-                        <small>{conversation.messages.length} پیام</small>
+                        <small>{preview}</small>
                       </>
                     )}
                   </div>
 
-                  <div className="conversation-actions" onClick={(event) => event.stopPropagation()}>
+                  <div className="conversation-card-meta" onClick={(event) => event.stopPropagation()}>
+                    <span className="conversation-card-date">
+                      {conversation.pinned ? <span aria-hidden="true">⭐</span> : null}
+                      {dateLabel}
+                    </span>
+                    <div className="conversation-actions">
                     <Button
                       type="button"
                       iconOnly
@@ -2156,32 +2340,48 @@ function ChatApp() {
                     >
                       🗑️
                     </Button>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="sidebar-footer">
-            <Button type="button" variant="secondary" className="sidebar-btn" onClick={handleDownloadActiveConversation} title="ذخیره گفتگوی جاری">
-              <span aria-hidden="true">📥</span>
-              ذخیره گفتگو
-            </Button>
-            <Button type="button" variant="secondary" className="sidebar-btn" onClick={() => setShowProfileModal(true)}>
-              <span aria-hidden="true">⚙️</span>
-              تنظیمات پروفایل
-            </Button>
-            <Button type="button" variant="danger" className="sidebar-btn" onClick={handleDeleteAllConversations}>
-              <span aria-hidden="true">🗑️</span>
-              حذف همه گفتگوها
-            </Button>
-            <Button type="button" variant="danger" className="sidebar-btn" onClick={handleLogout}>
-              <span aria-hidden="true">🚪</span>
-              خروج ار حساب کاربری
-            </Button>
-          </div>
+          <nav className="conversation-bottom-nav" aria-label="ناوبری گفتگوها">
+            <button type="button" className="conversation-nav-item" onClick={() => setShowProfileModal(true)}>
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" />
+                <path d="M19.4 15a1.7 1.7 0 00.34 1.88l.05.05a2 2 0 01-2.83 2.83l-.05-.05a1.7 1.7 0 00-1.88-.34 1.7 1.7 0 00-1.03 1.56V21a2 2 0 01-4 0v-.07a1.7 1.7 0 00-1.03-1.56 1.7 1.7 0 00-1.88.34l-.05.05a2 2 0 01-2.83-2.83l.05-.05A1.7 1.7 0 004.6 15 1.7 1.7 0 003.04 14H3a2 2 0 010-4h.04A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.88l-.05-.05a2 2 0 012.83-2.83l.05.05A1.7 1.7 0 008.97 4.6 1.7 1.7 0 0010 3.04V3a2 2 0 014 0v.04a1.7 1.7 0 001.03 1.56 1.7 1.7 0 001.88-.34l.05-.05a2 2 0 012.83 2.83l-.05.05A1.7 1.7 0 0019.4 9c.23.63.81 1 1.56 1H21a2 2 0 010 4h-.04A1.7 1.7 0 0019.4 15z" />
+              </svg>
+              <span>تنظیمات</span>
+            </button>
+            <button type="button" className="conversation-nav-item" onClick={handleDownloadActiveConversation}>
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              <span>اشتراک</span>
+            </button>
+            <button type="button" className="conversation-nav-fab" onClick={handleCreateConversation} aria-label="شروع گفتگوی جدید">
+              +
+            </button>
+            <button type="button" className="conversation-nav-item" title="عکس">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16m-2-2l1.6-1.6a2 2 0 012.8 0L20 14" />
+                <path d="M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>عکس</span>
+            </button>
+            <button type="button" className="conversation-nav-item active" onClick={() => navigateToView('chat')}>
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M21 11.5c0 4.14-4.03 7.5-9 7.5a10.5 10.5 0 01-4.52-1L3 19l1.4-3.28A6.76 6.76 0 013 11.5C3 7.36 7.03 4 12 4s9 3.36 9 7.5z" />
+                <path d="M8 11h.01M12 11h.01M16 11h.01" />
+              </svg>
+              <span>چت</span>
+            </button>
+          </nav>
         </aside>
-        {sidebarOpen ? (
+        ) : null}
+        {currentView === 'home' && sidebarOpen ? (
           <button
             className="sidebar-hitbox"
             type="button"
@@ -2227,6 +2427,15 @@ function ChatApp() {
 
               <div className="parent-panel-soon">پنل والد به زودی فعال می‌شود</div>
 
+              <div className="profile-danger-actions">
+                <Button type="button" variant="danger" onClick={handleDeleteAllConversations}>
+                  حذف همه گفتگوها
+                </Button>
+                <Button type="button" variant="danger" onClick={handleLogout}>
+                  خروج از حساب کاربری
+                </Button>
+              </div>
+
               <div className="modal-buttons">
                 <Button type="button" className="start-btn" onClick={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}>
                   ذخیره تغییرات
@@ -2238,48 +2447,109 @@ function ChatApp() {
           </Dialog>
        ) : null}
 
-       {showImageGenModal ? (
-         <Dialog open={showImageGenModal} title="ساخت عکس با هوش مصنوعی" onClose={() => setShowImageGenModal(false)} showFooter={false}>
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-             <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-               توضیح بده چه عکسی می‌خوای تا برات بسازم
-             </p>
-             <TextField
-               label="توضیح عکس"
-               type="text"
-               value={imageGenPrompt}
-               onChange={(e) => setImageGenPrompt(e.target.value)}
-               placeholder="مثلاً: یک گربه قرمز روی میز"
-               disabled={isGeneratingImage}
-               errorText={imageGenError}
-             />
-             {imageGenStatus && (
-               <div style={{ fontSize: '14px', color: 'var(--accent)', textAlign: 'center' }}>
-                 {imageGenStatus}
-               </div>
-             )}
-             <div className="modal-buttons">
+       {showMessageLimitModal ? (
+         <Dialog open={showMessageLimitModal} title="آهووو! به سقف پیام‌ها رسیدی" onClose={() => setShowMessageLimitModal(false)} showFooter={false}>
+           <div className="message-limit-modal">
+             <button
+               type="button"
+               className="message-limit-close"
+               aria-label="بستن"
+               onClick={() => setShowMessageLimitModal(false)}
+             >
+               ×
+             </button>
+
+             <div className="message-limit-hero" aria-hidden="true">
+               <span className="message-limit-glow" />
+               <span className="message-limit-dragon">🐉</span>
+               <span className="message-limit-tear">😢</span>
+             </div>
+
+             <div className="message-limit-copy">
+               <h2>آهووو! به سقف پیام‌ها رسیدی</h2>
+               <p>برای ادامه چت با دانوآ، یکی از پلن‌های ما رو انتخاب کن</p>
+             </div>
+
+             <div className="message-limit-actions">
                <Button
                  type="button"
-                 className="start-btn"
-                 onClick={handleGenerateImageSubmit}
-                 disabled={isGeneratingImage || !imageGenPrompt.trim()}
+                 size="lg"
+                 className="message-limit-primary"
+                 onClick={handleViewPlans}
+                 endIcon={
+                   <svg className="message-limit-medal" viewBox="0 0 24 24" focusable="false">
+                     <path d="M8 3h8l-1.6 4.2a6 6 0 1 1-4.8 0L8 3Z" />
+                     <path d="M12 9.2l.9 1.8 2 .3-1.4 1.4.3 2-1.8-.9-1.8.9.3-2-1.4-1.4 2-.3.9-1.8Z" />
+                     <path d="M9 16.7V22l3-1.8 3 1.8v-5.3" />
+                   </svg>
+                 }
                >
-                 {isGeneratingImage ? 'در حال ساخت...' : 'بساز'}
+                 مشاهده پلن‌ها
                </Button>
-               <Button
-                 type="button"
-                 variant="danger"
-                 onClick={() => { setShowImageGenModal(false); setImageGenError(''); setImageGenStatus(''); }}
-                 disabled={isGeneratingImage}
-               >
-                 انصراف
-               </Button>
+               <button type="button" className="message-limit-later" onClick={handleRemindMessageLimitLater}>
+                 بعداً یادآوری کن
+               </button>
              </div>
            </div>
          </Dialog>
        ) : null}
 
+       {showImageGenModal ? (
+         <Dialog open={showImageGenModal} title="ساخت تصویر" onClose={() => setShowImageGenModal(false)} showFooter={false}>
+           <div className="image-gen-modal">
+             <button
+               type="button"
+               className="image-gen-close"
+               aria-label="بستن"
+               onClick={() => { setShowImageGenModal(false); setImageGenError(''); setImageGenStatus(''); }}
+               disabled={isGeneratingImage}
+             >
+               ×
+             </button>
+
+             <div className="image-gen-hero" aria-hidden="true">
+               <span className="image-gen-glow" />
+               <span className="image-gen-orb">
+                 <span className="image-gen-wand">🪄</span>
+               </span>
+               <span className="image-gen-star image-gen-star--one" />
+               <span className="image-gen-star image-gen-star--two" />
+               <span className="image-gen-star image-gen-star--three" />
+             </div>
+
+             <div className="image-gen-copy">
+               <h2>چی می‌خوای بسازی؟</h2>
+               <p>هرچی توی ذهنت هست بنویس...</p>
+             </div>
+
+             <label className="image-gen-field">
+               <textarea
+                 dir="rtl"
+                 value={imageGenPrompt}
+                 onChange={(event) => setImageGenPrompt(event.target.value)}
+                 placeholder="مثلاً: یه گربه فضایی بامزه"
+                 disabled={isGeneratingImage}
+                 aria-label="توضیح تصویر"
+               />
+             </label>
+
+             {imageGenStatus ? <div className="image-gen-status">{imageGenStatus}</div> : null}
+             {imageGenError ? <div className="image-gen-error">{imageGenError}</div> : null}
+
+             <Button
+               type="button"
+               className="image-gen-submit"
+               onClick={handleGenerateImageSubmit}
+               disabled={isGeneratingImage || !imageGenPrompt.trim()}
+             >
+               <span>{isGeneratingImage ? 'در حال ساخت...' : 'بساز'}</span>
+               <span aria-hidden="true">✦</span>
+             </Button>
+           </div>
+         </Dialog>
+       ) : null}
+
+       {currentView === 'chat' ? (
        <main className="messages-area" ref={messagesContainerRef}>
           {activeConversation?.messages.length ? (
             activeConversation.messages.map((message, index) => (
@@ -2330,6 +2600,7 @@ function ChatApp() {
                         })}
                       </div>
                     ) : null}
+                    <span className="message-time">{formatMessageTime(message.timestamp)}</span>
                   </div>
                 ) : (
                   <div className="bubble">
@@ -2365,6 +2636,7 @@ function ChatApp() {
                         })}
                       </div>
                     ) : null}
+                    <span className="message-time">{formatMessageTime(message.timestamp)}</span>
                   </div>
                 )}
               </div>
@@ -2387,7 +2659,9 @@ function ChatApp() {
             </div>
           ) : null}
         </main>
+       ) : null}
 
+       {currentView === 'chat' ? (
         <footer className="input-area" ref={inputAreaRef}>
           <div className="input-shell">
             <FieldGroup direction="row" className="chips-row">
@@ -2533,6 +2807,7 @@ function ChatApp() {
             </div>
           </div>
         </footer>
+       ) : null}
       </div>
     </div>
   );
@@ -2565,7 +2840,15 @@ function App() {
     return <DanuaLanding />;
   }
 
-  if (pathname !== '/chat') {
+  if (pathname === '/plans') {
+    return <PlansPage />;
+  }
+
+  if (pathname === '/payment/success' || pathname === '/success') {
+    return <PaymentSuccessPage />;
+  }
+
+  if (pathname !== '/chat' && pathname !== '/home') {
     return <DanuaLanding />;
   }
 

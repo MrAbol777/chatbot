@@ -1,6 +1,6 @@
 .ds-button {
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -23,7 +23,7 @@
 .ds-field { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
 .ds-field__label { font-size: var(--font-size-sm); color: var(--color-text); font-weight: 600; }
 .ds-field__input, .ds-field__textarea {
-  width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); padding: 0 var(--space-3); transition: border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard);
+  width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-container-lowest); color: var(--color-text); padding: 0 var(--space-3); transition: border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard);
 }
 .ds-field__input { min-height: 44px; }
 .ds-field__textarea { min-height: 96px; padding-top: var(--space-3); padding-bottom: var(--space-3); resize: vertical; }
@@ -39,11 +39,11 @@
 .ds-card--padding-lg { padding: var(--space-8); }
 
 .ds-dialog-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: var(--z-modal); display: flex; align-items: center; justify-content: center; padding: var(--space-5); }
-.ds-dialog-panel { width: min(540px, 100%); max-height: calc(100dvh - 48px); overflow: auto; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: var(--shadow-lg); }
+.ds-dialog-panel { width: min(540px, 100%); max-height: calc(100dvh - 48px); overflow: auto; background: var(--color-surface-container-lowest); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-5); box-shadow: var(--shadow-lg); }
 .ds-dialog-actions { display: flex; gap: var(--space-3); justify-content: flex-start; margin-top: var(--space-5); }
 
 .ds-toast-region { position: fixed; inset-inline-start: var(--space-4); inset-block-end: var(--space-4); z-index: var(--z-toast); display: grid; gap: var(--space-2); }
-.ds-toast { min-width: 240px; max-width: 340px; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); box-shadow: var(--shadow-md); }
+.ds-toast { min-width: 240px; max-width: 340px; background: var(--color-surface-container-lowest); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); box-shadow: var(--shadow-md); }
 .ds-toast[data-variant='success'] { border-color: var(--color-success); }
 .ds-toast[data-variant='warning'] { border-color: var(--color-warning); }
 .ds-toast[data-variant='danger'] { border-color: var(--color-danger); }
