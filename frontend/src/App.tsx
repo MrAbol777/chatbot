@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { ChatMessage, Conversation, UserProfile } from './types';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
+import DanuaLanding from './DanuaLanding';
 import defaultBotAvatar from './image.png';
 import { generateImageWithPolling } from './services/imageGeneration';
 import { Button, Dialog, FieldGroup, TextField, ToastProvider, useToast } from './design-system/components';
@@ -407,6 +408,28 @@ const inferTitle = (text: string): string => {
 const generateUniqueId = () => Date.now() + Math.floor(Math.random() * 10000);
 const getDefaultThemeByAge = (age: number): 'energy' | 'calm' => (age < 13 ? 'energy' : 'calm');
 
+export const loadProfile = (): AppProfile | null => {
+  try {
+    const rawProfile = localStorage.getItem(PROFILE_KEY);
+    if (!rawProfile) return null;
+
+    const parsed = JSON.parse(rawProfile) as Partial<AppProfile>;
+    if (!parsed?.name || typeof parsed.name !== 'string' || !Number.isFinite(Number(parsed.age))) {
+      return null;
+    }
+
+    return {
+      ...parsed,
+      name: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : 'کاربر',
+      age: Number(parsed.age),
+      personality: normalizePersonality(parsed.personality)
+    };
+  } catch (err) {
+    console.error('[profile] Failed to load profile:', err);
+    return null;
+  }
+};
+
 function ChatApp() {
   const [profile, setProfile] = useState<AppProfile | null>(null);
   const [landingStep, setLandingStep] = useState<LandingStep>('landing');
@@ -512,30 +535,9 @@ function ChatApp() {
   };
 
   useEffect(() => {
-    const loadProfile = () => {
-      try {
-        const rawProfile = localStorage.getItem(PROFILE_KEY);
-        if (!rawProfile) return null;
-
-        const parsed = JSON.parse(rawProfile) as Partial<AppProfile>;
-        if (!parsed?.name || typeof parsed.name !== 'string' || !Number.isFinite(Number(parsed.age))) {
-          return null;
-        }
-
-        const hydrated: AppProfile = {
-          ...parsed,
-          name: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : 'کاربر',
-          age: Number(parsed.age),
-          personality: normalizePersonality(parsed.personality)
-        };
-        return hydrated;
-      } catch (err) {
-        console.error('[profile] Failed to load profile:', err);
-        return null;
-      }
-    };
-
     try {
+      const authParam = new URLSearchParams(window.location.search).get('auth');
+      const requestedAuthMode: AuthMode | null = authParam === 'login' || authParam === 'signup' ? authParam : null;
       const rawProfiles = localStorage.getItem(PROFILES_KEY);
       const rawConversations = localStorage.getItem(CONVERSATIONS_KEY);
       const savedActiveConversationId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
@@ -562,6 +564,14 @@ function ChatApp() {
         setProfile(profileData);
         setLandingStep('chat');
         setHasSavedAccount(true);
+      } else if (requestedAuthMode === 'login') {
+        setAuthMode('login');
+        setRegistrationStep(2);
+        setLandingStep('login');
+      } else if (requestedAuthMode === 'signup') {
+        setAuthMode('signup');
+        setRegistrationStep(1);
+        setLandingStep('signup');
       } else {
         setLandingStep('landing');
       }
@@ -2549,6 +2559,14 @@ function App() {
         <DesignSystemPreview />
       </ToastProvider>
     );
+  }
+
+  if (pathname === '/') {
+    return <DanuaLanding />;
+  }
+
+  if (pathname !== '/chat') {
+    return <DanuaLanding />;
   }
 
   return (

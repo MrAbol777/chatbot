@@ -1,0 +1,1364 @@
+/* ═══════════════════════════════════════════════════
+   🧸 دانوآ لندینگ - نسخه بچه‌گونه و شاد! 🌈
+   ═══════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+
+.danua-landing {
+  /* پس‌زمینه رنگین‌کمانی */
+  --danua-bg: #fff5f7;
+  --danua-rainbow-1: #ffb3ba;
+  --danua-rainbow-2: #ffdfba;
+  --danua-rainbow-3: #ffffba;
+  --danua-rainbow-4: #baffc9;
+  --danua-rainbow-5: #bae1ff;
+  --danua-rainbow-6: #e8baff;
+
+  /* رنگ‌های اصلی */
+  --danua-pink: #ff6b9d;
+  --danua-pink-soft: #ffb8d0;
+  --danua-purple: #9b72cf;
+  --danua-blue: #5bb8f5;
+  --danua-blue-deep: #4aa3e8;
+  --danua-yellow: #ffd93d;
+  --danua-yellow-soft: #ffe066;
+  --danua-green: #6bcb77;
+  --danua-orange: #ff9a3c;
+  --danua-red: #ff6b6b;
+
+  /* رنگ‌های متن */
+  --danua-text: #5a4a6b;
+  --danua-text-dark: #3d2e50;
+  --danua-muted: #8a7a9e;
+
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(255, 107, 157, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(91, 184, 245, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(255, 217, 61, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #fff5f7 0%, #fff9e6 30%, #e6f5ff 70%, #f5e6ff 100%);
+  color: var(--danua-text);
+  font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  padding: 12px;
+  position: relative;
+}
+
+/* ستاره‌های پس‌زمینه ✨ */
+.danua-landing::before {
+  content: '⭐🌟✨⭐🌟✨⭐🌟✨';
+  position: fixed;
+  top: 10%;
+  right: 5%;
+  font-size: 2rem;
+  opacity: 0.3;
+  animation: twinkle 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.danua-landing::after {
+  content: '✨🌟⭐🌟✨🌟⭐🌟✨';
+  position: fixed;
+  bottom: 20%;
+  left: 3%;
+  font-size: 1.5rem;
+  opacity: 0.25;
+  animation: twinkle 4s ease-in-out infinite reverse;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.5; transform: scale(1.2) rotate(10deg); }
+}
+
+.danua-landing a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ═══════════════════════════════════════════════════
+   🎀 هدر - نوار بالایی با گوشه‌های گرد و شاد
+   ═══════════════════════════════════════════════════ */
+
+.danua-header,
+.danua-hero,
+.danua-section,
+.danua-safety,
+.danua-final-cta,
+.danua-footer {
+  width: min(1120px, 100%);
+  margin-inline: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.danua-header {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 8px 32px rgba(155, 114, 207, 0.15),
+    0 2px 8px rgba(255, 107, 157, 0.1),
+    inset 0 -2px 0 rgba(155, 114, 207, 0.1);
+}
+
+/* لوگو با شکل قلب-ستاره */
+.danua-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  color: var(--danua-text-dark);
+  font-size: 1.15rem;
+  font-weight: 900;
+  transition: transform 0.3s ease;
+}
+
+.danua-logo:hover {
+  transform: scale(1.05);
+}
+
+.danua-logo-mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--danua-pink) 0%, var(--danua-purple) 100%);
+  color: #fff;
+  font-size: 1.4rem;
+  box-shadow:
+    0 6px 20px rgba(255, 107, 157, 0.4),
+    0 2px 4px rgba(155, 114, 207, 0.3);
+  animation: logo-bounce 2s ease-in-out infinite;
+}
+
+@keyframes logo-bounce {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-3px) rotate(3deg); }
+}
+
+.danua-nav {
+  display: none;
+  align-items: center;
+  gap: 24px;
+  color: var(--danua-muted);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.danua-nav a {
+  position: relative;
+  padding: 6px 12px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.danua-nav a:hover {
+  color: var(--danua-pink);
+  background: rgba(255, 107, 157, 0.1);
+}
+
+.danua-nav a::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  right: 50%;
+  transform: translateX(50%);
+  width: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--danua-pink);
+  transition: width 0.3s ease;
+}
+
+.danua-nav a:hover::after {
+  width: 60%;
+}
+
+/* ═══════════════════════════════════════════════════
+   🎨 دکمه‌ها - دکمه‌های رنگی و بامزه
+   ═══════════════════════════════════════════════════ */
+
+.danua-header-cta {
+  min-width: 120px;
+}
+
+.danua-cta-button.ds-button {
+  border: none;
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--danua-pink) 0%, var(--danua-purple) 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  box-shadow:
+    0 8px 24px rgba(255, 107, 157, 0.4),
+    0 4px 8px rgba(155, 114, 207, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.danua-cta-button.ds-button::before {
+  content: '✨';
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.danua-cta-button.ds-button:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    0 12px 32px rgba(255, 107, 157, 0.5),
+    0 6px 12px rgba(155, 114, 207, 0.4);
+}
+
+.danua-cta-button.ds-button:hover:not(:disabled)::before {
+  opacity: 1;
+  left: 20px;
+}
+
+.danua-cta-button.ds-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.danua-soft-button.ds-button {
+  border: 3px solid rgba(155, 114, 207, 0.3);
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--danua-purple);
+  box-shadow:
+    0 4px 16px rgba(155, 114, 207, 0.15),
+    inset 0 2px 0 rgba(255, 255, 255, 0.8);
+}
+
+.danua-soft-button.ds-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--danua-pink);
+  background: rgba(255, 248, 250, 1);
+  box-shadow: 0 8px 24px rgba(255, 107, 157, 0.2);
+}
+
+.danua-plan-button.ds-button {
+  border: 3px solid rgba(155, 114, 207, 0.25);
+  border-radius: 50px;
+  background: linear-gradient(135deg, #fff 0%, #f8f4ff 100%);
+  color: var(--danua-purple);
+  box-shadow: 0 4px 16px rgba(155, 114, 207, 0.1);
+}
+
+.danua-plan-button.ds-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--danua-pink-soft) 0%, var(--danua-pink) 100%);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ═══════════════════════════════════════════════════
+   🌟 بخش هیرو - صفحه اصلی با عکس گوشی
+   ═══════════════════════════════════════════════════ */
+
+.danua-hero {
+  display: grid;
+  gap: 40px;
+  align-items: center;
+  padding: 50px 8px 40px;
+  min-height: 85vh;
+}
+
+.danua-hero-copy {
+  display: grid;
+  gap: 20px;
+  text-align: center;
+}
+
+/* تگ کیکر با استایل آدامسی */
+.danua-kicker {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 18px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--danua-yellow) 0%, var(--danua-orange) 100%);
+  color: var(--danua-text-dark);
+  font-size: 0.9rem;
+  font-weight: 800;
+  box-shadow:
+    0 4px 16px rgba(255, 217, 61, 0.4),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5);
+  margin: 0 auto;
+  animation: kicker-float 3s ease-in-out infinite;
+}
+
+@keyframes kicker-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* عنوان بزرگ */
+.danua-hero h1 {
+  margin: 0;
+  color: var(--danua-text-dark);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1.3;
+  font-size: clamp(2.2rem, 8vw, 3.8rem);
+  text-shadow: 2px 2px 0 rgba(255, 107, 157, 0.2);
+}
+
+/* پاراگراف توضیح */
+.danua-hero p {
+  margin: 0;
+  max-width: 580px;
+  color: var(--danua-muted);
+  font-size: clamp(1rem, 3vw, 1.15rem);
+  line-height: 2;
+  margin: 0 auto;
+}
+
+/* دکمه‌های اکشن */
+.danua-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+
+.danua-hero-actions .ds-button {
+  flex: 1 1 180px;
+  max-width: 220px;
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+
+/* ردیف اعتماد */
+.danua-trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.danua-trust-row span {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--danua-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(155, 114, 207, 0.1);
+  border: 2px solid rgba(155, 114, 207, 0.1);
+  transition: all 0.3s ease;
+}
+
+.danua-trust-row span:hover {
+  transform: scale(1.05);
+  border-color: var(--danua-pink);
+  box-shadow: 0 4px 16px rgba(255, 107, 157, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════
+   📱 تصویر گوشی - خیلی بامزه و کارتونی
+   ═══════════════════════════════════════════════════ */
+
+.danua-hero-visual {
+  position: relative;
+  min-height: 520px;
+  display: grid;
+  place-items: center;
+}
+
+/* خورشید خندان */
+.danua-sun {
+  position: absolute;
+  top: 20px;
+  right: 8%;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--danua-yellow) 0%, var(--danua-orange) 100%);
+  box-shadow:
+    0 0 0 20px rgba(255, 217, 61, 0.25),
+    0 0 40px rgba(255, 217, 61, 0.4);
+  animation: sun-pulse 4s ease-in-out infinite;
+}
+
+.danua-sun::before,
+.danua-sun::after {
+  content: '';
+  position: absolute;
+  top: 38px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #6b4c35;
+}
+
+.danua-sun::before {
+  right: 28px;
+}
+
+.danua-sun::after {
+  left: 28px;
+}
+
+/* لبخند خورشید */
+.danua-sun .smile {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 20px;
+  border: 4px solid #6b4c35;
+  border-top: none;
+  border-radius: 0 0 40px 40px;
+}
+
+@keyframes sun-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* ابرهای بامزه */
+.danua-cloud {
+  position: absolute;
+  width: 120px;
+  height: 50px;
+  border-radius: 100px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(155, 114, 207, 0.12);
+  animation: cloud-float 5s ease-in-out infinite;
+}
+
+.danua-cloud::before,
+.danua-cloud::after {
+  content: '';
+  position: absolute;
+  bottom: 15px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.danua-cloud::before {
+  right: 20px;
+  width: 50px;
+  height: 50px;
+}
+
+.danua-cloud::after {
+  left: 18px;
+  width: 60px;
+  height: 60px;
+}
+
+.danua-cloud-one {
+  top: 120px;
+  left: -20px;
+  animation-delay: 0s;
+}
+
+.danua-cloud-two {
+  right: -30px;
+  bottom: 60px;
+  background: linear-gradient(135deg, var(--danua-blue-soft) 0%, var(--danua-blue) 100%);
+  animation-delay: 1s;
+}
+
+.danua-cloud-two::before {
+  background: var(--danua-blue-soft);
+}
+
+.danua-cloud-two::after {
+  background: var(--danua-blue-soft);
+}
+
+@keyframes cloud-float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  33% { transform: translateY(-8px) translateX(5px); }
+  66% { transform: translateY(-4px) translateX(-3px); }
+}
+
+/* گوشی موبایل */
+.danua-phone {
+  position: relative;
+  z-index: 2;
+  width: min(300px, 88vw);
+  min-height: 520px;
+  padding: 16px;
+  border: 12px solid #fff;
+  border-radius: 40px;
+  background: linear-gradient(180deg, #fff 0%, #fff9f0 100%);
+  box-shadow:
+    0 30px 60px rgba(155, 114, 207, 0.25),
+    0 10px 20px rgba(255, 107, 157, 0.15),
+    inset 0 0 0 2px rgba(155, 114, 207, 0.1);
+  animation: phone-bounce 3s ease-in-out infinite;
+}
+
+@keyframes phone-bounce {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+/* بالای گوشی */
+.danua-phone-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, var(--danua-pink-soft) 0%, var(--danua-purple) 100%);
+  margin-bottom: 16px;
+}
+
+.danua-phone-top div {
+  display: grid;
+  gap: 2px;
+}
+
+.danua-phone-top strong {
+  font-size: 1rem;
+  color: #fff;
+}
+
+.danua-phone-top span:not(.danua-avatar) {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.75rem;
+}
+
+.danua-avatar {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--danua-yellow) 0%, var(--danua-orange) 100%);
+  color: var(--danua-text-dark);
+  font-weight: 900;
+  font-size: 1.4rem;
+  box-shadow: 0 4px 12px rgba(255, 217, 61, 0.4);
+}
+
+/* چت پیش‌نمایش */
+.danua-chat-preview {
+  display: grid;
+  gap: 14px;
+  padding: 20px 4px;
+}
+
+.danua-bubble {
+  width: fit-content;
+  max-width: 85%;
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 24px;
+  color: var(--danua-text-dark);
+  line-height: 1.7;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(155, 114, 207, 0.1);
+  animation: bubble-pop 0.5s ease-out;
+}
+
+@keyframes bubble-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.danua-bubble.bot {
+  justify-self: start;
+  background: linear-gradient(135deg, var(--danua-blue-soft) 0%, var(--danua-blue) 100%);
+  border-bottom-right-radius: 6px;
+}
+
+.danua-bubble.user {
+  justify-self: end;
+  background: linear-gradient(135deg, var(--danua-pink-soft) 0%, var(--danua-pink) 100%);
+  color: #fff;
+  border-bottom-left-radius: 6px;
+}
+
+/* کامپوزر پیام */
+.danua-composer {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 54px;
+  padding: 10px 12px;
+  border-radius: 50px;
+  background: #fff;
+  color: #b8a8c8;
+  box-shadow:
+    inset 0 0 0 2px rgba(155, 114, 207, 0.15),
+    0 4px 12px rgba(155, 114, 207, 0.1);
+}
+
+.danua-composer span {
+  font-size: 0.88rem;
+}
+
+.danua-composer button {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--danua-purple) 0%, var(--danua-pink) 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(155, 114, 207, 0.3);
+}
+
+.danua-composer button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(155, 114, 207, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════
+   🎯 بخش‌های عمومی - فاصله و عناوین
+   ═══════════════════════════════════════════════════ */
+
+.danua-section {
+  padding: 40px 8px;
+}
+
+.danua-section-heading {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.danua-section-heading span {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 16px;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--danua-purple);
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin: 0 auto;
+  box-shadow: 0 2px 8px rgba(155, 114, 207, 0.1);
+}
+
+.danua-section-heading h2,
+.danua-safety h2,
+.danua-final-cta h2 {
+  margin: 0;
+  color: var(--danua-text-dark);
+  font-weight: 900;
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+}
+
+/* ═══════════════════════════════════════════════════
+   🌈 کارت‌های ویژگی - رنگی و جذاب
+   ═══════════════════════════════════════════════════ */
+
+.danua-feature-grid,
+.danua-plan-grid,
+.danua-testimonial-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.danua-feature-card.ds-card,
+.danua-plan-card.ds-card,
+.danua-testimonial-card.ds-card,
+.danua-faq-card.ds-card {
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 28px;
+  box-shadow:
+    0 12px 32px rgba(155, 114, 207, 0.12),
+    0 4px 8px rgba(155, 114, 207, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.danua-feature-card {
+  min-height: 220px;
+  display: grid;
+  align-content: start;
+}
+
+.danua-feature-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow:
+    0 20px 48px rgba(155, 114, 207, 0.2),
+    0 8px 16px rgba(155, 114, 207, 0.12);
+}
+
+/* آیکون ویژگی */
+.danua-feature-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 900;
+  font-size: 1.8rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  animation: icon-wiggle 2s ease-in-out infinite;
+}
+
+@keyframes icon-wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+.danua-feature-card h3 {
+  margin: 16px 0 8px;
+  font-size: 1.3rem;
+  color: var(--danua-text-dark);
+  font-weight: 800;
+}
+
+.danua-feature-card p {
+  margin: 0;
+  color: var(--danua-muted);
+  line-height: 1.8;
+  font-size: 0.95rem;
+}
+
+/* تم‌های رنگی */
+.danua-tone-mint {
+  background: linear-gradient(180deg, #b8f0d8 0%, #e8fff3 100%);
+}
+
+.danua-tone-pink {
+  background: linear-gradient(180deg, #ffd6e4 0%, #fff0f5 100%);
+}
+
+.danua-tone-yellow {
+  background: linear-gradient(180deg, #fff0b3 0%, #fffbe6 100%);
+}
+
+.danua-tone-blue {
+  background: linear-gradient(180deg, #c8e6ff 0%, #e6f4ff 100%);
+}
+
+/* ═══════════════════════════════════════════════════
+   🛡️ بخش اعتماد - با شکل قلب و سپر
+   ═══════════════════════════════════════════════════ */
+
+.danua-safety {
+  display: grid;
+  gap: 28px;
+  align-items: center;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: 32px 24px;
+  border-radius: 36px;
+  background: linear-gradient(135deg, rgba(200, 230, 255, 0.6) 0%, rgba(255, 230, 200, 0.6) 100%);
+  box-shadow: 0 16px 40px rgba(155, 114, 207, 0.1);
+  border: 3px solid rgba(255, 255, 255, 0.8);
+}
+
+.danua-safety-art {
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+}
+
+/* سپر با قلب */
+.danua-shield {
+  width: 180px;
+  height: 200px;
+  display: grid;
+  place-items: center;
+  border-radius: 50% 50% 45% 45%;
+  background: linear-gradient(180deg, #fff 0%, #ffe6f0 100%);
+  color: var(--danua-pink);
+  font-size: 3rem;
+  font-weight: 900;
+  box-shadow:
+    0 16px 40px rgba(255, 107, 157, 0.25),
+    inset 0 4px 0 rgba(255, 255, 255, 0.8);
+  animation: shield-pulse 3s ease-in-out infinite;
+}
+
+@keyframes shield-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.danua-safety p {
+  margin: 0;
+  color: var(--danua-muted);
+  line-height: 1.9;
+}
+
+.danua-safety-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.danua-safety-list span {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--danua-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(155, 114, 207, 0.08);
+}
+
+.danua-safety-list span::before {
+  content: '✅';
+  font-size: 1.2rem;
+}
+
+/* ═══════════════════════════════════════════════════
+   💎 کارت‌های پلن - با برچسب محبوب
+   ═══════════════════════════════════════════════════ */
+
+.danua-plan-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.95);
+  display: grid;
+  align-content: start;
+}
+
+.danua-plan-blue {
+  background: linear-gradient(180deg, #d4ecff 0%, #f0f8ff 100%);
+}
+
+.danua-plan-gold {
+  background: linear-gradient(180deg, #fff4cc 0%, #fffbf0 100%);
+}
+
+.danua-plan-mint {
+  background: linear-gradient(180deg, #c8f5e0 0%, #f0fff8 100%);
+}
+
+.danua-plan-card.is-popular {
+  transform: translateY(-8px);
+  box-shadow:
+    0 24px 56px rgba(255, 107, 157, 0.25),
+    0 8px 16px rgba(155, 114, 207, 0.15);
+  border-color: var(--danua-pink);
+}
+
+.danua-badge {
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--danua-pink) 0%, var(--danua-purple) 100%);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(255, 107, 157, 0.4);
+  animation: badge-bounce 2s ease-in-out infinite;
+}
+
+@keyframes badge-bounce {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-3px) rotate(2deg); }
+}
+
+.danua-price {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 18px;
+}
+
+.danua-price strong {
+  font-size: 1.8rem;
+  color: var(--danua-text-dark);
+  font-weight: 900;
+}
+
+.danua-price span {
+  color: var(--danua-muted);
+  font-size: 0.9rem;
+}
+
+.danua-plan-card ul {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.danua-plan-card li {
+  position: relative;
+  padding-inline-start: 28px;
+  color: var(--danua-text);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.danua-plan-card li::before {
+  content: '🎯';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 2px;
+  font-size: 1rem;
+}
+
+.danua-plan-card .ds-button {
+  width: 100%;
+  margin-top: auto;
+}
+
+/* ═══════════════════════════════════════════════════
+   💬 نظرات - با ستاره‌های رنگی
+   ═══════════════════════════════════════════════════ */
+
+.danua-testimonial-card {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.danua-testimonial-card strong {
+  display: block;
+  margin-top: 14px;
+  color: var(--danua-text-dark);
+  font-weight: 800;
+}
+
+.danua-stars {
+  color: var(--danua-yellow);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+/* ═══════════════════════════════════════════════════
+   ❓ سوالات متداول - آکاردئونی بامزه
+   ═══════════════════════════════════════════════════ */
+
+.danua-faq-section {
+  max-width: 800px;
+}
+
+.danua-faq-list {
+  display: grid;
+  gap: 14px;
+}
+
+.danua-faq-card {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.danua-faq-card button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: none;
+  background: transparent;
+  color: var(--danua-text-dark);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1rem;
+  text-align: right;
+  transition: color 0.3s ease;
+}
+
+.danua-faq-card button:hover {
+  color: var(--danua-pink);
+}
+
+.danua-faq-card button span:last-child {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--danua-yellow) 0%, var(--danua-orange) 100%);
+  color: var(--danua-text-dark);
+  font-size: 1.4rem;
+  font-weight: 900;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 217, 61, 0.3);
+}
+
+.danua-faq-card button:hover span:last-child {
+  transform: rotate(90deg) scale(1.1);
+}
+
+.danua-faq-card p {
+  padding-top: 14px;
+  color: var(--danua-muted);
+  line-height: 1.8;
+}
+
+/* ═══════════════════════════════════════════════════
+   🎉 بخش CTA نهایی - با رنگ‌های شاد
+   ═══════════════════════════════════════════════════ */
+
+.danua-final-cta {
+  display: grid;
+  gap: 24px;
+  align-items: center;
+  margin-top: 32px;
+  padding: 40px 28px;
+  border-radius: 40px;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.5) 0%, transparent 30%),
+    linear-gradient(135deg, var(--danua-pink-soft) 0%, var(--danua-purple) 50%, var(--danua-blue) 100%);
+  box-shadow:
+    0 24px 56px rgba(155, 114, 207, 0.25),
+    0 8px 16px rgba(255, 107, 157, 0.15);
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+.danua-final-cta h2 {
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(155, 114, 207, 0.3);
+}
+
+.danua-final-cta .ds-button {
+  width: 100%;
+  max-width: 280px;
+  min-height: 54px;
+  font-size: 1.1rem;
+}
+
+/* ═══════════════════════════════════════════════════
+   📍 فوتر - با رنگ‌های ملایم
+   ═══════════════════════════════════════════════════ */
+
+.danua-footer {
+  display: grid;
+  gap: 20px;
+  align-items: center;
+  padding: 40px 8px 24px;
+  text-align: center;
+}
+
+.danua-footer-links,
+.danua-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+
+.danua-footer-links a {
+  color: var(--danua-muted);
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.danua-footer-links a:hover {
+  color: var(--danua-pink);
+  background: rgba(255, 107, 157, 0.1);
+}
+
+.danua-socials a {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fff 0%, #f8f4ff 100%);
+  color: var(--danua-purple);
+  font-size: 0.85rem;
+  font-weight: 900;
+  box-shadow:
+    0 4px 12px rgba(155, 114, 207, 0.15),
+    inset 0 2px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+}
+
+.danua-socials a:hover {
+  transform: translateY(-4px) scale(1.1);
+  box-shadow: 0 8px 20px rgba(155, 114, 207, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════
+   📱 ریسپانسیو - تبلت و موبایل
+   ═══════════════════════════════════════════════════ */
+
+@media (min-width: 720px) {
+  .danua-landing {
+    padding: 16px 24px;
+  }
+
+  .danua-nav {
+    display: flex;
+  }
+
+  .danua-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
+    padding-top: 70px;
+    min-height: auto;
+  }
+
+  .danua-hero-copy {
+    text-align: right;
+    gap: 24px;
+  }
+
+  .danua-hero h1 {
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+  }
+
+  .danua-hero p {
+    margin: 0;
+  }
+
+  .danua-hero-actions,
+  .danua-trust-row {
+    justify-content: flex-start;
+  }
+
+  .danua-hero-actions .ds-button {
+    flex: 0 0 auto;
+    min-width: 170px;
+  }
+
+  .danua-kicker,
+  .danua-section-heading span {
+    margin: 0;
+  }
+
+  .danua-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .danua-plan-grid,
+  .danua-testimonial-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .danua-safety {
+    grid-template-columns: auto 1fr;
+    padding: 40px 32px;
+  }
+
+  .danua-safety-art {
+    min-height: auto;
+  }
+
+  .danua-final-cta {
+    grid-template-columns: 1fr auto;
+    text-align: right;
+    padding: 48px 36px;
+  }
+
+  .danua-final-cta .ds-button {
+    width: auto;
+    min-width: 180px;
+  }
+
+  .danua-footer {
+    grid-template-columns: auto 1fr auto;
+    text-align: right;
+  }
+
+  .danua-footer-links {
+    justify-content: flex-start;
+  }
+}
+
+@media (min-width: 980px) {
+  .danua-feature-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .danua-header {
+    border-radius: 24px;
+    padding: 6px 10px;
+  }
+
+  .danua-header-cta {
+    min-width: auto;
+    padding-inline: 14px;
+    font-size: 0.85rem;
+  }
+
+  .danua-logo span:last-child {
+    display: none;
+  }
+
+  .danua-logo-mark {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+    border-radius: 12px;
+  }
+
+  .danua-hero {
+    padding-top: 40px;
+  }
+
+  .danua-phone {
+    min-height: 480px;
+  }
+
+  .danua-sun {
+    width: 80px;
+    height: 80px;
+    top: 10px;
+    right: 5%;
+  }
+
+  .danua-sun::before,
+  .danua-sun::after {
+    top: 30px;
+    width: 10px;
+    height: 10px;
+  }
+
+  .danua-sun::before {
+    right: 22px;
+  }
+
+  .danua-sun::after {
+    left: 22px;
+  }
+
+  .danua-cloud-one {
+    left: -30px;
+    width: 100px;
+    height: 40px;
+  }
+
+  .danua-cloud-two {
+    right: -35px;
+    width: 100px;
+    height: 40px;
+  }
+
+  .danua-safety,
+  .danua-final-cta {
+    padding: 24px 16px;
+    border-radius: 28px;
+  }
+
+  .danua-feature-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 1.6rem;
+  }
+
+  .danua-avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   ✨ افکت‌های اضافی برای جذابیت بیشتر
+   ═══════════════════════════════════════════════════ */
+
+/* افکت گرادیانت متحرک برای پس‌زمینه */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* هاور افکت برای کارت‌ها */
+.danua-feature-card:hover .danua-feature-icon {
+  animation: icon-spin 0.6s ease;
+}
+
+@keyframes icon-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* افکت پرش برای دکمه CTA */
+.danua-cta-button.ds-button:active {
+  animation: button-pop 0.3s ease;
+}
+
+@keyframes button-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* ستاره‌های متحرک */
+.sparkle {
+  position: absolute;
+  pointer-events: none;
+  animation: sparkle-fade 1.5s ease-out forwards;
+}
+
+@keyframes sparkle-fade {
+  0% { opacity: 1; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+  100% { opacity: 0; transform: scale(0.5) rotate(360deg); }
+}
+
+/* تنظیمات اسکرولbar */
+.danua-landing::-webkit-scrollbar {
+  width: 10px;
+}
+
+.danua-landing::-webkit-scrollbar-track {
+  background: rgba(155, 114, 207, 0.1);
+}
+
+.danua-landing::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--danua-pink) 0%, var(--danua-purple) 100%);
+  border-radius: 10px;
+}
+
+/* انتخاب متن */
+.danua-landing ::selection {
+  background: var(--danua-pink-soft);
+  color: var(--danua-text-dark);
+}
