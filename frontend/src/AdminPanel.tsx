@@ -56,6 +56,38 @@ type DashboardStats = {
   }>;
 };
 
+type SubscriptionPlan = {
+  id: string;
+  name: string;
+  icon: string;
+  tagline?: string;
+  monthlyPrice: number;
+  dailyPrice: number;
+  dailyMessageLimit: number | null;
+  dailyImageLimit: number | null;
+  features: string[];
+  isActive: boolean;
+  sortOrder: number;
+};
+
+type UserSubscription = {
+  userId: string;
+  planId: string;
+  status: string;
+  assignedAt?: string;
+  expiresAt?: string | null;
+  note?: string;
+  plan?: SubscriptionPlan | null;
+  user?: User | null;
+};
+
+type SubscriptionsPayload = {
+  plans: SubscriptionPlan[];
+  userSubscriptions: UserSubscription[];
+  users: User[];
+  updatedAt?: string;
+};
+
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
 
 // ─── Shared error helpers for admin routes ───
@@ -77,7 +109,7 @@ const handleAdminResponse = async (response: Response, fallback: string): Promis
 };
 
 function AdminPanel() {
-  const [tab, setTab] = useState<'dashboard' | 'users' | 'errors' | 'config' | 'audit'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'users' | 'subscriptions' | 'errors' | 'config' | 'audit'>('dashboard');
   const [users, setUsers] = useState<User[]>([]);
   const [query, setQuery] = useState('');
   const [banFilter, setBanFilter] = useState('all');
@@ -97,6 +129,10 @@ function AdminPanel() {
   const [systemPromptMessage, setSystemPromptMessage] = useState('');
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
+  const [subscriptions, setSubscriptions] = useState<SubscriptionsPayload | null>(null);
+  const [subscriptionMessage, setSubscriptionMessage] = useState('');
+  const [subscriptionSaving, setSubscriptionSaving] = useState(false);
+  const [assignForm, setAssignForm] = useState({ userId: '', planId: 'gold', expiresAt: '', note: '' });
 
   const loadUsers = async () => {
     setLoadError('');
@@ -186,6 +222,26 @@ function AdminPanel() {
     }
   };
 
+  const loadSubscriptions = async () => {
+    setSubscriptionMessage('');
+    try {
+      const response = await fetch('/api/admin/subscriptions', { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری اشتراک‌ها ناموفق بود.');
+      if (result.ok) {
+        setSubscriptions(result.data);
+        const firstUser = result.data.users?.[0]?.user_id || '';
+        const firstPlan = result.data.plans?.find((plan: SubscriptionPlan) => plan.id !== 'free')?.id || result.data.plans?.[0]?.id || 'gold';
+        setAssignForm((prev) => ({
+          ...prev,
+          userId: prev.userId || firstUser,
+          planId: prev.planId || firstPlan
+        }));
+      }
+    } catch {
+      setSubscriptionMessage('اتصال به سرور برای دریافت اشتراک‌ها برقرار نشد.');
+    }
+  };
+
   useEffect(() => {
     void loadDashboard();
     void loadUsers();
@@ -193,6 +249,7 @@ function AdminPanel() {
     void loadConfig();
     void loadSystemPrompt();
     void loadLogs();
+    void loadSubscriptions();
   }, []);
 
   const visibleUsers = useMemo(() => users, [users]);
@@ -297,6 +354,79 @@ function AdminPanel() {
     }
   };
 
+  const updateLocalPlan = (planId: string, patch: Partial<SubscriptionPlan> & { featuresText?: string }) => {
+    setSubscriptions((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        plans: prev.plans.map((plan) => (plan.id === planId ? { ...plan, ...patch } : plan))
+      };
+    });
+  };
+
+  const savePlan = async (plan: SubscriptionPlan) => {
+    setSubscriptionSaving(true);
+    setSubscriptionMessage('');
+    try {
+      const response = await fetch(`/api/admin/subscriptions/plans/${encodeURIComponent(plan.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(plan)
+      });
+      await handleAdminResponse(response, 'ذخیره پلن ناموفق بود.');
+      await loadSubscriptions();
+      setSubscriptionMessage('پلن با موفقیت ذخیره شد.');
+    } catch (error) {
+      setSubscriptionMessage(error instanceof Error ? error.message : 'ذخیره پلن ناموفق بود.');
+    } finally {
+      setSubscriptionSaving(false);
+    }
+  };
+
+  const assignSubscription = async () => {
+    if (!assignForm.userId || !assignForm.planId) {
+      setSubscriptionMessage('کاربر و پلن را انتخاب کنید.');
+      return;
+    }
+    setSubscriptionSaving(true);
+    setSubscriptionMessage('');
+    try {
+      const response = await fetch('/api/admin/subscriptions/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(assignForm)
+      });
+      await handleAdminResponse(response, 'اختصاص اشتراک ناموفق بود.');
+      await loadSubscriptions();
+      setSubscriptionMessage('اشتراک کاربر با موفقیت به‌روزرسانی شد.');
+    } catch (error) {
+      setSubscriptionMessage(error instanceof Error ? error.message : 'اختصاص اشتراک ناموفق بود.');
+    } finally {
+      setSubscriptionSaving(false);
+    }
+  };
+
+  const cancelSubscription = async (userId: string) => {
+    if (!window.confirm('اشتراک این کاربر لغو شود؟')) return;
+    setSubscriptionSaving(true);
+    setSubscriptionMessage('');
+    try {
+      const response = await fetch(`/api/admin/subscriptions/users/${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      await handleAdminResponse(response, 'لغو اشتراک ناموفق بود.');
+      await loadSubscriptions();
+      setSubscriptionMessage('اشتراک لغو شد.');
+    } catch (error) {
+      setSubscriptionMessage(error instanceof Error ? error.message : 'لغو اشتراک ناموفق بود.');
+    } finally {
+      setSubscriptionSaving(false);
+    }
+  };
+
   return (
     <div className="admin-panel">
       <div className="admin-panel__header">
@@ -307,6 +437,7 @@ function AdminPanel() {
       <div className="admin-tabs">
         <Button variant="secondary" className={`admin-tab ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}>داشبورد</Button>
         <Button variant="secondary" className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>کاربران</Button>
+        <Button variant="secondary" className={`admin-tab ${tab === 'subscriptions' ? 'active' : ''}`} onClick={() => setTab('subscriptions')}>اشتراک‌ها</Button>
         <Button variant="secondary" className={`admin-tab ${tab === 'errors' ? 'active' : ''}`} onClick={() => setTab('errors')}>خطاها</Button>
         <Button variant="secondary" className={`admin-tab ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>تنظیمات</Button>
         <Button variant="secondary" className={`admin-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit</Button>
@@ -506,6 +637,143 @@ function AdminPanel() {
               ))}
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {tab === 'subscriptions' ? (
+        <div className="admin-section">
+          <div className="admin-section-header">
+            <div>
+              <h3>مدیریت اشتراک‌ها</h3>
+              <p className="admin-note">پلن‌های نمایش داده‌شده در صفحه خرید و اشتراک فعال کاربران را مدیریت کنید.</p>
+            </div>
+            <Button className="admin-action-btn" onClick={() => void loadSubscriptions()}>بروزرسانی</Button>
+          </div>
+
+          {subscriptionMessage ? (
+            <InlineMessage
+              text={subscriptionMessage}
+              variant={subscriptionMessage.includes('موفقیت') || subscriptionMessage.includes('لغو شد') ? 'success' : 'error'}
+            />
+          ) : null}
+
+          <div className="subscription-plan-grid">
+            {(subscriptions?.plans || []).map((plan) => (
+              <article className="subscription-plan-editor" key={plan.id}>
+                <div className="subscription-plan-editor__head">
+                  <strong>{plan.icon} {plan.name}</strong>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={plan.isActive}
+                      onChange={(event) => updateLocalPlan(plan.id, { isActive: event.target.checked })}
+                    />
+                    فعال
+                  </label>
+                </div>
+                <FieldGroup direction="row">
+                  <TextField label="نام پلن" value={plan.name} onChange={(e) => updateLocalPlan(plan.id, { name: e.target.value })} />
+                  <TextField label="آیکن" value={plan.icon} onChange={(e) => updateLocalPlan(plan.id, { icon: e.target.value })} />
+                </FieldGroup>
+                <TextField label="توضیح کوتاه" value={plan.tagline || ''} onChange={(e) => updateLocalPlan(plan.id, { tagline: e.target.value })} />
+                <FieldGroup direction="row">
+                  <TextField label="قیمت ماهانه" type="number" value={String(plan.monthlyPrice || 0)} onChange={(e) => updateLocalPlan(plan.id, { monthlyPrice: Number(e.target.value) })} />
+                  <TextField label="قیمت روزانه" type="number" value={String(plan.dailyPrice || 0)} onChange={(e) => updateLocalPlan(plan.id, { dailyPrice: Number(e.target.value) })} />
+                </FieldGroup>
+                <FieldGroup direction="row">
+                  <TextField
+                    label="سقف پیام روزانه"
+                    value={plan.dailyMessageLimit === null ? '' : String(plan.dailyMessageLimit)}
+                    placeholder="خالی = نامحدود"
+                    onChange={(e) => updateLocalPlan(plan.id, { dailyMessageLimit: e.target.value.trim() ? Number(e.target.value) : null })}
+                  />
+                  <TextField
+                    label="سقف تصویر روزانه"
+                    value={plan.dailyImageLimit === null ? '' : String(plan.dailyImageLimit)}
+                    placeholder="خالی = نامحدود"
+                    onChange={(e) => updateLocalPlan(plan.id, { dailyImageLimit: e.target.value.trim() ? Number(e.target.value) : null })}
+                  />
+                </FieldGroup>
+                <TextAreaField
+                  label="ویژگی‌ها"
+                  rows={4}
+                  value={plan.features.join('\n')}
+                  onChange={(e) => updateLocalPlan(plan.id, { features: e.target.value.split('\n').map((item) => item.trim()).filter(Boolean) })}
+                  helperText="هر ویژگی در یک خط"
+                />
+                <Button className="admin-action-btn" disabled={subscriptionSaving} onClick={() => void savePlan(plan)}>
+                  ذخیره پلن
+                </Button>
+              </article>
+            ))}
+          </div>
+
+          <div className="subscription-assign-panel">
+            <h3>اختصاص اشتراک به کاربر</h3>
+            <FieldGroup direction="row">
+              <label className="admin-select-field">
+                <span>کاربر</span>
+                <select value={assignForm.userId} onChange={(e) => setAssignForm({ ...assignForm, userId: e.target.value })}>
+                  {(subscriptions?.users || users).map((user) => (
+                    <option key={user.user_id} value={user.user_id}>
+                      {user.name} - {user.phone || user.user_id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="admin-select-field">
+                <span>پلن</span>
+                <select value={assignForm.planId} onChange={(e) => setAssignForm({ ...assignForm, planId: e.target.value })}>
+                  {(subscriptions?.plans || []).map((plan) => (
+                    <option key={plan.id} value={plan.id}>{plan.name}</option>
+                  ))}
+                </select>
+              </label>
+            </FieldGroup>
+            <FieldGroup direction="row">
+              <TextField
+                label="تاریخ انقضا"
+                type="date"
+                value={assignForm.expiresAt}
+                onChange={(e) => setAssignForm({ ...assignForm, expiresAt: e.target.value })}
+                helperText="خالی بماند یعنی بدون تاریخ انقضا"
+              />
+              <TextField
+                label="یادداشت"
+                value={assignForm.note}
+                onChange={(e) => setAssignForm({ ...assignForm, note: e.target.value })}
+              />
+            </FieldGroup>
+            <Button className="admin-action-btn" disabled={subscriptionSaving} onClick={() => void assignSubscription()}>
+              ثبت اشتراک کاربر
+            </Button>
+          </div>
+
+          <h3>اشتراک‌های فعال</h3>
+          <table className="admin-table">
+            <thead>
+              <tr><th>کاربر</th><th>پلن</th><th>وضعیت</th><th>شروع</th><th>انقضا</th><th>عملیات</th></tr>
+            </thead>
+            <tbody>
+              {(subscriptions?.userSubscriptions || []).map((item) => (
+                <tr key={item.userId}>
+                  <td>{item.user?.name || item.userId}</td>
+                  <td>{item.plan?.name || item.planId}</td>
+                  <td>{item.status === 'active' ? 'فعال' : item.status}</td>
+                  <td>{item.assignedAt || '-'}</td>
+                  <td>{item.expiresAt || 'بدون انقضا'}</td>
+                  <td>
+                    <Button variant="danger" size="sm" onClick={() => void cancelSubscription(item.userId)}>
+                      لغو
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+              {(!subscriptions?.userSubscriptions || subscriptions.userSubscriptions.length === 0) ? (
+                <tr><td colSpan={6}>هنوز اشتراک فعالی ثبت نشده است.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
       ) : null}
 

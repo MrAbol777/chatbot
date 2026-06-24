@@ -15,6 +15,8 @@ const {
   DEFAULT_CONFIG,
   ensureAdminData,
   ensureConfigData,
+  ensureSubscriptionsData,
+  writeSubscriptionsData,
   readAuditLogs,
   appendAudit
 } = require('./modules/admin/common/storage');
@@ -158,6 +160,140 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
     });
 
     return res.json({ success: true, ...result });
+  });
+
+  router.get('/subscriptions', requireAdminAuth, async (_req, res) => {
+    try {
+      const [subscriptions, usersResult] = await Promise.all([
+        ensureSubscriptionsData(),
+        analyticsRepository.listUsersWithConversationStats({ page: 1, pageSize: 100 })
+      ]);
+      const planById = new Map(subscriptions.plans.map((plan) => [plan.id, plan]));
+      const userById = new Map((usersResult.items || []).map((user) => [String(user.user_id), user]));
+      const userSubscriptions = subscriptions.userSubscriptions.map((item) => ({
+        ...item,
+        plan: planById.get(item.planId) || null,
+        user: userById.get(String(item.userId)) || null
+      }));
+      return res.json({
+        plans: subscriptions.plans.sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0)),
+        userSubscriptions,
+        users: usersResult.items || [],
+        updatedAt: subscriptions.updatedAt
+      });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت اشتراک‌ها' });
+    }
+  });
+
+  router.put('/subscriptions/plans/:id', requireAdminAuth, async (req, res) => {
+    try {
+      const subscriptions = await ensureSubscriptionsData();
+      const planId = String(req.params.id || '').trim();
+      const current = subscriptions.plans.find((plan) => plan.id === planId);
+      if (!current) {
+        return res.status(404).json({ error: 'پلن پیدا نشد.' });
+      }
+
+      const nextPlan = {
+        ...current,
+        ...req.body,
+        id: planId,
+        features: Array.isArray(req.body?.features)
+          ? req.body.features
+          : typeof req.body?.featuresText === 'string'
+            ? req.body.featuresText.split('\n').map((item) => item.trim()).filter(Boolean)
+            : current.features
+      };
+      const nextData = await writeSubscriptionsData({
+        ...subscriptions,
+        plans: subscriptions.plans.map((plan) => (plan.id === planId ? nextPlan : plan))
+      });
+
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'update_subscription_plan',
+        target: planId,
+        details: { name: nextPlan.name, isActive: nextPlan.isActive }
+      });
+
+      return res.json({ success: true, plan: nextData.plans.find((plan) => plan.id === planId) });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'ذخیره پلن ناموفق بود.' });
+    }
+  });
+
+  router.post('/subscriptions/assign', requireAdminAuth, async (req, res) => {
+    try {
+      const userId = String(req.body?.userId || '').trim();
+      const planId = String(req.body?.planId || '').trim();
+      const expiresAt = typeof req.body?.expiresAt === 'string' && req.body.expiresAt.trim() ? req.body.expiresAt.trim() : null;
+      if (!userId || !planId) {
+        return res.status(400).json({ error: 'کاربر و پلن الزامی است.' });
+      }
+
+      const user = await usersRepository.getUserFullProfile(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'کاربر پیدا نشد.' });
+      }
+
+      const subscriptions = await ensureSubscriptionsData();
+      const plan = subscriptions.plans.find((item) => item.id === planId);
+      if (!plan) {
+        return res.status(404).json({ error: 'پلن پیدا نشد.' });
+      }
+
+      const assignedAt = new Date().toISOString();
+      const nextSubscription = {
+        userId,
+        planId,
+        status: 'active',
+        assignedAt,
+        expiresAt,
+        note: typeof req.body?.note === 'string' ? req.body.note.trim() : ''
+      };
+      const nextData = await writeSubscriptionsData({
+        ...subscriptions,
+        userSubscriptions: [
+          nextSubscription,
+          ...subscriptions.userSubscriptions.filter((item) => String(item.userId) !== userId)
+        ]
+      });
+
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'assign_subscription',
+        target: userId,
+        details: { planId, expiresAt }
+      });
+
+      return res.json({ success: true, subscription: nextData.userSubscriptions.find((item) => item.userId === userId) });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'اختصاص اشتراک ناموفق بود.' });
+    }
+  });
+
+  router.delete('/subscriptions/users/:userId', requireAdminAuth, async (req, res) => {
+    try {
+      const userId = String(req.params.userId || '').trim();
+      const subscriptions = await ensureSubscriptionsData();
+      const before = subscriptions.userSubscriptions.length;
+      const nextData = await writeSubscriptionsData({
+        ...subscriptions,
+        userSubscriptions: subscriptions.userSubscriptions.filter((item) => String(item.userId) !== userId)
+      });
+
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'cancel_subscription',
+        target: userId,
+        details: { removed: before !== nextData.userSubscriptions.length }
+      });
+
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'لغو اشتراک ناموفق بود.' });
+    }
   });
 
   const analyticsService = createAdminAnalyticsService({

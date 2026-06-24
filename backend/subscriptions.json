@@ -1,0 +1,59 @@
+{
+  "plans": [
+    {
+      "id": "free",
+      "name": "رایگان",
+      "icon": "😊",
+      "tagline": "مناسب برای شروع",
+      "price": 0,
+      "priceLabel": "رایگان",
+      "monthlyPrice": 0,
+      "dailyPrice": 0,
+      "dailyMessageLimit": 20,
+      "dailyImageLimit": 0,
+      "features": [
+        "۲۰ پیام در روز"
+      ],
+      "isActive": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "gold",
+      "name": "طلایی",
+      "icon": "⭐",
+      "tagline": "محبوب‌ترین انتخاب",
+      "price": 99000,
+      "priceLabel": "۹۹,۰۰۰",
+      "monthlyPrice": 99000,
+      "dailyPrice": 9000,
+      "dailyMessageLimit": 100,
+      "dailyImageLimit": 10,
+      "features": [
+        "۱۰۰ پیام در روز",
+        "ساخت ۱۰ تصویر در روز"
+      ],
+      "isActive": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "diamond",
+      "name": "الماسی",
+      "icon": "💎",
+      "tagline": "بدون محدودیت",
+      "price": 199000,
+      "priceLabel": "۱۹۹,۰۰۰",
+      "monthlyPrice": 199000,
+      "dailyPrice": 19000,
+      "dailyMessageLimit": null,
+      "dailyImageLimit": null,
+      "features": [
+        "پیام نامحدود",
+        "ساخت تصویر نامحدود"
+      ],
+      "isActive": true,
+      "sortOrder": 3
+    }
+  ],
+  "userSubscriptions": [],
+  "updatedAt": "2026-06-24T10:23:01.838Z"
+}

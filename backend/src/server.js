@@ -27,6 +27,7 @@ const { createPromptService } = require('./modules/ai/prompt.service');
 const { createAuthModule } = require('./modules/auth/auth.module');
 const { createConversationsModule } = require('./modules/conversations');
 const { createRepositories } = require('./repositories');
+const { ensureSubscriptionsData } = require('./modules/admin/common/storage');
 
 const app = express();
 const repositories = createRepositories();
@@ -348,6 +349,18 @@ const { router: conversationRouter } = createConversationsModule({
   now
 });
 app.use('/api/conversations', conversationRouter);
+
+app.get('/api/subscription-plans', async (_req, res) => {
+  try {
+    const data = await ensureSubscriptionsData();
+    const plans = data.plans
+      .filter((plan) => plan.isActive !== false)
+      .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+    return res.json({ plans, updatedAt: data.updatedAt });
+  } catch (error) {
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت پلن‌ها' });
+  }
+});
 
 app.use(createSmsRouter({
   smsService: appSmsService,

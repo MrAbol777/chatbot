@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './PlansPage.css';
 
 type BillingCycle = 'monthly' | 'daily';
@@ -10,6 +10,9 @@ type Plan = {
   tagline?: string;
   price?: string;
   priceSuffix?: string;
+  monthlyPrice?: number;
+  dailyPrice?: number;
+  priceLabel?: string;
   badge?: string;
   features: string[];
 };
@@ -27,6 +30,7 @@ const plans: Plan[] = [
     name: 'طلایی',
     icon: '⭐',
     price: '۹۹,۰۰۰',
+    priceLabel: '۹۹,۰۰۰',
     priceSuffix: '/تومان',
     badge: 'محبوب‌ترین انتخاب',
     features: ['۱۰۰ پیام در روز', 'ساخت ۱۰ تصویر در روز']
@@ -37,6 +41,7 @@ const plans: Plan[] = [
     icon: '💎',
     tagline: 'بدون محدودیت',
     price: '۱۹۹,۰۰۰',
+    priceLabel: '۱۹۹,۰۰۰',
     priceSuffix: '/تومان',
     features: ['پیام نامحدود', 'ساخت تصویر نامحدود']
   }
@@ -53,6 +58,10 @@ function goBack() {
   }
 
   window.location.href = '/';
+}
+
+function goToTools() {
+  window.location.href = '/home';
 }
 
 function CheckIcon() {
@@ -96,17 +105,26 @@ function NavIcon({ name }: { name: 'home' | 'chat' | 'tools' | 'profile' }) {
   );
 }
 
-function PlanCard({ plan }: { plan: Plan }) {
+function PlanCard({ plan, billingCycle }: { plan: Plan; billingCycle: BillingCycle }) {
+  const handleSelectPlan = () => {
+    try {
+      localStorage.setItem('selected_plan', JSON.stringify({ id: plan.id, name: plan.name, billingCycle }));
+    } catch {
+      // Selection persistence is a convenience; navigation still works without it.
+    }
+    goToChat('signup');
+  };
+
   return (
     <article
       className={`plans-card plans-card-${plan.id}`}
-      onClick={() => goToChat('signup')}
+      onClick={handleSelectPlan}
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          goToChat('signup');
+          handleSelectPlan();
         }
       }}
       aria-label={`انتخاب پلن ${plan.name}`}
@@ -118,15 +136,15 @@ function PlanCard({ plan }: { plan: Plan }) {
       </div>
       <h2>{plan.name}</h2>
       {plan.tagline ? <p className="plans-tagline">{plan.tagline}</p> : null}
-      {plan.price ? (
+      {plan.id !== 'free' ? (
         <div className="plans-price">
-          <strong>{plan.price}</strong>
+          <strong>{plan.priceLabel || plan.price}</strong>
           <span>{plan.priceSuffix}</span>
         </div>
       ) : (
-        <button type="button" className="plans-free-button" onClick={() => goToChat('signup')}>
+        <div className="plans-free-label">
           رایگان
-        </button>
+        </div>
       )}
       <ul>
         {plan.features.map((feature) => (
@@ -136,12 +154,58 @@ function PlanCard({ plan }: { plan: Plan }) {
           </li>
         ))}
       </ul>
+      <button
+        type="button"
+        className={`plans-buy-button plans-buy-button-${plan.id}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          handleSelectPlan();
+        }}
+      >
+        {plan.id === 'free' ? 'شروع رایگان' : `خرید پلن ${plan.name}`}
+      </button>
     </article>
   );
 }
 
 function PlansPage() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
+  const [availablePlans, setAvailablePlans] = useState<Plan[]>(plans);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPlans = async () => {
+      try {
+        const response = await fetch('/api/subscription-plans');
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (cancelled || !Array.isArray(payload.plans)) return;
+        const mappedPlans = payload.plans
+          .filter((plan: any) => plan && typeof plan.id === 'string')
+          .map((plan: any) => {
+            const priceValue = billingCycle === 'daily' ? Number(plan.dailyPrice || 0) : Number(plan.monthlyPrice || plan.price || 0);
+            return {
+              id: plan.id,
+              name: plan.name,
+              icon: plan.icon,
+              tagline: plan.tagline,
+              price: priceValue > 0 ? new Intl.NumberFormat('fa-IR').format(priceValue) : undefined,
+              priceLabel: priceValue > 0 ? new Intl.NumberFormat('fa-IR').format(priceValue) : 'رایگان',
+              priceSuffix: '/تومان',
+              badge: plan.id === 'gold' ? 'محبوب‌ترین انتخاب' : undefined,
+              features: Array.isArray(plan.features) ? plan.features : []
+            } as Plan;
+          });
+        if (mappedPlans.length > 0) setAvailablePlans(mappedPlans);
+      } catch {
+        // Keep local defaults when the API is unavailable.
+      }
+    };
+    void loadPlans();
+    return () => {
+      cancelled = true;
+    };
+  }, [billingCycle]);
 
   return (
     <div className="plans-page" dir="rtl">
@@ -188,8 +252,8 @@ function PlansPage() {
         </div>
 
         <div className="plans-list">
-          {plans.map((plan) => (
-            <PlanCard key={plan.id} plan={plan} />
+          {availablePlans.map((plan) => (
+            <PlanCard key={plan.id} plan={plan} billingCycle={billingCycle} />
           ))}
         </div>
       </main>
@@ -203,7 +267,7 @@ function PlansPage() {
           <NavIcon name="chat" />
           <span>گفتگو</span>
         </button>
-        <button type="button">
+        <button type="button" onClick={goToTools}>
           <NavIcon name="tools" />
           <span>ابزارها</span>
         </button>
@@ -223,7 +287,7 @@ function PlansPage() {
           <NavIcon name="chat" />
           <span>گفتگو</span>
         </button>
-        <button type="button">
+        <button type="button" onClick={goToTools}>
           <NavIcon name="tools" />
           <span>ابزارها</span>
         </button>

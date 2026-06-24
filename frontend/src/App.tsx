@@ -1691,6 +1691,12 @@ function ChatApp() {
    setShowImageGenModal(true);
  };
 
+ const handleCloseImageGenerator = () => {
+   setShowImageGenModal(false);
+   setImageGenError('');
+   setImageGenStatus('');
+ };
+
  /**
   * Handles the /imagine <prompt> command from the chat input.
   * Adds user + bot messages to the conversation and polls for the result.
@@ -1806,6 +1812,7 @@ function ChatApp() {
    setShowImageGenModal(false);
 
    const currentConversation = ensureConversation();
+   navigateToView('chat');
    const userMessage: ChatMessage = {
      role: 'user',
      content: `🎨 درخواست ساخت عکس: ${prompt}`,
@@ -2179,14 +2186,19 @@ function ChatApp() {
               aria-label="برگشت به گفتگوها"
               title="برگشت به گفتگوها"
             >
-              <span aria-hidden="true">→</span>
+              <svg className="chat-header-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 18 9 12l6-6" />
+              </svg>
             </button>
 
             <div className="top-title">
               <div className="top-copy">
-                <div className="top-copy-row">
-                  <strong>{activeConversation?.title || DEFAULT_TITLE}</strong>
+                <div className="top-copy-row chat-title-pill">
                   <span className="chat-title-icon" aria-hidden="true">📖</span>
+                  <span className="chat-title-text">
+                    <strong>{activeConversation?.title || DEFAULT_TITLE}</strong>
+                    <small>دانوآ همراهته</small>
+                  </span>
                 </div>
               </div>
             </div>
@@ -2200,7 +2212,11 @@ function ChatApp() {
               aria-label="اشتراک‌گذاری گفتگو"
               title="اشتراک‌گذاری گفتگو"
             >
-              <span className="header-action-icon" aria-hidden="true">↥</span>
+              <svg className="header-action-icon chat-header-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 16V4" />
+                <path d="m7 9 5-5 5 5" />
+                <path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+              </svg>
             </button>
           </div>
         </header>
@@ -2220,15 +2236,6 @@ function ChatApp() {
             </button>
             <h3>گفتگوهای من</h3>
             <div className="conversation-home-tools">
-              <button
-                type="button"
-                className="conversation-home-icon-btn conversation-home-icon-btn--cool"
-                onClick={handleCreateConversation}
-                aria-label="افزودن مکالمه جدید"
-                title="افزودن مکالمه جدید"
-              >
-                +
-              </button>
               <button
                 type="button"
                 className="conversation-home-icon-btn conversation-home-icon-btn--search"
@@ -2355,7 +2362,7 @@ function ChatApp() {
               </svg>
               <span>تنظیمات</span>
             </button>
-            <button type="button" className="conversation-nav-item" onClick={handleDownloadActiveConversation}>
+            <button type="button" className="conversation-nav-item" onClick={handleViewPlans}>
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
@@ -2364,7 +2371,7 @@ function ChatApp() {
             <button type="button" className="conversation-nav-fab" onClick={handleCreateConversation} aria-label="شروع گفتگوی جدید">
               +
             </button>
-            <button type="button" className="conversation-nav-item" title="عکس">
+            <button type="button" className="conversation-nav-item" onClick={handleGenerateImageClick} title="عکس" aria-label="ساخت تصویر">
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16m-2-2l1.6-1.6a2 2 0 012.8 0L20 14" />
                 <path d="M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -2495,14 +2502,16 @@ function ChatApp() {
        ) : null}
 
        {showImageGenModal ? (
-         <Dialog open={showImageGenModal} title="ساخت تصویر" onClose={() => setShowImageGenModal(false)} showFooter={false}>
+         <Dialog open={showImageGenModal} title="ساخت تصویر" onClose={handleCloseImageGenerator} showFooter={false}>
            <div className="image-gen-modal">
              <button
                type="button"
                className="image-gen-close"
                aria-label="بستن"
-               onClick={() => { setShowImageGenModal(false); setImageGenError(''); setImageGenStatus(''); }}
-               disabled={isGeneratingImage}
+               onClick={(event) => {
+                 event.stopPropagation();
+                 handleCloseImageGenerator();
+               }}
              >
                ×
              </button>
@@ -2710,15 +2719,23 @@ function ChatApp() {
               <div className="composer-main">
                 {!isRecording ? (
                   <div className="attachment-rail">
-                    <div className="attachment-box" ref={attachmentBoxRef}>
+                    <div className="attachment-box attachment-tools" ref={attachmentBoxRef}>
                       <button
                         className="attach-btn"
                         type="button"
-                        aria-label="پیوست"
-                        onClick={() => setAttachmentMenuOpen((prev) => !prev)}
+                        aria-label="ارسال عکس"
+                        title="ارسال عکس"
+                        onClick={handlePickImageClick}
                       >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M16.2 7.8a4.3 4.3 0 0 0-6.1 0l-5 5a4.3 4.3 0 1 0 6 6.1l5.4-5.4a2.8 2.8 0 1 0-4-4l-5 5a1.3 1.3 0 1 0 1.8 1.8l4.6-4.7a.9.9 0 0 1 1.3 1.3l-4.6 4.7a3.1 3.1 0 0 1-4.5-4.4l5-5a4.7 4.7 0 1 1 6.7 6.6l-5.3 5.4a6.2 6.2 0 1 1-8.8-8.8l5-5a.9.9 0 0 1 1.3 1.3l-5 5a4.4 4.4 0 1 0 6.1 6.1l5.3-5.4a2.9 2.9 0 0 0 0-4.1Z" />
+                          <path d="M4 16l4.6-4.6a2 2 0 0 1 2.8 0L16 16m-2-2 1.6-1.6a2 2 0 0 1 2.8 0L20 14" />
+                          <path d="M14 8h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" />
+                        </svg>
+                      </button>
+                      <button className="mic-btn" type="button" onClick={handleStartRecording} aria-label="شروع ضبط صدا" title="شروع ضبط صدا">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
+                          <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
                         </svg>
                       </button>
                       {attachmentMenuOpen ? (
@@ -2783,12 +2800,6 @@ function ChatApp() {
                     </>
                   ) : (
                     <>
-                      <button className="mic-btn" type="button" onClick={handleStartRecording} aria-label="شروع ضبط صدا">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
-                          <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
-                        </svg>
-                      </button>
                       <button
                         className="send-btn"
                         type="button"
