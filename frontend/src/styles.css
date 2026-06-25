@@ -2107,7 +2107,7 @@ textarea {
 
 .composer-row {
   display: flex;
-  direction: rtl;
+  direction: ltr;
   align-items: flex-end;
   gap: 10px;
   width: 100%;
@@ -4860,7 +4860,7 @@ select:focus-visible {
   order: 2;
   gap: 8px;
   align-items: flex-end;
-  direction: rtl;
+  direction: ltr;
 }
 
 .chat-shell.view-chat .composer-card {

@@ -1755,7 +1755,7 @@ function ChatApp() {
        }
      });
 
-     // generateImageWithPolling returns full URL (http://localhost:3000/api/uploads/images/:id), use directly
+     // generateImageWithPolling returns a same-origin image URL, use directly.
      const botMessage: ChatMessage = {
        role: 'assistant',
        content: 'عکس آماده شد! 🎉',
@@ -1843,7 +1843,7 @@ function ChatApp() {
        setImageGenStatus(statusLabel);
      });
 
-     // generateImageWithPolling returns absolute URL from backend, use directly
+     // generateImageWithPolling returns a same-origin image URL, use directly.
      const botMessage: ChatMessage = {
        role: 'assistant',
        content: 'عکس آماده شد! 🎉',

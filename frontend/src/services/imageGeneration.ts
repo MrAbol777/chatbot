@@ -6,8 +6,7 @@
  *   GET  /api/images/status/:taskId → { success, status, imageUrl?, error? }
  */
 
-// Use absolute URL to bypass Vite proxy issues
-const BACKEND_URL = 'http://localhost:3000';
+const apiUrl = (path: string) => path;
 
 async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
   try {
@@ -43,7 +42,7 @@ interface ImageStatusResponse {
 }
 
 export async function startImageGeneration(prompt: string): Promise<{ taskId: string }> {
-  const res = await safeFetch(`${BACKEND_URL}/api/images/generate`, {
+  const res = await safeFetch(apiUrl('/api/images/generate'), {
     method: 'POST', headers: authHeaders(), body: JSON.stringify({ prompt })
   });
   if (!res.ok) {
@@ -58,7 +57,7 @@ export async function startImageGeneration(prompt: string): Promise<{ taskId: st
 export async function getImageGenerationStatus(taskId: string): Promise<{
   status: ImageTaskStatus; imageUrl?: string | null; error?: string | null;
 }> {
-  const res = await safeFetch(`${BACKEND_URL}/api/images/status/${taskId}`, {
+  const res = await safeFetch(apiUrl(`/api/images/status/${taskId}`), {
     headers: { ...authHeaders(), 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
   });
   if (!res.ok) {
@@ -90,7 +89,7 @@ export async function generateImageWithPolling(
     const { status, imageUrl, error } = await getImageGenerationStatus(taskId);
 
     if (status === 'COMPLETED' && imageUrl) {
-      // Backend returns absolute URL like http://localhost:3000/api/uploads/images/:id
+      // Backend returns a same-origin URL like /api/uploads/images/:id
       // Retry if 404 (file might still be flushing to disk)
       const maxRetries = 5;
       for (let retry = 0; retry < maxRetries; retry++) {

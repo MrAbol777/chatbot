@@ -166,7 +166,15 @@ attachProcessErrorLogging();
 console.log('[BOOT] DB mode=mysql');
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        'img-src': ["'self'", 'data:', 'blob:']
+      }
+    }
+  })
+);
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());

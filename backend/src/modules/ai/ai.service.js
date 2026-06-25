@@ -150,6 +150,54 @@ const buildImageContentParts = (message, images) => {
   ];
 };
 
+const parseDataImageUrl = (url) => {
+  if (typeof url !== 'string') {
+    return null;
+  }
+
+  const match = url.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([a-zA-Z0-9+/=\r\n]+)$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    mimeType: match[1],
+    data: match[2].replace(/\s+/g, '')
+  };
+};
+
+const buildGeminiParts = (content) => {
+  if (typeof content === 'string') {
+    return [{ text: content }];
+  }
+
+  if (!Array.isArray(content)) {
+    return [{ text: '' }];
+  }
+
+  const parts = [];
+  for (const part of content) {
+    if (part?.type === 'text' && typeof part.text === 'string' && part.text.trim()) {
+      parts.push({ text: part.text.trim() });
+      continue;
+    }
+
+    if (part?.type === 'image_url') {
+      const imageData = parseDataImageUrl(part.image_url?.url);
+      if (imageData) {
+        parts.push({
+          inline_data: {
+            mime_type: imageData.mimeType,
+            data: imageData.data
+          }
+        });
+      }
+    }
+  }
+
+  return parts.length > 0 ? parts : [{ text: '' }];
+};
+
 const withTimeout = async (promise, timeoutMs) => {
   let timer = null;
 
@@ -200,13 +248,7 @@ function createAiService({
 
     const contents = chatMessages.map((msg) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [
-        {
-          text: typeof msg.content === 'string'
-            ? msg.content
-            : msg.content?.find((p) => p.type === 'text')?.text || ''
-        }
-      ]
+      parts: buildGeminiParts(msg.content)
     }));
 
     const payload = { contents };

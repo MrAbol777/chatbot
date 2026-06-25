@@ -8,6 +8,33 @@ const fs = require('fs-extra');
  * and served from there (no CORS issues).
  */
 function createImageGenerationController({ imageGenerationService, db }) {
+  const saveGeneratedImage = async ({ imageUrl, recordId, imagesDir }) => {
+    if (!imageUrl) {
+      throw new Error('Generated image URL is empty.');
+    }
+
+    const localPath = `images-generated/${recordId}.webp`;
+    const fullPath = path.join(imagesDir, `${recordId}.webp`);
+
+    console.log('[image-generation] Downloading image from:', imageUrl.slice(0, 80));
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to download: ${imageResponse.status}`);
+    }
+
+    const buffer = Buffer.from(await imageResponse.arrayBuffer());
+    await fs.writeFile(fullPath, buffer);
+
+    const stat = await fs.stat(fullPath);
+    if (!stat.isFile() || stat.size <= 0) {
+      throw new Error('Generated image file was not saved correctly.');
+    }
+
+    await fs.access(fullPath, fs.constants.R_OK);
+    console.log('[image-generation] Image saved to:', fullPath, 'size:', stat.size);
+
+    return { localPath, fullPath };
+  };
 
   /**
    * POST /api/images/generate
@@ -61,46 +88,23 @@ function createImageGenerationController({ imageGenerationService, db }) {
             }
 
             if (metisResult.status === 'COMPLETED') {
-              // Save to local file first
-              const localPath = `images-generated/${dbRecordId}.webp`;
-              const fullPath = path.join(imagesDir, `${dbRecordId}.webp`);
-
+              let localPath;
               try {
-                console.log('[image-generation] Downloading image from:', metisResult.imageUrl?.slice(0, 80));
-                const imageResponse = await fetch(metisResult.imageUrl);
-                if (!imageResponse.ok) {
-                  throw new Error(`Failed to download: ${imageResponse.status}`);
-                }
-                const buffer = Buffer.from(await imageResponse.arrayBuffer());
-                await fs.writeFile(fullPath, buffer);
-
-                // Verify file is actually readable before marking COMPLETED (fixes race condition)
-                let retries = 0;
-                const maxRetries = 5;
-                while (retries < maxRetries) {
-                  try {
-                    const stat = await fs.stat(fullPath);
-                    if (stat.size > 0) {
-                      // Read a small portion to verify file is accessible
-                      const fd = await fs.open(fullPath, 'r');
-                      await fd.close();
-                      console.log('[image-generation] Image saved to:', fullPath, 'size:', buffer.length);
-                      break;
-                    }
-                  } catch (verifyError) {
-                    retries++;
-                    if (retries >= maxRetries) {
-                      throw new Error(`File verification failed after ${maxRetries} retries`);
-                    }
-                    await new Promise((resolve) => setTimeout(resolve, 100));
-                  }
-                }
+                ({ localPath } = await saveGeneratedImage({
+                  imageUrl: metisResult.imageUrl,
+                  recordId: dbRecordId,
+                  imagesDir
+                }));
               } catch (downloadError) {
-                console.error('[image-generation] Download failed:', downloadError?.message);
-                // Still mark as completed — the serve endpoint will try from Metis URL as fallback
+                const message = downloadError?.message || 'Generated image download failed.';
+                console.error('[image-generation] Download failed:', message);
+                await db.query(
+                  `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
+                  [message, dbRecordId]
+                );
+                return;
               }
 
-              // Update DB AFTER verifying file is accessible
               await db.query(
                 `UPDATE image_generations SET status = 'COMPLETED', image_url = ? WHERE id = ?`,
                 [localPath, dbRecordId]
@@ -179,8 +183,24 @@ function createImageGenerationController({ imageGenerationService, db }) {
 
       // Use relative URL — Vite proxy forwards /api to backend on same origin, avoiding CORS/CSP issues
       const imageUrlPath = `/api/uploads/images/${record.id}`;
+      const imagesDir = path.join(__dirname, '../../../uploads/images-generated');
+      const generatedPath = path.join(imagesDir, `${record.id}.webp`);
 
       if (record.status === 'COMPLETED' || record.status === 'ERROR') {
+        if (record.status === 'COMPLETED' && !(await fs.pathExists(generatedPath))) {
+          await db.query(
+            `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
+            ['Generated image file is missing.', record.id]
+          );
+          return res.json({
+            success: true,
+            taskId: record.task_id,
+            status: 'ERROR',
+            imageUrl: null,
+            error: 'Generated image file is missing.'
+          });
+        }
+
         return res.json({
           success: true,
           taskId: record.task_id,
@@ -214,6 +234,40 @@ function createImageGenerationController({ imageGenerationService, db }) {
         return record.status;
       };
       newStatus = toDbStatus(metisResult.status);
+
+      if (newStatus === 'COMPLETED') {
+        try {
+          const { localPath } = await saveGeneratedImage({
+            imageUrl: metisResult.imageUrl,
+            recordId: record.id,
+            imagesDir
+          });
+          await db.query(
+            `UPDATE image_generations SET status = 'COMPLETED', image_url = ? WHERE id = ?`,
+            [localPath, record.id]
+          );
+          return res.json({
+            success: true,
+            taskId: record.task_id,
+            status: 'COMPLETED',
+            imageUrl: imageUrlPath,
+            error: null
+          });
+        } catch (downloadError) {
+          const message = downloadError?.message || 'Generated image download failed.';
+          await db.query(
+            `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
+            [message, record.id]
+          );
+          return res.json({
+            success: true,
+            taskId: record.task_id,
+            status: 'ERROR',
+            imageUrl: null,
+            error: message
+          });
+        }
+      }
 
       if (newStatus !== record.status) {
         await db.query(`UPDATE image_generations SET status = ? WHERE id = ?`, [newStatus, record.id]);
