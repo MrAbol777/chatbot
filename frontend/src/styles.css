@@ -1276,6 +1276,188 @@ textarea {
   font-size: 0.9rem;
 }
 
+.ds-dialog-overlay:has(.profile-modal) {
+  padding: 16px;
+  align-items: center;
+}
+
+.ds-dialog-panel:has(.profile-modal) {
+  width: min(486px, calc(100vw - 28px));
+  max-height: min(760px, calc(100dvh - 28px));
+  padding: 28px 30px 26px;
+  border-radius: 34px;
+  overflow-y: auto;
+}
+
+.ds-dialog-panel:has(.profile-modal) > h3 {
+  margin: 0 0 22px;
+  color: #191c1e;
+  font-size: clamp(1.28rem, 2.8vw, 1.55rem);
+  font-weight: 900;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.profile-modal {
+  display: grid;
+  gap: 14px;
+  direction: rtl;
+}
+
+.profile-modal .ds-field {
+  gap: 7px;
+}
+
+.profile-modal .ds-field__label,
+.profile-section > label {
+  color: #191c1e;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.profile-modal .ds-field__input {
+  min-height: 56px;
+  border-radius: 22px;
+  padding-inline: 18px;
+  font-size: 1rem;
+}
+
+.profile-modal .ds-field__help {
+  margin-top: -2px;
+  color: #6f667b;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.profile-modal .profile-id-box {
+  min-height: 52px;
+  padding: 11px 16px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+}
+
+.profile-modal .profile-id-box span {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.profile-modal .profile-id-box code {
+  direction: ltr;
+  font-family: inherit;
+  font-size: 0.98rem;
+  overflow-wrap: anywhere;
+}
+
+.profile-section {
+  display: grid;
+  gap: 9px;
+}
+
+.profile-theme-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-modal .theme-btn.ds-button {
+  min-height: 54px;
+  border-radius: 9999px;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.profile-modal .parent-panel-soon {
+  min-height: 52px;
+  display: grid;
+  place-items: center;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-weight: 800;
+}
+
+.profile-modal .profile-danger-actions {
+  gap: 10px;
+}
+
+.profile-modal .profile-danger-actions .ds-button {
+  min-height: 56px;
+  padding: 10px 14px;
+  border-radius: 9999px;
+  font-size: 0.94rem;
+  font-weight: 900;
+  line-height: 1.55;
+  white-space: normal;
+}
+
+.profile-modal .modal-buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.profile-modal .modal-buttons .ds-button {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 9999px;
+  font-size: 1.02rem;
+  font-weight: 900;
+}
+
+@media (max-width: 520px) {
+  .ds-dialog-overlay:has(.profile-modal) {
+    padding: 10px;
+  }
+
+  .ds-dialog-panel:has(.profile-modal) {
+    width: min(100%, calc(100vw - 20px));
+    max-height: calc(100dvh - 20px);
+    padding: 24px 22px 22px;
+    border-radius: 30px;
+  }
+
+  .ds-dialog-panel:has(.profile-modal) > h3 {
+    margin-bottom: 18px;
+    font-size: 1.34rem;
+  }
+
+  .profile-modal {
+    gap: 12px;
+  }
+
+  .profile-modal .ds-field__input {
+    min-height: 54px;
+    border-radius: 20px;
+  }
+
+  .profile-modal .profile-id-box {
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .profile-modal .profile-danger-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-modal .profile-danger-actions .ds-button {
+    min-height: 58px;
+    padding-inline: 10px;
+    font-size: 0.9rem;
+  }
+
+  .profile-modal .modal-buttons .ds-button {
+    min-height: 58px;
+  }
+}
+
+@media (max-width: 380px) {
+  .profile-modal .profile-danger-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 .conversation-row {
   display: flex;
   direction: ltr;
@@ -1923,6 +2105,19 @@ textarea {
     transform 220ms var(--chat-input-ease);
 }
 
+.composer-row {
+  display: flex;
+  direction: ltr;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+.composer-row .composer-card {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .composer-card::before {
   content: '';
   position: absolute;
@@ -2079,6 +2274,34 @@ textarea {
   gap: 8px;
   flex-shrink: 0;
   padding-inline: 2px;
+}
+
+.action-toggle-btn {
+  position: relative;
+}
+
+.action-toggle-btn .action-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: translateY(8px) scale(0.9);
+  transition: transform 200ms ease-in-out, opacity 200ms ease-in-out;
+}
+
+.action-toggle-btn.show-send .action-icon-send,
+.action-toggle-btn.show-mic .action-icon-mic {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.action-toggle-btn.show-send .action-icon-mic {
+  transform: translateY(-8px) scale(0.9);
+}
+
+.action-toggle-btn.show-mic .action-icon-send {
+  transform: translateY(8px) scale(0.9);
 }
 
 .attachment-box {
@@ -4452,7 +4675,7 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .message-row.assistant {
-  direction: rtl;
+  direction: ltr;
   justify-content: flex-start;
   align-items: flex-start;
   gap: 10px;
@@ -4462,7 +4685,7 @@ select:focus-visible {
 
 .chat-shell.view-chat .message-row.user {
   direction: ltr;
-  justify-content: flex-start;
+  justify-content: flex-end;
   padding-inline-start: 30px;
   padding-inline-end: 8px;
 }
@@ -4496,7 +4719,7 @@ select:focus-visible {
 .chat-shell.view-chat .message-row.assistant .bubble {
   background: #630ed4;
   color: #ffffff;
-  border-radius: 20px 4px 20px 20px;
+  border-radius: 4px 20px 20px 20px;
   box-shadow: 0 12px 26px rgba(99, 14, 212, 0.24);
 }
 
@@ -4627,8 +4850,13 @@ select:focus-visible {
   box-shadow: none;
 }
 
-.chat-shell.view-chat .composer-card {
+.chat-shell.view-chat .composer-row {
   order: 2;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.chat-shell.view-chat .composer-card {
   padding: 6px;
   border: 2px solid #e0e3e5;
   border-radius: 9999px;
@@ -4643,15 +4871,15 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .composer-card:focus-within {
-  border-color: #630ed4;
-  box-shadow: 0 0 0 3px rgba(99, 14, 212, 0.12), 0 8px 22px rgba(45, 49, 51, 0.16);
+  border-color: rgba(99, 14, 212, 0.28);
+  box-shadow: 0 0 0 3px rgba(99, 14, 212, 0.1), 0 8px 20px rgba(45, 49, 51, 0.14);
 }
 
 .chat-shell.view-chat .composer-main {
   direction: ltr;
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 6px;
+  grid-template-columns: auto 1fr;
+  gap: 4px;
   align-items: center;
   padding: 0;
   background: transparent;
@@ -4675,7 +4903,7 @@ select:focus-visible {
 .chat-shell.view-chat .message-field textarea {
   min-height: 46px;
   max-height: 132px;
-  padding: 11px 10px;
+  padding: 11px 8px 10px;
   border: 2px solid transparent;
   border-radius: 9999px;
   background: transparent;
@@ -4691,10 +4919,10 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .composer-actions {
-  grid-column: 3;
   flex-direction: row-reverse;
   gap: 4px;
   padding-inline: 0;
+  align-self: end;
 }
 
 .chat-shell.view-chat .attach-btn,
@@ -4719,19 +4947,26 @@ select:focus-visible {
 
 .chat-shell.view-chat .attach-btn:hover,
 .chat-shell.view-chat .mic-btn:hover {
-  background: #eceef0;
+  background: rgba(99, 14, 212, 0.08);
+  color: #630ed4;
   transform: none;
   box-shadow: none;
 }
 
 .chat-shell.view-chat .send-btn {
-  width: 46px;
-  min-width: 46px;
-  height: 46px;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
   background: #630ed4;
   color: #ffffff;
   border: none;
-  box-shadow: 0 10px 22px rgba(99, 14, 212, 0.24);
+  box-shadow: 0 8px 18px rgba(99, 14, 212, 0.26);
+}
+
+.chat-shell.view-chat .send-btn:hover {
+  background: #7020dc;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(99, 14, 212, 0.3);
 }
 
 .chat-shell.view-chat .send-btn::before,
@@ -4740,9 +4975,29 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .send-btn svg {
-  width: 21px;
-  height: 21px;
-  transform: rotate(180deg);
+  width: 22px;
+  height: 22px;
+  transform: translate(1px, -1px) rotate(-10deg);
+}
+
+.chat-shell.view-chat .action-toggle-btn {
+  overflow: hidden;
+}
+
+.chat-shell.view-chat .action-toggle-btn svg {
+  width: 24px;
+  height: 24px;
+  transform: none;
+  fill: currentColor;
+}
+
+.chat-shell.view-chat .action-toggle-btn .action-icon-send svg {
+  transform: translate(1px, -1px) rotate(-10deg);
+}
+
+.chat-shell.view-chat .action-toggle-btn .action-icon-mic svg {
+  width: 25px;
+  height: 25px;
 }
 
 .chat-shell.view-chat .attachment-popup {
@@ -4836,8 +5091,12 @@ select:focus-visible {
     padding: 12px 12px calc(18px + env(safe-area-inset-bottom, 0px));
   }
 
+  .chat-shell.view-chat .composer-row {
+    gap: 7px;
+  }
+
   .chat-shell.view-chat .composer-main {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 
   .chat-shell.view-chat .attachment-rail,
@@ -4853,8 +5112,8 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .send-btn {
-    width: 44px;
-    min-width: 44px;
-    height: 44px;
+    width: 54px;
+    min-width: 54px;
+    height: 54px;
   }
 }

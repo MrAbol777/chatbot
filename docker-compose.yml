@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:8.0
+    image: hub.hamdocker.ir/library/mariadb:10.11
     container_name: chatbot-mysql
     restart: unless-stopped
     environment:
