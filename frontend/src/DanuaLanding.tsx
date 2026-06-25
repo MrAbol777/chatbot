@@ -92,8 +92,8 @@ const faqs = [
   }
 ];
 
-function goToChat(mode: 'signup' | 'login') {
-  window.location.href = `/chat?auth=${mode}`;
+function goToChat(mode?: 'signup' | 'login') {
+  window.location.href = mode ? `/chat?auth=${mode}` : '/chat';
 }
 
 function DanuaLanding() {
@@ -112,7 +112,7 @@ function DanuaLanding() {
           <a href="#plans">💰 پلن ها</a>
           <a href="#faq">❓ سوالات</a>
         </nav>
-        <Button type="button" className="danua-cta-button danua-header-cta" onClick={() => goToChat('signup')}>
+        <Button type="button" className="danua-cta-button danua-header-cta" onClick={() => goToChat()}>
           🚀 شروع رایگان
         </Button>
       </header>
@@ -125,7 +125,7 @@ function DanuaLanding() {
             همراهی امن، شاد و فارسی برای کمک درسی 📖، حرف زدن از احساسات 💭، ساختن قصه ✨ و تبدیل خیال بچه ها به تصویر 🎨!
           </p>
           <div className="danua-hero-actions">
-            <Button type="button" size="lg" className="danua-cta-button" onClick={() => goToChat('signup')}>
+            <Button type="button" size="lg" className="danua-cta-button" onClick={() => goToChat()}>
               🚀 شروع رایگان
             </Button>
             <Button type="button" size="lg" variant="secondary" className="danua-soft-button" onClick={() => goToChat('login')}>
@@ -219,7 +219,7 @@ function DanuaLanding() {
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-              <Button type="button" className={plan.popular ? 'danua-cta-button' : 'danua-plan-button'} onClick={() => goToChat('signup')}>
+              <Button type="button" className={plan.popular ? 'danua-cta-button' : 'danua-plan-button'} onClick={() => goToChat()}>
                 انتخاب پلن
               </Button>
             </Card>
@@ -266,7 +266,7 @@ function DanuaLanding() {
           <span className="danua-kicker">🎈 شروع یک گفتگوی امن</span>
           <h2>بگذار دانوآ کنار یادگیری و خیال پردازی بچه ها باشد! 💫</h2>
         </div>
-        <Button type="button" size="lg" className="danua-cta-button" onClick={() => goToChat('signup')}>
+        <Button type="button" size="lg" className="danua-cta-button" onClick={() => goToChat()}>
           🌟 ثبت نام رایگان
         </Button>
       </section>

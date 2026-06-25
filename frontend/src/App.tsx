@@ -794,7 +794,7 @@ function ChatApp() {
         setRegistrationStep(1);
         setLandingStep('signup');
       } else {
-        if (window.location.pathname === '/home' || window.location.pathname === '/chat') {
+        if (window.location.pathname === '/home') {
           window.location.replace('/');
           return;
         }
