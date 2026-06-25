@@ -2107,7 +2107,7 @@ textarea {
 
 .composer-row {
   display: flex;
-  direction: ltr;
+  direction: rtl;
   align-items: flex-end;
   gap: 10px;
   width: 100%;
@@ -2149,10 +2149,8 @@ textarea {
 .composer-main {
   position: relative;
   z-index: 1;
-  display: flex;
-  direction: ltr;
-  align-items: center;
-  gap: 6px;
+  display: block;
+  direction: rtl;
   padding: 5px;
   border-radius: 24px;
   background: color-mix(in srgb, var(--chat-field-bg) 82%, white);
@@ -2161,20 +2159,14 @@ textarea {
 .attachment-rail {
   position: relative;
   z-index: 1;
-  min-width: 54px;
+  min-width: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .attachment-rail::after {
-  content: '';
-  position: absolute;
-  inset-inline-end: -2px;
-  height: 26px;
-  width: 1px;
-  background: color-mix(in srgb, var(--chat-field-border) 92%, transparent);
-  pointer-events: none;
+  display: none;
 }
 
 .input-row {
@@ -2193,7 +2185,8 @@ textarea {
 }
 
 .input-row textarea,
-.message-field textarea {
+.message-field textarea,
+.message-field input {
   width: 100%;
   border: 1px solid color-mix(in srgb, var(--chat-field-border) 90%, transparent);
   border-radius: 26px;
@@ -2218,40 +2211,47 @@ textarea {
 }
 
 .input-row textarea::-webkit-scrollbar,
-.message-field textarea::-webkit-scrollbar {
+.message-field textarea::-webkit-scrollbar,
+.message-field input::-webkit-scrollbar {
   width: 6px;
 }
 
 .input-row textarea::-webkit-scrollbar-track,
-.message-field textarea::-webkit-scrollbar-track {
+.message-field textarea::-webkit-scrollbar-track,
+.message-field input::-webkit-scrollbar-track {
   background: var(--scroll-track);
   border: none;
 }
 
 .input-row textarea::-webkit-scrollbar-thumb,
-.message-field textarea::-webkit-scrollbar-thumb {
+.message-field textarea::-webkit-scrollbar-thumb,
+.message-field input::-webkit-scrollbar-thumb {
   background: var(--accent);
   border-radius: 10px;
   border: none;
 }
 
 .input-row textarea::-webkit-scrollbar-thumb:hover,
-.message-field textarea::-webkit-scrollbar-thumb:hover {
+.message-field textarea::-webkit-scrollbar-thumb:hover,
+.message-field input::-webkit-scrollbar-thumb:hover {
   background: var(--accent-strong);
 }
 
 .input-row textarea::placeholder,
-.message-field textarea::placeholder {
+.message-field textarea::placeholder,
+.message-field input::placeholder {
   color: var(--chat-field-placeholder);
 }
 
 .input-row textarea:hover,
-.message-field textarea:hover {
+.message-field textarea:hover,
+.message-field input:hover {
   border-color: var(--chat-field-border-hover);
 }
 
 .input-row textarea:focus,
-.message-field textarea:focus {
+.message-field textarea:focus,
+.message-field input:focus {
   border-color: var(--chat-field-border-focus);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--chat-field-border-focus) 22%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
@@ -2285,23 +2285,21 @@ textarea {
   inset: 0;
   display: grid;
   place-items: center;
-  opacity: 0;
-  transform: translateY(8px) scale(0.9);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: composerActionSlideIn 200ms ease-in-out;
   transition: transform 200ms ease-in-out, opacity 200ms ease-in-out;
 }
 
-.action-toggle-btn.show-send .action-icon-send,
-.action-toggle-btn.show-mic .action-icon-mic {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-
-.action-toggle-btn.show-send .action-icon-mic {
-  transform: translateY(-8px) scale(0.9);
-}
-
-.action-toggle-btn.show-mic .action-icon-send {
-  transform: translateY(8px) scale(0.9);
+@keyframes composerActionSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .attachment-box {
@@ -2716,7 +2714,8 @@ select:focus-visible {
   }
 
   .input-row textarea,
-  .message-field textarea {
+  .message-field textarea,
+  .message-field input {
     min-width: 0;
     min-height: 50px;
     padding: 12px 14px;
@@ -2798,7 +2797,8 @@ select:focus-visible {
   }
 
   .input-row textarea,
-  .message-field textarea {
+  .message-field textarea,
+  .message-field input {
     min-height: 46px;
     padding: 11px 13px;
   }
@@ -3078,7 +3078,8 @@ select:focus-visible {
     gap: 6px;
   }
 
-  .message-field textarea {
+  .message-field textarea,
+  .message-field input {
     min-height: 48px;
     padding: 11px 13px;
     font-size: 0.95rem;
@@ -3232,7 +3233,8 @@ select:focus-visible {
     padding: 6px;
   }
 
-  .message-field textarea {
+  .message-field textarea,
+  .message-field input {
     min-height: 46px;
     max-height: 148px;
     padding: 10px 12px;
@@ -3832,22 +3834,26 @@ select:focus-visible {
 }
 
 .theme-calm .input-row textarea,
-.theme-calm .message-field textarea {
+.theme-calm .message-field textarea,
+.theme-calm .message-field input {
   scrollbar-color: var(--primary) var(--scroll-track);
 }
 
 .theme-calm .input-row textarea::-webkit-scrollbar-track,
-.theme-calm .message-field textarea::-webkit-scrollbar-track {
+.theme-calm .message-field textarea::-webkit-scrollbar-track,
+.theme-calm .message-field input::-webkit-scrollbar-track {
   background: var(--scroll-track);
 }
 
 .theme-calm .input-row textarea::-webkit-scrollbar-thumb,
-.theme-calm .message-field textarea::-webkit-scrollbar-thumb {
+.theme-calm .message-field textarea::-webkit-scrollbar-thumb,
+.theme-calm .message-field input::-webkit-scrollbar-thumb {
   background: var(--primary);
 }
 
 .theme-calm .input-row textarea::-webkit-scrollbar-thumb:hover,
-.theme-calm .message-field textarea::-webkit-scrollbar-thumb:hover {
+.theme-calm .message-field textarea::-webkit-scrollbar-thumb:hover,
+.theme-calm .message-field input::-webkit-scrollbar-thumb:hover {
   background: var(--primary-dark);
 }
 
@@ -4854,6 +4860,7 @@ select:focus-visible {
   order: 2;
   gap: 8px;
   align-items: flex-end;
+  direction: rtl;
 }
 
 .chat-shell.view-chat .composer-card {
@@ -4876,19 +4883,16 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .composer-main {
-  direction: ltr;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px;
-  align-items: center;
+  direction: rtl;
+  display: block;
   padding: 0;
   background: transparent;
   border-radius: 9999px;
 }
 
 .chat-shell.view-chat .attachment-rail {
-  grid-column: 1;
-  min-width: 84px;
+  min-width: 42px;
+  align-self: center;
 }
 
 .chat-shell.view-chat .attachment-rail::after,
@@ -4897,13 +4901,14 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .message-field {
-  grid-column: 2;
+  width: 100%;
 }
 
-.chat-shell.view-chat .message-field textarea {
+.chat-shell.view-chat .message-field textarea,
+.chat-shell.view-chat .message-field input {
   min-height: 46px;
   max-height: 132px;
-  padding: 11px 8px 10px;
+  padding: 11px 18px 10px;
   border: 2px solid transparent;
   border-radius: 9999px;
   background: transparent;
@@ -4913,7 +4918,8 @@ select:focus-visible {
   box-shadow: none;
 }
 
-.chat-shell.view-chat .message-field textarea:focus {
+.chat-shell.view-chat .message-field textarea:focus,
+.chat-shell.view-chat .message-field input:focus {
   border-color: #630ed4;
   box-shadow: none;
 }
@@ -4927,9 +4933,9 @@ select:focus-visible {
 
 .chat-shell.view-chat .attach-btn,
 .chat-shell.view-chat .mic-btn {
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
   border: none;
   background: transparent;
   color: #7b7487;
@@ -4991,6 +4997,14 @@ select:focus-visible {
   fill: currentColor;
 }
 
+.chat-shell.view-chat .action-toggle-btn.show-send .action-icon {
+  animation-name: composerSendSlideIn;
+}
+
+.chat-shell.view-chat .action-toggle-btn.show-mic .action-icon {
+  animation-name: composerMicSlideIn;
+}
+
 .chat-shell.view-chat .action-toggle-btn .action-icon-send svg {
   transform: translate(1px, -1px) rotate(-10deg);
 }
@@ -4998,6 +5012,28 @@ select:focus-visible {
 .chat-shell.view-chat .action-toggle-btn .action-icon-mic svg {
   width: 25px;
   height: 25px;
+}
+
+@keyframes composerSendSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(10px, 8px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes composerMicSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-10px, 8px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
 }
 
 .chat-shell.view-chat .attachment-popup {
@@ -5096,7 +5132,7 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .composer-main {
-    grid-template-columns: auto 1fr;
+    display: block;
   }
 
   .chat-shell.view-chat .attachment-rail,
@@ -5108,7 +5144,7 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .attachment-rail {
-    min-width: 80px;
+    min-width: 40px;
   }
 
   .chat-shell.view-chat .send-btn {

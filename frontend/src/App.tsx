@@ -580,7 +580,7 @@ function ChatApp() {
   const prevIsSendingRef = useRef(false);
   const messagesContainerRef = useRef<HTMLElement | null>(null);
   const inputAreaRef = useRef<HTMLElement | null>(null);
-  const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const messageInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentBoxRef = useRef<HTMLDivElement | null>(null);
   const attachmentUrlsRef = useRef<Set<string>>(new Set());
@@ -1518,12 +1518,12 @@ function ChatApp() {
   }, [handleSendMessage]);
 
   useEffect(() => {
-    const textarea = messageInputRef.current;
-    if (!textarea) {
+    const messageField = messageInputRef.current;
+    if (!messageField || messageField.tagName !== 'TEXTAREA') {
       return;
     }
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
+    messageField.style.height = 'auto';
+    messageField.style.height = `${messageField.scrollHeight}px`;
   }, [inputValue]);
 
   useEffect(() => {
@@ -2704,59 +2704,10 @@ function ChatApp() {
             <div className={`composer-row ${isRecording ? 'recording' : ''} ${shouldShowSendAction ? 'has-action' : 'voice-action'}`}>
               <div className={`composer-card ${isRecording ? 'recording' : ''} ${canSendMessage ? 'ready' : ''}`}>
                 <div className="composer-main">
-                  {!isRecording ? (
-                    <div className="attachment-rail">
-                      <div className="attachment-box attachment-tools" ref={attachmentBoxRef}>
-                        <button
-                          className="attach-btn"
-                          type="button"
-                          aria-label="ارسال عکس"
-                          title="ارسال عکس"
-                          onClick={handlePickImageClick}
-                        >
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M4 16l4.6-4.6a2 2 0 0 1 2.8 0L16 16m-2-2 1.6-1.6a2 2 0 0 1 2.8 0L20 14" />
-                            <path d="M14 8h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" />
-                          </svg>
-                        </button>
-                        <button className="mic-btn" type="button" onClick={handleStartRecording} aria-label="شروع ضبط صدا" title="شروع ضبط صدا">
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
-                            <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
-                          </svg>
-                        </button>
-                        {attachmentMenuOpen ? (
-                         <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
-                           <button type="button" onClick={handlePickImageClick}>
-                             <span aria-hidden="true">📷</span>
-                             ارسال عکس
-                           </button>
-                           <button type="button" onClick={handleGenerateImageClick}>
-                             <span aria-hidden="true">🎨</span>
-                             ساخت عکس با هوش مصنوعی
-                           </button>
-                           <button
-                             type="button"
-                             className="menu-item-disabled"
-                              onClick={() => {
-                                setAttachmentMenuOpen(false);
-                                pushToast('به زودی فعال میشه این بخش ...', 'warning');
-                              }}
-                            >
-                              <span aria-hidden="true">📄</span>
-                              ارسال فایل
-                            </button>
-                          </div>
-                        ) : null}
-                        <input ref={imageInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden onChange={handleImageSelect} />
-                      </div>
-                    </div>
-                  ) : null}
-
                   <div className="message-field">
-                    <textarea
+                    <input
                       ref={messageInputRef}
-                      rows={1}
+                      type="text"
                       dir="auto"
                       value={inputValue}
                       disabled={isRecording}
@@ -2777,6 +2728,49 @@ function ChatApp() {
                 </div>
               </div>
 
+              {!isRecording ? (
+                <div className="attachment-rail">
+                  <div className="attachment-box attachment-tools" ref={attachmentBoxRef}>
+                    <button
+                      className="attach-btn"
+                      type="button"
+                      aria-label="ارسال عکس"
+                      title="ارسال عکس"
+                      onClick={handlePickImageClick}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 16l4.6-4.6a2 2 0 0 1 2.8 0L16 16m-2-2 1.6-1.6a2 2 0 0 1 2.8 0L20 14" />
+                        <path d="M14 8h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" />
+                      </svg>
+                    </button>
+                    {attachmentMenuOpen ? (
+                     <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
+                       <button type="button" onClick={handlePickImageClick}>
+                         <span aria-hidden="true">📷</span>
+                         ارسال عکس
+                       </button>
+                       <button type="button" onClick={handleGenerateImageClick}>
+                         <span aria-hidden="true">🎨</span>
+                         ساخت عکس با هوش مصنوعی
+                       </button>
+                       <button
+                         type="button"
+                         className="menu-item-disabled"
+                          onClick={() => {
+                            setAttachmentMenuOpen(false);
+                            pushToast('به زودی فعال میشه این بخش ...', 'warning');
+                          }}
+                        >
+                          <span aria-hidden="true">📄</span>
+                          ارسال فایل
+                        </button>
+                      </div>
+                    ) : null}
+                    <input ref={imageInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden onChange={handleImageSelect} />
+                  </div>
+                </div>
+              ) : null}
+
               <div className="composer-actions">
                 {isRecording ? (
                   <>
@@ -2796,16 +2790,21 @@ function ChatApp() {
                     title={shouldShowSendAction ? 'ارسال پیام' : 'شروع ضبط صدا'}
                     disabled={isSending || (shouldShowSendAction && !canSendMessage)}
                   >
-                    <span className="action-icon action-icon-send" aria-hidden="true">
-                      <svg viewBox="0 0 24 24">
-                        <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
-                      </svg>
-                    </span>
-                    <span className="action-icon action-icon-mic" aria-hidden="true">
-                      <svg viewBox="0 0 24 24">
-                        <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
-                        <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
-                      </svg>
+                    <span
+                      key={shouldShowSendAction ? 'send' : 'mic'}
+                      className={`action-icon ${shouldShowSendAction ? 'action-icon-send' : 'action-icon-mic'}`}
+                      aria-hidden="true"
+                    >
+                      {shouldShowSendAction ? (
+                        <svg viewBox="0 0 24 24">
+                          <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24">
+                          <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
+                          <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
+                        </svg>
+                      )}
                     </span>
                   </button>
                 )}
