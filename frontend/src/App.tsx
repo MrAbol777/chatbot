@@ -73,6 +73,59 @@ const safeFetch = async (url: string, init?: RequestInit): Promise<Response> => 
   }
 };
 
+const withImageRetryParam = (src: string, retry: number): string => {
+  if (retry <= 0) {
+    return src;
+  }
+
+  try {
+    const url = new URL(src, window.location.origin);
+    url.searchParams.set('retry', String(retry));
+    return url.origin === window.location.origin ? `${url.pathname}${url.search}${url.hash}` : url.toString();
+  } catch {
+    const separator = src.includes('?') ? '&' : '?';
+    return `${src}${separator}retry=${retry}`;
+  }
+};
+
+const MessageImage = ({ src, alt }: { src: string; alt: string }) => {
+  const [retryCount, setRetryCount] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setRetryCount(0);
+    setFailed(false);
+  }, [src]);
+
+  if (failed) {
+    return (
+      <div className="image-load-error">
+        ⚠️ خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید
+      </div>
+    );
+  }
+
+  return (
+    <img
+      className="message-image"
+      src={withImageRetryParam(src, retryCount)}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      onError={() => {
+        if (retryCount >= 5) {
+          setFailed(true);
+          return;
+        }
+
+        window.setTimeout(() => {
+          setRetryCount((current) => current + 1);
+        }, 700 + retryCount * 500);
+      }}
+    />
+  );
+};
+
 const PERSIAN_PHONE_REGEX = /^09[0-9]{9}$/;
 const INTEREST_PATTERNS = [
   /(?:عاشق|دوست دارم|علاقه دارم)\s+([آ-یa-zA-Z0-9\s‌]+)/i,
@@ -233,6 +286,21 @@ const createApiError = (message: string, redirectTo?: AuthMode | null): ApiError
   return error;
 };
 
+const normalizeLocalizedDigits = (value: string) =>
+  value
+    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
+    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632));
+
+const parseAgeInput = (value: string) => {
+  const normalized = normalizeLocalizedDigits(value.trim());
+  if (!normalized || !/^[0-9]+$/.test(normalized)) {
+    return Number.NaN;
+  }
+  return Number(normalized);
+};
+
+const filterLocalizedDigits = (value: string) => value.replace(/[^0-9۰-۹٠-٩]/g, '');
+
 const createChatRequestError = (message: string, status: number, payload?: ApiErrorData): ChatRequestError => {
   const error = new Error(message) as ChatRequestError;
   error.status = status;
@@ -316,7 +384,7 @@ const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<
 
 const registerProfile = async (profile: {
   name: string;
-  age: number;
+  age: number | string;
   phone: string;
   id: number | string;
   mode: AuthMode;
@@ -560,7 +628,6 @@ function ChatApp() {
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
  const [imageGenError, setImageGenError] = useState<string>('');
- const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -571,6 +638,7 @@ function ChatApp() {
   })();
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
   const recordingActionRef = useRef<RecordingAction>('idle');
   const transcriptRef = useRef('');
   const keepRecordingRef = useRef(false);
@@ -648,6 +716,42 @@ function ChatApp() {
     setShowMessageLimitModal(false);
   };
 
+  const releaseMicStream = () => {
+    micStreamRef.current?.getTracks().forEach((track) => track.stop());
+    micStreamRef.current = null;
+  };
+
+  const getSupportedRecordingMimeType = () => {
+    if (typeof window === 'undefined' || typeof window.MediaRecorder === 'undefined') {
+      return '';
+    }
+
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/aac',
+      'audio/wav'
+    ];
+
+    return candidates.find((type) => window.MediaRecorder.isTypeSupported(type)) || '';
+  };
+
+  const requestMicrophoneAccess = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error('MEDIA_DEVICES_UNSUPPORTED');
+    }
+
+    releaseMicStream();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micStreamRef.current = stream;
+    const supportedMimeType = getSupportedRecordingMimeType();
+    console.info('[voice-recording] microphone permission granted', {
+      supportedMimeType: supportedMimeType || 'speech-recognition-only',
+      userAgent: navigator.userAgent
+    });
+  };
+
   useEffect(() => {
     try {
       const authParam = new URLSearchParams(window.location.search).get('auth');
@@ -711,15 +815,11 @@ function ChatApp() {
         }
       }
 
-      const initialConversation = createConversation();
-      setConversations([initialConversation]);
-      setActiveConversationId(initialConversation.id);
-      localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify([initialConversation]));
-      localStorage.setItem(ACTIVE_CONVERSATION_KEY, initialConversation.id);
+      setConversations([]);
+      setActiveConversationId('');
     } catch {
-      const fallbackConversation = createConversation();
-      setConversations([fallbackConversation]);
-      setActiveConversationId(fallbackConversation.id);
+      setConversations([]);
+      setActiveConversationId('');
     } finally {
       setHasCheckedSession(true);
     }
@@ -829,7 +929,6 @@ function ChatApp() {
   useEffect(() => {
     if (activeConversationId) {
       localStorage.setItem(ACTIVE_CONVERSATION_KEY, activeConversationId);
-      setBrokenImages(new Set());
     }
   }, [activeConversationId]);
 
@@ -924,13 +1023,24 @@ function ChatApp() {
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.warn('[voice-recording] speech recognition error', {
+        error: event.error,
+        message: event.message,
+        userAgent: navigator.userAgent
+      });
       if (event.error === 'aborted' && recordingActionRef.current !== 'idle') {
         return;
       }
       keepRecordingRef.current = false;
       recordingActionRef.current = 'cancel';
       setIsRecording(false);
-      pushToast('دسترسی به میکروفن برقرار نشد. لطفاً دوباره تلاش کن.', 'danger');
+      releaseMicStream();
+      pushToast(
+        event.error === 'not-allowed' || event.error === 'service-not-allowed'
+          ? 'اجازه دسترسی به میکروفن داده نشد. لطفاً دسترسی میکروفن را در مرورگر فعال کن.'
+          : 'دسترسی به میکروفن برقرار نشد. لطفاً دوباره تلاش کن.',
+        'danger'
+      );
     };
 
     recognition.onend = () => {
@@ -951,6 +1061,7 @@ function ChatApp() {
       keepRecordingRef.current = false;
       recordingActionRef.current = 'idle';
       setIsRecording(false);
+      releaseMicStream();
 
       if (action === 'confirm' && transcript) {
         setInputValue(transcript);
@@ -968,6 +1079,7 @@ function ChatApp() {
     return () => {
       keepRecordingRef.current = false;
       recognition.stop();
+      releaseMicStream();
       recognitionRef.current = null;
     };
   }, [pushToast]);
@@ -991,7 +1103,7 @@ function ChatApp() {
     event.preventDefault();
 
     const nextErrors: { name?: string; age?: string } = {};
-    const numericAge = Number(age);
+    const numericAge = parseAgeInput(age);
 
     if (!name.trim()) {
       nextErrors.name = 'اسم خودت را بنویس تا با هم آشنا شویم.';
@@ -1099,7 +1211,7 @@ function ChatApp() {
         const loginProfileId = generateUniqueId();
         const registrationResult = await registerProfile({
           name: name.trim() || 'کاربر',
-          age: Number(age) || 0,
+          age: normalizeLocalizedDigits(age.trim()) || 0,
           phone: trimmedPhone,
           id: loginProfileId,
           mode: 'login'
@@ -1129,13 +1241,14 @@ function ChatApp() {
         });
         localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, normalizedProfile]));
         setLandingStep('chat');
-        navigateToView('home');
+        navigateToView('chat', 'replace');
         return;
       }
 
+      const numericAge = parseAgeInput(age);
       const payload: AppProfile = {
         name: name.trim(),
-        age: Number(age),
+        age: numericAge,
         phone: trimmedPhone,
         id: generateUniqueId(),
         personality: createDefaultPersonality()
@@ -1143,7 +1256,7 @@ function ChatApp() {
 
       const registrationResult = await registerProfile({
         name: payload.name,
-        age: Number(payload.age),
+        age: normalizeLocalizedDigits(age.trim()),
         phone: payload.phone || trimmedPhone,
         id: payload.id ?? generateUniqueId(),
         mode: 'signup'
@@ -1159,7 +1272,7 @@ function ChatApp() {
       setProfile(payload);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
       setLandingStep('chat');
-      navigateToView('home');
+      navigateToView('chat', 'replace');
       const rawProfiles = localStorage.getItem(PROFILES_KEY);
       const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
       const profiles = Array.isArray(parsedProfiles) ? parsedProfiles : [];
@@ -1518,15 +1631,6 @@ function ChatApp() {
   }, [handleSendMessage]);
 
   useEffect(() => {
-    const messageField = messageInputRef.current;
-    if (!messageField || messageField.tagName !== 'TEXTAREA') {
-      return;
-    }
-    messageField.style.height = 'auto';
-    messageField.style.height = `${messageField.scrollHeight}px`;
-  }, [inputValue]);
-
-  useEffect(() => {
     return () => {
       attachmentUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
       attachmentUrlsRef.current.clear();
@@ -1534,9 +1638,7 @@ function ChatApp() {
   }, []);
 
   const handleCreateConversation = () => {
-    const fresh = createConversation();
-    setConversations((prev) => [fresh, ...prev]);
-    setActiveConversationId(fresh.id);
+    setActiveConversationId('');
     setSidebarOpen(false);
     setInputValue('');
     navigateToView('chat');
@@ -1555,9 +1657,10 @@ function ChatApp() {
 
     const remaining = conversations.filter((item) => item.id !== conversationId);
     if (remaining.length === 0) {
-      const fresh = createConversation();
-      setConversations([fresh]);
-      setActiveConversationId(fresh.id);
+      setConversations([]);
+      setActiveConversationId('');
+      localStorage.removeItem(CONVERSATIONS_KEY);
+      localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
       return;
     }
 
@@ -1574,13 +1677,12 @@ function ChatApp() {
       return;
     }
 
-    const freshConversation = createConversation();
-    setConversations([freshConversation]);
-    setActiveConversationId(freshConversation.id);
+    setConversations([]);
+    setActiveConversationId('');
     setSidebarOpen(false);
     setInputValue('');
-    localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify([freshConversation]));
-    localStorage.setItem(ACTIVE_CONVERSATION_KEY, freshConversation.id);
+    localStorage.removeItem(CONVERSATIONS_KEY);
+    localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
     navigateToView('chat');
   };
 
@@ -1646,22 +1748,42 @@ function ChatApp() {
     }
   };
 
-  const handleStartRecording = () => {
+  const handleStartRecording = async () => {
     if (!recognitionRef.current) {
+      console.warn('[voice-recording] speech recognition unsupported', {
+        hasMediaDevices: Boolean(navigator.mediaDevices?.getUserMedia),
+        hasMediaRecorder: typeof window.MediaRecorder !== 'undefined',
+        supportedMimeType: getSupportedRecordingMimeType() || null,
+        userAgent: navigator.userAgent
+      });
       pushToast('مرورگر تو از ضبط صدا پشتیبانی نمی کند.', 'warning');
       return;
     }
 
     try {
+      await requestMicrophoneAccess();
       recordingActionRef.current = 'idle';
       transcriptRef.current = '';
       keepRecordingRef.current = true;
       setIsRecording(true);
       recognitionRef.current.start();
-    } catch {
+    } catch (error) {
+      console.warn('[voice-recording] start failed', {
+        name: error instanceof DOMException ? error.name : error instanceof Error ? error.name : 'unknown',
+        message: error instanceof Error ? error.message : String(error),
+        supportedMimeType: getSupportedRecordingMimeType() || null,
+        userAgent: navigator.userAgent
+      });
       keepRecordingRef.current = false;
+      releaseMicStream();
       setIsRecording(false);
-      pushToast('فعلاً نتوانستم ضبط را شروع کنم. دوباره امتحان کن.', 'danger');
+      const message =
+        error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError')
+          ? 'اجازه دسترسی به میکروفن داده نشد. لطفاً دسترسی میکروفن را فعال کن.'
+          : error instanceof Error && error.message === 'MEDIA_DEVICES_UNSUPPORTED'
+            ? 'مرورگر تو دسترسی مستقیم به میکروفن را پشتیبانی نمی کند.'
+            : 'فعلاً نتوانستم ضبط را شروع کنم. دوباره امتحان کن.';
+      pushToast(message, 'danger');
     }
   };
 
@@ -1681,6 +1803,7 @@ function ChatApp() {
    recordingActionRef.current = 'cancel';
    keepRecordingRef.current = false;
    recognitionRef.current.stop();
+   releaseMicStream();
  };
 
  const handleGenerateImageClick = () => {
@@ -1739,20 +1862,15 @@ function ChatApp() {
 
    try {
      const imageUrl = await generateImageWithPolling(prompt, (statusLabel) => {
-       // Use timestamp to find temp message instead of index
-       const conv = conversations.find(c => c.id === currentConversation.id);
-       const tempMsg = conv?.messages.find(m => m.content === '🎨 در حال ساخت عکس... لطفاً صبر کن');
-       if (tempMsg) {
-         updateConversation(currentConversation.id, (item) => ({
-           ...item,
-           messages: item.messages.map((msg) =>
-             msg.timestamp === tempMsg.timestamp
-               ? { ...msg, content: `🎨 ${statusLabel}` }
-               : msg
-           ),
-           updatedAt: new Date().toISOString()
-         }));
-       }
+       updateConversation(currentConversation.id, (item) => ({
+         ...item,
+         messages: item.messages.map((msg) =>
+           msg.timestamp === tempBotMessage.timestamp
+             ? { ...msg, content: `🎨 ${statusLabel}` }
+             : msg
+         ),
+         updatedAt: new Date().toISOString()
+       }));
      });
 
      // generateImageWithPolling returns a same-origin image URL, use directly.
@@ -1763,11 +1881,22 @@ function ChatApp() {
        images: [{ url: imageUrl, alt: prompt }]
      };
 
-     updateConversation(currentConversation.id, (item) => ({
-       ...item,
-       messages: [...item.messages, botMessage],
-       updatedAt: new Date().toISOString()
-     }));
+     updateConversation(currentConversation.id, (item) => {
+       let replaced = false;
+       const messages = item.messages.map((msg) => {
+         if (msg.timestamp !== tempBotMessage.timestamp) {
+           return msg;
+         }
+         replaced = true;
+         return botMessage;
+       });
+
+       return {
+         ...item,
+         messages: replaced ? messages : [...messages, botMessage],
+         updatedAt: new Date().toISOString()
+       };
+     });
 
      // Trigger immediate re-render by updating state
      setConversations((prev) => [...prev]);
@@ -1841,6 +1970,15 @@ function ChatApp() {
    try {
      const imageUrl = await generateImageWithPolling(prompt, (statusLabel) => {
        setImageGenStatus(statusLabel);
+       updateConversation(currentConversation.id, (item) => ({
+         ...item,
+         messages: item.messages.map((msg) =>
+           msg.timestamp === tempBotMessage.timestamp
+             ? { ...msg, content: `🎨 ${statusLabel}` }
+             : msg
+         ),
+         updatedAt: new Date().toISOString()
+       }));
      });
 
      // generateImageWithPolling returns a same-origin image URL, use directly.
@@ -1851,12 +1989,22 @@ function ChatApp() {
        images: [{ url: imageUrl, alt: prompt }]
      };
 
-     // Append new message (don't replace temp)
-     updateConversation(currentConversation.id, (item) => ({
-       ...item,
-       messages: [...item.messages, botMessage],
-       updatedAt: new Date().toISOString()
-     }));
+     updateConversation(currentConversation.id, (item) => {
+       let replaced = false;
+       const messages = item.messages.map((msg) => {
+         if (msg.timestamp !== tempBotMessage.timestamp) {
+           return msg;
+         }
+         replaced = true;
+         return botMessage;
+       });
+
+       return {
+         ...item,
+         messages: replaced ? messages : [...messages, botMessage],
+         updatedAt: new Date().toISOString()
+       };
+     });
 
      // Trigger immediate re-render by updating state
      setConversations((prev) => [...prev]);
@@ -1889,7 +2037,7 @@ function ChatApp() {
     }
 
     const nextErrors: { name?: string; age?: string } = {};
-    const numericAge = Number(profileFormAge);
+    const numericAge = parseAgeInput(profileFormAge);
 
     if (!profileFormName.trim()) {
       nextErrors.name = 'نام نمی‌تواند خالی باشد.';
@@ -2004,12 +2152,11 @@ function ChatApp() {
             <TextField
               label="سن"
               value={age}
-              onChange={(event) => setAge(event.target.value)}
+              onChange={(event) => setAge(filterLocalizedDigits(event.target.value))}
               placeholder="فقط عدد"
-              type="number"
-              min={8}
-              max={18}
+              type="text"
               inputMode="numeric"
+              pattern="[0-9۰-۹٠-٩]*"
               helperText="محدوده سنی مجاز: 8 تا 18 سال"
               errorText={errors.age}
             />
@@ -2403,7 +2550,15 @@ function ChatApp() {
             <div className="profile-modal">
               <TextField label="نام" type="text" value={profileFormName} onChange={(event) => setProfileFormName(event.target.value)} errorText={profileFormErrors.name} />
 
-              <TextField label="سن" type="number" min={8} max={18} inputMode="numeric" value={profileFormAge} onChange={(event) => setProfileFormAge(event.target.value)} errorText={profileFormErrors.age} />
+              <TextField
+                label="سن"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9۰-۹٠-٩]*"
+                value={profileFormAge}
+                onChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
+                errorText={profileFormErrors.age}
+              />
 
               <TextField label="شماره موبایل" type="text" value={profile.phone || '-'} readOnly helperText="شماره موبایل فقط هنگام ثبت نام تعیین می شود." />
 
@@ -2581,33 +2736,13 @@ function ChatApp() {
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                     {Array.isArray(message.images) && message.images.length > 0 ? (
                       <div className="message-image-grid">
-                        {message.images.map((image, imageIndex) => {
-                          const imageKey = `${image.url}-${imageIndex}`;
-                          if (brokenImages.has(imageKey)) {
-                            return (
-                              <div key={imageKey} className="image-load-error">
-                                ⚠️ خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید
-                              </div>
-                            );
-                          }
-                          return (
-                            <img
-                              key={imageKey}
-                              className="message-image"
-                              src={image.url}
-                              alt={image.alt || 'تصویر ارسال شده'}
-                              loading="lazy"
-                              decoding="async"
-                              onError={() => {
-                                setBrokenImages((prev) => {
-                                  const next = new Set(prev);
-                                  next.add(imageKey);
-                                  return next;
-                                });
-                              }}
-                            />
-                          );
-                        })}
+                        {message.images.map((image, imageIndex) => (
+                          <MessageImage
+                            key={`${image.url}-${imageIndex}`}
+                            src={image.url}
+                            alt={image.alt || 'تصویر ارسال شده'}
+                          />
+                        ))}
                       </div>
                     ) : null}
                     <span className="message-time">{formatMessageTime(message.timestamp)}</span>
@@ -2617,33 +2752,13 @@ function ChatApp() {
                     {message.content ? <div>{message.content}</div> : null}
                     {Array.isArray(message.images) && message.images.length > 0 ? (
                       <div className="message-image-grid">
-                        {message.images.map((image, imageIndex) => {
-                          const imageKey = `${image.url}-${imageIndex}`;
-                          if (brokenImages.has(imageKey)) {
-                            return (
-                              <div key={imageKey} className="image-load-error">
-                                ⚠️ خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید
-                              </div>
-                            );
-                          }
-                          return (
-                            <img
-                              key={imageKey}
-                              className="message-image"
-                              src={image.url}
-                              alt={image.alt || 'تصویر ارسال شده'}
-                              loading="lazy"
-                              decoding="async"
-                              onError={() => {
-                                setBrokenImages((prev) => {
-                                  const next = new Set(prev);
-                                  next.add(imageKey);
-                                  return next;
-                                });
-                              }}
-                            />
-                          );
-                        })}
+                        {message.images.map((image, imageIndex) => (
+                          <MessageImage
+                            key={`${image.url}-${imageIndex}`}
+                            src={image.url}
+                            alt={image.alt || 'تصویر ارسال شده'}
+                          />
+                        ))}
                       </div>
                     ) : null}
                     <span className="message-time">{formatMessageTime(message.timestamp)}</span>

@@ -31,7 +31,8 @@ const { ensureSubscriptionsData } = require('./modules/admin/common/storage');
 
 const app = express();
 const repositories = createRepositories();
-const uploadsDir = path.join(__dirname, '../uploads');
+const uploadsDir = path.resolve(__dirname, '../uploads');
+const generatedImagesDir = path.join(uploadsDir, 'images-generated');
 const allowedImageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const imageMimeTypeByExtension = {
@@ -44,6 +45,7 @@ const imageMimeTypeByExtension = {
 const imageIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$|^[1-9]\d*$|^0$/i;
 
 fs.ensureDirSync(uploadsDir);
+fs.ensureDirSync(generatedImagesDir);
 
 const getAllowedExtension = (filename = '') => {
   const ext = path.extname(filename || '').toLowerCase();
@@ -271,31 +273,36 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
     return res.status(400).json({ error: 'INVALID_IMAGE_ID' });
   }
 
+  const streamImage = (filePath, mimeType) => {
+    res.type(mimeType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    return fs.createReadStream(filePath).pipe(res);
+  };
+
   // 1. Check uploaded images (original pattern)
   for (const ext of allowedImageExtensions) {
     const candidate = path.join(uploadsDir, `${imageId}${ext}`);
     if (await fs.pathExists(candidate)) {
       if (ext === '.jpg' || ext === '.jpeg') {
-        res.type('image/jpeg');
+        return streamImage(candidate, 'image/jpeg');
       } else if (ext === '.png') {
-        res.type('image/png');
+        return streamImage(candidate, 'image/png');
       } else if (ext === '.webp') {
-        res.type('image/webp');
+        return streamImage(candidate, 'image/webp');
       }
-      return fs.createReadStream(candidate).pipe(res);
     }
   }
 
   // 2. Check generated images: uploads/images-generated/{id}.webp
-  const generatedPath = path.join(uploadsDir, 'images-generated', `${imageId}.webp`);
+  const generatedPath = path.join(generatedImagesDir, `${imageId}.webp`);
   if (await fs.pathExists(generatedPath)) {
-    res.type('image/webp');
-    return fs.createReadStream(generatedPath).pipe(res);
+    return streamImage(generatedPath, 'image/webp');
   }
 
   // Don't cache 404 — file might be created by concurrent request
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
+  console.warn('[UPLOAD][images][not_found]', { imageId });
   return res.status(404).json({ error: 'IMAGE_NOT_FOUND' });
 });
 

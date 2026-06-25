@@ -43,6 +43,9 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    volumes:
+      - app-uploads:/app/backend/uploads
 
 volumes:
   mysql-data:
+  app-uploads:

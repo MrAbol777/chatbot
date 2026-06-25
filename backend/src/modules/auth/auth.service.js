@@ -13,6 +13,19 @@ function createAuthService({
   logger = console,
   now = () => new Date().toISOString()
 }) {
+  const normalizeLocalizedDigits = (value) =>
+    String(value ?? '')
+      .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
+      .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632));
+
+  const normalizeAge = (value) => {
+    const normalized = normalizeLocalizedDigits(value).trim();
+    if (!/^[0-9]+$/.test(normalized)) {
+      return Number.NaN;
+    }
+    return Number(normalized);
+  };
+
   const createToken = (payload) => {
     if (!jwt || typeof jwt.sign !== 'function' || !jwtSecret) {
       return null;
@@ -165,7 +178,7 @@ function createAuthService({
     const inputName = typeof name === 'string' ? name.trim() : '';
     const rawName = inputName || 'کاربر';
     const phone = normalizeIranMobileToLocal(rawPhone);
-    const rawAge = Number(age);
+    const rawAge = normalizeAge(age);
 
     if (!isValidIranMobileLocal(phone)) {
       return { statusCode: 400, body: { error: 'شماره موبایل معتبر نیست.' } };
