@@ -87,6 +87,18 @@ const extractReply = (response) => {
   return '';
 };
 
+const extractTokenUsage = (response) => {
+  if (response?.usage && typeof response.usage === 'object') {
+    return response.usage;
+  }
+
+  if (response?.usageMetadata && typeof response.usageMetadata === 'object') {
+    return response.usageMetadata;
+  }
+
+  return null;
+};
+
 const removeExtraGreeting = (text, isFirstMessage) => {
   if (typeof text !== 'string') return '';
   if (isFirstMessage) return text;
@@ -230,6 +242,7 @@ function createAiService({
   usersRepository,
   conversationsRepository,
   eventsRepository,
+  chatMessagesRepository,
   uploadedImagesRepository = null,
   logger = console
 }) {
@@ -324,7 +337,11 @@ function createAiService({
       }
 
       log('GEMINI', 'request_succeeded', { requestId, replyLength: reply.length });
-      return reply;
+      return {
+        reply,
+        model: geminiModel,
+        tokenUsage: extractTokenUsage(response?.data)
+      };
     } catch (error) {
       log('GEMINI', 'request_failed', {
         requestId,
@@ -445,7 +462,11 @@ function createAiService({
         throw error;
       }
 
-      return reply;
+      return {
+        reply,
+        model: runtimeConfig.model,
+        tokenUsage: extractTokenUsage(response)
+      };
     } catch (error) {
       log('OPENAI', 'final_failure', {
         requestId,
@@ -492,8 +513,9 @@ function createAiService({
     }
   };
 
-  const sendChatMessage = async ({ message, profile, history, conversationId, imageIds, requestId }) => {
+  const sendChatMessage = async ({ message, profile, history, conversationId, imageIds, requestId, limitStatus = null }) => {
     const trimmedMessage = typeof message === 'string' ? message.trim() : '';
+    const userMessageCreatedAt = new Date();
     const rawImageIds = Array.isArray(imageIds) ? imageIds : [];
     const normalizedImageIds = normalizeImageIds(imageIds);
     const hasImages = normalizedImageIds.length > 0;
@@ -597,11 +619,29 @@ function createAiService({
     ];
 
     const isFirstMessage = normalizedHistory.length === 1;
-    const rawReply = await callOpenAI(messages, { requestId });
-    const reply = removeExtraGreeting(rawReply, isFirstMessage);
+    const responseStart = Date.now();
+    const aiResult = await callOpenAI(messages, { requestId });
+    const responseTimeMs = Date.now() - responseStart;
+    const reply = removeExtraGreeting(aiResult.reply, isFirstMessage);
+    const assistantMessageCreatedAt = new Date();
     const nextConversationMessages = [...effectiveHistory, { role: 'assistant', content: reply }];
     conversationStore.set(memoryKey, nextConversationMessages);
     await conversationsRepository.saveConversationMessages(userId, normalizedConversationId, nextConversationMessages);
+
+    if (chatMessagesRepository && typeof chatMessagesRepository.logSuccessfulTurn === 'function') {
+      await chatMessagesRepository.logSuccessfulTurn({
+        userId,
+        conversationId: normalizedConversationId,
+        userMessage: messageForHistory,
+        assistantResponse: reply,
+        model: aiResult.model,
+        responseTimeMs,
+        tokenUsage: aiResult.tokenUsage,
+        limitStatus,
+        userCreatedAt: userMessageCreatedAt,
+        assistantCreatedAt: assistantMessageCreatedAt
+      });
+    }
 
     await eventsRepository.logEvent(userId, 'message_received', category, {
       responseLength: reply.length,

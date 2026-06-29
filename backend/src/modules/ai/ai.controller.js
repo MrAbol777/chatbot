@@ -74,6 +74,7 @@ function createAiController({ aiService, errorsRepository, guestsRepository, use
       const authenticatedUserId = authContext.userId;
       const isGuest = !authenticatedUserId;
       let effectiveProfile = profile;
+      let limitStatus = null;
 
       if (authenticatedUserId) {
         effectiveProfile = {
@@ -104,6 +105,7 @@ function createAiController({ aiService, errorsRepository, guestsRepository, use
         }
 
         const guestUserId = await guestsRepository.ensureGuestUser(guestId);
+        limitStatus = 'guest_allowed';
         effectiveProfile = {
           ...(profile && typeof profile === 'object' ? profile : {}),
           id: guestUserId,
@@ -123,6 +125,7 @@ function createAiController({ aiService, errorsRepository, guestsRepository, use
             usage: limitState.usage
           });
         }
+        limitStatus = 'plan_allowed';
       }
 
       const result = await aiService.sendChatMessage({
@@ -131,7 +134,8 @@ function createAiController({ aiService, errorsRepository, guestsRepository, use
         history,
         conversationId,
         imageIds,
-        requestId: res.locals.requestId
+        requestId: res.locals.requestId,
+        limitStatus
       });
 
       if (guestContext) {

@@ -25,11 +25,21 @@ function createAdminAnalyticsService({
     recentActivities: getRecentAuditLogs(10)
   });
 
-  const buildCsvReport = async ({ users, errors, conversations }) => {
+  const csvEscape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const formatDate = (value) => {
+    if (!value) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
+  };
+
+  const buildCsvReport = async ({ users, errors, conversations, messages }) => {
     const includeUsers = users === '1';
     const includeErrors = errors === '1';
     const includeConversationSummary = conversations === '1';
-    const data = analyticsRepository ? await analyticsRepository.readDB() : await Promise.resolve({ users: [], errors: [], events: [], conversations: [] });
+    const includeMessages = messages === '1';
+    const data = analyticsRepository
+      ? await analyticsRepository.readDB()
+      : await Promise.resolve({ users: [], errors: [], events: [], conversations: [], chatMessages: [] });
     const lines = [];
 
     if (includeUsers) {
@@ -43,7 +53,7 @@ function createAdminAnalyticsService({
       for (const user of data.users || []) {
         lines.push(
           [user.name || '', user.age || '', user.phone || '', user.registered_at || '', byUser.get(String(user.user_id)) || 0]
-            .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+            .map(csvEscape)
             .join(',')
         );
       }
@@ -56,7 +66,7 @@ function createAdminAnalyticsService({
       for (const item of data.errors || []) {
         lines.push(
           [item.error_type || '', item.endpoint || '', item.status_code || '', item.details || '', item.created_at || '']
-            .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+            .map(csvEscape)
             .join(',')
         );
       }
@@ -80,6 +90,33 @@ function createAdminAnalyticsService({
       lines.push('CONVERSATION_SUMMARY');
       lines.push('total_messages,academic,emotional,creative');
       lines.push([total, academic, emotional, creative].join(','));
+      lines.push('');
+    }
+
+    if (includeMessages) {
+      lines.push('MESSAGES');
+      lines.push('user_id,guest_id,user_type,conversation_id,message_id,created_at,role,content,model,response_time_ms,token_usage,error_code,limit_status');
+      for (const item of data.chatMessages || []) {
+        lines.push(
+          [
+            item.user_id || '',
+            item.guest_id || '',
+            item.user_type || '',
+            item.conversation_id || '',
+            item.message_id || '',
+            formatDate(item.created_at),
+            item.role || '',
+            item.content || '',
+            item.model || '',
+            item.response_time_ms || '',
+            item.token_usage || '',
+            item.error_code || '',
+            item.limit_status || ''
+          ]
+            .map(csvEscape)
+            .join(',')
+        );
+      }
       lines.push('');
     }
 

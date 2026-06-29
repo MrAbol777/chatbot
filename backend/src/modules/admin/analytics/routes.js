@@ -27,7 +27,8 @@ function createAdminAnalyticsRouter({ analyticsService, adminApiKey, requireAdmi
       const csv = await analyticsService.buildCsvReport({
         users: req.query.users,
         errors: req.query.errors,
-        conversations: req.query.conversations
+        conversations: req.query.conversations,
+        messages: req.query.messages
       });
       const fileName = `admin-report-${new Date().toISOString().slice(0, 10)}.csv`;
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');

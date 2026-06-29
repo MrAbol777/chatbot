@@ -142,7 +142,7 @@ function AdminPanel() {
   const [errors, setErrors] = useState<any[]>([]);
   const [config, setConfig] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
-  const [reportOptions, setReportOptions] = useState({ users: true, errors: false, conversations: false });
+  const [reportOptions, setReportOptions] = useState({ users: true, errors: false, conversations: false, messages: false });
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
   const [dashboardError, setDashboardError] = useState('');
@@ -364,6 +364,7 @@ function AdminPanel() {
     if (reportOptions.users) params.set('users', '1');
     if (reportOptions.errors) params.set('errors', '1');
     if (reportOptions.conversations) params.set('conversations', '1');
+    if (reportOptions.messages) params.set('messages', '1');
     window.open(`/api/admin/reports/csv?${params.toString()}`, '_blank');
   };
 
@@ -1093,6 +1094,7 @@ function AdminPanel() {
           <label><input type="checkbox" checked={reportOptions.users} onChange={(e) => setReportOptions({ ...reportOptions, users: e.target.checked })} /> لیست کاربران</label>
           <label><input type="checkbox" checked={reportOptions.errors} onChange={(e) => setReportOptions({ ...reportOptions, errors: e.target.checked })} /> خطاها</label>
           <label><input type="checkbox" checked={reportOptions.conversations} onChange={(e) => setReportOptions({ ...reportOptions, conversations: e.target.checked })} /> خلاصه گفتگوها</label>
+          <label><input type="checkbox" checked={reportOptions.messages} onChange={(e) => setReportOptions({ ...reportOptions, messages: e.target.checked })} /> جزئیات پیام‌ها</label>
         </FieldGroup>
         <FieldGroup direction="row" className="admin-report-actions">
           <Button variant="secondary" onClick={downloadReport}>دانلود گزارش</Button>

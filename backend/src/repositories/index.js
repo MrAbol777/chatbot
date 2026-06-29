@@ -8,6 +8,7 @@ const { AnalyticsRepository } = require('./AnalyticsRepository');
 const { GuestRepository } = require('./GuestRepository');
 const { SettingsRepository } = require('./SettingsRepository');
 const { PlanRepository } = require('./PlanRepository');
+const { ChatMessageRepository } = require('./ChatMessageRepository');
 
 function createRepositories() {
   const db = new DatabaseClient({
@@ -24,6 +25,7 @@ function createRepositories() {
   const guests = new GuestRepository(db);
   const settings = new SettingsRepository(db);
   const plans = new PlanRepository(db);
+  const chatMessages = new ChatMessageRepository(db);
 
   return {
     db,
@@ -34,7 +36,8 @@ function createRepositories() {
     analytics,
     guests,
     settings,
-    plans
+    plans,
+    chatMessages
   };
 }
 

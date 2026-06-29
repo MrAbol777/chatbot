@@ -375,6 +375,7 @@ app.use(createAiRouter({
   promptService,
   usersRepository: repositories.users,
   conversationsRepository: repositories.conversations,
+  chatMessagesRepository: repositories.chatMessages,
   guestsRepository: repositories.guests,
   plansRepository: repositories.plans,
   jwt,
