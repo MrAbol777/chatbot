@@ -42,6 +42,15 @@ type PersonalityProfile = {
 };
 type AuthMode = 'login' | 'signup';
 type ApiErrorData = { error?: string; message?: string; details?: string; redirectTo?: AuthMode | null };
+type VerifyCodeResult = {
+  success: boolean;
+  isNewUser?: boolean;
+  requiresProfile?: boolean;
+  signupToken?: string;
+  userId?: string;
+  profile?: { name: string; age: number; phone: string };
+  token?: string;
+};
 
 const getAppViewFromPath = (pathname: string): AppView => (pathname === '/chat' ? 'chat' : 'home');
 type ApiError = Error & { redirectTo?: AuthMode | null };
@@ -306,6 +315,8 @@ const normalizeLocalizedDigits = (value: string) =>
     .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
     .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632));
 
+const normalizePhoneInput = (value: string) => normalizeLocalizedDigits(value).trim().replace(/[-\s]/g, '');
+
 const parseAgeInput = (value: string) => {
   const normalized = normalizeLocalizedDigits(value.trim());
   if (!normalized || !/^[0-9]+$/.test(normalized)) {
@@ -349,22 +360,6 @@ const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_ATTACHMENT_COUNT = 5;
 const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
 
-const checkPhoneStatus = async (phone: string, mode: AuthMode): Promise<{ exists: boolean; redirectTo: AuthMode | null }> => {
-  const response = await safeFetch('/api/auth/phone-status', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone, mode })
-  });
-
-  if (!response.ok) {
-    const payload = await parseApiError(response);
-    throw createApiError(payload.error?.trim() || 'بررسی شماره انجام نشد.', payload.redirectTo ?? null);
-  }
-
-  const payload = (await response.json()) as { exists?: boolean; redirectTo?: AuthMode | null };
-  return { exists: Boolean(payload.exists), redirectTo: payload.redirectTo ?? null };
-};
-
 const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void> => {
   const response = await safeFetch('/api/send-verification-code', {
     method: 'POST',
@@ -379,7 +374,7 @@ const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void
   }
 };
 
-const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<void> => {
+const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<VerifyCodeResult> => {
   const normalizedCode = String(code || '')
     .trim()
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
@@ -396,14 +391,17 @@ const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<
     const fallback = await buildRequestErrorMessage(response);
     throw createApiError(payload.error?.trim() || fallback || 'تایید کد انجام نشد.', payload.redirectTo ?? null);
   }
+
+  return (await response.json()) as VerifyCodeResult;
 };
 
 const registerProfile = async (profile: {
   name: string;
   age: number | string;
   phone: string;
-  id: number | string;
+  id?: number | string;
   mode: AuthMode;
+  signupToken?: string;
 }): Promise<{ userId: string; profile: { name: string; age: number; phone: string }; token?: string }> => {
   const response = await safeFetch('/api/register-profile', {
     method: 'POST',
@@ -616,6 +614,7 @@ function ChatApp() {
   const [age, setAge] = useState('');
   const [phone, setPhone] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
+  const [signupToken, setSignupToken] = useState('');
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
@@ -746,6 +745,7 @@ function ChatApp() {
     setLandingStep('signup');
     setErrors({});
     setVerificationCode('');
+    setSignupToken('');
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', '/chat?auth=signup');
     }
@@ -822,7 +822,7 @@ function ChatApp() {
         setHasSavedAccount(true);
       } else if (requestedAuthMode === 'login') {
         setAuthMode('login');
-        setRegistrationStep(2);
+        setRegistrationStep(1);
         setLandingStep('login');
       } else if (requestedAuthMode === 'signup') {
         setAuthMode('signup');
@@ -1142,35 +1142,37 @@ function ChatApp() {
     return created;
   };
 
-  const handleRegisterStepOne = (event: FormEvent) => {
-    event.preventDefault();
+  const saveAuthenticatedProfile = (nextProfile: AppProfile, token?: string) => {
+    const normalizedPhone = typeof nextProfile.phone === 'string' ? normalizePhoneInput(nextProfile.phone) : '';
 
-    const nextErrors: { name?: string; age?: string } = {};
-    const numericAge = parseAgeInput(age);
-
-    if (!name.trim()) {
-      nextErrors.name = 'اسم خودت را بنویس تا با هم آشنا شویم.';
+    if (token) {
+      localStorage.setItem('chat_auth_token', token);
     }
 
-    if (!age || Number.isNaN(numericAge) || numericAge < 8 || numericAge > 18) {
-      nextErrors.age = 'سن باید بین 8 تا 18 سال باشد.';
-    }
+    setHasHydratedRemoteConversations(false);
+    setProfile(nextProfile);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
 
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      return;
-    }
-
-    setRegistrationStep(2);
+    const rawProfiles = localStorage.getItem(PROFILES_KEY);
+    const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
+    const profiles = Array.isArray(parsedProfiles) ? parsedProfiles : [];
+    const withoutSamePhone = profiles.filter((item) => {
+      const savedPhone = typeof item?.phone === 'string' ? normalizePhoneInput(item.phone) : '';
+      return savedPhone !== normalizedPhone;
+    });
+    localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, nextProfile]));
+    setHasSavedAccount(true);
+    setLandingStep('chat');
+    navigateToView('chat', 'replace');
   };
 
-  const handleRegisterStepTwo = async (event: FormEvent) => {
+  const handleRegisterStepOne = async (event: FormEvent) => {
     event.preventDefault();
 
-    const trimmedPhone = phone.trim();
+    const normalizedPhone = normalizePhoneInput(phone);
     const nextErrors: { phone?: string } = {};
 
-    if (!PERSIAN_PHONE_REGEX.test(trimmedPhone)) {
+    if (!PERSIAN_PHONE_REGEX.test(normalizedPhone)) {
       nextErrors.phone = 'شماره موبایل باید با 09 شروع شود و 11 رقم باشد.';
     }
 
@@ -1179,38 +1181,18 @@ function ChatApp() {
       return;
     }
 
+    setPhone(normalizedPhone);
+    setSignupToken('');
     setIsSendingVerification(true);
     setIsCheckingPhone(true);
 
     try {
-      const phoneStatus = await checkPhoneStatus(trimmedPhone, authMode);
-      if (phoneStatus.redirectTo) {
-        setAuthTransition('forward');
-        setAuthMode(phoneStatus.redirectTo);
-        setLandingStep(phoneStatus.redirectTo);
-        setRegistrationStep(2);
-        setErrors({
-          phone:
-            phoneStatus.redirectTo === 'login'
-              ? 'این شماره قبلاً ثبت‌نام شده است. لطفاً وارد شوید.'
-              : 'حسابی با این شماره یافت نشد. لطفاً ثبت نام کنید.'
-        });
-        return;
-      }
-
-      await sendVerificationCode(trimmedPhone, authMode);
+      await sendVerificationCode(normalizedPhone, authMode);
 
       setVerificationCode('');
       setErrors({});
-      setRegistrationStep(3);
+      setRegistrationStep(2);
     } catch (error) {
-      const redirectTo = error && typeof error === 'object' ? (error as ApiError).redirectTo : null;
-      if (redirectTo) {
-        setAuthTransition('forward');
-        setAuthMode(redirectTo);
-        setLandingStep(redirectTo);
-        setRegistrationStep(2);
-      }
       setErrors({
         phone:
           error instanceof Error && error.message.trim()
@@ -1226,18 +1208,14 @@ function ChatApp() {
   const handleVerifyCode = async (event: FormEvent) => {
     event.preventDefault();
 
-    const trimmedPhone = phone.trim();
-    const normalizePhone = (value: string) => value.trim().replace(/[-\s]/g, '');
-    const normalizedPhone = normalizePhone(trimmedPhone);
+    const normalizedPhone = normalizePhoneInput(phone);
     const trimmedCode = verificationCode.trim();
     const nextErrors: { code?: string } = {};
 
-    const normalizedCode = trimmedCode
-      .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
-      .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
+    const normalizedCode = normalizeLocalizedDigits(trimmedCode).replace(/\D/g, '');
 
-    if (!/^[0-9]{5,6}$/.test(normalizedCode)) {
-      nextErrors.code = 'کد تایید باید 5 یا 6 رقم باشد.';
+    if (!/^[0-9]{4,6}$/.test(normalizedCode)) {
+      nextErrors.code = 'کد تایید باید 4 تا 6 رقم باشد.';
     }
 
     setErrors(nextErrors);
@@ -1248,93 +1226,85 @@ function ChatApp() {
     setIsVerifyingCode(true);
 
     try {
-      await verifyCode(trimmedPhone, normalizedCode, authMode);
+      const verificationResult = await verifyCode(normalizedPhone, normalizedCode, authMode);
 
-      if (authMode === 'login') {
-        const loginProfileId = generateUniqueId();
-        const registrationResult = await registerProfile({
-          name: name.trim() || 'کاربر',
-          age: normalizeLocalizedDigits(age.trim()) || 0,
-          phone: trimmedPhone,
-          id: loginProfileId,
-          mode: 'login'
-        });
+      if (verificationResult.requiresProfile === false && verificationResult.profile && verificationResult.userId) {
         const normalizedProfile: AppProfile = {
-          name: registrationResult.profile.name,
-          age: Number(registrationResult.profile.age),
-          phone: registrationResult.profile.phone,
-          id: registrationResult.userId || loginProfileId,
+          name: verificationResult.profile.name,
+          age: Number(verificationResult.profile.age),
+          phone: verificationResult.profile.phone,
+          id: verificationResult.userId,
           personality: createDefaultPersonality()
         };
 
-        // Save JWT token for authenticated API calls (e.g. image generation)
-        if (registrationResult.token) {
-          localStorage.setItem('chat_auth_token', registrationResult.token);
-        }
-
-        setHasHydratedRemoteConversations(false);
-        setProfile(normalizedProfile);
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(normalizedProfile));
-        const rawProfiles = localStorage.getItem(PROFILES_KEY);
-        const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
-        const profiles = Array.isArray(parsedProfiles) ? parsedProfiles : [];
-        const withoutSamePhone = profiles.filter((item) => {
-          const savedPhone = typeof item?.phone === 'string' ? normalizePhone(item.phone) : '';
-          return savedPhone !== normalizedPhone;
-        });
-        localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, normalizedProfile]));
-        setLandingStep('chat');
-        navigateToView('chat', 'replace');
+        saveAuthenticatedProfile(normalizedProfile, verificationResult.token);
         return;
       }
 
-      const numericAge = parseAgeInput(age);
-      const payload: AppProfile = {
-        name: name.trim(),
-        age: numericAge,
-        phone: trimmedPhone,
-        id: generateUniqueId(),
-        personality: createDefaultPersonality()
-      };
-
-      const registrationResult = await registerProfile({
-        name: payload.name,
-        age: normalizeLocalizedDigits(age.trim()),
-        phone: payload.phone || trimmedPhone,
-        id: payload.id ?? generateUniqueId(),
-        mode: 'signup'
-      });
-      payload.id = registrationResult.userId || payload.id;
-
-      // Save JWT token for authenticated API calls (e.g. image generation)
-      if (registrationResult.token) {
-        localStorage.setItem('chat_auth_token', registrationResult.token);
-      }
-
-      setHasHydratedRemoteConversations(false);
-      setProfile(payload);
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
-      setLandingStep('chat');
-      navigateToView('chat', 'replace');
-      const rawProfiles = localStorage.getItem(PROFILES_KEY);
-      const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
-      const profiles = Array.isArray(parsedProfiles) ? parsedProfiles : [];
-      const withoutSamePhone = profiles.filter((item) => {
-        const savedPhone = typeof item?.phone === 'string' ? normalizePhone(item.phone) : '';
-        return savedPhone !== normalizedPhone;
-      });
-      localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, payload]));
-      setHasSavedAccount(true);
+      setSignupToken(verificationResult.signupToken || '');
+      setName('');
+      setAge('');
+      setErrors({});
+      setRegistrationStep(3);
     } catch (error) {
       const redirectTo = error && typeof error === 'object' ? (error as ApiError).redirectTo : null;
       if (redirectTo) {
         setAuthTransition('forward');
         setAuthMode(redirectTo);
         setLandingStep(redirectTo);
-        setRegistrationStep(2);
+        setRegistrationStep(1);
       }
       setErrors({
         code: error instanceof Error && error.message.trim() ? error.message : 'کد نادرست است'
+      });
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const handleCompleteProfile = async (event: FormEvent) => {
+    event.preventDefault();
+
+    const normalizedPhone = normalizePhoneInput(phone);
+    const numericAge = parseAgeInput(age);
+    const nextErrors: { name?: string; age?: string } = {};
+
+    if (!name.trim()) {
+      nextErrors.name = 'اسم خودت را بنویس تا با هم آشنا شویم.';
+    }
+
+    if (!age || Number.isNaN(numericAge) || numericAge < 8 || numericAge > 18) {
+      nextErrors.age = 'سن باید بین 8 تا 18 سال باشد.';
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    setIsVerifyingCode(true);
+    try {
+      const registrationResult = await registerProfile({
+        name: name.trim(),
+        age: normalizeLocalizedDigits(age.trim()),
+        phone: normalizedPhone,
+        mode: 'signup',
+        signupToken
+      });
+
+      saveAuthenticatedProfile(
+        {
+          name: registrationResult.profile.name,
+          age: Number(registrationResult.profile.age),
+          phone: registrationResult.profile.phone,
+          id: registrationResult.userId,
+          personality: createDefaultPersonality()
+        },
+        registrationResult.token
+      );
+    } catch (error) {
+      setErrors({
+        name: error instanceof Error && error.message.trim() ? error.message : 'ثبت پروفایل انجام نشد.'
       });
     } finally {
       setIsVerifyingCode(false);
@@ -2155,10 +2125,11 @@ function ChatApp() {
               onClick={() => {
                 setAuthTransition('forward');
                 setAuthMode('login');
-                setRegistrationStep(2);
+                setRegistrationStep(1);
                 setLandingStep('login');
                 setErrors({});
                 setVerificationCode('');
+                setSignupToken('');
               }}
             >
               حساب کاربری دارم
@@ -2173,6 +2144,7 @@ function ChatApp() {
                 setRegistrationStep(1);
                 setLandingStep('signup');
                 setErrors({});
+                setSignupToken('');
               }}
             >
               حساب کاربری ندارم
@@ -2181,7 +2153,7 @@ function ChatApp() {
               {hasSavedAccount ? 'حساب قبلی روی این مرورگر پیدا شد ✅' : 'اگر اولین بارته، ثبت نام را انتخاب کن.'}
             </p>
           </div>
-        ) : authMode === 'signup' && registrationStep === 1 ? (
+        ) : registrationStep === 1 ? (
           <form className={authCardClass} onSubmit={handleRegisterStepOne}>
             <button
               type="button"
@@ -2190,15 +2162,100 @@ function ChatApp() {
                 setAuthTransition('back');
                 setLandingStep('landing');
                 setErrors({});
+                setSignupToken('');
               }}
             >
               ← بازگشت
             </button>
             <h1>
-              سلام رفیق! <span>✨</span>
+              شماره موبایل <span>📱</span>
             </h1>
-            <p className="subtitle">دانوآ، همون دوستی که همیشه برات می‌مونه!</p>
-            <p className="helper onboarding-help">مرحله 1 از 3: نام و سن را وارد کن ✨</p>
+            <p className="subtitle">برای ورود یا ثبت‌نام، شماره موبایل را وارد کن.</p>
+            <p className="helper onboarding-help">کد تایید از طریق پیامک ارسال می‌شود.</p>
+
+            <TextField
+              label="شماره موبایل"
+              value={phone}
+              onChange={(event) => setPhone(filterLocalizedDigits(event.target.value))}
+              placeholder="09123456789"
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9۰-۹٠-٩]*"
+              maxLength={11}
+              autoComplete="tel"
+              helperText="فرمت معتبر: 09XXXXXXXXX"
+              errorText={errors.phone}
+            />
+
+            <Button type="submit" className="start-btn" disabled={isSendingVerification || isCheckingPhone}>
+              {isSendingVerification ? 'در حال ارسال...' : 'دریافت کد'}
+            </Button>
+          </form>
+        ) : registrationStep === 2 ? (
+          <form className={authCardClass} onSubmit={handleVerifyCode}>
+            <button
+              type="button"
+              className="auth-back-btn"
+              onClick={() => {
+                setRegistrationStep(1);
+                setVerificationCode('');
+                setErrors({});
+              }}
+            >
+              ← بازگشت
+            </button>
+            <h1>
+              کد را وارد کن <span>✅</span>
+            </h1>
+            <p className="subtitle">کد تایید ارسال‌شده به {phone || 'شماره موبایل'} را وارد کن.</p>
+            <p className="helper onboarding-help">کد تا چند دقیقه معتبر است.</p>
+
+            <TextField
+              label="کد تایید"
+              value={verificationCode}
+              onChange={(event) => setVerificationCode(filterLocalizedDigits(event.target.value))}
+              placeholder="12345"
+              type="tel"
+              inputMode="numeric"
+              maxLength={6}
+              autoComplete="one-time-code"
+              errorText={errors.code}
+            />
+
+            <div className="ds-auth-actions">
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => {
+                  setRegistrationStep(1);
+                  setVerificationCode('');
+                  setErrors({});
+                }}
+              >
+                تغییر شماره
+              </Button>
+              <Button type="submit" className="start-btn" disabled={isVerifyingCode}>
+                {isVerifyingCode ? 'در حال بررسی...' : 'تأیید'}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form className={authCardClass} onSubmit={handleCompleteProfile}>
+            <button
+              type="button"
+              className="auth-back-btn"
+              onClick={() => {
+                setRegistrationStep(2);
+                setErrors({});
+              }}
+            >
+              ← بازگشت
+            </button>
+            <h1>
+              تکمیل پروفایل <span>✨</span>
+            </h1>
+            <p className="subtitle">حسابت ساخته می‌شود و گفتگوهای مهمان هم منتقل می‌شود.</p>
+            <p className="helper onboarding-help">مرحله آخر: نام و سن را وارد کن.</p>
 
             <TextField
               label="نام"
@@ -2222,114 +2279,19 @@ function ChatApp() {
               errorText={errors.age}
             />
 
-            <Button type="submit" className="start-btn">ادامه</Button>
-          </form>
-        ) : registrationStep === 2 ? (
-          <form className={authCardClass} onSubmit={handleRegisterStepTwo}>
-            <button
-              type="button"
-              className="auth-back-btn"
-              onClick={() => {
-                if (authMode === 'login') {
-                  setAuthTransition('back');
-                  setLandingStep('landing');
-                } else {
-                  setRegistrationStep(1);
-                }
-                setErrors({});
-              }}
-            >
-              ← بازگشت
-            </button>
-            <h1>
-              تقریبا تمومه! <span>📱</span>
-            </h1>
-            <p className="subtitle">
-              {authMode === 'login' ? 'ورود: شماره موبایل را وارد کن' : 'مرحله 2 از 3: شماره موبایل را وارد کن'}
-            </p>
-            <p className="helper onboarding-help">
-              کد تایید از طریق پیامک ارسال می شود.
-            </p>
-
-            <TextField
-              label="شماره موبایل"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="09123456789"
-              type="tel"
-              inputMode="numeric"
-              maxLength={11}
-              autoComplete="tel"
-              helperText="فرمت معتبر: 09XXXXXXXXX"
-              errorText={errors.phone}
-            />
-
-            <div className="ds-auth-actions">
-              <Button
-                type="button"
-                variant="danger"
-                onClick={() => {
-                  if (authMode === 'login') {
-                    setAuthTransition('back');
-                    setLandingStep('landing');
-                  } else {
-                    setRegistrationStep(1);
-                  }
-                  setErrors({});
-                }}
-              >
-                {authMode === 'login' ? 'صفحه اول' : 'بازگشت'}
-              </Button>
-              <Button type="submit" className="start-btn" disabled={isSendingVerification || isCheckingPhone}>
-                {isCheckingPhone ? 'در حال بررسی شماره...' : isSendingVerification ? 'در حال ارسال...' : 'ادامه'}
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <form className={authCardClass} onSubmit={handleVerifyCode}>
-            <button
-              type="button"
-              className="auth-back-btn"
-              onClick={() => {
-                setRegistrationStep(2);
-                setVerificationCode('');
-                setErrors({});
-              }}
-            >
-              ← بازگشت
-            </button>
-            <h1>
-              کد را وارد کن <span>✅</span>
-            </h1>
-            <p className="subtitle">{authMode === 'login' ? 'ورود: کد 6 رقمی تأیید' : 'مرحله 3 از 3: کد 6 رقمی تأیید'}</p>
-            <p className="helper onboarding-help">کد ارسال شده را در این بخش وارد کنید.</p>
-
-            <TextField
-              label="کد تایید"
-              value={verificationCode}
-              onChange={(event) => setVerificationCode(event.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="123456"
-              type="tel"
-              inputMode="numeric"
-              maxLength={6}
-              autoComplete="one-time-code"
-              errorText={errors.code}
-            />
-
             <div className="ds-auth-actions">
               <Button
                 type="button"
                 variant="danger"
                 onClick={() => {
                   setRegistrationStep(2);
-                  setVerificationCode('');
                   setErrors({});
                 }}
               >
-                تغییر شماره
+                بازگشت
               </Button>
               <Button type="submit" className="start-btn" disabled={isVerifyingCode}>
-                {isVerifyingCode ? 'در حال بررسی...' : 'تأیید'}
+                {isVerifyingCode ? 'در حال ساخت حساب...' : 'شروع گفتگو'}
               </Button>
             </div>
           </form>

@@ -8,13 +8,19 @@ function createAuthRepository({
   dbPool,
   db,
   otpExpireSeconds = 120,
+  otpRequestWindowSeconds = 600,
+  maxOtpRequestsPerWindow = 3,
   maxWrongAttempts = DEFAULT_MAX_WRONG_ATTEMPTS,
   nowMs = () => Date.now(),
   logger = console
 }) {
   const otpStore = new Map();
+  const otpRequestStore = new Map();
   const otpExpireMs = (Number.isFinite(Number(otpExpireSeconds)) ? Number(otpExpireSeconds) : 120) * 1000;
+  const requestWindowMs = (Number.isFinite(Number(otpRequestWindowSeconds)) ? Number(otpRequestWindowSeconds) : 600) * 1000;
+  const requestLimit = Number.isFinite(Number(maxOtpRequestsPerWindow)) ? Number(maxOtpRequestsPerWindow) : 3;
   let otpTablePromise = null;
+  let otpRequestTablePromise = null;
 
   const ensureOtpTable = async () => {
     if (!dbPool || typeof dbPool.query !== 'function') return;
@@ -33,6 +39,22 @@ function createAuthRepository({
     `);
 
     return otpTablePromise;
+  };
+
+  const ensureOtpRequestTable = async () => {
+    if (!dbPool || typeof dbPool.query !== 'function') return;
+    if (otpRequestTablePromise) return otpRequestTablePromise;
+
+    otpRequestTablePromise = dbPool.query(`
+      CREATE TABLE IF NOT EXISTS app_auth_otp_request_limits (
+        phone VARCHAR(32) PRIMARY KEY,
+        request_count INT NOT NULL DEFAULT 0,
+        window_started_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    return otpRequestTablePromise;
   };
 
   const normalizeUser = (user) => {
@@ -92,6 +114,60 @@ function createAuthRepository({
 
     logger.log?.('[AuthRepository] saveOtp keys', { keys: variants.length ? variants : [phone], codeLength: entry.code.length });
     return { expiresIn: Math.floor(otpExpireMs / 1000) };
+  };
+
+  const checkAndRecordOtpRequest = async (phone) => {
+    const variants = getIranMobileVariants(phone);
+    const key = variants[0] || phone;
+    const currentTime = nowMs();
+
+    if (dbPool && typeof dbPool.query === 'function') {
+      await ensureOtpRequestTable();
+      const [rows] = await dbPool.query('SELECT * FROM app_auth_otp_request_limits WHERE phone = ? LIMIT 1', [key]);
+      const row = rows[0] || null;
+      const windowStartMs = row ? new Date(row.window_started_at).getTime() : 0;
+      const inWindow = windowStartMs > 0 && currentTime - windowStartMs < requestWindowMs;
+      const currentCount = inWindow ? Number(row.request_count || 0) : 0;
+
+      if (currentCount >= requestLimit) {
+        return {
+          allowed: false,
+          retryAfterSeconds: Math.ceil((requestWindowMs - (currentTime - windowStartMs)) / 1000)
+        };
+      }
+
+      const timestamp = new Date(currentTime);
+      if (row && inWindow) {
+        await dbPool.query(
+          'UPDATE app_auth_otp_request_limits SET request_count = request_count + 1, updated_at = ? WHERE phone = ?',
+          [timestamp, key]
+        );
+      } else {
+        await dbPool.query(
+          `INSERT INTO app_auth_otp_request_limits (phone, request_count, window_started_at, updated_at)
+           VALUES (?, 1, ?, ?)
+           ON DUPLICATE KEY UPDATE request_count = 1, window_started_at = VALUES(window_started_at), updated_at = VALUES(updated_at)`,
+          [key, timestamp, timestamp]
+        );
+      }
+
+      return { allowed: true, retryAfterSeconds: 0 };
+    }
+
+    const entry = otpRequestStore.get(key);
+    if (entry && currentTime - entry.windowStartedAt < requestWindowMs) {
+      if (entry.count >= requestLimit) {
+        return {
+          allowed: false,
+          retryAfterSeconds: Math.ceil((requestWindowMs - (currentTime - entry.windowStartedAt)) / 1000)
+        };
+      }
+      otpRequestStore.set(key, { ...entry, count: entry.count + 1, updatedAt: currentTime });
+      return { allowed: true, retryAfterSeconds: 0 };
+    }
+
+    otpRequestStore.set(key, { count: 1, windowStartedAt: currentTime, updatedAt: currentTime });
+    return { allowed: true, retryAfterSeconds: 0 };
   };
 
   const verifyOtp = async (phone, code) => {
@@ -240,6 +316,7 @@ function createAuthRepository({
 
   return {
     findUserByPhone,
+    checkAndRecordOtpRequest,
     saveOtp,
     verifyOtp,
     createUser

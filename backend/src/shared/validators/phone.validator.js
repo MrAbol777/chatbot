@@ -1,9 +1,14 @@
+const normalizeLocalizedDigits = (value) =>
+  String(value || '')
+    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
+    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632));
+
 const normalizeIranMobileToInternational = (phone) => {
   if (typeof phone !== 'string') {
     throw new Error('phone must be a string');
   }
 
-  const digits = phone.replace(/\D/g, '');
+  const digits = normalizeLocalizedDigits(phone).replace(/\D/g, '');
 
   if (digits.startsWith('09') && digits.length === 11) {
     return `98${digits.slice(1)}`;
@@ -18,7 +23,7 @@ const normalizeIranMobileToInternational = (phone) => {
 
 const normalizeIranMobileToLocal = (value) => {
   if (typeof value !== 'string') return '';
-  const cleaned = value.trim().replace(/[-\s]/g, '');
+  const cleaned = normalizeLocalizedDigits(value).trim().replace(/[-\s]/g, '');
   if (cleaned.startsWith('+98')) return `0${cleaned.slice(3)}`;
   if (cleaned.startsWith('98')) return `0${cleaned.slice(2)}`;
   return cleaned;
@@ -28,15 +33,12 @@ const isValidIranMobileLocal = (value) => /^09[0-9]{9}$/.test(value);
 
 const normalizeOtpCode = (value) => {
   const rawCode = typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
-  return rawCode
-    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
-    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632))
-    .replace(/\D/g, '');
+  return normalizeLocalizedDigits(rawCode).replace(/\D/g, '');
 };
 
 const getIranMobileVariants = (phone) => {
   const raw = String(phone || '').trim();
-  const digits = raw.replace(/\D/g, '');
+  const digits = normalizeLocalizedDigits(raw).replace(/\D/g, '');
   const variants = new Set();
 
   if (digits.startsWith('09') && digits.length === 11) {

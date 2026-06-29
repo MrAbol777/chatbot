@@ -1,36 +1,40 @@
-(node:15256) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:8444) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[20:40:48] FRONTEND 
-[20:40:48] FRONTEND > hemraz-frontend@1.0.0 dev
-[20:40:48] FRONTEND > vite
-[20:40:48] FRONTEND 
-[20:40:48] BACKEND 
-[20:40:48] BACKEND > hemraz-backend@1.0.0 dev
-[20:40:48] BACKEND > nodemon --config nodemon.json src/server.js
-[20:40:48] BACKEND 
-[20:40:49] BACKEND [33m[nodemon] 3.1.14[39m
-[20:40:49] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[20:40:49] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[20:40:49] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[20:40:49] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[20:40:52] FRONTEND 
-[20:40:52] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m4369[22m[2m[0m ms[22m
-[20:40:52] FRONTEND 
-[20:40:52] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[20:40:52] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.5.0.2:[1m5173[22m/[39m
-[20:40:52] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.242.126.176:[1m5173[22m/[39m
-[20:41:02] BACKEND [BOOT] DB mode=mysql
-[20:41:02] BACKEND [SMS] routes mounted
-[20:41:03] BACKEND [BALE] webhook mounted at /bale/webhook
-[20:41:03] BACKEND [DB] Connecting to local MySQL...
-[20:41:03] BACKEND [DB] Connected to local MySQL
-[20:41:03] BACKEND [BOOT] Database initialized
-[20:41:03] BACKEND [2026-06-28T17:11:03.750Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.5-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[20:41:03] BACKEND [BALE] webhook configured {
-[20:41:03] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
-[20:41:03] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
-[20:41:03] BACKEND }
-[20:42:59] BACKEND [32m[nodemon] restarting child process[39m
-[20:42:59] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[20:43:04] BACKEND ^C^C^C^CTerminate batch job (Y/N)? npm run dev --prefix backend exited with code 3221225786
-[20:43:05] FRONTEND npm run dev --prefix frontend exited with code 3221225786
+[10:33:07] FRONTEND 
+[10:33:07] FRONTEND > hemraz-frontend@1.0.0 dev
+[10:33:07] FRONTEND > vite
+[10:33:07] FRONTEND 
+[10:33:07] BACKEND 
+[10:33:07] BACKEND > hemraz-backend@1.0.0 dev
+[10:33:07] BACKEND > nodemon --config nodemon.json src/server.js
+[10:33:07] BACKEND 
+[10:33:08] BACKEND [33m[nodemon] 3.1.14[39m
+[10:33:08] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[10:33:08] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[10:33:08] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[10:33:08] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[10:33:08] FRONTEND 
+[10:33:08] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m398[22m[2m[0m ms[22m
+[10:33:08] FRONTEND 
+[10:33:08] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[10:33:08] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.5.0.2:[1m5173[22m/[39m
+[10:33:08] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.45:[1m5173[22m/[39m
+[10:33:09] BACKEND [BOOT] DB mode=mysql
+[10:33:09] BACKEND [SMS] routes mounted
+[10:33:09] BACKEND [BALE] webhook mounted at /bale/webhook
+[10:33:09] BACKEND [DB] Connecting to local MySQL...
+[10:33:09] BACKEND [DB] Connected to local MySQL
+[10:33:09] BACKEND [BOOT] Database initialized
+[10:33:09] BACKEND [2026-06-29T07:03:09.274Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.5-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[10:33:11] BACKEND [2026-06-29T07:03:11.903Z] [HTTP] request_started {"requestId":"mqyvfhun-h9rooh","method":"GET","path":"/api/subscription-plans"}
+[10:33:11] BACKEND [2026-06-29T07:03:11.989Z] [HTTP] request_finished {"requestId":"mqyvfhun-h9rooh","method":"GET","path":"/api/subscription-plans","status":304,"durationMs":86}
+[10:33:11] BACKEND [2026-06-29T07:03:11.996Z] [HTTP] request_started {"requestId":"mqyvfhx8-dg08xu","method":"GET","path":"/api/subscription-plans"}
+[10:33:12] BACKEND [2026-06-29T07:03:12.000Z] [HTTP] request_finished {"requestId":"mqyvfhx8-dg08xu","method":"GET","path":"/api/subscription-plans","status":304,"durationMs":4}
+[10:33:14] BACKEND [2026-06-29T07:03:14.250Z] [HTTP] request_started {"requestId":"mqyvfjnu-ag1qyu","method":"POST","path":"/api/conversations/load"}
+[10:33:14] BACKEND [2026-06-29T07:03:14.291Z] [HTTP] request_finished {"requestId":"mqyvfjnu-ag1qyu","method":"POST","path":"/api/conversations/load","status":200,"durationMs":41}
+[10:33:14] BACKEND [BALE] webhook configured {
+[10:33:14] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
+[10:33:14] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
+[10:33:14] BACKEND }
+[10:33:14] BACKEND [2026-06-29T07:03:14.809Z] [HTTP] request_started {"requestId":"mqyvfk3d-q8bjh6","method":"POST","path":"/api/conversations/sync"}
+[10:33:14] BACKEND [2026-06-29T07:03:14.862Z] [HTTP] request_finished {"requestId":"mqyvfk3d-q8bjh6","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":53}

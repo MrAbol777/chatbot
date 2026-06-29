@@ -16,6 +16,7 @@ function createSmsService({
   otpExpireSeconds = 120,
   resendCooldownMs = DEFAULT_RESEND_COOLDOWN_MS,
   maxWrongAttempts = DEFAULT_MAX_WRONG_ATTEMPTS,
+  otpDevMock = false,
   logger = console,
   now = () => new Date().toISOString(),
   setTimer = setInterval
@@ -176,6 +177,22 @@ function createSmsService({
 
     if (!normalizedCode) {
       throw new Error('OTP code is required');
+    }
+
+    if (otpDevMock) {
+      logger.log(`[${now()}] [OTP][DEV_MOCK] Verification code`, {
+        phone: normalizedPhone,
+        code: normalizedCode,
+        patternCode,
+        sender: fromNumber
+      });
+
+      return {
+        success: true,
+        status: 200,
+        data: { mocked: true },
+        recipient: normalizedPhone
+      };
     }
 
     const payload = {

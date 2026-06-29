@@ -8,6 +8,8 @@ function createAuthModule(deps) {
     dbPool: deps.dbPool,
     db: deps.db,
     otpExpireSeconds: deps.otpExpireSeconds,
+    otpRequestWindowSeconds: deps.otpRequestWindowSeconds,
+    maxOtpRequestsPerWindow: deps.maxOtpRequestsPerWindow,
     logger: deps.logger
   });
   const authService = deps.authService || createAuthService({

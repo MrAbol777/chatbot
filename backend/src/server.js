@@ -158,6 +158,7 @@ const appSmsService = createSmsService({
   ippanelPatternCode: process.env.IPPANEL_PATTERN_CODE,
   ippanelSender: process.env.IPPANEL_SENDER,
   otpExpireSeconds: Number.parseInt(process.env.OTP_EXPIRE || '120', 10),
+  otpDevMock: process.env.OTP_DEV_MOCK === 'true',
   logger: console
 });
 

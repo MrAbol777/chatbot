@@ -36,7 +36,10 @@
 
 ## امکانات اصلی
 
-- ورود/ثبت‌نام با شماره موبایل و کد تأیید
+- ورود/ثبت‌نام یکپارچه با شماره موبایل و کد تأیید
+- تشخیص خودکار `login` یا `signup` بعد از تأیید OTP
+- تکمیل پروفایل فقط برای کاربر جدید (نام و سن)
+- انتقال خودکار تاریخچه مهمان به حساب کاربری بعد از ثبت‌نام موفق
 - ذخیره پروفایل، مکالمه‌ها و تنظیمات در `localStorage`
 - مدیریت مکالمه‌ها (گفتگوی جدید، سنجاق، تغییر نام، حذف)
 - ورودی صوتی فارسی با Web Speech API (`fa-IR`)
@@ -48,10 +51,16 @@
 
 - مهاجرت سرویس مدل از GapGPT به Gemini (از طریق `GEMINI_BASE_URL`)
 - افزودن و تثبیت اولیه Design System و migration مرحله‌ای UIها
-- اضافه شدن احراز هویت پیامکی در بک‌اند:
+- تکمیل فلو احراز هویت پیامکی در بک‌اند:
   - `POST /api/send-verification-code`
   - `POST /api/verify-code`
   - `POST /api/register-profile`
+- افزودن rate limit برای OTP:
+  - حداکثر `3` درخواست کد در `10` دقیقه برای هر شماره
+  - حداکثر `5` تلاش ناموفق برای تأیید هر کد
+- پاک‌سازی OTP بعد از تأیید موفق یا انقضا
+- پشتیبانی از ارقام فارسی/عربی برای شماره موبایل، سن و کد OTP
+- پشتیبانی از `OTP_DEV_MOCK=true` برای توسعه محلی بدون ارسال SMS واقعی
 - اضافه شدن `GET /api/admin/stats` با `ADMIN_API_KEY`
 - اضافه شدن اسکریپت توسعه با لاگ فایل (`logs/terminal.txt`)
 
@@ -94,8 +103,17 @@ GEMINI_BASE_URL=https://api.metisai.ir
 GEMINI_MODEL=gemini-2.0-flash
 GAPGPT_TIMEOUT_MS=30000
 ADMIN_API_KEY=your-secret-key
-PORT=3001
+PORT=3000
+DATABASE_URL=mysql://root:@localhost:3306/chatbot
+AUTH_JWT_SECRET=change-me
+IPPANEL_API_KEY=your-ippanel-api-key
+IPPANEL_PATTERN_CODE=your-pattern-code
+IPPANEL_SENDER=3000505
+OTP_EXPIRE=120
+OTP_DEV_MOCK=true
 ```
+
+- اگر `OTP_DEV_MOCK=true` باشد، کد OTP در لاگ بک‌اند چاپ می‌شود و درخواست واقعی به IPPanel ارسال نمی‌شود.
 
 4) اجرای همزمان فرانت و بک‌اند:
 
@@ -104,7 +122,7 @@ npm run dev
 ```
 
 - فرانت‌اند: `http://localhost:5173`
-- بک‌اند: `http://localhost:3001`
+- بک‌اند: `http://localhost:3000`
 
 ## اسکریپت‌ها
 
@@ -130,7 +148,10 @@ npm run build
 
 چک دستی پیشنهادی:
 
-- مسیرهای ورود/ثبت‌نام بدون تغییر رفتار کار کنند.
+- از لندینگ، دکمه‌های `شروع رایگان` و `ورود به حساب` کاربر را واقعاً به `/chat` ببرند.
+- فلو auth به ترتیب `شماره موبایل -> کد تایید -> تکمیل پروفایل برای کاربر جدید` کار کند.
+- برای کاربر قدیمی بعد از OTP، ورود مستقیم انجام شود و فرم نام/سن نمایش داده نشود.
+- در سناریوی مهمان، بعد از رسیدن به سقف پیام و ثبت‌نام موفق، تاریخچه گفتگو منتقل شود.
 - در `AdminPanel` دکمه‌های `پروفایل` / `مسدود-رفع مسدود` / `حذف` فعال باشند.
 - در چت، quick chips همچنان پیام صحیح ارسال کنند.
 - ناوبری کیبورد (Tab/Enter/Space) روی کنترل‌های جدید درست عمل کند.
@@ -177,6 +198,7 @@ npm run build
 - `ErrorRepository.js`: ثبت خطاهای سیستمی/API
 - `AnalyticsRepository.js`: خواندن داده خام برای آمار و گزارش
 - `helpers.js` و `index.js`: ابزارهای مشترک و Factory ساخت Repositoryها
+- `GuestRepository.js`: مدیریت guest user، شمارش پیام مهمان، و migration گفتگوها از `guest_id` به `user_id`
 
 ### 3) ماژول احراز هویت (`backend/src/modules/auth`)
 
@@ -185,11 +207,16 @@ npm run build
 - `auth.routes.js`: تعریف endpointهای احراز هویت
 - `auth.controller.js`: دریافت Request و تبدیل خطا/خروجی به Response استاندارد
 - `auth.service.js`: منطق اصلی:
-  - ارسال کد تایید
-  - تایید کد
-  - ثبت/تکمیل پروفایل
-  - صدور JWT
+  - ارسال کد تایید برای شماره موبایل
+  - تشخیص کاربر قدیمی/جدید بعد از verify
+  - ورود مستقیم کاربر قدیمی با JWT
+  - صدور `signupToken` کوتاه‌عمر برای تکمیل پروفایل کاربر جدید
+  - ثبت/تکمیل پروفایل و migration مهمان به کاربر
+  - صدور JWT نهایی
 - `auth.repository.js`: دسترسی داده‌ای اختصاصی auth
+  - جدول `app_auth_otps` برای نگهداری OTP
+  - جدول `app_auth_otp_request_limits` برای rate limit درخواست کد
+  - محدودیت تلاش اشتباه و invalidate کردن کد پس از مصرف/انقضا
 - `auth.module.js`: Compose کردن Route + Service + Repository برای تزریق در `server.js`
 
 ### 4) ماژول SMS (`backend/src/modules/sms`)
@@ -199,6 +226,8 @@ npm run build
 - `sms.routes.js`: مسیرهای API پیامک (ارسال/وضعیت)
 - `sms.controller.js`: کنترل ورودی و خروجی HTTP
 - `sms.service.js`: منطق ارسال Pattern OTP به IPPanel، مدیریت timeout و خطا
+  - پشتیبانی از `IPPANEL_API_KEY`، `IPPANEL_PATTERN_CODE` و `IPPANEL_SENDER`
+  - پشتیبانی از `OTP_DEV_MOCK=true` برای توسعه محلی
 - `sms.module.js`: سیم‌کشی وابستگی‌ها برای مصرف در سرور
 
 > نکته: در `backend/src/services` چند فایل قدیمی/آزمایشی SMS هم هست (`smsService.js`، `sms.service.ts`، `testSMS.js`) که مسیر اصلی اجرای فعلی نیستند؛ مسیر عملیاتی اصلی پروژه، `modules/sms` است.
@@ -274,6 +303,7 @@ npm run build
 
 - `shared/validators/phone.validator.js`:
   - نرمال‌سازی شماره موبایل ایران (local/international)
+  - پشتیبانی از ارقام فارسی و عربی
   - اعتبارسنجی موبایل
   - نرمال‌سازی کد OTP (اعداد فارسی/عربی به انگلیسی)
   - تولید variantهای شماره برای تطبیق بهتر

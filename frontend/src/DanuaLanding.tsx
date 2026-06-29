@@ -121,8 +121,7 @@ function navigateToChat(mode?: 'signup' | 'login', plan?: PlanId) {
   const qs = params.toString();
   const nextPath = qs ? `/chat?${qs}` : '/chat';
   if (typeof window !== 'undefined' && window.location.pathname + window.location.search !== nextPath) {
-    window.history.pushState({}, '', nextPath);
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.location.assign(nextPath);
   }
 }
 
