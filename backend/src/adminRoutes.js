@@ -319,7 +319,8 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
     getApiUsage: (...args) => analyticsRepository.getApiUsage(...args),
     getErrorDistribution: (...args) => analyticsRepository.getErrorDistribution(...args),
     getRecentAuditLogs: (...args) => analyticsRepository.getRecentAuditLogs(...args),
-    getStats: (...args) => analyticsRepository.getStats(...args)
+    getStats: (...args) => analyticsRepository.getStats(...args),
+    getPlanSubscriptions: (...args) => plansRepository.readUserSubscriptions(...args)
   });
   const analyticsRouter = createAdminAnalyticsRouter({
     analyticsService,

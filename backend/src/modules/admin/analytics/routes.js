@@ -2,6 +2,29 @@ const express = require('express');
 
 function createAdminAnalyticsRouter({ analyticsService, adminApiKey, requireAdminAuth }) {
   const router = express.Router();
+  const buildReportFileName = (format) => `danua-report-${new Date().toISOString().slice(0, 10)}.${format}`;
+
+  const sendReport = async (req, res, forcedFormat) => {
+    const requestedFormat = String(forcedFormat || req.query.format || 'csv').trim().toLowerCase();
+    if (!['csv', 'txt'].includes(requestedFormat)) {
+      return res.status(400).json({ error: 'فرمت گزارش پشتیبانی نمی‌شود.' });
+    }
+    const report = await analyticsService.buildReport({
+      format: requestedFormat,
+      sections: req.query.sections,
+      users: req.query.users,
+      errors: req.query.errors,
+      conversations: req.query.conversations,
+      messages: req.query.messages,
+      userIds: req.query.userIds,
+      fromDate: req.query.fromDate,
+      toDate: req.query.toDate
+    });
+    const fileName = buildReportFileName(report.extension);
+    res.setHeader('Content-Type', report.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    return res.send(`${report.format === 'csv' ? '\uFEFF' : ''}${report.content}`);
+  };
 
   router.get('/stats', async (req, res) => {
     if (!adminApiKey) {
@@ -24,16 +47,15 @@ function createAdminAnalyticsRouter({ analyticsService, adminApiKey, requireAdmi
 
   router.get('/reports/csv', requireAdminAuth, async (req, res) => {
     try {
-      const csv = await analyticsService.buildCsvReport({
-        users: req.query.users,
-        errors: req.query.errors,
-        conversations: req.query.conversations,
-        messages: req.query.messages
-      });
-      const fileName = `admin-report-${new Date().toISOString().slice(0, 10)}.csv`;
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      return res.send(`\uFEFF${csv}`);
+      return sendReport(req, res, 'csv');
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در تولید گزارش' });
+    }
+  });
+
+  router.get('/reports/export', requireAdminAuth, async (req, res) => {
+    try {
+      return sendReport(req, res);
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در تولید گزارش' });
     }

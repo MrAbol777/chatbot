@@ -724,6 +724,20 @@ textarea {
   flex: 0 0 auto;
 }
 
+.admin-report-options .admin-control-field,
+.admin-report-options .admin-select-field {
+  min-width: 160px;
+}
+
+.admin-report-options input[type="date"],
+.admin-report-options select {
+  border: 1px solid var(--admin-border);
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--admin-text);
+  padding: 8px 10px;
+}
+
 .admin-report-actions {
   margin-top: 12px;
 }
@@ -1009,6 +1023,21 @@ textarea {
   border: 1px solid var(--admin-border);
   border-radius: 12px;
   background: var(--admin-card-muted);
+}
+
+.admin-users-summary,
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0;
+  color: var(--admin-text-soft);
+  font-size: 0.92rem;
+}
+
+.admin-pagination {
+  justify-content: center;
 }
 
 .admin-controls input,

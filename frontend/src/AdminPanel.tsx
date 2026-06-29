@@ -27,6 +27,13 @@ type User = {
   isBanned?: boolean;
 };
 
+type UsersPayload = {
+  items: User[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
 type UserProfile = User & {
   conversations: Array<{
     conversation_id: string;
@@ -95,6 +102,18 @@ type SiteSettingsPayload = {
 
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
 type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'errors' | 'siteSettings' | 'config' | 'audit';
+type ReportUserScope = 'all' | 'selected';
+type ReportFormat = 'csv' | 'txt';
+type ReportSection =
+  | 'users'
+  | 'errors'
+  | 'conversation_summary'
+  | 'messages'
+  | 'plans_usage'
+  | 'guest_usage'
+  | 'ai_performance';
+type ReportRangePreset = 'today' | '7d' | '30d' | 'custom';
+const USERS_PAGE_SIZE = 10;
 const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'داشبورد',
   users: 'کاربران',
@@ -113,6 +132,21 @@ const TAB_ICONS: Record<keyof typeof TAB_LABELS, string> = {
   siteSettings: '⚙',
   config: '⚙',
   audit: '⌁'
+};
+
+const REPORT_SECTION_OPTIONS: Array<{ key: ReportSection; label: string }> = [
+  { key: 'users', label: 'users' },
+  { key: 'errors', label: 'errors' },
+  { key: 'conversation_summary', label: 'conversation summary' },
+  { key: 'messages', label: 'messages' },
+  { key: 'plans_usage', label: 'plans usage' },
+  { key: 'guest_usage', label: 'guest usage' },
+  { key: 'ai_performance', label: 'AI performance' }
+];
+
+const formatDateInput = (date: Date) => {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+  return localDate.toISOString().slice(0, 10);
 };
 
 // ─── Shared error helpers for admin routes ───
@@ -136,13 +170,29 @@ const handleAdminResponse = async (response: Response, fallback: string): Promis
 function AdminPanel() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [users, setUsers] = useState<User[]>([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersPage, setUsersPage] = useState(1);
   const [query, setQuery] = useState('');
   const [banFilter, setBanFilter] = useState('all');
+  const [selectedReportUserIds, setSelectedReportUserIds] = useState<string[]>([]);
+  const [reportUserScope, setReportUserScope] = useState<ReportUserScope>('all');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [errors, setErrors] = useState<any[]>([]);
   const [config, setConfig] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
-  const [reportOptions, setReportOptions] = useState({ users: true, errors: false, conversations: false, messages: false });
+  const [reportFormat, setReportFormat] = useState<ReportFormat>('csv');
+  const [reportRangePreset, setReportRangePreset] = useState<ReportRangePreset>('7d');
+  const [reportCustomFromDate, setReportCustomFromDate] = useState('');
+  const [reportCustomToDate, setReportCustomToDate] = useState('');
+  const [reportOptions, setReportOptions] = useState<Record<ReportSection, boolean>>({
+    users: true,
+    errors: false,
+    conversation_summary: false,
+    messages: false,
+    plans_usage: false,
+    guest_usage: false,
+    ai_performance: true
+  });
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
   const [dashboardError, setDashboardError] = useState('');
@@ -162,16 +212,22 @@ function AdminPanel() {
   const [siteSettingsSaving, setSiteSettingsSaving] = useState(false);
   const [siteSettingsMessage, setSiteSettingsMessage] = useState('');
 
-  const loadUsers = async () => {
+  const loadUsers = async (page = usersPage) => {
     setLoadError('');
     const params = new URLSearchParams();
     if (query.trim()) params.set('q', query.trim());
     if (banFilter !== 'all') params.set('isBanned', banFilter);
+    params.set('page', String(page));
+    params.set('pageSize', String(USERS_PAGE_SIZE));
     try {
       const response = await fetch(`/api/admin/users?${params.toString()}`, { credentials: 'include' });
       const result = await handleAdminResponse(response, 'بارگذاری کاربران ناموفق بود.');
       if (!result.ok) return;
-      setUsers(result.data.items || []);
+      const payload = (result.data || {}) as UsersPayload;
+      const nextPage = Number(payload.page || page);
+      setUsers(payload.items || []);
+      setUsersTotal(Number(payload.total || 0));
+      setUsersPage(nextPage);
     } catch {
       setLoadError('اتصال به سرور برقرار نشد. لطفاً دوباره تلاش کنید.');
     }
@@ -293,6 +349,58 @@ function AdminPanel() {
   }, []);
 
   const visibleUsers = useMemo(() => users, [users]);
+  const usersTotalPages = Math.max(1, Math.ceil(usersTotal / USERS_PAGE_SIZE));
+  const selectedReportUsersOnPage = visibleUsers.filter((user) => selectedReportUserIds.includes(user.user_id));
+  const isEveryVisibleUserSelected = visibleUsers.length > 0 && selectedReportUsersOnPage.length === visibleUsers.length;
+
+  const handleApplyUserFilters = () => {
+    void loadUsers(1);
+  };
+
+  const handleUsersPageChange = (nextPage: number) => {
+    const safePage = Math.min(usersTotalPages, Math.max(1, nextPage));
+    void loadUsers(safePage);
+  };
+
+  const toggleReportUser = (userId: string) => {
+    setSelectedReportUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((item) => item !== userId) : [...prev, userId]
+    );
+    setReportUserScope('selected');
+  };
+
+  const toggleVisibleReportUsers = () => {
+    const visibleIds = visibleUsers.map((user) => user.user_id);
+    if (visibleIds.length === 0) return;
+    setSelectedReportUserIds((prev) => {
+      const withoutVisible = prev.filter((item) => !visibleIds.includes(item));
+      return isEveryVisibleUserSelected ? withoutVisible : [...withoutVisible, ...visibleIds];
+    });
+    setReportUserScope('selected');
+  };
+
+  const toggleReportSection = (section: ReportSection, checked: boolean) => {
+    setReportOptions((prev) => ({ ...prev, [section]: checked }));
+  };
+
+  const getReportDateRange = () => {
+    if (reportRangePreset === 'custom') {
+      return {
+        fromDate: reportCustomFromDate.trim(),
+        toDate: reportCustomToDate.trim()
+      };
+    }
+
+    const today = new Date();
+    const start = new Date(today);
+    if (reportRangePreset === '7d') start.setDate(today.getDate() - 6);
+    if (reportRangePreset === '30d') start.setDate(today.getDate() - 29);
+
+    return {
+      fromDate: formatDateInput(start),
+      toDate: formatDateInput(today)
+    };
+  };
 
   const toggleBan = async (user: User) => {
     setActionError('');
@@ -304,7 +412,7 @@ function AdminPanel() {
         body: JSON.stringify({ isBanned: !user.isBanned })
       });
       await handleAdminResponse(response, 'تغییر وضعیت کاربر ناموفق بود.');
-      await loadUsers();
+      await loadUsers(usersPage);
     } catch {
       setActionError('عملیات با خطا مواجه شد. لطفاً دوباره تلاش کنید.');
     }
@@ -317,7 +425,7 @@ function AdminPanel() {
       const response = await fetch(`/api/admin/users/${user.user_id}`, { method: 'DELETE', credentials: 'include' });
       await handleAdminResponse(response, 'حذف کاربر ناموفق بود.');
       setSelectedUser(null);
-      await loadUsers();
+      await loadUsers(usersPage);
       await loadDashboard();
     } catch {
       setActionError('حذف کاربر با خطا مواجه شد. لطفاً دوباره تلاش کنید.');
@@ -361,11 +469,22 @@ function AdminPanel() {
 
   const downloadReport = () => {
     const params = new URLSearchParams();
-    if (reportOptions.users) params.set('users', '1');
-    if (reportOptions.errors) params.set('errors', '1');
-    if (reportOptions.conversations) params.set('conversations', '1');
-    if (reportOptions.messages) params.set('messages', '1');
-    window.open(`/api/admin/reports/csv?${params.toString()}`, '_blank');
+    const selectedSections = REPORT_SECTION_OPTIONS
+      .filter((section) => reportOptions[section.key])
+      .map((section) => section.key);
+    if (selectedSections.length === 0) {
+      window.alert('حداقل یک بخش گزارش را انتخاب کنید.');
+      return;
+    }
+    params.set('format', reportFormat);
+    params.set('sections', selectedSections.join(','));
+    const dateRange = getReportDateRange();
+    if (dateRange.fromDate) params.set('fromDate', dateRange.fromDate);
+    if (dateRange.toDate) params.set('toDate', dateRange.toDate);
+    if (reportUserScope === 'selected' && selectedReportUserIds.length > 0) {
+      params.set('userIds', selectedReportUserIds.join(','));
+    }
+    window.open(`/api/admin/reports/export?${params.toString()}`, '_blank');
   };
 
   const saveSystemPrompt = async () => {
@@ -681,16 +800,44 @@ function AdminPanel() {
               <option value="true">مسدود</option>
               <option value="false">فعال</option>
             </select>
-            <Button className="admin-action-btn" onClick={() => void loadUsers()}>اعمال فیلتر</Button>
+            <Button className="admin-action-btn" onClick={handleApplyUserFilters}>اعمال فیلتر</Button>
+          </div>
+          <div className="admin-users-summary">
+            <span>
+              نمایش صفحه {usersPage} از {usersTotalPages}، مجموع {usersTotal} کاربر
+            </span>
+            <span>
+              {selectedReportUserIds.length > 0
+                ? `${selectedReportUserIds.length} کاربر برای گزارش انتخاب شده`
+                : 'برای گزارش چندنفره، کاربران را از جدول انتخاب کنید.'}
+            </span>
           </div>
           <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
-              <tr><th>نام</th><th>سن</th><th>شماره</th><th>تاریخ عضویت</th><th>تعداد گفتگو</th><th>آخرین فعالیت</th><th>عملیات</th></tr>
+              <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={isEveryVisibleUserSelected}
+                    onChange={toggleVisibleReportUsers}
+                    aria-label="انتخاب همه کاربران این صفحه برای گزارش"
+                  />
+                </th>
+                <th>نام</th><th>سن</th><th>شماره</th><th>تاریخ عضویت</th><th>تعداد گفتگو</th><th>آخرین فعالیت</th><th>عملیات</th>
+              </tr>
             </thead>
             <tbody>
               {visibleUsers.map((user) => (
                 <tr key={user.user_id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedReportUserIds.includes(user.user_id)}
+                      onChange={() => toggleReportUser(user.user_id)}
+                      aria-label={`انتخاب ${user.name} برای گزارش`}
+                    />
+                  </td>
                   <td>{user.name}</td><td>{user.age}</td><td>{user.phone || '-'}</td><td>{user.registered_at || '-'}</td>
                   <td>{user.conversationCount || 0}</td><td>{user.last_activity || '-'}</td>
                   <td>
@@ -708,8 +855,30 @@ function AdminPanel() {
                   </td>
                 </tr>
               ))}
+              {visibleUsers.length === 0 ? (
+                <tr><td colSpan={8}>کاربری با این فیلتر پیدا نشد.</td></tr>
+              ) : null}
             </tbody>
           </table>
+          </div>
+          <div className="admin-pagination">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={usersPage <= 1}
+              onClick={() => handleUsersPageChange(usersPage - 1)}
+            >
+              قبلی
+            </Button>
+            <span>صفحه {usersPage} / {usersTotalPages}</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={usersPage >= usersTotalPages}
+              onClick={() => handleUsersPageChange(usersPage + 1)}
+            >
+              بعدی
+            </Button>
           </div>
 
           {selectedUser ? (
@@ -890,6 +1059,14 @@ function AdminPanel() {
                   value={String(siteSettings.settings['guest.message_limit'] ?? 10)}
                   onChange={(e) => updateSiteSetting('guest.message_limit', Number(e.target.value))}
                 />
+                <TextField
+                  label="سقف ساخت تصویر مهمان در روز"
+                  type="number"
+                  value={String(siteSettings.settings['guest.image_limit_daily'] ?? 0)}
+                  onChange={(e) => updateSiteSetting('guest.image_limit_daily', Number(e.target.value))}
+                />
+              </FieldGroup>
+              <FieldGroup direction="row">
                 <TextField
                   label="نشان مودال"
                   value={String(siteSettings.settings['guest.limit_modal.badge_text'] ?? '')}
@@ -1089,15 +1266,72 @@ function AdminPanel() {
       ) : null}
 
       <div className="admin-section admin-report">
-        <h3>گزارش CSV</h3>
+        <h3>Export Report</h3>
         <FieldGroup direction="row" className="admin-report-options">
-          <label><input type="checkbox" checked={reportOptions.users} onChange={(e) => setReportOptions({ ...reportOptions, users: e.target.checked })} /> لیست کاربران</label>
-          <label><input type="checkbox" checked={reportOptions.errors} onChange={(e) => setReportOptions({ ...reportOptions, errors: e.target.checked })} /> خطاها</label>
-          <label><input type="checkbox" checked={reportOptions.conversations} onChange={(e) => setReportOptions({ ...reportOptions, conversations: e.target.checked })} /> خلاصه گفتگوها</label>
-          <label><input type="checkbox" checked={reportOptions.messages} onChange={(e) => setReportOptions({ ...reportOptions, messages: e.target.checked })} /> جزئیات پیام‌ها</label>
+          <label className="admin-select-field">
+            <span>فرمت خروجی</span>
+            <select value={reportFormat} onChange={(e) => setReportFormat(e.target.value as ReportFormat)}>
+              <option value="csv">CSV</option>
+              <option value="txt">TXT</option>
+            </select>
+          </label>
+          <label className="admin-select-field">
+            <span>بازه زمانی</span>
+            <select value={reportRangePreset} onChange={(e) => setReportRangePreset(e.target.value as ReportRangePreset)}>
+              <option value="today">امروز</option>
+              <option value="7d">۷ روز اخیر</option>
+              <option value="30d">۳۰ روز اخیر</option>
+              <option value="custom">بازه دلخواه</option>
+            </select>
+          </label>
+        </FieldGroup>
+        {reportRangePreset === 'custom' ? (
+          <FieldGroup direction="row" className="admin-report-options">
+            <label className="admin-control-field">
+              <span>از تاریخ</span>
+              <input type="date" value={reportCustomFromDate} onChange={(e) => setReportCustomFromDate(e.target.value)} />
+            </label>
+            <label className="admin-control-field">
+              <span>تا تاریخ</span>
+              <input type="date" value={reportCustomToDate} onChange={(e) => setReportCustomToDate(e.target.value)} />
+            </label>
+          </FieldGroup>
+        ) : null}
+        <p className="admin-note">TXT برای تحلیل با AI خواناتر است و پیام کاربر و پاسخ AI را به صورت turn کنار هم می‌آورد.</p>
+        <FieldGroup direction="row" className="admin-report-options">
+          {REPORT_SECTION_OPTIONS.map((section) => (
+            <label key={section.key}>
+              <input
+                type="checkbox"
+                checked={reportOptions[section.key]}
+                onChange={(e) => toggleReportSection(section.key, e.target.checked)}
+              /> {section.label}
+            </label>
+          ))}
+        </FieldGroup>
+        <FieldGroup direction="row" className="admin-report-options">
+          <label>
+            <input
+              type="radio"
+              name="report-user-scope"
+              checked={reportUserScope === 'all'}
+              onChange={() => setReportUserScope('all')}
+            /> همه کاربران
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="report-user-scope"
+              checked={reportUserScope === 'selected'}
+              onChange={() => setReportUserScope('selected')}
+            /> فقط کاربران انتخاب‌شده ({selectedReportUserIds.length})
+          </label>
+          <Button variant="ghost" size="sm" disabled={selectedReportUserIds.length === 0} onClick={() => setSelectedReportUserIds([])}>
+            پاک کردن انتخاب‌ها
+          </Button>
         </FieldGroup>
         <FieldGroup direction="row" className="admin-report-actions">
-          <Button variant="secondary" onClick={downloadReport}>دانلود گزارش</Button>
+          <Button variant="secondary" onClick={downloadReport} disabled={reportUserScope === 'selected' && selectedReportUserIds.length === 0}>دانلود گزارش</Button>
         </FieldGroup>
       </div>
     </div>

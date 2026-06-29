@@ -8,6 +8,14 @@ const {
   parseAuditLogFile
 } = require('./helpers');
 
+const safeParseArray = (value) => {
+  try {
+    return safeJsonArray(typeof value === 'string' ? JSON.parse(value || '[]') : value);
+  } catch (_error) {
+    return [];
+  }
+};
+
 class AnalyticsRepository {
   constructor(db, { auditLogPath } = {}) {
     this.db = db;
@@ -16,12 +24,15 @@ class AnalyticsRepository {
 
   async readDB() {
     await this.db.init();
-    const [[users], [events], [errors], [conversations], [chatMessages]] = await Promise.all([
+    const [[users], [events], [errors], [conversations], [chatMessages], [plans], [planDailyUsage], [guestMessageCounts]] = await Promise.all([
       this.db.query('SELECT * FROM app_users'),
       this.db.query('SELECT * FROM app_events'),
       this.db.query('SELECT * FROM app_app_errors'),
       this.db.query('SELECT * FROM app_conversations'),
-      this.db.query('SELECT * FROM app_chat_messages ORDER BY created_at ASC, message_id ASC')
+      this.db.query('SELECT * FROM app_chat_messages ORDER BY created_at ASC, message_id ASC'),
+      this.db.query('SELECT * FROM app_plans ORDER BY sort_order ASC, id ASC'),
+      this.db.query('SELECT * FROM app_plan_daily_usage ORDER BY usage_date DESC, user_id ASC'),
+      this.db.query('SELECT * FROM guest_message_counts ORDER BY last_message_at DESC')
     ]);
 
     return {
@@ -35,9 +46,15 @@ class AnalyticsRepository {
         ...item,
         token_usage: typeof item.token_usage === 'string' ? item.token_usage : item.token_usage ? JSON.stringify(item.token_usage) : null
       })),
+      plans: plans.map((item) => ({
+        ...item,
+        features: safeParseArray(item.features),
+        is_active: Boolean(item.is_active)
+      })),
+      planDailyUsage,
+      guestMessageCounts,
       conversations: conversations.map((c) => {
-        const messages = typeof c.messages === 'string' ? JSON.parse(c.messages || '[]') : c.messages;
-        return { ...c, messages: safeJsonArray(messages) };
+        return { ...c, messages: safeParseArray(c.messages) };
       })
     };
   }
