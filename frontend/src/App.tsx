@@ -18,6 +18,7 @@ const CONVERSATIONS_KEY = 'chat_conversations';
 const ACTIVE_CONVERSATION_KEY = 'chat_active_conversation_id';
 const THEME_KEY = 'danoa_theme';
 const DEFAULT_TITLE = 'گفتگوی جدید';
+const GUEST_PROFILE_KEY = 'chat_guest_profile';
 const WAITING_MESSAGES = [
   'در حال یافتن پاسخ',
   'در حال بررسی سوال شما',
@@ -229,7 +230,13 @@ const postChatWithRetry = async (payload: {
     try {
       const response = await safeFetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(localStorage.getItem('chat_auth_token')
+            ? { Authorization: `Bearer ${localStorage.getItem('chat_auth_token')}` }
+            : {})
+        },
+        credentials: 'include',
         body: JSON.stringify(payload),
         signal: controller.signal
       });
@@ -286,6 +293,14 @@ const createApiError = (message: string, redirectTo?: AuthMode | null): ApiError
   return error;
 };
 
+const isGuestProfile = (value: AppProfile | null): boolean => Boolean(value && !value.phone);
+
+const createGuestProfile = (): AppProfile => ({
+  name: 'مهمان',
+  age: 0,
+  personality: createDefaultPersonality()
+});
+
 const normalizeLocalizedDigits = (value: string) =>
   value
     .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
@@ -319,6 +334,7 @@ const isMessageLimitError = (error: unknown): error is ChatRequestError => {
     .toLowerCase();
   return (
     requestError.status === 402 ||
+    requestError.payload?.error === 'GUEST_LIMIT_REACHED' ||
     payloadText.includes('message limit') ||
     payloadText.includes('limit reached') ||
     payloadText.includes('daily limit') ||
@@ -392,6 +408,7 @@ const registerProfile = async (profile: {
   const response = await safeFetch('/api/register-profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(profile)
   });
 
@@ -408,6 +425,7 @@ const loadRemoteConversations = async (profile: UserProfile & { id?: string | nu
   const response = await safeFetch('/api/conversations/load', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ profile })
   });
   if (!response.ok) {
@@ -432,6 +450,7 @@ const syncRemoteConversations = async (profile: UserProfile & { id?: string | nu
     const response = await safeFetch('/api/conversations/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ profile, items: conversations })
     });
     if (!response.ok) {
@@ -624,6 +643,7 @@ function ChatApp() {
  const [isRecording, setIsRecording] = useState(false);
  const [showImageGenModal, setShowImageGenModal] = useState(false);
  const [showMessageLimitModal, setShowMessageLimitModal] = useState(false);
+ const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
  const [imageGenPrompt, setImageGenPrompt] = useState('');
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
@@ -716,6 +736,21 @@ function ChatApp() {
     setShowMessageLimitModal(false);
   };
 
+  const handleGuestSignupRequired = () => {
+    setShowGuestLimitModal(false);
+    localStorage.removeItem(PROFILE_KEY);
+    setProfile(null);
+    setAuthTransition('forward');
+    setAuthMode('signup');
+    setRegistrationStep(1);
+    setLandingStep('signup');
+    setErrors({});
+    setVerificationCode('');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/chat?auth=signup');
+    }
+  };
+
   const releaseMicStream = () => {
     micStreamRef.current?.getTracks().forEach((track) => track.stop());
     micStreamRef.current = null;
@@ -793,6 +828,14 @@ function ChatApp() {
         setAuthMode('signup');
         setRegistrationStep(1);
         setLandingStep('signup');
+      } else if (window.location.pathname === '/chat') {
+        const guestProfile = createGuestProfile();
+        setProfile(guestProfile);
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(guestProfile));
+        sessionStorage.setItem(GUEST_PROFILE_KEY, '1');
+        setLandingStep('chat');
+        setCurrentView('chat');
+        setSidebarOpen(false);
       } else {
         if (window.location.pathname === '/home') {
           window.location.replace('/');
@@ -1492,6 +1535,24 @@ function ChatApp() {
         updatedAt: new Date().toISOString()
       }));
     } catch (error) {
+      if (
+        error instanceof Error &&
+        (error as ChatRequestError).payload?.error === 'GUEST_LIMIT_REACHED'
+      ) {
+        updateConversation(currentConversation.id, (item) => {
+          const remainingMessages = item.messages.filter((message) => message.timestamp !== userMessage.timestamp);
+          return {
+            ...item,
+            title: item.messages.length === 1 ? DEFAULT_TITLE : item.title,
+            messages: remainingMessages,
+            updatedAt: new Date().toISOString()
+          };
+        });
+        setInputValue(content);
+        setShowGuestLimitModal(true);
+        return;
+      }
+
       if (isMessageLimitError(error)) {
         setShowMessageLimitModal(true);
         return;
@@ -2289,7 +2350,7 @@ function ChatApp() {
 
       <div className="chat-card">
         {/* Warning banner for users logged in without a JWT token (pre-fix session) */}
-        {!hasAuthToken && (
+        {!hasAuthToken && !isGuestProfile(profile) && (
           <div className="auth-token-warning" style={{
             background: '#fff3cd',
             color: '#856404',
@@ -2373,15 +2434,6 @@ function ChatApp() {
         {currentView === 'home' ? (
         <aside className={`sidebar conversation-home ${sidebarOpen ? 'open' : ''}`}>
           <header className="conversation-home-header">
-            <button
-              type="button"
-              className="conversation-home-icon-btn conversation-home-icon-btn--warm"
-              onClick={handleCreateConversation}
-              aria-label="گفتگوی جدید"
-              title="گفتگوی جدید"
-            >
-              +
-            </button>
             <h3>گفتگوهای من</h3>
             <div className="conversation-home-tools">
               <button
@@ -2653,6 +2705,30 @@ function ChatApp() {
                  بعداً یادآوری کن
                </button>
              </div>
+           </div>
+         </Dialog>
+       ) : null}
+
+       {showGuestLimitModal ? (
+         <Dialog open={showGuestLimitModal} title="برای ادامه ثبت‌نام کن" onClose={() => {}} showFooter={false}>
+           <div className="guest-limit-modal">
+             <div className="guest-limit-hero" aria-hidden="true">
+               <span className="guest-limit-badge">۱۰</span>
+             </div>
+
+             <div className="guest-limit-copy">
+               <h2>برای ادامه‌ی گفتگو، لطفاً ثبت‌نام کن!</h2>
+               <p>گفتگوی مهمان به سقف پیام‌ها رسیده و ادامه چت فقط با حساب کاربری انجام می‌شود.</p>
+             </div>
+
+             <Button
+               type="button"
+               size="lg"
+               className="guest-limit-primary"
+               onClick={handleGuestSignupRequired}
+             >
+               ثبت‌نام
+             </Button>
            </div>
          </Dialog>
        ) : null}

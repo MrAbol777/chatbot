@@ -89,6 +89,24 @@ type SubscriptionsPayload = {
 };
 
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
+type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'errors' | 'config' | 'audit';
+const TAB_LABELS: Record<AdminTab, string> = {
+  dashboard: 'داشبورد',
+  users: 'کاربران',
+  subscriptions: 'اشتراک‌ها',
+  errors: 'خطاها',
+  config: 'تنظیمات',
+  audit: 'Audit'
+};
+
+const TAB_ICONS: Record<keyof typeof TAB_LABELS, string> = {
+  dashboard: '▦',
+  users: '◎',
+  subscriptions: '◈',
+  errors: '!',
+  config: '⚙',
+  audit: '⌁'
+};
 
 // ─── Shared error helpers for admin routes ───
 const handleAdminResponse = async (response: Response, fallback: string): Promise<{ ok: boolean; data?: any }> => {
@@ -109,7 +127,7 @@ const handleAdminResponse = async (response: Response, fallback: string): Promis
 };
 
 function AdminPanel() {
-  const [tab, setTab] = useState<'dashboard' | 'users' | 'subscriptions' | 'errors' | 'config' | 'audit'>('dashboard');
+  const [tab, setTab] = useState<AdminTab>('dashboard');
   const [users, setUsers] = useState<User[]>([]);
   const [query, setQuery] = useState('');
   const [banFilter, setBanFilter] = useState('all');
@@ -430,17 +448,25 @@ function AdminPanel() {
   return (
     <div className="admin-panel">
       <div className="admin-panel__header">
-        <h2>پنل ادمین دانوآ</h2>
-        <p>نمای کلی وضعیت کاربران، خطاها و فعالیت سیستم</p>
+        <div>
+          <span className="admin-panel__eyebrow">مدیریت محصول</span>
+          <h2>پنل ادمین دانوآ</h2>
+          <p>نمای کلی وضعیت کاربران، اشتراک‌ها، خطاها و فعالیت سیستم</p>
+        </div>
       </div>
 
       <div className="admin-tabs">
-        <Button variant="secondary" className={`admin-tab ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}>داشبورد</Button>
-        <Button variant="secondary" className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>کاربران</Button>
-        <Button variant="secondary" className={`admin-tab ${tab === 'subscriptions' ? 'active' : ''}`} onClick={() => setTab('subscriptions')}>اشتراک‌ها</Button>
-        <Button variant="secondary" className={`admin-tab ${tab === 'errors' ? 'active' : ''}`} onClick={() => setTab('errors')}>خطاها</Button>
-        <Button variant="secondary" className={`admin-tab ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>تنظیمات</Button>
-        <Button variant="secondary" className={`admin-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit</Button>
+        {(Object.keys(TAB_LABELS) as AdminTab[]).map((item) => (
+          <Button
+            key={item}
+            variant="secondary"
+            className={`admin-tab ${tab === item ? 'active' : ''}`}
+            onClick={() => setTab(item)}
+          >
+            <span className="admin-tab__icon" aria-hidden="true">{TAB_ICONS[item]}</span>
+            {TAB_LABELS[item]}
+          </Button>
+        ))}
       </div>
 
       {loadError && (
@@ -472,19 +498,19 @@ function AdminPanel() {
           {dashboard ? (
             <>
               <div className="kpi-grid">
-                <div className="kpi-card">
+                <div className="kpi-card kpi-card--users">
                   <div className="kpi-card__label">تعداد کل کاربران</div>
                   <strong className="kpi-card__value">{dashboard.kpis.totalUsers}</strong>
                 </div>
-                <div className="kpi-card">
+                <div className="kpi-card kpi-card--active">
                   <div className="kpi-card__label">کاربران فعال 24 ساعت اخیر</div>
                   <strong className="kpi-card__value">{dashboard.kpis.activeUsersToday}</strong>
                 </div>
-                <div className="kpi-card">
+                <div className="kpi-card kpi-card--api">
                   <div className="kpi-card__label">درخواست های API امروز</div>
                   <strong className="kpi-card__value">{dashboard.kpis.apiCallsToday}</strong>
                 </div>
-                <div className="kpi-card">
+                <div className="kpi-card kpi-card--errors">
                   <div className="kpi-card__label">تعداد خطاهای امروز</div>
                   <strong className="kpi-card__value">{dashboard.kpis.errorCountToday}</strong>
                 </div>
@@ -545,6 +571,7 @@ function AdminPanel() {
 
               <div className="admin-section">
                 <h3>آخرین فعالیت ها (Audit)</h3>
+                <div className="admin-table-wrap">
                 <table className="admin-table">
                   <thead>
                     <tr>
@@ -572,6 +599,7 @@ function AdminPanel() {
                     ) : null}
                   </tbody>
                 </table>
+                </div>
               </div>
             </>
           ) : null}
@@ -596,6 +624,7 @@ function AdminPanel() {
             </select>
             <Button className="admin-action-btn" onClick={() => void loadUsers()}>اعمال فیلتر</Button>
           </div>
+          <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr><th>نام</th><th>سن</th><th>شماره</th><th>تاریخ عضویت</th><th>تعداد گفتگو</th><th>آخرین فعالیت</th><th>عملیات</th></tr>
@@ -622,6 +651,7 @@ function AdminPanel() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {selectedUser ? (
             <div className="profile-box">
@@ -750,6 +780,7 @@ function AdminPanel() {
           </div>
 
           <h3>اشتراک‌های فعال</h3>
+          <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr><th>کاربر</th><th>پلن</th><th>وضعیت</th><th>شروع</th><th>انقضا</th><th>عملیات</th></tr>
@@ -774,10 +805,12 @@ function AdminPanel() {
               ) : null}
             </tbody>
           </table>
+          </div>
         </div>
       ) : null}
 
       {tab === 'errors' ? (
+        <div className="admin-table-wrap">
         <table className="admin-table">
           <thead><tr><th>نوع</th><th>Endpoint</th><th>Status</th><th>پیام</th><th>زمان</th></tr></thead>
           <tbody>
@@ -786,6 +819,7 @@ function AdminPanel() {
             ))}
           </tbody>
         </table>
+        </div>
       ) : null}
 
       {tab === 'config' && config ? (
@@ -845,6 +879,7 @@ function AdminPanel() {
       ) : null}
 
       {tab === 'audit' ? (
+        <div className="admin-table-wrap">
         <table className="admin-table">
           <thead><tr><th>زمان</th><th>ادمین</th><th>عملیات</th><th>هدف</th><th>جزئیات</th></tr></thead>
           <tbody>
@@ -853,6 +888,7 @@ function AdminPanel() {
             ))}
           </tbody>
         </table>
+        </div>
       ) : null}
 
       <div className="admin-section admin-report">

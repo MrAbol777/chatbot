@@ -1,4 +1,5 @@
 const { getIranMobileVariants } = require('../../shared/validators/phone.validator');
+const { generateUserId } = require('../../repositories/helpers');
 
 const DEFAULT_MAX_WRONG_ATTEMPTS = 5;
 
@@ -224,13 +225,14 @@ function createAuthRepository({
 
     if (dbPool && typeof dbPool.query === 'function') {
       const timestamp = new Date();
+      const userId = generateUserId({ isGuest: !profile.phone });
       await dbPool.query(
         `INSERT INTO app_users (user_id, name, age, phone, is_banned, registered_at, last_active)
          VALUES (?, ?, ?, ?, 0, ?, ?)
          ON DUPLICATE KEY UPDATE name = VALUES(name), age = VALUES(age), phone = VALUES(phone), last_active = VALUES(last_active)`,
-        [String(profile.id), profile.name, Number(profile.age) || 0, profile.phone || null, timestamp, timestamp]
+        [userId, profile.name, Number(profile.age) || 0, profile.phone || null, timestamp, timestamp]
       );
-      return String(profile.id);
+      return userId;
     }
 
     throw new Error('No db wrapper or dbPool was provided to auth repository');

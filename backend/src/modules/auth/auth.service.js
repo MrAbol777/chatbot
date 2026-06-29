@@ -6,6 +6,7 @@ const {
 
 function createAuthService({
   authRepository,
+  guestsRepository,
   smsService,
   jwt,
   jwtSecret,
@@ -174,7 +175,7 @@ function createAuthService({
     return { statusCode: 200, body: { success: true } };
   };
 
-  const registerProfile = async ({ name, age, phone: rawPhone, id, mode }) => {
+  const registerProfile = async ({ name, age, phone: rawPhone, id, mode, guestId }) => {
     const inputName = typeof name === 'string' ? name.trim() : '';
     const rawName = inputName || 'کاربر';
     const phone = normalizeIranMobileToLocal(rawPhone);
@@ -196,7 +197,7 @@ function createAuthService({
     if (existingUser?.isBanned) {
       return { statusCode: 403, body: { error: 'حساب شما مسدود شده است' } };
     }
-    if (mode === 'signup' && existingUser && String(existingUser.user_id) !== String(id)) {
+    if (mode === 'signup' && existingUser) {
       return { statusCode: 409, body: { error: 'این شماره قبلاً ثبت‌نام شده است', redirectTo: 'login' } };
     }
     if (mode === 'login' && !existingUser) {
@@ -206,9 +207,6 @@ function createAuthService({
     if (mode !== 'login') {
       if (!Number.isFinite(rawAge)) {
         return { statusCode: 400, body: { error: 'سن معتبر نیست.' } };
-      }
-      if (!(typeof id === 'string' || typeof id === 'number')) {
-        return { statusCode: 400, body: { error: 'شناسه معتبر نیست.' } };
       }
     }
 
@@ -221,13 +219,20 @@ function createAuthService({
             phone
           }
         : {
-            id,
             name: rawName,
             age: rawAge,
             phone
           };
 
     const userId = await authRepository.createUser(payloadProfile);
+    let guestMigration = null;
+    if (guestsRepository && typeof guestsRepository.migrateGuestToUser === 'function' && guestId) {
+      guestMigration = await guestsRepository.migrateGuestToUser({
+        guestId,
+        userId: String(userId)
+      });
+    }
+
     const token = createToken({
       sub: String(userId),
       phone,
@@ -244,6 +249,7 @@ function createAuthService({
           age: Number(payloadProfile.age),
           phone
         },
+        ...(guestMigration ? { guestMigration } : {}),
         ...(token ? { token } : {})
       }
     };

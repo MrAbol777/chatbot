@@ -4,6 +4,7 @@ const {
   normalizeConversationId,
   safeJsonArray
 } = require('./helpers');
+const { getGuestIdFromUserId } = require('./GuestRepository');
 
 class ConversationRepository {
   constructor(db) {
@@ -48,14 +49,15 @@ class ConversationRepository {
       : [];
 
     const normalizedUserId = String(userId);
+    const guestId = getGuestIdFromUserId(normalizedUserId) || null;
     const normalizedConversationId = normalizeConversationId(conversationId);
     const ts = new Date();
 
     await this.db.query(
-      `INSERT INTO app_conversations (user_id, conversation_id, title, pinned, messages, created_at, updated_at)
-       VALUES (?, ?, '', 0, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE messages = VALUES(messages), updated_at = VALUES(updated_at)`,
-      [normalizedUserId, normalizedConversationId, JSON.stringify(safeMessages), ts, ts]
+      `INSERT INTO app_conversations (user_id, guest_id, conversation_id, title, pinned, messages, created_at, updated_at)
+       VALUES (?, ?, ?, '', 0, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE guest_id = VALUES(guest_id), messages = VALUES(messages), updated_at = VALUES(updated_at)`,
+      [normalizedUserId, guestId, normalizedConversationId, JSON.stringify(safeMessages), ts, ts]
     );
   }
 
@@ -125,9 +127,10 @@ class ConversationRepository {
           : [];
 
         await conn.query(
-          'INSERT INTO app_conversations (user_id, conversation_id, title, pinned, messages, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO app_conversations (user_id, guest_id, conversation_id, title, pinned, messages, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
           [
             targetId,
+            getGuestIdFromUserId(targetId) || null,
             conversationId,
             typeof item?.title === 'string' ? item.title.trim() : '',
             Boolean(item?.pinned) ? 1 : 0,

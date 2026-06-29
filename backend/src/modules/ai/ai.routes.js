@@ -7,7 +7,11 @@ function createAiRouter(deps) {
   const aiService = deps.aiService || createAiService(deps);
   const controller = createAiController({
     aiService,
-    errorsRepository: deps.errorsRepository
+    errorsRepository: deps.errorsRepository,
+    guestsRepository: deps.guestsRepository,
+    usersRepository: deps.usersRepository,
+    jwt: deps.jwt,
+    jwtSecret: deps.jwtSecret
   });
 
   router.post('/api/chat', controller.postChat);

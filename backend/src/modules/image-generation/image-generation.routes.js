@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 const { createImageGenerationController } = require('./image-generation.controller');
 const { createImageGenerationService } = require('./image-generation.service');
 const { createAuthMiddleware } = require('./auth.middleware');
@@ -7,16 +8,17 @@ function createImageGenerationRouter(deps) {
   const router = express.Router();
 
   const authMiddleware = createAuthMiddleware({
-    jwtSecret: deps.authJwtSecret
+    jwtSecret: deps.authJwtSecret,
+    db: deps.db
   });
 
   const imageGenerationService =
     deps.imageGenerationService ||
     createImageGenerationService({
       httpClient: deps.httpClient || axios,
-      metisApiKey: deps.metisApiKey,
-      baseUrl: deps.baseUrl,
-      imageModel: deps.metisImageModel || 'nano-banana-2'
+      geminiApiKey: deps.geminiApiKey,
+      baseUrl: deps.geminiBaseUrl,
+      imageModel: deps.geminiImageModel || 'gemini-2.5-flash-image'
     });
 
   const controller = createImageGenerationController({

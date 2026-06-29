@@ -1,135 +1,146 @@
 /**
- * Image generation service — calls Metis AI v2 async API.
+ * Image generation service — calls the official Google Gemini API.
  *
- * Endpoints:
- *   POST /api/v2/generate        → creates async task → { id: metisTaskId }
- *   GET  /api/v2/generate/:taskId → polls status     → { status, generations[] }
- *
- * Auth: Authorization: Bearer ${METIS_API_KEY}
+ * The public app contract remains async/polled at our API boundary, but Gemini
+ * image generation itself is a single generateContent request handled by the
+ * controller's background worker.
  */
-function createImageGenerationService({ httpClient, metisApiKey, baseUrl = 'https://api.metisai.ir', imageModel = 'nano-banana-2' }) {
+const REQUIRED_GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
 
-  const getProvider = (model) => {
-    const openaiModels = ['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'dall-e-3', 'dall-e-2'];
-    const googleModels = ['nano-banana', 'nano-banana-pro', 'nano-banana-2'];
-    const blackForestModels = ['flux-pro', 'flux-schnell', 'flux-kontext-max', 'flux-kontext-pro'];
-    const qwenModels = ['qwen-image-edit'];
-    const nightmareModels = ['real-esrgan', 'remove-bg'];
-    const fofrModels = ['face-to-sticker', 'become-image'];
-    const m = (model || '').toLowerCase();
-    if (openaiModels.includes(m)) return 'openai';
-    if (googleModels.includes(m)) return 'google';
-    if (blackForestModels.includes(m)) return 'black-forest-labs';
-    if (qwenModels.includes(m)) return 'qwen';
-    if (nightmareModels.includes(m)) return 'nightmareai';
-    if (fofrModels.includes(m)) return 'fofr';
-    return 'openai';
+function createImageGenerationService({
+  httpClient,
+  geminiApiKey,
+  imageModel = REQUIRED_GEMINI_IMAGE_MODEL,
+  baseUrl = 'https://generativelanguage.googleapis.com/v1beta'
+}) {
+  const normalizedBaseUrl = String(baseUrl || '').replace(/\/+$/, '');
+  const normalizedModel = String(imageModel || REQUIRED_GEMINI_IMAGE_MODEL).trim();
+
+  const getImageExtension = (mimeType = '') => {
+    const normalized = String(mimeType).toLowerCase();
+    if (normalized.includes('png')) return 'png';
+    if (normalized.includes('jpeg') || normalized.includes('jpg')) return 'jpg';
+    if (normalized.includes('webp')) return 'webp';
+    return 'png';
   };
 
-  const provider = getProvider(imageModel);
+  const extractImagePart = (responseData) => {
+    const candidates = Array.isArray(responseData?.candidates) ? responseData.candidates : [];
+    for (const candidate of candidates) {
+      const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
+      for (const part of parts) {
+        const inlineData = part?.inlineData || part?.inline_data;
+        if (inlineData?.data) {
+          const mimeType = inlineData.mimeType || inlineData.mime_type || 'image/png';
+          return {
+            base64: inlineData.data,
+            mimeType
+          };
+        }
+      }
+    }
+    return null;
+  };
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${metisApiKey}`,
-    'Content-Type': 'application/json; charset=utf-8'
-  });
+  const getGeminiErrorMessage = (error) => {
+    const statusCode = error?.response?.status;
+    const responseData = error?.response?.data;
+    const apiError = responseData && typeof responseData === 'object' ? responseData.error : null;
 
-  /**
-   * POST /api/v2/generate — creates an async image generation task.
-   * Returns the Metis task ID.
-   */
-  const createImageGeneration = async (prompt) => {
-    const url = `${baseUrl}/api/v2/generate`;
+    if (apiError?.message) {
+      return apiError.message;
+    }
+
+    if (statusCode === 401 || statusCode === 403) {
+      return `Gemini API request was rejected (HTTP ${statusCode}). Check GEMINI_API_KEY and Google API access for ${REQUIRED_GEMINI_IMAGE_MODEL}.`;
+    }
+
+    if (statusCode === 404) {
+      return `Gemini image model was not found. GEMINI_IMAGE_MODEL must be ${REQUIRED_GEMINI_IMAGE_MODEL}.`;
+    }
+
+    return error?.message || 'Gemini image generation failed.';
+  };
+
+  const generateImage = async (prompt) => {
+    if (!geminiApiKey) {
+      const error = new Error('GEMINI_API_KEY is missing');
+      error.code = 'MISSING_GEMINI_API_KEY';
+      throw error;
+    }
+
+    if (normalizedModel !== REQUIRED_GEMINI_IMAGE_MODEL) {
+      throw new Error(`GEMINI_IMAGE_MODEL must be ${REQUIRED_GEMINI_IMAGE_MODEL}.`);
+    }
+
+    const url = `${normalizedBaseUrl}/models/${encodeURIComponent(normalizedModel)}:generateContent`;
     const body = {
-      model: { name: provider, model: imageModel },
-      operation: 'Imagine',
-      args: { prompt }
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: prompt }]
+        }
+      ],
+      generationConfig: {
+        responseModalities: ['TEXT', 'IMAGE']
+      }
     };
 
-    console.log('[image-generation] createImageGeneration REQUEST:', {
-      url,
-      model: provider + '/' + imageModel,
+    console.log('[image-generation] Gemini request started', {
+      model: normalizedModel,
       promptLength: prompt.length,
-      hasApiKey: Boolean(metisApiKey),
-      keyPrefix: metisApiKey ? metisApiKey.substring(0, 8) : null
+      hasApiKey: Boolean(geminiApiKey)
     });
 
     try {
-      const response = await httpClient.post(url, body, { headers: getHeaders() });
-
-      console.log('[image-generation] createImageGeneration RESPONSE:', {
-        status: response.status,
-        taskId: response?.data?.id
+      const response = await httpClient.post(url, body, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': geminiApiKey
+        },
+        timeout: 120000
       });
 
-      const taskId = response?.data?.id;
-      if (!taskId) {
-        throw new Error(`Task id not found in Metis response. Got: ${JSON.stringify(response?.data)}`);
+      const imagePart = extractImagePart(response?.data);
+      if (!imagePart) {
+        const finishReason = response?.data?.candidates?.[0]?.finishReason;
+        throw new Error(`Gemini did not return image data${finishReason ? ` (finishReason: ${finishReason})` : ''}.`);
       }
 
-      return taskId;
-    } catch (error) {
-      const apiError = error?.response?.data;
-      const statusCode = error?.response?.status;
-      const message = apiError?.error || apiError?.message || error?.message || 'Unknown MetisAI error';
-      console.error('[image-generation] createImageGeneration failed:', {
-        message,
-        statusCode,
-        apiError,
-        fullResponse: error?.response?.data,
-        url
-      });
-      throw new Error(message);
-    }
-  };
+      const buffer = Buffer.from(imagePart.base64, 'base64');
+      if (!buffer.length) {
+        throw new Error('Gemini returned empty image data.');
+      }
 
-  /**
-   * GET /api/v2/generate/:taskId — polls the status of an async task.
-   * Returns { status, imageUrl?, error? }.
-   */
-  const getImageStatus = async (taskId) => {
-    const url = `${baseUrl}/api/v2/generate/${taskId}`;
-
-    try {
-      const response = await httpClient.get(url, { headers: getHeaders() });
-
-      const data = response?.data;
-      const status = data?.status || 'UNKNOWN';
-
-      console.log('[image-generation] getImageStatus RESPONSE:', {
-        taskId,
-        status,
-        hasGenerations: Boolean(data?.generations?.length)
+      console.log('[image-generation] Gemini request succeeded', {
+        model: normalizedModel,
+        mimeType: imagePart.mimeType,
+        bytes: buffer.length
       });
 
-      if (status === 'COMPLETED') {
-        const generation = data?.generations?.[0];
-        const imageUrl = generation?.url || generation?.content || null;
-        if (!imageUrl) {
-          throw new Error(`Image URL not found. Full response: ${JSON.stringify(data)}`);
-        }
-        return { status: 'COMPLETED', imageUrl };
-      }
-
-      if (status === 'ERROR') {
-        return { status: 'ERROR', error: data?.error || 'MetisAI task failed.' };
-      }
-
-      return { status };
+      return {
+        buffer,
+        mimeType: imagePart.mimeType,
+        extension: getImageExtension(imagePart.mimeType),
+        model: normalizedModel
+      };
     } catch (error) {
       const statusCode = error?.response?.status;
-      const message = error?.response?.data?.error || error?.message || 'Failed to fetch task status.';
-      console.error('[image-generation] getImageStatus failed:', {
+      const responseData = error?.response?.data;
+      const apiError = responseData && typeof responseData === 'object' ? responseData.error : null;
+      const message = getGeminiErrorMessage(error);
+      console.error('[image-generation] Gemini request failed', {
         message,
         statusCode,
-        taskId
+        reason: apiError?.status || apiError?.code || null,
+        model: normalizedModel
       });
       throw new Error(message);
     }
   };
 
   return {
-    createImageGeneration,
-    getImageStatus
+    generateImage
   };
 }
 

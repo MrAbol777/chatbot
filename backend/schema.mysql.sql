@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS app_app_errors (
 CREATE TABLE IF NOT EXISTS app_conversations (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id VARCHAR(191) NOT NULL,
+  guest_id VARCHAR(64) NULL,
   conversation_id VARCHAR(191) NOT NULL,
   title VARCHAR(255) NULL,
   pinned TINYINT(1) NOT NULL DEFAULT 0,
@@ -57,11 +58,25 @@ CREATE TABLE IF NOT EXISTS app_conversations (
   updated_at DATETIME NOT NULL,
   UNIQUE KEY uq_app_conversations_user_conversation (user_id, conversation_id),
   INDEX idx_app_conversations_user_id (user_id),
+  INDEX idx_app_conversations_guest_id (guest_id),
   INDEX idx_app_conversations_updated_at (updated_at),
   CONSTRAINT fk_app_conversations_user
     FOREIGN KEY (user_id)
     REFERENCES app_users(user_id)
     ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS guest_message_counts (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  guest_id VARCHAR(64) NOT NULL,
+  ip_address VARCHAR(64) NOT NULL,
+  message_count INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL,
+  last_message_at DATETIME NOT NULL,
+  UNIQUE KEY uq_guest_message_counts_guest_ip (guest_id, ip_address),
+  INDEX idx_guest_message_counts_guest_id (guest_id),
+  INDEX idx_guest_message_counts_ip_address (ip_address),
+  INDEX idx_guest_message_counts_last_message_at (last_message_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS image_generations (

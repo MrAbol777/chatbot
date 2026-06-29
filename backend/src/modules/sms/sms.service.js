@@ -50,6 +50,12 @@ function createSmsService({
   };
 
   const generateOtp = () => String(Math.floor(10000 + Math.random() * 90000));
+  const redactSecret = (value) => {
+    const text = typeof value === 'string' ? value.trim() : '';
+    if (!text) return '';
+    if (text.length <= 6) return '***';
+    return `${text.slice(0, 3)}...${text.slice(-3)}`;
+  };
 
   const canResend = (phone) => {
     const entry = otpStore.get(phone);
@@ -190,8 +196,17 @@ function createSmsService({
 
     logger.log(`[${now()}] [IPPanel] Before send pattern OTP`, {
       endpoint: ippanelSendUrl,
-      headers,
-      payload
+      headers: {
+        ...headers,
+        Authorization: redactSecret(headers.Authorization)
+      },
+      payload: {
+        ...payload,
+        params: {
+          ...payload.params,
+          code: normalizedCode ? '***' : ''
+        }
+      }
     });
 
     try {

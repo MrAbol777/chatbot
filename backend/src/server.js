@@ -127,7 +127,9 @@ const {
   defaultModel,
   metisApiKey,
   defaultTimeoutMs,
-  metisImageModel,
+  geminiApiKey,
+  geminiImageModel,
+  geminiBaseUrl,
   adminApiKey,
   adminJwtSecret,
   authJwtSecret,
@@ -293,10 +295,12 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
     }
   }
 
-  // 2. Check generated images: uploads/images-generated/{id}.webp
-  const generatedPath = path.join(generatedImagesDir, `${imageId}.webp`);
-  if (await fs.pathExists(generatedPath)) {
-    return streamImage(generatedPath, 'image/webp');
+  // 2. Check generated images: uploads/images-generated/{id}.{ext}
+  for (const ext of allowedImageExtensions) {
+    const generatedPath = path.join(generatedImagesDir, `${imageId}${ext}`);
+    if (await fs.pathExists(generatedPath)) {
+      return streamImage(generatedPath, imageMimeTypeByExtension[ext]);
+    }
   }
 
   // Don't cache 404 — file might be created by concurrent request
@@ -309,6 +313,7 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
 
 const { router: authRouter } = createAuthModule({
   userRepository: repositories.users,
+  guestsRepository: repositories.guests,
   smsService: appSmsService,
   jwt,
   jwtSecret: authJwtSecret,
@@ -328,6 +333,9 @@ app.use(createAiRouter({
   promptService,
   usersRepository: repositories.users,
   conversationsRepository: repositories.conversations,
+  guestsRepository: repositories.guests,
+  jwt,
+  jwtSecret: authJwtSecret,
   eventsRepository: repositories.events,
   errorsRepository: repositories.errors,
   uploadedImagesRepository,
@@ -338,11 +346,11 @@ app.use(createAiRouter({
 
 const imageGenerationModule = createImageGenerationRouter({
   httpClient: axios,
-  metisApiKey,
-  baseUrl: metisBaseUrl.replace(/\/openai\/v1$/, ''),
+  geminiApiKey,
+  geminiImageModel,
+  geminiBaseUrl,
   db: repositories.db,
-  authJwtSecret,
-  metisImageModel
+  authJwtSecret
 });
 // Public serve endpoint (no auth — img tags can't send Authorization headers)
 app.use('/api/images', imageGenerationModule.publicRouter);

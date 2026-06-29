@@ -83,12 +83,7 @@ const normalizeSubscriptionPlan = (plan = {}, fallback = {}) => {
     icon: typeof plan.icon === 'string' && plan.icon.trim() ? plan.icon.trim() : fallback.icon || '✨',
     tagline: typeof plan.tagline === 'string' ? plan.tagline.trim() : fallback.tagline || '',
     price: monthlyPrice,
-    priceLabel:
-      typeof plan.priceLabel === 'string' && plan.priceLabel.trim()
-        ? plan.priceLabel.trim()
-        : monthlyPrice === 0
-          ? 'رایگان'
-          : new Intl.NumberFormat('fa-IR').format(monthlyPrice),
+    priceLabel: monthlyPrice === 0 ? 'رایگان' : new Intl.NumberFormat('fa-IR').format(monthlyPrice),
     monthlyPrice,
     dailyPrice,
     dailyMessageLimit:

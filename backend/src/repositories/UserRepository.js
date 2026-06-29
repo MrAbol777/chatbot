@@ -19,6 +19,14 @@ class UserRepository {
     return rows[0] || null;
   }
 
+  async findUserById(userId) {
+    await this.db.init();
+    const targetId = typeof userId === 'string' || typeof userId === 'number' ? String(userId).trim() : '';
+    if (!targetId) return null;
+    const [rows] = await this.db.query('SELECT * FROM app_users WHERE user_id = ? LIMIT 1', [targetId]);
+    return rows[0] || null;
+  }
+
   async isUserBannedByPhone(phone) {
     return Boolean((await this.findUserByPhone(phone))?.is_banned);
   }
@@ -27,26 +35,27 @@ class UserRepository {
     await this.db.init();
     const incomingId =
       typeof profile.id === 'string' || typeof profile.id === 'number' ? String(profile.id).trim() : '';
-    const userId = incomingId || generateUserId();
     const nextName = sanitizeName(profile.name);
     const nextAge = sanitizeAge(profile.age);
     const nextPhone = sanitizePhone(profile.phone);
 
-    const [byIdRows] = await this.db.query('SELECT * FROM app_users WHERE user_id = ? LIMIT 1', [userId]);
+    const isIncomingGuestId = incomingId.startsWith('guest:');
+    const userId = nextPhone
+      ? generateUserId({ isGuest: false })
+      : isIncomingGuestId
+        ? incomingId
+        : generateUserId({ isGuest: true });
+
+    const [byIdRows] = incomingId
+      ? await this.db.query('SELECT * FROM app_users WHERE user_id = ? LIMIT 1', [incomingId])
+      : [[]];
     const existingUserById = byIdRows[0] || null;
     const [byPhoneRows] = nextPhone
       ? await this.db.query('SELECT * FROM app_users WHERE phone = ? LIMIT 1', [nextPhone])
       : [[]];
     const existingUserByPhone = byPhoneRows[0] || null;
 
-    if (existingUserById && existingUserByPhone && existingUserById.user_id !== existingUserByPhone.user_id) {
-      const conflictError = new Error('این شماره موبایل قبلا برای حساب دیگری ثبت شده است.');
-      conflictError.code = 'PHONE_ALREADY_IN_USE';
-      conflictError.userId = existingUserByPhone.user_id;
-      throw conflictError;
-    }
-
-    const existingUser = existingUserByPhone || existingUserById;
+    const existingUser = existingUserByPhone || (!nextPhone ? existingUserById : null);
     const timestamp = new Date();
 
     if (existingUser) {

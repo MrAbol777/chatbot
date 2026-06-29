@@ -32,7 +32,12 @@ function loadRuntimeConfig(env = process.env) {
   const systemPromptPath = path.join(__dirname, '../../system-prompt.txt');
   const frontendDistPath = path.join(__dirname, '../../../frontend/dist');
 
-  const metisImageModel = env.METIS_IMAGE_MODEL || 'nano-banana-2';
+  const geminiApiKey = typeof env.GEMINI_API_KEY === 'string' ? env.GEMINI_API_KEY.trim() : '';
+  const geminiImageModel = env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
+  const geminiBaseUrl = normalizeBaseUrl(
+    env.GEMINI_API_BASE_URL,
+    'https://generativelanguage.googleapis.com/v1beta'
+  );
 
   return {
     port,
@@ -40,7 +45,9 @@ function loadRuntimeConfig(env = process.env) {
     metisBaseUrl,
     defaultModel,
     metisApiKey,
-    metisImageModel,
+    geminiApiKey,
+    geminiImageModel,
+    geminiBaseUrl,
     defaultTimeoutMs,
     adminApiKey,
     adminJwtSecret,

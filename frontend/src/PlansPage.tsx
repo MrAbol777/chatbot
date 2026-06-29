@@ -4,7 +4,7 @@ import './PlansPage.css';
 type BillingCycle = 'monthly' | 'daily';
 
 type Plan = {
-  id: 'free' | 'gold' | 'diamond';
+  id: string;
   name: string;
   icon: string;
   tagline?: string;

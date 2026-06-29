@@ -72,6 +72,7 @@ class DatabaseClient {
         CREATE TABLE IF NOT EXISTS app_conversations (
           id BIGINT AUTO_INCREMENT PRIMARY KEY,
           user_id VARCHAR(191) NOT NULL,
+          guest_id VARCHAR(64) NULL,
           conversation_id VARCHAR(191) NOT NULL,
           title VARCHAR(255) NULL,
           pinned TINYINT(1) NOT NULL DEFAULT 0,
@@ -82,6 +83,23 @@ class DatabaseClient {
           INDEX idx_conversations_user (user_id),
           INDEX idx_conversations_updated (updated_at),
           CONSTRAINT fk_conversations_user FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+      await this.ensureColumn('app_conversations', 'guest_id', 'VARCHAR(64) NULL AFTER user_id');
+      await this.ensureIndex('app_conversations', 'idx_app_conversations_guest_id', 'guest_id');
+
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS guest_message_counts (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          guest_id VARCHAR(64) NOT NULL,
+          ip_address VARCHAR(64) NOT NULL,
+          message_count INT NOT NULL DEFAULT 0,
+          created_at DATETIME NOT NULL,
+          last_message_at DATETIME NOT NULL,
+          UNIQUE KEY uq_guest_message_counts_guest_ip (guest_id, ip_address),
+          INDEX idx_guest_message_counts_guest (guest_id),
+          INDEX idx_guest_message_counts_ip (ip_address),
+          INDEX idx_guest_message_counts_last_message (last_message_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
 
@@ -117,6 +135,18 @@ class DatabaseClient {
 
   getConnection() {
     return this.pool.getConnection();
+  }
+
+  async ensureColumn(tableName, columnName, definition) {
+    const [rows] = await this.pool.query(`SHOW COLUMNS FROM \`${tableName}\` LIKE ?`, [columnName]);
+    if (rows.length > 0) return;
+    await this.pool.query(`ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${definition}`);
+  }
+
+  async ensureIndex(tableName, indexName, columnName) {
+    const [rows] = await this.pool.query(`SHOW INDEX FROM \`${tableName}\` WHERE Key_name = ?`, [indexName]);
+    if (rows.length > 0) return;
+    await this.pool.query(`ALTER TABLE \`${tableName}\` ADD INDEX \`${indexName}\` (\`${columnName}\`)`);
   }
 }
 
