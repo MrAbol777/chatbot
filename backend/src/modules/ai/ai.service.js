@@ -226,6 +226,7 @@ function createAiService({
   httpClient,
   promptService,
   conversationStore = new Map(),
+  settingsRepository,
   usersRepository,
   conversationsRepository,
   eventsRepository,
@@ -240,6 +241,30 @@ function createAiService({
 
   const isGeminiModel = (modelName) =>
     typeof modelName === 'string' && modelName.toLowerCase().includes('gemini');
+
+  const getChatSettings = async () => {
+    const runtimeConfig = await promptService.getRuntimeConfig();
+    if (!settingsRepository || typeof settingsRepository.getAll !== 'function') {
+      return {
+        model: runtimeConfig.model || 'gemini-2.5-flash',
+        timeoutMs: runtimeConfig.timeoutMs,
+        temperature: 0.6
+      };
+    }
+
+    const settings = await settingsRepository.getAll();
+    return {
+      model: typeof settings['ai.chat.model'] === 'string' && settings['ai.chat.model'].trim()
+        ? settings['ai.chat.model'].trim()
+        : runtimeConfig.model || 'gemini-2.5-flash',
+      timeoutMs: Number.isFinite(Number(settings['ai.chat.timeout_ms']))
+        ? Number(settings['ai.chat.timeout_ms'])
+        : runtimeConfig.timeoutMs,
+      temperature: Number.isFinite(Number(settings['ai.chat.temperature']))
+        ? Number(settings['ai.chat.temperature'])
+        : 0.6
+    };
+  };
 
   // ─── Gemini (Metis wrapper) helpers ──────────────────────────────
   const buildGeminiPayload = (messages) => {
@@ -269,7 +294,7 @@ function createAiService({
       throw error;
     }
 
-    const runtimeConfig = await promptService.getRuntimeConfig();
+    const runtimeConfig = await getChatSettings();
     const geminiModel = runtimeConfig.model || 'gemini-2.5-flash';
     const geminiEndpoint = `https://api.metisai.ir/v1beta/models/${geminiModel}:generateContent`;
     const payload = buildGeminiPayload(messages);
@@ -350,11 +375,11 @@ function createAiService({
       throw error;
     }
 
-    const runtimeConfig = await promptService.getRuntimeConfig();
+    const runtimeConfig = await getChatSettings();
     const payload = {
       model: runtimeConfig.model,
       messages: buildChatMessages(messages),
-      temperature: 0.6
+      temperature: runtimeConfig.temperature
     };
     const totalTimeoutMs = Math.max(5000, runtimeConfig.timeoutMs);
     const sdkTimeoutMs = Math.min(8000, totalTimeoutMs);

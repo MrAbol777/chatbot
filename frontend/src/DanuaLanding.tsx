@@ -41,7 +41,7 @@ type LandingPlan = {
   popular?: boolean;
 };
 
-const defaultPlans: LandingPlan[] = [
+const fallbackPlans: LandingPlan[] = [
   {
     id: 'free',
     name: 'رایگان',
@@ -135,7 +135,7 @@ const navLinks = [
 function DanuaLanding() {
   const [openFaq, setOpenFaq] = useState<number>(-1);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [plans, setPlans] = useState<LandingPlan[]>(defaultPlans);
+  const [plans, setPlans] = useState<LandingPlan[]>([]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -176,9 +176,13 @@ function DanuaLanding() {
             } as LandingPlan;
           });
 
-        if (nextPlans.length > 0) setPlans(nextPlans);
+        if (nextPlans.length > 0) {
+          setPlans(nextPlans);
+          return;
+        }
+        setPlans(fallbackPlans);
       } catch {
-        // Landing keeps bundled defaults if subscriptions API is unavailable.
+        setPlans(fallbackPlans);
       }
     };
 
@@ -381,7 +385,7 @@ function DanuaLanding() {
           <h2>از شروع رایگان تا همراهی نامحدود!</h2>
         </div>
         <div className="danua-plan-grid">
-          {plans.map((plan) => (
+          {(plans.length > 0 ? plans : fallbackPlans).map((plan) => (
             <Card
               key={plan.id}
               className={`danua-plan-card danua-plan-${plan.tone} ${plan.popular ? 'is-popular' : ''}`}

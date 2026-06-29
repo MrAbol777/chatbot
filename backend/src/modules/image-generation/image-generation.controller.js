@@ -17,7 +17,7 @@ const MIME_BY_EXTENSION = {
  * creating an internal task, doing generation in the background, and saving
  * uploads/images-generated/{id}.{ext} for same-origin serving.
  */
-function createImageGenerationController({ imageGenerationService, db }) {
+function createImageGenerationController({ imageGenerationService, db, plansRepository }) {
   const getImagesDir = () => path.join(__dirname, '../../../uploads/images-generated');
 
   const findGeneratedImage = async (recordId) => {
@@ -120,6 +120,20 @@ function createImageGenerationController({ imageGenerationService, db }) {
         return res.status(401).json({ success: false, error: 'Authentication required.' });
       }
 
+      if (plansRepository && typeof plansRepository.checkLimit === 'function') {
+        const limitState = await plansRepository.checkLimit(userId, 'image');
+        if (!limitState.allowed) {
+          return res.status(402).json({
+            success: false,
+            error: 'IMAGE_LIMIT_REACHED',
+            message: 'سقف ساخت تصویر روزانه پلن شما تمام شده است.',
+            plan: limitState.plan?.id || null,
+            limit: limitState.limit,
+            usage: limitState.usage
+          });
+        }
+      }
+
       const providerTaskId = `gemini-${uuidv4()}`;
       const [insertResult] = await db.query(
         `INSERT INTO image_generations (user_id, task_id, prompt, status)
@@ -128,6 +142,10 @@ function createImageGenerationController({ imageGenerationService, db }) {
       );
       const dbRecordId = insertResult.insertId;
       const taskId = String(dbRecordId);
+
+      if (plansRepository && typeof plansRepository.incrementDailyUsage === 'function') {
+        await plansRepository.incrementDailyUsage(userId, 'image', 1);
+      }
 
       console.log('[image-generation] task created', {
         taskId,

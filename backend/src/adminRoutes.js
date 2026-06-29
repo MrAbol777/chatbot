@@ -9,14 +9,14 @@ const { createAdminSystemService } = require('./modules/admin/system/service');
 const { createAdminSystemRouter } = require('./modules/admin/system/routes');
 const { createAdminLogsService } = require('./modules/admin/logs/service');
 const { createAdminLogsRouter } = require('./modules/admin/logs/routes');
+const { createAdminSettingsService } = require('./modules/admin/settings/service');
+const { createAdminSettingsRouter } = require('./modules/admin/settings/routes');
 const { createLoginLimiter, createRequireAdminAuth, parseBannedFilter } = require('./modules/admin/common/auth');
 const {
   CONFIG_FILE_PATH,
   DEFAULT_CONFIG,
   ensureAdminData,
   ensureConfigData,
-  ensureSubscriptionsData,
-  writeSubscriptionsData,
   readAuditLogs,
   appendAudit
 } = require('./modules/admin/common/storage');
@@ -26,6 +26,7 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
   const isSystemPromptEditEnabled = () => process.env.ENABLE_SYSTEM_PROMPT_EDIT !== 'false';
   const usersRepository = repositories?.users;
   const analyticsRepository = repositories?.analytics;
+  const plansRepository = repositories?.plans;
 
   const loginLimiter = createLoginLimiter();
   const requireAdminAuth = createRequireAdminAuth({
@@ -165,21 +166,22 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
   router.get('/subscriptions', requireAdminAuth, async (_req, res) => {
     try {
       const [subscriptions, usersResult] = await Promise.all([
-        ensureSubscriptionsData(),
+        plansRepository.readUserSubscriptions(),
         analyticsRepository.listUsersWithConversationStats({ page: 1, pageSize: 100 })
       ]);
-      const planById = new Map(subscriptions.plans.map((plan) => [plan.id, plan]));
+      const plans = await plansRepository.listPlans();
+      const planById = new Map(plans.map((plan) => [plan.id, plan]));
       const userById = new Map((usersResult.items || []).map((user) => [String(user.user_id), user]));
-      const userSubscriptions = subscriptions.userSubscriptions.map((item) => ({
+      const userSubscriptions = subscriptions.map((item) => ({
         ...item,
         plan: planById.get(item.planId) || null,
         user: userById.get(String(item.userId)) || null
       }));
       return res.json({
-        plans: subscriptions.plans.sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0)),
+        plans,
         userSubscriptions,
         users: usersResult.items || [],
-        updatedAt: subscriptions.updatedAt
+        updatedAt: new Date().toISOString()
       });
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت اشتراک‌ها' });
@@ -188,9 +190,8 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
 
   router.put('/subscriptions/plans/:id', requireAdminAuth, async (req, res) => {
     try {
-      const subscriptions = await ensureSubscriptionsData();
       const planId = String(req.params.id || '').trim();
-      const current = subscriptions.plans.find((plan) => plan.id === planId);
+      const current = await plansRepository.getPlanById(planId);
       if (!current) {
         return res.status(404).json({ error: 'پلن پیدا نشد.' });
       }
@@ -205,10 +206,7 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
             ? req.body.featuresText.split('\n').map((item) => item.trim()).filter(Boolean)
             : current.features
       };
-      const nextData = await writeSubscriptionsData({
-        ...subscriptions,
-        plans: subscriptions.plans.map((plan) => (plan.id === planId ? nextPlan : plan))
-      });
+      const savedPlan = await plansRepository.upsertPlan(nextPlan);
 
       await appendAudit({
         adminUsername: req.admin?.username,
@@ -217,9 +215,28 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
         details: { name: nextPlan.name, isActive: nextPlan.isActive }
       });
 
-      return res.json({ success: true, plan: nextData.plans.find((plan) => plan.id === planId) });
+      return res.json({ success: true, plan: savedPlan });
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : 'ذخیره پلن ناموفق بود.' });
+    }
+  });
+
+  router.patch('/subscriptions/plans/:id/active', requireAdminAuth, async (req, res) => {
+    try {
+      const planId = String(req.params.id || '').trim();
+      const plan = await plansRepository.setPlanActive(planId, Boolean(req.body?.isActive));
+      if (!plan) {
+        return res.status(404).json({ error: 'پلن پیدا نشد.' });
+      }
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'toggle_subscription_plan',
+        target: planId,
+        details: { isActive: plan.isActive }
+      });
+      return res.json({ success: true, plan });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'تغییر وضعیت پلن ناموفق بود.' });
     }
   });
 
@@ -237,8 +254,7 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
         return res.status(404).json({ error: 'کاربر پیدا نشد.' });
       }
 
-      const subscriptions = await ensureSubscriptionsData();
-      const plan = subscriptions.plans.find((item) => item.id === planId);
+      const plan = await plansRepository.getPlanById(planId);
       if (!plan) {
         return res.status(404).json({ error: 'پلن پیدا نشد.' });
       }
@@ -252,13 +268,11 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
         expiresAt,
         note: typeof req.body?.note === 'string' ? req.body.note.trim() : ''
       };
-      const nextData = await writeSubscriptionsData({
-        ...subscriptions,
-        userSubscriptions: [
-          nextSubscription,
-          ...subscriptions.userSubscriptions.filter((item) => String(item.userId) !== userId)
-        ]
-      });
+      const subscriptions = await plansRepository.readUserSubscriptions();
+      const userSubscriptions = await plansRepository.writeUserSubscriptions([
+        nextSubscription,
+        ...subscriptions.filter((item) => String(item.userId) !== userId)
+      ]);
 
       await appendAudit({
         adminUsername: req.admin?.username,
@@ -267,7 +281,7 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
         details: { planId, expiresAt }
       });
 
-      return res.json({ success: true, subscription: nextData.userSubscriptions.find((item) => item.userId === userId) });
+      return res.json({ success: true, subscription: userSubscriptions.find((item) => item.userId === userId) });
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : 'اختصاص اشتراک ناموفق بود.' });
     }
@@ -276,18 +290,17 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
   router.delete('/subscriptions/users/:userId', requireAdminAuth, async (req, res) => {
     try {
       const userId = String(req.params.userId || '').trim();
-      const subscriptions = await ensureSubscriptionsData();
-      const before = subscriptions.userSubscriptions.length;
-      const nextData = await writeSubscriptionsData({
-        ...subscriptions,
-        userSubscriptions: subscriptions.userSubscriptions.filter((item) => String(item.userId) !== userId)
-      });
+      const subscriptions = await plansRepository.readUserSubscriptions();
+      const before = subscriptions.length;
+      const userSubscriptions = await plansRepository.writeUserSubscriptions(
+        subscriptions.filter((item) => String(item.userId) !== userId)
+      );
 
       await appendAudit({
         adminUsername: req.admin?.username,
         action: 'cancel_subscription',
         target: userId,
-        details: { removed: before !== nextData.userSubscriptions.length }
+        details: { removed: before !== userSubscriptions.length }
       });
 
       return res.json({ success: true });
@@ -339,8 +352,18 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
     requireAdminAuth
   });
 
+  const settingsService = createAdminSettingsService({
+    settingsRepository: repositories.settings,
+    appendAudit
+  });
+  const settingsRouter = createAdminSettingsRouter({
+    settingsService,
+    requireAdminAuth
+  });
+
   router.use(analyticsRouter);
   router.use(systemRouter);
+  router.use(settingsRouter);
   router.use(logsRouter);
 
   return {

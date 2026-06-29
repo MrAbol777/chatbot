@@ -88,14 +88,20 @@ type SubscriptionsPayload = {
   updatedAt?: string;
 };
 
+type SiteSettingsPayload = {
+  settings: Record<string, any>;
+  definitions?: Record<string, { label: string; type: string; category: string; allowedValues?: string[] }>;
+};
+
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
-type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'errors' | 'config' | 'audit';
+type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'errors' | 'siteSettings' | 'config' | 'audit';
 const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'داشبورد',
   users: 'کاربران',
   subscriptions: 'اشتراک‌ها',
   errors: 'خطاها',
-  config: 'تنظیمات',
+  siteSettings: 'تنظیمات سایت',
+  config: 'سیستم',
   audit: 'Audit'
 };
 
@@ -104,6 +110,7 @@ const TAB_ICONS: Record<keyof typeof TAB_LABELS, string> = {
   users: '◎',
   subscriptions: '◈',
   errors: '!',
+  siteSettings: '⚙',
   config: '⚙',
   audit: '⌁'
 };
@@ -151,6 +158,9 @@ function AdminPanel() {
   const [subscriptionMessage, setSubscriptionMessage] = useState('');
   const [subscriptionSaving, setSubscriptionSaving] = useState(false);
   const [assignForm, setAssignForm] = useState({ userId: '', planId: 'gold', expiresAt: '', note: '' });
+  const [siteSettings, setSiteSettings] = useState<SiteSettingsPayload | null>(null);
+  const [siteSettingsSaving, setSiteSettingsSaving] = useState(false);
+  const [siteSettingsMessage, setSiteSettingsMessage] = useState('');
 
   const loadUsers = async () => {
     setLoadError('');
@@ -260,6 +270,17 @@ function AdminPanel() {
     }
   };
 
+  const loadSiteSettings = async () => {
+    setSiteSettingsMessage('');
+    try {
+      const response = await fetch('/api/admin/settings', { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری تنظیمات سایت ناموفق بود.');
+      if (result.ok) setSiteSettings(result.data);
+    } catch (error) {
+      setSiteSettingsMessage(error instanceof Error ? error.message : 'اتصال به سرور برای دریافت تنظیمات سایت برقرار نشد.');
+    }
+  };
+
   useEffect(() => {
     void loadDashboard();
     void loadUsers();
@@ -268,6 +289,7 @@ function AdminPanel() {
     void loadSystemPrompt();
     void loadLogs();
     void loadSubscriptions();
+    void loadSiteSettings();
   }, []);
 
   const visibleUsers = useMemo(() => users, [users]);
@@ -442,6 +464,42 @@ function AdminPanel() {
       setSubscriptionMessage(error instanceof Error ? error.message : 'لغو اشتراک ناموفق بود.');
     } finally {
       setSubscriptionSaving(false);
+    }
+  };
+
+  const updateSiteSetting = (key: string, value: any) => {
+    setSiteSettings((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          [key]: value
+        }
+      };
+    });
+  };
+
+  const saveSiteSettings = async () => {
+    if (!siteSettings) return;
+    setSiteSettingsSaving(true);
+    setSiteSettingsMessage('');
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ settings: siteSettings.settings })
+      });
+      const result = await handleAdminResponse(response, 'ذخیره تنظیمات سایت ناموفق بود.');
+      if (result.ok) {
+        setSiteSettings(result.data);
+        setSiteSettingsMessage('تنظیمات سایت با موفقیت ذخیره شد.');
+      }
+    } catch (error) {
+      setSiteSettingsMessage(error instanceof Error ? error.message : 'ذخیره تنظیمات سایت ناموفق بود.');
+    } finally {
+      setSiteSettingsSaving(false);
     }
   };
 
@@ -806,6 +864,144 @@ function AdminPanel() {
             </tbody>
           </table>
           </div>
+        </div>
+      ) : null}
+
+      {tab === 'siteSettings' ? (
+        <div className="admin-section config-panel">
+          <h3>تنظیمات سایت</h3>
+          <p className="admin-note">فقط تنظیمات غیرحساس در این بخش ذخیره می‌شوند. کلیدهای API و رمزها همچنان فقط در env می‌مانند.</p>
+
+          {siteSettingsMessage ? (
+            <InlineMessage
+              text={siteSettingsMessage}
+              variant={siteSettingsMessage.includes('موفقیت') ? 'success' : 'error'}
+            />
+          ) : null}
+
+          {siteSettings ? (
+            <>
+              <h4>مهمان</h4>
+              <FieldGroup direction="row">
+                <TextField
+                  label="تعداد پیام مهمان"
+                  type="number"
+                  value={String(siteSettings.settings['guest.message_limit'] ?? 10)}
+                  onChange={(e) => updateSiteSetting('guest.message_limit', Number(e.target.value))}
+                />
+                <TextField
+                  label="نشان مودال"
+                  value={String(siteSettings.settings['guest.limit_modal.badge_text'] ?? '')}
+                  onChange={(e) => updateSiteSetting('guest.limit_modal.badge_text', e.target.value)}
+                />
+              </FieldGroup>
+              <FieldGroup direction="row">
+                <TextField
+                  label="عنوان مودال"
+                  value={String(siteSettings.settings['guest.limit_modal.title'] ?? '')}
+                  onChange={(e) => updateSiteSetting('guest.limit_modal.title', e.target.value)}
+                />
+                <TextField
+                  label="تیتر مودال"
+                  value={String(siteSettings.settings['guest.limit_modal.heading'] ?? '')}
+                  onChange={(e) => updateSiteSetting('guest.limit_modal.heading', e.target.value)}
+                />
+              </FieldGroup>
+              <TextAreaField
+                label="متن مودال محدودیت مهمان"
+                rows={3}
+                value={String(siteSettings.settings['guest.limit_modal.body'] ?? '')}
+                onChange={(e) => updateSiteSetting('guest.limit_modal.body', e.target.value)}
+              />
+              <TextField
+                label="متن دکمه مودال"
+                value={String(siteSettings.settings['guest.limit_modal.cta'] ?? '')}
+                onChange={(e) => updateSiteSetting('guest.limit_modal.cta', e.target.value)}
+              />
+
+              <h4>آپلود عکس</h4>
+              <FieldGroup direction="row">
+                <TextField
+                  label="حداکثر حجم عکس (MB)"
+                  type="number"
+                  value={String(siteSettings.settings['upload.image.max_size_mb'] ?? 5)}
+                  onChange={(e) => updateSiteSetting('upload.image.max_size_mb', Number(e.target.value))}
+                />
+                <TextField
+                  label="حداکثر تعداد عکس"
+                  type="number"
+                  value={String(siteSettings.settings['upload.image.max_files'] ?? 5)}
+                  onChange={(e) => updateSiteSetting('upload.image.max_files', Number(e.target.value))}
+                />
+              </FieldGroup>
+              <TextField
+                label="فرمت‌های مجاز عکس"
+                value={Array.isArray(siteSettings.settings['upload.image.allowed_types']) ? siteSettings.settings['upload.image.allowed_types'].join(', ') : ''}
+                onChange={(e) => updateSiteSetting('upload.image.allowed_types', e.target.value.split(',').map((item) => item.trim()).filter(Boolean))}
+                helperText="مقادیر مجاز: image/jpeg, image/png, image/webp"
+              />
+
+              <h4>هوش مصنوعی</h4>
+              <FieldGroup direction="row">
+                <TextField
+                  label="مدل چت"
+                  value={String(siteSettings.settings['ai.chat.model'] ?? '')}
+                  onChange={(e) => updateSiteSetting('ai.chat.model', e.target.value)}
+                />
+                <TextField
+                  label="Temperature"
+                  type="number"
+                  step="0.1"
+                  value={String(siteSettings.settings['ai.chat.temperature'] ?? 0.6)}
+                  onChange={(e) => updateSiteSetting('ai.chat.temperature', Number(e.target.value))}
+                />
+                <TextField
+                  label="Timeout (ms)"
+                  type="number"
+                  value={String(siteSettings.settings['ai.chat.timeout_ms'] ?? 30000)}
+                  onChange={(e) => updateSiteSetting('ai.chat.timeout_ms', Number(e.target.value))}
+                />
+              </FieldGroup>
+
+              <h4>ورود و ثبت‌نام</h4>
+              <FieldGroup direction="row">
+                <TextField
+                  label="اعتبار OTP (ثانیه)"
+                  type="number"
+                  value={String(siteSettings.settings['auth.otp.expire_seconds'] ?? 120)}
+                  onChange={(e) => updateSiteSetting('auth.otp.expire_seconds', Number(e.target.value))}
+                />
+                <TextField
+                  label="فاصله ارسال مجدد OTP (ms)"
+                  type="number"
+                  value={String(siteSettings.settings['auth.otp.resend_cooldown_ms'] ?? 60000)}
+                  onChange={(e) => updateSiteSetting('auth.otp.resend_cooldown_ms', Number(e.target.value))}
+                />
+              </FieldGroup>
+              <FieldGroup direction="row">
+                <TextField
+                  label="حداقل سن"
+                  type="number"
+                  value={String(siteSettings.settings['auth.validation.age_min'] ?? 8)}
+                  onChange={(e) => updateSiteSetting('auth.validation.age_min', Number(e.target.value))}
+                />
+                <TextField
+                  label="حداکثر سن"
+                  type="number"
+                  value={String(siteSettings.settings['auth.validation.age_max'] ?? 18)}
+                  onChange={(e) => updateSiteSetting('auth.validation.age_max', Number(e.target.value))}
+                />
+              </FieldGroup>
+
+              <FieldGroup direction="row" className="config-actions">
+                <Button onClick={() => void saveSiteSettings()} disabled={siteSettingsSaving}>
+                  {siteSettingsSaving ? 'در حال ذخیره...' : 'ذخیره تنظیمات سایت'}
+                </Button>
+              </FieldGroup>
+            </>
+          ) : (
+            <InlineMessage text="در حال بارگذاری تنظیمات سایت..." variant="help" />
+          )}
         </div>
       ) : null}
 

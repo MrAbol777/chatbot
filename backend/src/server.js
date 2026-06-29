@@ -27,13 +27,12 @@ const { createPromptService } = require('./modules/ai/prompt.service');
 const { createAuthModule } = require('./modules/auth/auth.module');
 const { createConversationsModule } = require('./modules/conversations');
 const { createRepositories } = require('./repositories');
-const { ensureSubscriptionsData } = require('./modules/admin/common/storage');
 
 const app = express();
 const repositories = createRepositories();
 const uploadsDir = path.resolve(__dirname, '../uploads');
 const generatedImagesDir = path.join(uploadsDir, 'images-generated');
-const allowedImageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const defaultAllowedImageMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const allowedImageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const imageMimeTypeByExtension = {
   '.jpg': 'image/jpeg',
@@ -52,16 +51,46 @@ const getAllowedExtension = (filename = '') => {
   return allowedImageExtensions.has(ext) ? ext : null;
 };
 
+const getAppSettings = async () => {
+  try {
+    return await repositories.settings.getAll();
+  } catch (error) {
+    console.error('[settings] failed to read settings, using defaults', error instanceof Error ? error.message : String(error));
+    return {};
+  }
+};
+
+const getUploadSettings = async () => {
+  const settings = await getAppSettings();
+  const maxSizeMb = Number.isFinite(Number(settings['upload.image.max_size_mb']))
+    ? Number(settings['upload.image.max_size_mb'])
+    : 5;
+  const maxFiles = Number.isFinite(Number(settings['upload.image.max_files']))
+    ? Number(settings['upload.image.max_files'])
+    : 5;
+  const allowedTypes = Array.isArray(settings['upload.image.allowed_types']) && settings['upload.image.allowed_types'].length > 0
+    ? settings['upload.image.allowed_types']
+    : defaultAllowedImageMimeTypes;
+
+  return {
+    maxSizeMb,
+    maxFiles,
+    maxSizeBytes: maxSizeMb * 1024 * 1024,
+    allowedTypes
+  };
+};
+
 const getUploadedImageById = async (imageId) => {
   if (typeof imageId !== 'string' || !imageIdPattern.test(imageId)) {
     return null;
   }
+  const uploadSettings = await getUploadSettings();
 
   for (const ext of allowedImageExtensions) {
     const candidate = path.join(uploadsDir, `${imageId}${ext}`);
     if (await fs.pathExists(candidate)) {
       const stat = await fs.stat(candidate);
-      if (!stat.isFile() || stat.size > 5 * 1024 * 1024) {
+      if (!stat.isFile() || stat.size > uploadSettings.maxSizeBytes) {
         return null;
       }
       const buffer = await fs.readFile(candidate);
@@ -104,21 +133,22 @@ const uploadStorage = multer.diskStorage({
   }
 });
 
-const uploadImagesMiddleware = multer({
-  storage: uploadStorage,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-    files: 5
-  },
-  fileFilter: (_req, file, cb) => {
-    const ext = getAllowedExtension(file.originalname);
-    if (!allowedImageMimeTypes.has(file.mimetype) || !ext) {
-      cb(new Error('INVALID_FILE_TYPE'));
-      return;
+const createUploadImagesMiddleware = ({ maxSizeBytes, maxFiles, allowedTypes }) =>
+  multer({
+    storage: uploadStorage,
+    limits: {
+      fileSize: maxSizeBytes,
+      files: maxFiles
+    },
+    fileFilter: (_req, file, cb) => {
+      const ext = getAllowedExtension(file.originalname);
+      if (!new Set(allowedTypes).has(file.mimetype) || !ext) {
+        cb(new Error('INVALID_FILE_TYPE'));
+        return;
+      }
+      cb(null, true);
     }
-    cb(null, true);
-  }
-});
+  });
 
 const {
   port,
@@ -158,6 +188,7 @@ const appSmsService = createSmsService({
   ippanelPatternCode: process.env.IPPANEL_PATTERN_CODE,
   ippanelSender: process.env.IPPANEL_SENDER,
   otpExpireSeconds: Number.parseInt(process.env.OTP_EXPIRE || '120', 10),
+  settingsRepository: repositories.settings,
   otpDevMock: process.env.OTP_DEV_MOCK === 'true',
   logger: console
 });
@@ -207,8 +238,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post('/api/uploads/images', (req, res) => {
-  uploadImagesMiddleware.array('images', 5)(req, res, (error) => {
+app.get('/api/settings/public', async (_req, res) => {
+  const settings = await getAppSettings();
+  return res.json({ settings });
+});
+
+app.post('/api/uploads/images', async (req, res) => {
+  const uploadSettings = await getUploadSettings();
+  const uploadImagesMiddleware = createUploadImagesMiddleware(uploadSettings);
+  uploadImagesMiddleware.array('images', uploadSettings.maxFiles)(req, res, (error) => {
     if (error) {
       if (error.message === 'INVALID_FILE_TYPE') {
         console.warn('[UPLOAD][images][invalid_type]', {
@@ -228,7 +266,7 @@ app.post('/api/uploads/images', (req, res) => {
           });
           return res.status(413).json({
             error: 'FILE_TOO_LARGE',
-            message: 'Each file must be 5MB or smaller.'
+            message: `Each file must be ${uploadSettings.maxSizeMb}MB or smaller.`
           });
         }
         if (error.code === 'LIMIT_FILE_COUNT' || error.code === 'LIMIT_UNEXPECTED_FILE') {
@@ -238,7 +276,7 @@ app.post('/api/uploads/images', (req, res) => {
           });
           return res.status(400).json({
             error: 'TOO_MANY_FILES',
-            message: 'Maximum 5 files are allowed per upload.'
+            message: `Maximum ${uploadSettings.maxFiles} files are allowed per upload.`
           });
         }
       }
@@ -319,6 +357,9 @@ const { router: authRouter } = createAuthModule({
   jwt,
   jwtSecret: authJwtSecret,
   otpExpireSeconds: Number.parseInt(process.env.OTP_EXPIRE || '120', 10),
+  dbPool: repositories.db,
+  db: repositories.db,
+  settingsRepository: repositories.settings,
   errorsRepository: {
     logError: (...args) => repositories.errors.logError(...args)
   },
@@ -335,11 +376,13 @@ app.use(createAiRouter({
   usersRepository: repositories.users,
   conversationsRepository: repositories.conversations,
   guestsRepository: repositories.guests,
+  plansRepository: repositories.plans,
   jwt,
   jwtSecret: authJwtSecret,
   eventsRepository: repositories.events,
   errorsRepository: repositories.errors,
   uploadedImagesRepository,
+  settingsRepository: repositories.settings,
   logger: {
     log
   }
@@ -351,6 +394,7 @@ const imageGenerationModule = createImageGenerationRouter({
   geminiImageModel,
   geminiBaseUrl,
   db: repositories.db,
+  plansRepository: repositories.plans,
   authJwtSecret
 });
 // Public serve endpoint (no auth — img tags can't send Authorization headers)
@@ -376,11 +420,8 @@ app.use('/api/conversations', conversationRouter);
 
 app.get('/api/subscription-plans', async (_req, res) => {
   try {
-    const data = await ensureSubscriptionsData();
-    const plans = data.plans
-      .filter((plan) => plan.isActive !== false)
-      .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
-    return res.json({ plans, updatedAt: data.updatedAt });
+    const plans = await repositories.plans.listPlans({ activeOnly: true });
+    return res.json({ plans, updatedAt: new Date().toISOString() });
   } catch (error) {
     return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت پلن‌ها' });
   }

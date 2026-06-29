@@ -14,6 +14,7 @@ function createSmsService({
   ippanelPatternCode,
   ippanelSender,
   otpExpireSeconds = 120,
+  settingsRepository,
   resendCooldownMs = DEFAULT_RESEND_COOLDOWN_MS,
   maxWrongAttempts = DEFAULT_MAX_WRONG_ATTEMPTS,
   otpDevMock = false,
@@ -25,9 +26,25 @@ function createSmsService({
     throw new Error('ippanelClient with a post method is required');
   }
 
-  const safeOtpExpireSeconds = Number.isFinite(Number(otpExpireSeconds)) ? Number(otpExpireSeconds) : 120;
-  const otpExpireMs = safeOtpExpireSeconds * 1000;
   const otpStore = new Map();
+
+  const getOtpSettings = async () => {
+    if (!settingsRepository || typeof settingsRepository.getAll !== 'function') {
+      return {
+        expireSeconds: Number.isFinite(Number(otpExpireSeconds)) ? Number(otpExpireSeconds) : 120,
+        resendCooldownMs: Number.isFinite(Number(resendCooldownMs)) ? Number(resendCooldownMs) : DEFAULT_RESEND_COOLDOWN_MS
+      };
+    }
+    const settings = await settingsRepository.getAll();
+    return {
+      expireSeconds: Number.isFinite(Number(settings['auth.otp.expire_seconds']))
+        ? Number(settings['auth.otp.expire_seconds'])
+        : Number.isFinite(Number(otpExpireSeconds)) ? Number(otpExpireSeconds) : 120,
+      resendCooldownMs: Number.isFinite(Number(settings['auth.otp.resend_cooldown_ms']))
+        ? Number(settings['auth.otp.resend_cooldown_ms'])
+        : Number.isFinite(Number(resendCooldownMs)) ? Number(resendCooldownMs) : DEFAULT_RESEND_COOLDOWN_MS
+    };
+  };
 
   const getRequiredConfig = (key, value) => {
     if (!value || !String(value).trim()) {
@@ -58,7 +75,8 @@ function createSmsService({
     return `${text.slice(0, 3)}...${text.slice(-3)}`;
   };
 
-  const canResend = (phone) => {
+  const canResend = async (phone) => {
+    const otpSettings = await getOtpSettings();
     const entry = otpStore.get(phone);
     if (!entry) {
       return { allowed: true, retryAfterSeconds: 0 };
@@ -66,21 +84,22 @@ function createSmsService({
 
     const currentTime = Date.now();
     const sinceCreated = currentTime - entry.createdAt;
-    if (sinceCreated < resendCooldownMs) {
+    if (sinceCreated < otpSettings.resendCooldownMs) {
       return {
         allowed: false,
-        retryAfterSeconds: Math.ceil((resendCooldownMs - sinceCreated) / 1000)
+        retryAfterSeconds: Math.ceil((otpSettings.resendCooldownMs - sinceCreated) / 1000)
       };
     }
 
     return { allowed: true, retryAfterSeconds: 0 };
   };
 
-  const saveOtp = (phone, code) => {
+  const saveOtp = async (phone, code) => {
+    const otpSettings = await getOtpSettings();
     const entry = {
       code,
       createdAt: Date.now(),
-      expiresAt: Date.now() + otpExpireMs,
+      expiresAt: Date.now() + otpSettings.expireSeconds * 1000,
       attempts: 0,
       blockedUntil: 0
     };
@@ -98,7 +117,9 @@ function createSmsService({
     logger.log('[OTPService] saveOtp keys', { keys: variants, codeLength: String(code).length });
   };
 
-  const verifyOtp = (phone, code) => {
+  const verifyOtp = async (phone, code) => {
+    const otpSettings = await getOtpSettings();
+    const otpExpireMs = otpSettings.expireSeconds * 1000;
     const variants = getIranMobileVariants(phone);
     const matchedKey = variants.find((variant) => otpStore.has(variant));
     const lookupKey = matchedKey || phone;
@@ -261,7 +282,8 @@ function createSmsService({
     validateOtpConfig();
     const normalizedPhone = normalizeIranMobileToInternational(phone);
 
-    const resendState = canResend(normalizedPhone);
+    const otpSettings = await getOtpSettings();
+    const resendState = await canResend(normalizedPhone);
     if (!resendState.allowed) {
       return {
         success: false,
@@ -302,7 +324,7 @@ function createSmsService({
       };
     }
 
-    saveOtp(normalizedPhone, code);
+    await saveOtp(normalizedPhone, code);
 
     return {
       success: true,
@@ -311,12 +333,12 @@ function createSmsService({
         success: true,
         message: 'OTP sent successfully',
         recipient: normalizedPhone,
-        expiresInSeconds: safeOtpExpireSeconds
+        expiresInSeconds: otpSettings.expireSeconds
       }
     };
   };
 
-  const verifyOtpRequest = (phone, code) => {
+  const verifyOtpRequest = async (phone, code) => {
     if (!code) {
       return {
         statusCode: 400,
@@ -328,7 +350,7 @@ function createSmsService({
     }
 
     const normalizedPhone = normalizeIranMobileToInternational(phone);
-    const result = verifyOtp(normalizedPhone, code);
+    const result = await verifyOtp(normalizedPhone, code);
 
     if (result.valid) {
       return {
@@ -386,7 +408,7 @@ function createSmsService({
     saveOtp,
     verifyOtp,
     cleanupExpired,
-    getExpirySeconds: () => safeOtpExpireSeconds
+    getExpirySeconds: () => (Number.isFinite(Number(otpExpireSeconds)) ? Number(otpExpireSeconds) : 120)
   };
 }
 

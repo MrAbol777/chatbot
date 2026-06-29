@@ -358,7 +358,19 @@ const isMessageLimitError = (error: unknown): error is ChatRequestError => {
 };
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_ATTACHMENT_COUNT = 5;
-const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
+const PUBLIC_SETTINGS_DEFAULTS = {
+  'guest.limit_modal.title': 'برای ادامه ثبت‌نام کن',
+  'guest.limit_modal.heading': 'برای ادامه‌ی گفتگو، لطفاً ثبت‌نام کن!',
+  'guest.limit_modal.body': 'گفتگوی مهمان به سقف پیام‌ها رسیده و ادامه چت فقط با حساب کاربری انجام می‌شود.',
+  'guest.limit_modal.badge_text': '۱۰',
+  'guest.limit_modal.cta': 'ثبت‌نام',
+  'upload.image.max_size_mb': 5,
+  'upload.image.max_files': 5,
+  'upload.image.allowed_types': ['image/jpeg', 'image/png', 'image/webp'],
+  'auth.validation.age_min': 8,
+  'auth.validation.age_max': 18
+};
+type PublicSettings = typeof PUBLIC_SETTINGS_DEFAULTS & Record<string, any>;
 
 const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void> => {
   const response = await safeFetch('/api/send-verification-code', {
@@ -647,6 +659,7 @@ function ChatApp() {
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
  const [imageGenError, setImageGenError] = useState<string>('');
+ const [publicSettings, setPublicSettings] = useState<PublicSettings>(PUBLIC_SETTINGS_DEFAULTS);
 
  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -672,6 +685,29 @@ function ChatApp() {
   const attachmentBoxRef = useRef<HTMLDivElement | null>(null);
   const attachmentUrlsRef = useRef<Set<string>>(new Set());
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadPublicSettings = async () => {
+      try {
+        const response = await safeFetch('/api/settings/public');
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (cancelled || !payload?.settings || typeof payload.settings !== 'object') return;
+        setPublicSettings({
+          ...PUBLIC_SETTINGS_DEFAULTS,
+          ...payload.settings
+        });
+      } catch {
+        // Keep bundled defaults when settings are unavailable.
+      }
+    };
+
+    void loadPublicSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === activeConversationId) ?? null,
     [conversations, activeConversationId]
@@ -682,6 +718,37 @@ function ChatApp() {
     () => (activeConversation ? activeConversation.messages.map((item) => item.role).lastIndexOf('assistant') : -1),
     [activeConversation]
   );
+  const uploadMaxFiles = Number.isFinite(Number(publicSettings['upload.image.max_files']))
+    ? Number(publicSettings['upload.image.max_files'])
+    : MAX_ATTACHMENT_COUNT;
+  const uploadMaxSizeMb = Number.isFinite(Number(publicSettings['upload.image.max_size_mb']))
+    ? Number(publicSettings['upload.image.max_size_mb'])
+    : 5;
+  const uploadMaxSizeBytes = uploadMaxSizeMb * 1024 * 1024;
+  const allowedImageTypes = useMemo(
+    () =>
+      new Set(
+        Array.isArray(publicSettings['upload.image.allowed_types']) && publicSettings['upload.image.allowed_types'].length > 0
+          ? publicSettings['upload.image.allowed_types']
+          : Array.from(ALLOWED_IMAGE_TYPES)
+      ),
+    [publicSettings]
+  );
+  const imageAccept = useMemo(() => {
+    const extensions = Array.from(allowedImageTypes).flatMap((type) => {
+      if (type === 'image/jpeg') return ['.jpg', '.jpeg', type];
+      if (type === 'image/png') return ['.png', type];
+      if (type === 'image/webp') return ['.webp', type];
+      return [type];
+    });
+    return extensions.join(',');
+  }, [allowedImageTypes]);
+  const ageMin = Number.isFinite(Number(publicSettings['auth.validation.age_min']))
+    ? Number(publicSettings['auth.validation.age_min'])
+    : 8;
+  const ageMax = Number.isFinite(Number(publicSettings['auth.validation.age_max']))
+    ? Number(publicSettings['auth.validation.age_max'])
+    : 18;
   const renderBotAvatar = () => (
     <span className="bot-avatar" aria-hidden="true">
       <img
@@ -1273,8 +1340,8 @@ function ChatApp() {
       nextErrors.name = 'اسم خودت را بنویس تا با هم آشنا شویم.';
     }
 
-    if (!age || Number.isNaN(numericAge) || numericAge < 8 || numericAge > 18) {
-      nextErrors.age = 'سن باید بین 8 تا 18 سال باشد.';
+    if (!age || Number.isNaN(numericAge) || numericAge < ageMin || numericAge > ageMax) {
+      nextErrors.age = `سن باید بین ${ageMin} تا ${ageMax} سال باشد.`;
     }
 
     setErrors(nextErrors);
@@ -1578,12 +1645,12 @@ function ChatApp() {
 
     const next: ImageAttachment[] = [];
     for (const file of selectedFiles) {
-      if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      if (!allowedImageTypes.has(file.type)) {
         pushToast(`فرمت ${file.name} مجاز نیست.`, 'danger');
         continue;
       }
-      if (file.size > MAX_ATTACHMENT_SIZE) {
-        pushToast(`حجم ${file.name} بیشتر از ۵ مگابایت است.`, 'danger');
+      if (file.size > uploadMaxSizeBytes) {
+        pushToast(`حجم ${file.name} بیشتر از ${new Intl.NumberFormat('fa-IR').format(uploadMaxSizeMb)} مگابایت است.`, 'danger');
         continue;
       }
       next.push({
@@ -1600,11 +1667,11 @@ function ChatApp() {
 
     setAttachments((prev) => {
       const merged = [...prev, ...next];
-      if (merged.length > MAX_ATTACHMENT_COUNT) {
-        pushToast('حداکثر ۵ عکس قابل انتخاب است. فقط ۵ مورد اول نگه داشته شد.', 'warning');
+      if (merged.length > uploadMaxFiles) {
+        pushToast(`حداکثر ${new Intl.NumberFormat('fa-IR').format(uploadMaxFiles)} عکس قابل انتخاب است. فقط ${new Intl.NumberFormat('fa-IR').format(uploadMaxFiles)} مورد اول نگه داشته شد.`, 'warning');
       }
-      const limited = merged.slice(0, MAX_ATTACHMENT_COUNT);
-      const removed = merged.slice(MAX_ATTACHMENT_COUNT);
+      const limited = merged.slice(0, uploadMaxFiles);
+      const removed = merged.slice(uploadMaxFiles);
       removed.forEach((item) => {
         URL.revokeObjectURL(item.previewUrl);
         attachmentUrlsRef.current.delete(item.previewUrl);
@@ -2075,7 +2142,7 @@ function ChatApp() {
     }
 
     if (!profileFormAge || Number.isNaN(numericAge) || numericAge < 8 || numericAge > 18) {
-      nextErrors.age = 'سن باید بین 8 تا 18 سال باشد.';
+      nextErrors.age = `سن باید بین ${ageMin} تا ${ageMax} سال باشد.`;
     }
 
     setProfileFormErrors(nextErrors);
@@ -2672,15 +2739,15 @@ function ChatApp() {
        ) : null}
 
        {showGuestLimitModal ? (
-         <Dialog open={showGuestLimitModal} title="برای ادامه ثبت‌نام کن" onClose={() => {}} showFooter={false}>
+         <Dialog open={showGuestLimitModal} title={String(publicSettings['guest.limit_modal.title'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.title'])} onClose={() => {}} showFooter={false}>
            <div className="guest-limit-modal">
              <div className="guest-limit-hero" aria-hidden="true">
-               <span className="guest-limit-badge">۱۰</span>
+               <span className="guest-limit-badge">{String(publicSettings['guest.limit_modal.badge_text'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text'])}</span>
              </div>
 
              <div className="guest-limit-copy">
-               <h2>برای ادامه‌ی گفتگو، لطفاً ثبت‌نام کن!</h2>
-               <p>گفتگوی مهمان به سقف پیام‌ها رسیده و ادامه چت فقط با حساب کاربری انجام می‌شود.</p>
+               <h2>{String(publicSettings['guest.limit_modal.heading'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.heading'])}</h2>
+               <p>{String(publicSettings['guest.limit_modal.body'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.body'])}</p>
              </div>
 
              <Button
@@ -2689,7 +2756,7 @@ function ChatApp() {
                className="guest-limit-primary"
                onClick={handleGuestSignupRequired}
              >
-               ثبت‌نام
+               {String(publicSettings['guest.limit_modal.cta'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.cta'])}
              </Button>
            </div>
          </Dialog>
@@ -2919,7 +2986,7 @@ function ChatApp() {
                         </button>
                       </div>
                     ) : null}
-                    <input ref={imageInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden onChange={handleImageSelect} />
+                    <input ref={imageInputRef} type="file" accept={imageAccept} multiple hidden onChange={handleImageSelect} />
                   </div>
                 </div>
               ) : null}

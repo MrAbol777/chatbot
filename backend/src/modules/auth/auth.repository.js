@@ -8,6 +8,7 @@ function createAuthRepository({
   dbPool,
   db,
   otpExpireSeconds = 120,
+  settingsRepository,
   otpRequestWindowSeconds = 600,
   maxOtpRequestsPerWindow = 3,
   maxWrongAttempts = DEFAULT_MAX_WRONG_ATTEMPTS,
@@ -16,11 +17,26 @@ function createAuthRepository({
 }) {
   const otpStore = new Map();
   const otpRequestStore = new Map();
-  const otpExpireMs = (Number.isFinite(Number(otpExpireSeconds)) ? Number(otpExpireSeconds) : 120) * 1000;
   const requestWindowMs = (Number.isFinite(Number(otpRequestWindowSeconds)) ? Number(otpRequestWindowSeconds) : 600) * 1000;
   const requestLimit = Number.isFinite(Number(maxOtpRequestsPerWindow)) ? Number(maxOtpRequestsPerWindow) : 3;
   let otpTablePromise = null;
   let otpRequestTablePromise = null;
+
+  const getOtpExpireMs = async () => {
+    if (!settingsRepository || typeof settingsRepository.get !== 'function') {
+      return (Number.isFinite(Number(otpExpireSeconds)) ? Number(otpExpireSeconds) : 120) * 1000;
+    }
+    const value = await settingsRepository.get('auth.otp.expire_seconds');
+    return (Number.isFinite(Number(value)) ? Number(value) : Number.isFinite(Number(otpExpireSeconds)) ? Number(otpExpireSeconds) : 120) * 1000;
+  };
+
+  const getOtpResendCooldownMs = async () => {
+    if (!settingsRepository || typeof settingsRepository.get !== 'function') {
+      return 0;
+    }
+    const value = await settingsRepository.get('auth.otp.resend_cooldown_ms');
+    return Number.isFinite(Number(value)) ? Number(value) : 0;
+  };
 
   const ensureOtpTable = async () => {
     if (!dbPool || typeof dbPool.query !== 'function') return;
@@ -83,6 +99,7 @@ function createAuthRepository({
   };
 
   const saveOtp = async (phone, code) => {
+    const otpExpireMs = await getOtpExpireMs();
     if (dbPool && typeof dbPool.query === 'function') {
       await ensureOtpTable();
       const variants = getIranMobileVariants(phone);
@@ -120,12 +137,20 @@ function createAuthRepository({
     const variants = getIranMobileVariants(phone);
     const key = variants[0] || phone;
     const currentTime = nowMs();
+    const resendCooldownMs = await getOtpResendCooldownMs();
 
     if (dbPool && typeof dbPool.query === 'function') {
       await ensureOtpRequestTable();
       const [rows] = await dbPool.query('SELECT * FROM app_auth_otp_request_limits WHERE phone = ? LIMIT 1', [key]);
       const row = rows[0] || null;
       const windowStartMs = row ? new Date(row.window_started_at).getTime() : 0;
+      const updatedAtMs = row ? new Date(row.updated_at).getTime() : 0;
+      if (updatedAtMs > 0 && resendCooldownMs > 0 && currentTime - updatedAtMs < resendCooldownMs) {
+        return {
+          allowed: false,
+          retryAfterSeconds: Math.ceil((resendCooldownMs - (currentTime - updatedAtMs)) / 1000)
+        };
+      }
       const inWindow = windowStartMs > 0 && currentTime - windowStartMs < requestWindowMs;
       const currentCount = inWindow ? Number(row.request_count || 0) : 0;
 
@@ -155,6 +180,12 @@ function createAuthRepository({
     }
 
     const entry = otpRequestStore.get(key);
+    if (entry && resendCooldownMs > 0 && currentTime - entry.updatedAt < resendCooldownMs) {
+      return {
+        allowed: false,
+        retryAfterSeconds: Math.ceil((resendCooldownMs - (currentTime - entry.updatedAt)) / 1000)
+      };
+    }
     if (entry && currentTime - entry.windowStartedAt < requestWindowMs) {
       if (entry.count >= requestLimit) {
         return {
@@ -171,6 +202,7 @@ function createAuthRepository({
   };
 
   const verifyOtp = async (phone, code) => {
+    const otpExpireMs = await getOtpExpireMs();
     if (dbPool && typeof dbPool.query === 'function') {
       await ensureOtpTable();
       const variants = getIranMobileVariants(phone);

@@ -18,7 +18,7 @@ function createSmsController({ smsService, logger = console, now = () => new Dat
     }
   };
 
-  const verifyOtp = (req, res) => {
+  const verifyOtp = async (req, res) => {
     try {
       const phone = typeof req.body?.phone === 'string' ? req.body.phone : '';
       const code =
@@ -26,7 +26,7 @@ function createSmsController({ smsService, logger = console, now = () => new Dat
           ? String(req.body.otp).trim()
           : '';
 
-      const result = smsService.verifyOtpRequest(phone, code);
+      const result = await smsService.verifyOtpRequest(phone, code);
       return res.status(result.statusCode).json(result.body);
     } catch (error) {
       logger.error(`[${now()}] [OTP] Error in /verify-otp`, {

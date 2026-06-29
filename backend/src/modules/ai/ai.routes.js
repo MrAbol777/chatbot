@@ -10,6 +10,8 @@ function createAiRouter(deps) {
     errorsRepository: deps.errorsRepository,
     guestsRepository: deps.guestsRepository,
     usersRepository: deps.usersRepository,
+    plansRepository: deps.plansRepository,
+    settingsRepository: deps.settingsRepository,
     jwt: deps.jwt,
     jwtSecret: deps.jwtSecret
   });

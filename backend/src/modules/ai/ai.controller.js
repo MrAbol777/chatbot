@@ -26,7 +26,15 @@ const setGuestCookie = (res, guestId) => {
   });
 };
 
-function createAiController({ aiService, errorsRepository, guestsRepository, usersRepository, jwt, jwtSecret }) {
+function createAiController({ aiService, errorsRepository, guestsRepository, usersRepository, plansRepository, settingsRepository, jwt, jwtSecret }) {
+  const getGuestMessageLimit = async () => {
+    if (!settingsRepository || typeof settingsRepository.get !== 'function') {
+      return GUEST_MESSAGE_LIMIT;
+    }
+    const value = await settingsRepository.get('guest.message_limit');
+    return Number.isFinite(Number(value)) ? Number(value) : GUEST_MESSAGE_LIMIT;
+  };
+
   const getAuthenticatedUserId = async (req) => {
     const token = getBearerToken(req);
     if (!token || !jwtSecret || !jwt || typeof jwt.verify !== 'function') {
@@ -86,11 +94,12 @@ function createAiController({ aiService, errorsRepository, guestsRepository, use
         }
 
         const ipAddress = getRequestIp(req);
+        const guestMessageLimit = await getGuestMessageLimit();
         const currentCount = await guestsRepository.getCurrentCount({ guestId, ipAddress });
-        if (currentCount >= GUEST_MESSAGE_LIMIT) {
+        if (currentCount >= guestMessageLimit) {
           return res.status(403).json({
             error: 'GUEST_LIMIT_REACHED',
-            limit: GUEST_MESSAGE_LIMIT
+            limit: guestMessageLimit
           });
         }
 
@@ -103,6 +112,17 @@ function createAiController({ aiService, errorsRepository, guestsRepository, use
           phone: undefined
         };
         guestContext = { guestId, ipAddress };
+      } else if (plansRepository && typeof plansRepository.checkLimit === 'function') {
+        const limitState = await plansRepository.checkLimit(authenticatedUserId, 'message');
+        if (!limitState.allowed) {
+          return res.status(402).json({
+            error: 'MESSAGE_LIMIT_REACHED',
+            message: 'سقف پیام روزانه پلن شما تمام شده است.',
+            plan: limitState.plan?.id || null,
+            limit: limitState.limit,
+            usage: limitState.usage
+          });
+        }
       }
 
       const result = await aiService.sendChatMessage({
@@ -116,6 +136,8 @@ function createAiController({ aiService, errorsRepository, guestsRepository, use
 
       if (guestContext) {
         await guestsRepository.incrementCount(guestContext);
+      } else if (authenticatedUserId && plansRepository && typeof plansRepository.incrementDailyUsage === 'function') {
+        await plansRepository.incrementDailyUsage(authenticatedUserId, 'message', 1);
       }
 
       return res.json(result);

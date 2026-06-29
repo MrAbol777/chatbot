@@ -17,7 +17,7 @@ type Plan = {
   features: string[];
 };
 
-const plans: Plan[] = [
+const FALLBACK_PLANS: Plan[] = [
   {
     id: 'free',
     name: 'رایگان',
@@ -170,7 +170,7 @@ function PlanCard({ plan, billingCycle }: { plan: Plan; billingCycle: BillingCyc
 
 function PlansPage() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
-  const [availablePlans, setAvailablePlans] = useState<Plan[]>(plans);
+  const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -186,8 +186,8 @@ function PlansPage() {
             const priceValue = billingCycle === 'daily' ? Number(plan.dailyPrice || 0) : Number(plan.monthlyPrice || plan.price || 0);
             return {
               id: plan.id,
-              name: plan.name,
-              icon: plan.icon,
+              name: typeof plan.name === 'string' && plan.name.trim() ? plan.name.trim() : plan.id,
+              icon: typeof plan.icon === 'string' && plan.icon.trim() ? plan.icon.trim() : '✨',
               tagline: plan.tagline,
               price: priceValue > 0 ? new Intl.NumberFormat('fa-IR').format(priceValue) : undefined,
               priceLabel: priceValue > 0 ? new Intl.NumberFormat('fa-IR').format(priceValue) : 'رایگان',
@@ -196,9 +196,13 @@ function PlansPage() {
               features: Array.isArray(plan.features) ? plan.features : []
             } as Plan;
           });
-        if (mappedPlans.length > 0) setAvailablePlans(mappedPlans);
+        if (mappedPlans.length > 0) {
+          setAvailablePlans(mappedPlans);
+          return;
+        }
+        setAvailablePlans(FALLBACK_PLANS);
       } catch {
-        // Keep local defaults when the API is unavailable.
+        setAvailablePlans(FALLBACK_PLANS);
       }
     };
     void loadPlans();
@@ -252,7 +256,7 @@ function PlansPage() {
         </div>
 
         <div className="plans-list">
-          {availablePlans.map((plan) => (
+          {(availablePlans.length > 0 ? availablePlans : FALLBACK_PLANS).map((plan) => (
             <PlanCard key={plan.id} plan={plan} billingCycle={billingCycle} />
           ))}
         </div>

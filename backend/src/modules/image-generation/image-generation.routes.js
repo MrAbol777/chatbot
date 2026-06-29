@@ -23,7 +23,8 @@ function createImageGenerationRouter(deps) {
 
   const controller = createImageGenerationController({
     imageGenerationService,
-    db: deps.db
+    db: deps.db,
+    plansRepository: deps.plansRepository
   });
 
   // Protected routes (generate, status)

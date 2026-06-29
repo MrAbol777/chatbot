@@ -6,6 +6,8 @@ const { EventRepository } = require('./EventRepository');
 const { ErrorRepository } = require('./ErrorRepository');
 const { AnalyticsRepository } = require('./AnalyticsRepository');
 const { GuestRepository } = require('./GuestRepository');
+const { SettingsRepository } = require('./SettingsRepository');
+const { PlanRepository } = require('./PlanRepository');
 
 function createRepositories() {
   const db = new DatabaseClient({
@@ -20,6 +22,8 @@ function createRepositories() {
     auditLogPath: path.join(__dirname, '../../audit.log')
   });
   const guests = new GuestRepository(db);
+  const settings = new SettingsRepository(db);
+  const plans = new PlanRepository(db);
 
   return {
     db,
@@ -28,7 +32,9 @@ function createRepositories() {
     events,
     errors,
     analytics,
-    guests
+    guests,
+    settings,
+    plans
   };
 }
 

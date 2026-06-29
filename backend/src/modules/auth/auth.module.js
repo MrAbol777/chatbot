@@ -8,6 +8,7 @@ function createAuthModule(deps) {
     dbPool: deps.dbPool,
     db: deps.db,
     otpExpireSeconds: deps.otpExpireSeconds,
+    settingsRepository: deps.settingsRepository,
     otpRequestWindowSeconds: deps.otpRequestWindowSeconds,
     maxOtpRequestsPerWindow: deps.maxOtpRequestsPerWindow,
     logger: deps.logger
@@ -19,6 +20,7 @@ function createAuthModule(deps) {
     jwt: deps.jwt,
     jwtSecret: deps.jwtSecret,
     tokenExpiresIn: deps.tokenExpiresIn,
+    settingsRepository: deps.settingsRepository,
     logger: deps.logger
   });
   const router = createAuthRouter({
