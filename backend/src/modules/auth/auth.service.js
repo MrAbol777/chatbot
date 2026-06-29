@@ -18,14 +18,12 @@ function createAuthService({
 }) {
   const getAgeValidation = async () => {
     if (!settingsRepository || typeof settingsRepository.getAll !== 'function') {
-      return { min: 8, max: 18 };
+      return { min: 8 };
     }
     const settings = await settingsRepository.getAll();
     const min = Number(settings['auth.validation.age_min']);
-    const max = Number(settings['auth.validation.age_max']);
     return {
-      min: Number.isFinite(min) ? min : 8,
-      max: Number.isFinite(max) ? max : 18
+      min: Number.isFinite(min) ? min : 8
     };
   };
 
@@ -294,10 +292,10 @@ function createAuthService({
         return { statusCode: 400, body: { error: 'سن معتبر نیست.' } };
       }
       const ageValidation = await getAgeValidation();
-      if (rawAge < ageValidation.min || rawAge > ageValidation.max) {
+      if (rawAge < ageValidation.min) {
         return {
           statusCode: 400,
-          body: { error: `سن باید بین ${ageValidation.min} تا ${ageValidation.max} سال باشد.` }
+          body: { error: `سن باید حداقل ${ageValidation.min} سال باشد.` }
         };
       }
     }

@@ -376,6 +376,7 @@ const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void
   const response = await safeFetch('/api/send-verification-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ phone, mode })
   });
 
@@ -395,6 +396,7 @@ const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<
   const response = await safeFetch('/api/verify-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ phone, code: normalizedCode, mode })
   });
 
@@ -640,6 +642,7 @@ function ChatApp() {
     return window.location.pathname === '/home';
   });
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSettingsAuthModal, setShowSettingsAuthModal] = useState(false);
   const [profileFormName, setProfileFormName] = useState('');
   const [profileFormAge, setProfileFormAge] = useState('');
   const [profileFormErrors, setProfileFormErrors] = useState<{ name?: string; age?: string }>({});
@@ -746,9 +749,6 @@ function ChatApp() {
   const ageMin = Number.isFinite(Number(publicSettings['auth.validation.age_min']))
     ? Number(publicSettings['auth.validation.age_min'])
     : 8;
-  const ageMax = Number.isFinite(Number(publicSettings['auth.validation.age_max']))
-    ? Number(publicSettings['auth.validation.age_max'])
-    : 18;
   const renderBotAvatar = () => (
     <span className="bot-avatar" aria-hidden="true">
       <img
@@ -816,6 +816,29 @@ function ChatApp() {
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', '/chat?auth=signup');
     }
+  };
+
+  const resetAuthFlow = (mode: AuthMode) => {
+    setAuthTransition('forward');
+    setAuthMode(mode);
+    setRegistrationStep(1);
+    setLandingStep(mode);
+    setErrors({});
+    setName('');
+    setAge('');
+    setVerificationCode('');
+    setSignupToken('');
+  };
+
+  const handleOpenSettings = () => {
+    if (isGuestProfile(profile)) {
+      resetAuthFlow('login');
+      setShowProfileModal(false);
+      setShowSettingsAuthModal(true);
+      return;
+    }
+
+    setShowProfileModal(true);
   };
 
   const releaseMicStream = () => {
@@ -1211,6 +1234,7 @@ function ChatApp() {
 
   const saveAuthenticatedProfile = (nextProfile: AppProfile, token?: string) => {
     const normalizedPhone = typeof nextProfile.phone === 'string' ? normalizePhoneInput(nextProfile.phone) : '';
+    const shouldReturnToSettings = showSettingsAuthModal;
 
     if (token) {
       localStorage.setItem('chat_auth_token', token);
@@ -1219,6 +1243,7 @@ function ChatApp() {
     setHasHydratedRemoteConversations(false);
     setProfile(nextProfile);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
+    sessionStorage.removeItem(GUEST_PROFILE_KEY);
 
     const rawProfiles = localStorage.getItem(PROFILES_KEY);
     const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
@@ -1230,6 +1255,12 @@ function ChatApp() {
     localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, nextProfile]));
     setHasSavedAccount(true);
     setLandingStep('chat');
+    if (shouldReturnToSettings) {
+      setShowSettingsAuthModal(false);
+      setShowProfileModal(true);
+      return;
+    }
+
     navigateToView('chat', 'replace');
   };
 
@@ -1340,8 +1371,8 @@ function ChatApp() {
       nextErrors.name = 'اسم خودت را بنویس تا با هم آشنا شویم.';
     }
 
-    if (!age || Number.isNaN(numericAge) || numericAge < ageMin || numericAge > ageMax) {
-      nextErrors.age = `سن باید بین ${ageMin} تا ${ageMax} سال باشد.`;
+    if (!age || Number.isNaN(numericAge) || numericAge < ageMin) {
+      nextErrors.age = `سن باید حداقل ${ageMin} سال باشد.`;
     }
 
     setErrors(nextErrors);
@@ -2141,8 +2172,8 @@ function ChatApp() {
       nextErrors.name = 'نام نمی‌تواند خالی باشد.';
     }
 
-    if (!profileFormAge || Number.isNaN(numericAge) || numericAge < 8 || numericAge > 18) {
-      nextErrors.age = `سن باید بین ${ageMin} تا ${ageMax} سال باشد.`;
+    if (!profileFormAge || Number.isNaN(numericAge) || numericAge < ageMin) {
+      nextErrors.age = `سن باید حداقل ${ageMin} سال باشد.`;
     }
 
     setProfileFormErrors(nextErrors);
@@ -2167,20 +2198,11 @@ function ChatApp() {
     setShowProfileModal(false);
   };
 
-  if (!hasCheckedSession && !profile) {
-    return null;
-  }
-
-  if (!profile) {
+  const renderAuthForm = ({ includeLanding = true }: { includeLanding?: boolean } = {}) => {
     const authCardClass = `register-card auth-card ${authTransition === 'back' ? 'slide-back' : 'slide-forward'}`;
     return (
-      <div className="app-shell auth-shell">
-        <div className="bg-blob blob-pink" />
-        <div className="bg-blob blob-orange" />
-        <div className="bg-blob blob-yellow" />
-        <div className="bg-blob blob-purple" />
-
-        {landingStep === 'landing' ? (
+      <>
+        {includeLanding && landingStep === 'landing' ? (
           <div className={authCardClass}>
             <h1>
               به دانوآ خوش آمدید <span>🌤️</span>
@@ -2222,18 +2244,20 @@ function ChatApp() {
           </div>
         ) : registrationStep === 1 ? (
           <form className={authCardClass} onSubmit={handleRegisterStepOne}>
-            <button
-              type="button"
-              className="auth-back-btn"
-              onClick={() => {
-                setAuthTransition('back');
-                setLandingStep('landing');
-                setErrors({});
-                setSignupToken('');
-              }}
-            >
-              ← بازگشت
-            </button>
+            {includeLanding ? (
+              <button
+                type="button"
+                className="auth-back-btn"
+                onClick={() => {
+                  setAuthTransition('back');
+                  setLandingStep('landing');
+                  setErrors({});
+                  setSignupToken('');
+                }}
+              >
+                ← بازگشت
+              </button>
+            ) : null}
             <h1>
               شماره موبایل <span>📱</span>
             </h1>
@@ -2342,7 +2366,7 @@ function ChatApp() {
               type="text"
               inputMode="numeric"
               pattern="[0-9۰-۹٠-٩]*"
-              helperText="محدوده سنی مجاز: 8 تا 18 سال"
+              helperText={`سن مجاز: ${ageMin} سال به بالا`}
               errorText={errors.age}
             />
 
@@ -2363,6 +2387,23 @@ function ChatApp() {
             </div>
           </form>
         )}
+      </>
+    );
+  };
+
+  if (!hasCheckedSession && !profile) {
+    return null;
+  }
+
+  if (!profile) {
+    return (
+      <div className="app-shell auth-shell">
+        <div className="bg-blob blob-pink" />
+        <div className="bg-blob blob-orange" />
+        <div className="bg-blob blob-yellow" />
+        <div className="bg-blob blob-purple" />
+
+        {renderAuthForm()}
       </div>
     );
   }
@@ -2584,7 +2625,7 @@ function ChatApp() {
           </div>
 
           <nav className="conversation-bottom-nav" aria-label="ناوبری گفتگوها">
-            <button type="button" className="conversation-nav-item" onClick={() => setShowProfileModal(true)}>
+            <button type="button" className="conversation-nav-item" onClick={handleOpenSettings}>
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" />
                 <path d="M19.4 15a1.7 1.7 0 00.34 1.88l.05.05a2 2 0 01-2.83 2.83l-.05-.05a1.7 1.7 0 00-1.88-.34 1.7 1.7 0 00-1.03 1.56V21a2 2 0 01-4 0v-.07a1.7 1.7 0 00-1.03-1.56 1.7 1.7 0 00-1.88.34l-.05.05a2 2 0 01-2.83-2.83l.05-.05A1.7 1.7 0 004.6 15 1.7 1.7 0 003.04 14H3a2 2 0 010-4h.04A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.88l-.05-.05a2 2 0 012.83-2.83l.05.05A1.7 1.7 0 008.97 4.6 1.7 1.7 0 0010 3.04V3a2 2 0 014 0v.04a1.7 1.7 0 001.03 1.56 1.7 1.7 0 001.88-.34l.05-.05a2 2 0 012.83 2.83l-.05.05A1.7 1.7 0 0019.4 9c.23.63.81 1 1.56 1H21a2 2 0 010 4h-.04A1.7 1.7 0 0019.4 15z" />
@@ -2689,7 +2730,22 @@ function ChatApp() {
               </div>
             </div>
           </Dialog>
-       ) : null}
+        ) : null}
+        {showSettingsAuthModal ? (
+          <Dialog
+            open={showSettingsAuthModal}
+            title="ورود / ثبت‌نام"
+            onClose={() => {
+              setShowSettingsAuthModal(false);
+              setErrors({});
+              setVerificationCode('');
+              setSignupToken('');
+            }}
+            showFooter={false}
+          >
+            {renderAuthForm({ includeLanding: false })}
+          </Dialog>
+        ) : null}
 
        {showMessageLimitModal ? (
          <Dialog open={showMessageLimitModal} title="آهووو! به سقف پیام‌ها رسیدی" onClose={() => setShowMessageLimitModal(false)} showFooter={false}>
