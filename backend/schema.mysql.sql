@@ -117,3 +117,48 @@ CREATE TABLE IF NOT EXISTS image_generations (
     REFERENCES app_users(user_id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  setting_key VARCHAR(191) PRIMARY KEY,
+  setting_value JSON NOT NULL,
+  category VARCHAR(64) NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_app_settings_category (category)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS app_plans (
+  id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(191) NOT NULL,
+  icon VARCHAR(64) NOT NULL DEFAULT '✨',
+  tagline VARCHAR(255) NULL,
+  monthly_price INT NOT NULL DEFAULT 0,
+  daily_price INT NOT NULL DEFAULT 0,
+  daily_message_limit INT NULL,
+  daily_image_limit INT NULL,
+  hourly_image_limit INT NULL,
+  features JSON NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 999,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_app_plans_active_sort (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS app_plan_daily_usage (
+  user_id VARCHAR(191) NOT NULL,
+  usage_date DATE NOT NULL,
+  message_count INT NOT NULL DEFAULT 0,
+  image_count INT NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY (user_id, usage_date),
+  INDEX idx_plan_daily_usage_date (usage_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS app_plan_hourly_usage (
+  user_id VARCHAR(191) NOT NULL,
+  usage_hour DATETIME NOT NULL,
+  image_count INT NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY (user_id, usage_hour),
+  INDEX idx_plan_hourly_usage_hour (usage_hour)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

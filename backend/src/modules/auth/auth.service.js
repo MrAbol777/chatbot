@@ -240,6 +240,7 @@ function createAuthService({
   const verifyCode = async ({ phone: rawPhone, code: rawCode, mode, guestId }) => {
     const phone = normalizeIranMobileToLocal(rawPhone);
     const code = normalizeOtpCode(rawCode);
+    const canCheckSupervisedOtp = (reason) => ['invalid_code', 'expired'].includes(reason);
 
     logger.log?.('[OTP] verify-code request', {
       phone,
@@ -258,8 +259,20 @@ function createAuthService({
 
     const verifyResult = await authRepository.verifyOtp(phone, code);
     if (!verifyResult.valid) {
-      if (verifyResult.reason === 'invalid_code' && supervisedOtpRepository && typeof supervisedOtpRepository.verifyAndConsume === 'function') {
+      const supervisedOtpAvailable =
+        supervisedOtpRepository && typeof supervisedOtpRepository.verifyAndConsume === 'function';
+      const shouldCheckSupervisedOtp = canCheckSupervisedOtp(verifyResult.reason) && supervisedOtpAvailable;
+
+      if (shouldCheckSupervisedOtp) {
         const supervisedResult = await supervisedOtpRepository.verifyAndConsume(code);
+        logger.log?.('[OTP] supervised fallback debug', {
+          supervisedOtpEnabled: Boolean(supervisedResult.debug?.supervisedOtpEnabled),
+          hasCodeHash: Boolean(supervisedResult.debug?.hasCodeHash),
+          isExpired: Boolean(supervisedResult.debug?.isExpired),
+          maxUsesReached: Boolean(supervisedResult.debug?.maxUsesReached),
+          bcryptMatched: Boolean(supervisedResult.debug?.bcryptMatched),
+          fallbackChecked: true
+        });
         if (supervisedResult.valid) {
           logger.log?.('[OTP] supervised verification accepted', {
             phone,
@@ -268,6 +281,15 @@ function createAuthService({
           });
           return completeVerifiedPhone({ phone, mode, guestId, verifiedBy: 'supervised_otp' });
         }
+      } else {
+        logger.log?.('[OTP] supervised fallback debug', {
+          supervisedOtpEnabled: false,
+          hasCodeHash: false,
+          isExpired: false,
+          maxUsesReached: false,
+          bcryptMatched: false,
+          fallbackChecked: false
+        });
       }
 
       logger.warn?.('[OTP] verify-code failed', {

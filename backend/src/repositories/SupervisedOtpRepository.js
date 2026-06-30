@@ -14,6 +14,21 @@ const toIsoOrNull = (value) => {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
+const buildDebugState = (config, bcryptMatched = false) => {
+  const isExpired = Boolean(config?.expires_at && new Date(config.expires_at).getTime() <= Date.now());
+  const maxUsesReached = Boolean(
+    config?.max_uses != null && Number(config.used_count || 0) >= Number(config.max_uses)
+  );
+
+  return {
+    supervisedOtpEnabled: Boolean(config?.enabled),
+    hasCodeHash: Boolean(config?.code_hash),
+    isExpired,
+    maxUsesReached,
+    bcryptMatched: Boolean(bcryptMatched)
+  };
+};
+
 class SupervisedOtpRepository {
   constructor(db) {
     this.db = db;
@@ -117,20 +132,21 @@ class SupervisedOtpRepository {
 
   async verifyAndConsume(code) {
     const normalizedCode = normalizeDigits(code);
-    if (!/^[0-9]{4}$/.test(normalizedCode)) return { valid: false, reason: 'invalid_code' };
-
     const config = await this.ensureConfig();
-    if (!config.enabled) return { valid: false, reason: 'disabled' };
-    if (!config.code_hash) return { valid: false, reason: 'not_configured' };
+    const debug = (bcryptMatched = false) => buildDebugState(config, bcryptMatched);
+
+    if (!/^[0-9]{4}$/.test(normalizedCode)) return { valid: false, reason: 'invalid_code', debug: debug(false) };
+    if (!config.enabled) return { valid: false, reason: 'disabled', debug: debug(false) };
+    if (!config.code_hash) return { valid: false, reason: 'not_configured', debug: debug(false) };
     if (config.expires_at && new Date(config.expires_at).getTime() <= Date.now()) {
-      return { valid: false, reason: 'expired' };
+      return { valid: false, reason: 'expired', debug: debug(false) };
     }
     if (config.max_uses != null && Number(config.used_count || 0) >= Number(config.max_uses)) {
-      return { valid: false, reason: 'max_uses_reached' };
+      return { valid: false, reason: 'max_uses_reached', debug: debug(false) };
     }
 
     const matches = await bcrypt.compare(normalizedCode, String(config.code_hash));
-    if (!matches) return { valid: false, reason: 'invalid_code' };
+    if (!matches) return { valid: false, reason: 'invalid_code', debug: debug(false) };
 
     const [result] = await this.db.query(
       `UPDATE app_supervised_otp_config
@@ -142,9 +158,9 @@ class SupervisedOtpRepository {
          AND (max_uses IS NULL OR used_count < max_uses)`,
       [new Date(), CONFIG_ID, new Date()]
     );
-    if (!result || result.affectedRows !== 1) return { valid: false, reason: 'not_available' };
+    if (!result || result.affectedRows !== 1) return { valid: false, reason: 'not_available', debug: debug(true) };
 
-    return { valid: true, method: 'supervised_otp' };
+    return { valid: true, method: 'supervised_otp', debug: debug(true) };
   }
 
   async recordUsage({ phone, userId = null, result }) {

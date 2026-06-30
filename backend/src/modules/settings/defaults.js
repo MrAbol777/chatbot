@@ -11,7 +11,17 @@ const SETTING_DEFINITIONS = {
     label: 'سقف ساخت تصویر مهمان در روز',
     type: 'number',
     category: 'guest',
-    defaultValue: 0,
+    defaultValue: null,
+    nullable: true,
+    min: 0,
+    adminEditable: true
+  },
+  'guest.image_limit_hourly': {
+    label: 'سقف ساخت تصویر مهمان در ساعت',
+    type: 'number',
+    category: 'guest',
+    defaultValue: null,
+    nullable: true,
     min: 0,
     adminEditable: true
   },
@@ -160,6 +170,9 @@ const coerceSettingValue = (key, value) => {
   }
 
   if (definition.type === 'number') {
+    if (definition.nullable && (value === null || value === undefined || value === '')) {
+      return null;
+    }
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) {
       throw new Error(`${key} must be a number`);

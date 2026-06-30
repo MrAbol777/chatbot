@@ -10,7 +10,6 @@ const { generateUserId } = require('../../repositories/helpers');
 
 const GENERATED_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
 const GUEST_COOKIE_NAME = 'danoa_guest_id';
-const DEFAULT_GUEST_IMAGE_LIMIT_DAILY = 0;
 const MIME_BY_EXTENSION = {
   png: 'image/png',
   jpg: 'image/jpeg',
@@ -28,6 +27,17 @@ const MIME_BY_EXTENSION = {
 function createImageGenerationController({ imageGenerationService, db, plansRepository, settingsRepository, guestsRepository }) {
   const getImagesDir = () => path.join(__dirname, '../../../uploads/images-generated');
 
+  const normalizeLimitValue = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : null;
+  };
+
+  const limitFailureMessage = (reason) => {
+    if (reason === 'daily') return 'محدودیت روزانه ساخت تصویر تمام شده';
+    if (reason === 'hourly') return 'محدودیت ساعتی ساخت تصویر تمام شده';
+    return 'ساخت تصویر برای این پلن غیرفعال است';
+  };
+
   const setGuestCookie = (res, guestId) => {
     res.cookie(GUEST_COOKIE_NAME, guestId, {
       httpOnly: true,
@@ -37,12 +47,18 @@ function createImageGenerationController({ imageGenerationService, db, plansRepo
     });
   };
 
-  const getGuestImageLimit = async () => {
+  const getGuestImageLimits = async () => {
     if (!settingsRepository || typeof settingsRepository.get !== 'function') {
-      return DEFAULT_GUEST_IMAGE_LIMIT_DAILY;
+      return { daily: null, hourly: null };
     }
-    const value = await settingsRepository.get('guest.image_limit_daily');
-    return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : DEFAULT_GUEST_IMAGE_LIMIT_DAILY;
+    const [daily, hourly] = await Promise.all([
+      settingsRepository.get('guest.image_limit_daily'),
+      settingsRepository.get('guest.image_limit_hourly')
+    ]);
+    return {
+      daily: normalizeLimitValue(daily),
+      hourly: normalizeLimitValue(hourly)
+    };
   };
 
   const resolveUserContext = async (req, res) => {
@@ -65,21 +81,71 @@ function createImageGenerationController({ imageGenerationService, db, plansRepo
     return { userId: guestUserId, isGuest: true, guestId };
   };
 
-  const checkGuestImageLimit = async (userId) => {
-    const limit = await getGuestImageLimit();
-    if (limit === null || limit === undefined) {
-      return { allowed: true, limit: null, usage: null };
+  const checkGuestImageLimits = async (userId) => {
+    const limits = await getGuestImageLimits();
+    if (limits.daily === 0 || limits.hourly === 0) {
+      return { allowed: false, reason: 'disabled', plan: null, limits, limit: 0, usage: { daily: null, hourly: null } };
     }
-    if (!plansRepository || typeof plansRepository.getDailyUsage !== 'function') {
-      return { allowed: limit > 0, limit, usage: null };
+    if (!plansRepository) {
+      return { allowed: true, plan: null, limits, limit: null, usage: { daily: null, hourly: null } };
     }
-    const usage = await plansRepository.getDailyUsage(userId);
+
+    const dailyUsage =
+      limits.daily === null || typeof plansRepository.getDailyUsage !== 'function'
+        ? null
+        : await plansRepository.getDailyUsage(userId);
+    if (dailyUsage && Number(dailyUsage.imageCount || 0) >= limits.daily) {
+      return {
+        allowed: false,
+        reason: 'daily',
+        plan: null,
+        limits,
+        limit: limits.daily,
+        usage: { daily: dailyUsage, hourly: null },
+        remaining: 0
+      };
+    }
+
+    const hourlyUsage =
+      limits.hourly === null || typeof plansRepository.getHourlyUsage !== 'function'
+        ? null
+        : await plansRepository.getHourlyUsage(userId);
+    if (hourlyUsage && Number(hourlyUsage.imageCount || 0) >= limits.hourly) {
+      return {
+        allowed: false,
+        reason: 'hourly',
+        plan: null,
+        limits,
+        limit: limits.hourly,
+        usage: { daily: dailyUsage, hourly: hourlyUsage },
+        remaining: 0
+      };
+    }
+
     return {
-      allowed: Number(usage.imageCount || 0) < limit,
-      limit,
-      usage,
-      remaining: Math.max(0, limit - Number(usage.imageCount || 0))
+      allowed: true,
+      plan: null,
+      limits,
+      limit: null,
+      usage: { daily: dailyUsage, hourly: hourlyUsage },
+      remaining: {
+        daily: dailyUsage && limits.daily !== null ? Math.max(0, limits.daily - Number(dailyUsage.imageCount || 0)) : null,
+        hourly: hourlyUsage && limits.hourly !== null ? Math.max(0, limits.hourly - Number(hourlyUsage.imageCount || 0)) : null
+      }
     };
+  };
+
+  const resolveImageLimitState = async ({ userId, isGuest }) => {
+    if (isGuest) {
+      return checkGuestImageLimits(userId);
+    }
+    if (plansRepository && typeof plansRepository.checkImageLimits === 'function') {
+      return plansRepository.checkImageLimits(userId);
+    }
+    if (plansRepository && typeof plansRepository.checkLimit === 'function') {
+      return plansRepository.checkLimit(userId, 'image');
+    }
+    return { allowed: true, plan: null, limits: { daily: null, hourly: null }, usage: { daily: null, hourly: null } };
   };
 
   const findGeneratedImage = async (recordId) => {
@@ -182,29 +248,18 @@ function createImageGenerationController({ imageGenerationService, db, plansRepo
         return res.status(401).json({ success: false, error: 'Authentication required.' });
       }
 
-      if (isGuest) {
-        const limitState = await checkGuestImageLimit(userId);
-        if (!limitState.allowed) {
-          return res.status(403).json({
-            success: false,
-            error: 'GUEST_IMAGE_LIMIT_REACHED',
-            message: 'سقف ساخت تصویر روزانه مهمان تمام شده است.',
-            limit: limitState.limit,
-            usage: limitState.usage
-          });
-        }
-      } else if (plansRepository && typeof plansRepository.checkLimit === 'function') {
-        const limitState = await plansRepository.checkLimit(userId, 'image');
-        if (!limitState.allowed) {
-          return res.status(402).json({
-            success: false,
-            error: 'IMAGE_LIMIT_REACHED',
-            message: 'سقف ساخت تصویر روزانه پلن شما تمام شده است.',
-            plan: limitState.plan?.id || null,
-            limit: limitState.limit,
-            usage: limitState.usage
-          });
-        }
+      const limitState = await resolveImageLimitState({ userId, isGuest });
+      if (!limitState.allowed) {
+        return res.status(isGuest ? 403 : 402).json({
+          success: false,
+          error: limitState.reason === 'disabled' ? 'IMAGE_GENERATION_DISABLED' : 'IMAGE_LIMIT_REACHED',
+          reason: limitState.reason || 'daily',
+          message: limitFailureMessage(limitState.reason || 'daily'),
+          plan: limitState.plan?.id || null,
+          limits: limitState.limits || null,
+          limit: limitState.limit,
+          usage: limitState.usage
+        });
       }
 
       const providerTaskId = `gemini-${uuidv4()}`;
@@ -216,7 +271,9 @@ function createImageGenerationController({ imageGenerationService, db, plansRepo
       const dbRecordId = insertResult.insertId;
       const taskId = String(dbRecordId);
 
-      if (plansRepository && typeof plansRepository.incrementDailyUsage === 'function') {
+      if (plansRepository && typeof plansRepository.incrementUsage === 'function') {
+        await plansRepository.incrementUsage(userId, 'image', 1);
+      } else if (plansRepository && typeof plansRepository.incrementDailyUsage === 'function') {
         await plansRepository.incrementDailyUsage(userId, 'image', 1);
       }
 

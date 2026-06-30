@@ -10,7 +10,8 @@
       "monthlyPrice": 0,
       "dailyPrice": 0,
       "dailyMessageLimit": 20,
-      "dailyImageLimit": 0,
+      "dailyImageLimit": null,
+      "hourlyImageLimit": null,
       "features": [
         "۲۰ پیام در روز"
       ],
@@ -27,10 +28,11 @@
       "monthlyPrice": 99000,
       "dailyPrice": 9000,
       "dailyMessageLimit": 100,
-      "dailyImageLimit": 10,
+      "dailyImageLimit": null,
+      "hourlyImageLimit": null,
       "features": [
         "۱۰۰ پیام در روز",
-        "ساخت ۱۰ تصویر در روز"
+        "ساخت تصویر"
       ],
       "isActive": true,
       "sortOrder": 2
@@ -46,14 +48,15 @@
       "dailyPrice": 19000,
       "dailyMessageLimit": null,
       "dailyImageLimit": null,
+      "hourlyImageLimit": null,
       "features": [
         "پیام نامحدود",
-        "ساخت تصویر نامحدود"
+        "ساخت تصویر"
       ],
       "isActive": true,
       "sortOrder": 3
     }
   ],
   "userSubscriptions": [],
-  "updatedAt": "2026-06-24T10:23:01.838Z"
+  "updatedAt": "2026-06-30T21:23:55.728Z"
 }

@@ -706,7 +706,7 @@ function createAdminAnalyticsService({
       appendSection(lines, 'PLANS_USAGE');
       lines.push('plans:');
       for (const plan of data.plans) {
-        lines.push(`- id: ${plan.id || ''}, name: ${plan.name || ''}, active: ${Boolean(plan.is_active)}, daily_message_limit: ${plan.daily_message_limit ?? ''}, daily_image_limit: ${plan.daily_image_limit ?? ''}`);
+        lines.push(`- id: ${plan.id || ''}, name: ${plan.name || ''}, active: ${Boolean(plan.is_active)}, daily_message_limit: ${plan.daily_message_limit ?? ''}, daily_image_limit: ${plan.daily_image_limit ?? ''}, hourly_image_limit: ${plan.hourly_image_limit ?? ''}`);
       }
       lines.push('usage:');
       for (const item of data.planDailyUsage) {

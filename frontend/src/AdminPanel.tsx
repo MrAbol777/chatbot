@@ -72,6 +72,7 @@ type SubscriptionPlan = {
   dailyPrice: number;
   dailyMessageLimit: number | null;
   dailyImageLimit: number | null;
+  hourlyImageLimit: number | null;
   features: string[];
   isActive: boolean;
   sortOrder: number;
@@ -125,6 +126,9 @@ type ReportSection =
   | 'supervised_otp_usage';
 type ReportRangePreset = 'today' | '7d' | '30d' | 'custom';
 const USERS_PAGE_SIZE = 10;
+const parseNullableNumberInput = (value: string): number | null => (
+  value.trim() === '' ? null : Number(value)
+);
 const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'داشبورد',
   users: 'کاربران',
@@ -1180,7 +1184,13 @@ function AdminPanel() {
                     label="سقف تصویر روزانه"
                     value={plan.dailyImageLimit === null ? '' : String(plan.dailyImageLimit)}
                     placeholder="خالی = نامحدود"
-                    onChange={(e) => updateLocalPlan(plan.id, { dailyImageLimit: e.target.value.trim() ? Number(e.target.value) : null })}
+                    onChange={(e) => updateLocalPlan(plan.id, { dailyImageLimit: parseNullableNumberInput(e.target.value) })}
+                  />
+                  <TextField
+                    label="سقف تصویر ساعتی"
+                    value={plan.hourlyImageLimit === null ? '' : String(plan.hourlyImageLimit)}
+                    placeholder="خالی = نامحدود"
+                    onChange={(e) => updateLocalPlan(plan.id, { hourlyImageLimit: parseNullableNumberInput(e.target.value) })}
                   />
                 </FieldGroup>
                 <TextAreaField
@@ -1292,9 +1302,15 @@ function AdminPanel() {
                 />
                 <TextField
                   label="سقف ساخت تصویر مهمان در روز"
-                  type="number"
-                  value={String(siteSettings.settings['guest.image_limit_daily'] ?? 0)}
-                  onChange={(e) => updateSiteSetting('guest.image_limit_daily', Number(e.target.value))}
+                  value={siteSettings.settings['guest.image_limit_daily'] === null ? '' : String(siteSettings.settings['guest.image_limit_daily'] ?? '')}
+                  placeholder="خالی = نامحدود، ۰ = غیرفعال"
+                  onChange={(e) => updateSiteSetting('guest.image_limit_daily', parseNullableNumberInput(e.target.value))}
+                />
+                <TextField
+                  label="سقف ساخت تصویر مهمان در ساعت"
+                  value={siteSettings.settings['guest.image_limit_hourly'] === null ? '' : String(siteSettings.settings['guest.image_limit_hourly'] ?? '')}
+                  placeholder="خالی = نامحدود، ۰ = غیرفعال"
+                  onChange={(e) => updateSiteSetting('guest.image_limit_hourly', parseNullableNumberInput(e.target.value))}
                 />
               </FieldGroup>
               <FieldGroup direction="row">

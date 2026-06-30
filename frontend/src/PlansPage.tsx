@@ -33,7 +33,7 @@ const FALLBACK_PLANS: Plan[] = [
     priceLabel: '۹۹,۰۰۰',
     priceSuffix: '/تومان',
     badge: 'محبوب‌ترین انتخاب',
-    features: ['۱۰۰ پیام در روز', 'ساخت ۱۰ تصویر در روز']
+    features: ['پیام بیشتر', 'ساخت تصویر']
   },
   {
     id: 'diamond',
@@ -43,7 +43,7 @@ const FALLBACK_PLANS: Plan[] = [
     price: '۱۹۹,۰۰۰',
     priceLabel: '۱۹۹,۰۰۰',
     priceSuffix: '/تومان',
-    features: ['پیام نامحدود', 'ساخت تصویر نامحدود']
+    features: ['پیام نامحدود', 'ساخت تصویر']
   }
 ];
 
