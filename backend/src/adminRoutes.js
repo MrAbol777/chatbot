@@ -27,6 +27,7 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
   const usersRepository = repositories?.users;
   const analyticsRepository = repositories?.analytics;
   const plansRepository = repositories?.plans;
+  const supervisedOtpRepository = repositories?.supervisedOtp;
 
   const loginLimiter = createLoginLimiter();
   const requireAdminAuth = createRequireAdminAuth({
@@ -309,6 +310,74 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
     }
   });
 
+  router.get('/supervised-otp', requireAdminAuth, async (_req, res) => {
+    try {
+      if (!supervisedOtpRepository) return res.status(503).json({ error: 'Supervised OTP repository is not available.' });
+      return res.json(await supervisedOtpRepository.getConfig());
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت Supervised OTP' });
+    }
+  });
+
+  router.put('/supervised-otp', requireAdminAuth, async (req, res) => {
+    try {
+      if (!supervisedOtpRepository) return res.status(503).json({ error: 'Supervised OTP repository is not available.' });
+      const config = await supervisedOtpRepository.updateConfig({
+        enabled: Boolean(req.body?.enabled),
+        code: req.body?.code,
+        expires_at: req.body?.expires_at,
+        max_uses: req.body?.max_uses
+      });
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'update_supervised_otp',
+        target: 'supervised_otp',
+        details: {
+          enabled: config.enabled,
+          hasCode: config.hasCode,
+          expires_at: config.expires_at,
+          max_uses: config.max_uses
+        }
+      });
+      return res.json(config);
+    } catch (error) {
+      const statusCode = Number(error?.statusCode || 500);
+      return res.status(statusCode).json({ error: error instanceof Error ? error.message : 'ذخیره Supervised OTP ناموفق بود.' });
+    }
+  });
+
+  router.post('/supervised-otp/reset-used-count', requireAdminAuth, async (req, res) => {
+    try {
+      if (!supervisedOtpRepository) return res.status(503).json({ error: 'Supervised OTP repository is not available.' });
+      const config = await supervisedOtpRepository.resetUsedCount();
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'reset_supervised_otp_used_count',
+        target: 'supervised_otp',
+        details: {}
+      });
+      return res.json(config);
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'ریست شمارنده Supervised OTP ناموفق بود.' });
+    }
+  });
+
+  router.delete('/supervised-otp', requireAdminAuth, async (req, res) => {
+    try {
+      if (!supervisedOtpRepository) return res.status(503).json({ error: 'Supervised OTP repository is not available.' });
+      const config = await supervisedOtpRepository.deleteCode();
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'delete_supervised_otp',
+        target: 'supervised_otp',
+        details: {}
+      });
+      return res.json(config);
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'حذف Supervised OTP ناموفق بود.' });
+    }
+  });
+
   const analyticsService = createAdminAnalyticsService({
     analyticsRepository: { readDB: (...args) => analyticsRepository.readDB(...args) },
     getTotalUsers: (...args) => analyticsRepository.getTotalUsers(...args),
@@ -320,7 +389,8 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
     getErrorDistribution: (...args) => analyticsRepository.getErrorDistribution(...args),
     getRecentAuditLogs: (...args) => analyticsRepository.getRecentAuditLogs(...args),
     getStats: (...args) => analyticsRepository.getStats(...args),
-    getPlanSubscriptions: (...args) => plansRepository.readUserSubscriptions(...args)
+    getPlanSubscriptions: (...args) => plansRepository.readUserSubscriptions(...args),
+    getSupervisedOtpUsage: (...args) => supervisedOtpRepository?.listUsage?.(...args)
   });
   const analyticsRouter = createAdminAnalyticsRouter({
     analyticsService,

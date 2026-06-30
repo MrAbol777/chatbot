@@ -360,6 +360,8 @@ const { router: authRouter } = createAuthModule({
   dbPool: repositories.db,
   db: repositories.db,
   settingsRepository: repositories.settings,
+  supervisedOtpRepository: repositories.supervisedOtp,
+  eventsRepository: repositories.events,
   errorsRepository: {
     logError: (...args) => repositories.errors.logError(...args)
   },

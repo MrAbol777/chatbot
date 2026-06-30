@@ -21,6 +21,8 @@ function createAuthModule(deps) {
     jwtSecret: deps.jwtSecret,
     tokenExpiresIn: deps.tokenExpiresIn,
     settingsRepository: deps.settingsRepository,
+    supervisedOtpRepository: deps.supervisedOtpRepository,
+    eventsRepository: deps.eventsRepository,
     logger: deps.logger
   });
   const router = createAuthRouter({

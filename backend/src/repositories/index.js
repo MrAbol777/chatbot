@@ -9,6 +9,7 @@ const { GuestRepository } = require('./GuestRepository');
 const { SettingsRepository } = require('./SettingsRepository');
 const { PlanRepository } = require('./PlanRepository');
 const { ChatMessageRepository } = require('./ChatMessageRepository');
+const { SupervisedOtpRepository } = require('./SupervisedOtpRepository');
 
 function createRepositories() {
   const db = new DatabaseClient({
@@ -26,6 +27,7 @@ function createRepositories() {
   const settings = new SettingsRepository(db);
   const plans = new PlanRepository(db);
   const chatMessages = new ChatMessageRepository(db);
+  const supervisedOtp = new SupervisedOtpRepository(db);
 
   return {
     db,
@@ -37,7 +39,8 @@ function createRepositories() {
     guests,
     settings,
     plans,
-    chatMessages
+    chatMessages,
+    supervisedOtp
   };
 }
 

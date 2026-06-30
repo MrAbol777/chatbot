@@ -6,7 +6,8 @@ const REPORT_SECTIONS = [
   'plans_usage',
   'guest_usage',
   'ai_performance',
-  'guest_conversations'
+  'guest_conversations',
+  'supervised_otp_usage'
 ];
 
 const SECTION_LABELS = {
@@ -17,7 +18,8 @@ const SECTION_LABELS = {
   plans_usage: 'Plans usage',
   guest_usage: 'Guest usage',
   ai_performance: 'AI performance',
-  guest_conversations: 'Guest conversations'
+  guest_conversations: 'Guest conversations',
+  supervised_otp_usage: 'Supervised OTP usage'
 };
 
 const GUEST_USER_PREFIX = 'guest:';
@@ -33,7 +35,8 @@ function createAdminAnalyticsService({
   getErrorDistribution,
   getRecentAuditLogs,
   getStats,
-  getPlanSubscriptions
+  getPlanSubscriptions,
+  getSupervisedOtpUsage
 }) {
   const getLegacyStats = async () => getStats();
 
@@ -337,6 +340,7 @@ function createAdminAnalyticsService({
         guestMessageCounts: []
       });
     const planSubscriptions = typeof getPlanSubscriptions === 'function' ? await getPlanSubscriptions() : [];
+    const supervisedOtpUsage = typeof getSupervisedOtpUsage === 'function' ? await getSupervisedOtpUsage() : [];
 
     const matchesUser = (item) => {
       if (guestFilters.guestOnly && !isGuestRecord(item)) return false;
@@ -359,6 +363,9 @@ function createAdminAnalyticsService({
     );
     const guestMessageCounts = (data.guestMessageCounts || []).filter(
       (item) => isInDateRange(item.last_message_at || item.created_at, dateRange)
+    );
+    const supervisedOtpUsageRows = (supervisedOtpUsage || []).filter(
+      (item) => matchesUser(item) && isInDateRange(item.used_at, dateRange)
     );
 
     const userMessageCount = messages.filter((item) => item.role === 'user').length;
@@ -400,7 +407,8 @@ function createAdminAnalyticsService({
         planSubscriptions,
         guestMessageCounts,
         messageTurns,
-        guestConversationGroups
+        guestConversationGroups,
+        supervisedOtpUsage: supervisedOtpUsageRows
       },
       filters: guestFilters,
       summary: {
@@ -419,6 +427,7 @@ function createAdminAnalyticsService({
           : 0,
         unansweredConversations: unansweredConversations.length,
         ambiguousMessages: ambiguousMessages.length,
+        supervisedOtpUses: supervisedOtpUsageRows.length,
         topErrors: countBy(errors, (item) => item.error_type).slice(0, 10)
       }
     };
@@ -566,6 +575,19 @@ function createAdminAnalyticsService({
       lines.push('');
     }
 
+    if (sections.includes('supervised_otp_usage')) {
+      lines.push('SUPERVISED_OTP_USAGE');
+      lines.push('phone,user_id,used_at,result');
+      for (const item of data.supervisedOtpUsage) {
+        lines.push(
+          [item.phone || '', item.user_id || '', formatDate(item.used_at), item.result || '']
+            .map(csvEscape)
+            .join(',')
+        );
+      }
+      lines.push('');
+    }
+
     if (sections.includes('ai_performance')) {
       lines.push('AI_PERFORMANCE');
       lines.push('metric,value');
@@ -577,7 +599,8 @@ function createAdminAnalyticsService({
         ['successful_messages', summary.successfulMessages],
         ['active_users', summary.activeUsers],
         ['unanswered_conversations', summary.unansweredConversations],
-        ['ambiguous_short_messages', summary.ambiguousMessages]
+        ['ambiguous_short_messages', summary.ambiguousMessages],
+        ['supervised_otp_uses', summary.supervisedOtpUses]
       ]) {
         lines.push([metric, value].map(csvEscape).join(','));
       }
@@ -609,7 +632,8 @@ function createAdminAnalyticsService({
       `errors: ${summary.errors}`,
       `average_ai_response_ms: ${summary.averageAiResponseMs}`,
       `unanswered_conversations: ${summary.unansweredConversations}`,
-      `ambiguous_short_messages: ${summary.ambiguousMessages}`
+      `ambiguous_short_messages: ${summary.ambiguousMessages}`,
+      `supervised_otp_uses: ${summary.supervisedOtpUses}`
     ];
 
     if (summary.topErrors.length > 0) {
@@ -746,6 +770,17 @@ function createAdminAnalyticsService({
       }
     }
 
+    if (sections.includes('supervised_otp_usage')) {
+      appendSection(lines, 'SUPERVISED_OTP_USAGE');
+      lines.push(`total_uses: ${data.supervisedOtpUsage.length}`);
+      for (const item of data.supervisedOtpUsage) {
+        lines.push(`- used_at: ${formatDate(item.used_at)}`);
+        lines.push(`  phone: ${item.phone || ''}`);
+        lines.push(`  user_id: ${item.user_id || ''}`);
+        lines.push(`  result: ${item.result || ''}`);
+      }
+    }
+
     if (sections.includes('ai_performance')) {
       appendSection(lines, 'AI_PERFORMANCE');
       lines.push(`guest_messages: ${summary.guestMessages}`);
@@ -756,6 +791,7 @@ function createAdminAnalyticsService({
       lines.push(`active_users: ${summary.activeUsers}`);
       lines.push(`unanswered_conversations: ${summary.unansweredConversations}`);
       lines.push(`ambiguous_short_messages: ${summary.ambiguousMessages}`);
+      lines.push(`supervised_otp_uses: ${summary.supervisedOtpUses}`);
     }
 
     lines.push('');

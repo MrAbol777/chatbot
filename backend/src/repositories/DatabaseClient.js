@@ -157,6 +157,32 @@ class DatabaseClient {
       `);
 
       await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS app_supervised_otp_config (
+          id VARCHAR(32) PRIMARY KEY,
+          enabled TINYINT(1) NOT NULL DEFAULT 0,
+          code_hash VARCHAR(255) NULL,
+          expires_at DATETIME NULL,
+          max_uses INT NULL,
+          used_count INT NOT NULL DEFAULT 0,
+          created_at DATETIME NOT NULL,
+          updated_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS app_supervised_otp_usage (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          phone VARCHAR(32) NOT NULL,
+          user_id VARCHAR(191) NULL,
+          result VARCHAR(64) NOT NULL,
+          used_at DATETIME NOT NULL,
+          INDEX idx_supervised_otp_usage_phone (phone),
+          INDEX idx_supervised_otp_usage_user (user_id),
+          INDEX idx_supervised_otp_usage_used_at (used_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+
+      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS app_plans (
           id VARCHAR(64) PRIMARY KEY,
           name VARCHAR(191) NOT NULL,

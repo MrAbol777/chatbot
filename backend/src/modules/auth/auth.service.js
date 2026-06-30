@@ -13,6 +13,8 @@ function createAuthService({
   tokenExpiresIn = '30d',
   signupTokenExpiresIn = '10m',
   settingsRepository,
+  supervisedOtpRepository,
+  eventsRepository,
   logger = console,
   now = () => new Date().toISOString()
 }) {
@@ -48,28 +50,121 @@ function createAuthService({
     return jwt.sign(payload, jwtSecret, { expiresIn: tokenExpiresIn });
   };
 
-  const createSignupToken = (phone) => {
+  const createSignupToken = (phone, extraPayload = {}) => {
     if (!jwt || typeof jwt.sign !== 'function' || !jwtSecret) {
       return null;
     }
 
-    return jwt.sign({ phone, type: 'signup_profile' }, jwtSecret, { expiresIn: signupTokenExpiresIn });
+    return jwt.sign({ phone, type: 'signup_profile', ...extraPayload }, jwtSecret, { expiresIn: signupTokenExpiresIn });
   };
 
   const verifySignupToken = (token, phone) => {
     if (!jwt || typeof jwt.verify !== 'function' || !jwtSecret) {
-      return false;
+      return null;
     }
 
     try {
       const payload = jwt.verify(String(token || ''), jwtSecret);
-      return payload?.type === 'signup_profile' && payload?.phone === phone;
+      return payload?.type === 'signup_profile' && payload?.phone === phone ? payload : null;
     } catch (_error) {
-      return false;
+      return null;
     }
   };
 
   const generateOtp = () => String(Math.floor(10000 + Math.random() * 90000));
+
+  const logSupervisedOtpEvent = async ({ userId, phone, result }) => {
+    if (!eventsRepository || typeof eventsRepository.logEvent !== 'function' || !userId) return;
+    try {
+      await eventsRepository.logEvent(userId, 'supervised_otp_verified', 'auth', {
+        method: 'supervised_otp',
+        phone,
+        result
+      });
+    } catch (error) {
+      logger.warn?.('[AUTH] supervised OTP event logging failed', {
+        userId,
+        reason: error instanceof Error ? error.message : String(error)
+      });
+    }
+  };
+
+  const completeVerifiedPhone = async ({ phone, mode, guestId, verifiedBy = 'sms_otp' }) => {
+    const isSupervised = verifiedBy === 'supervised_otp';
+    const existingUser = await authRepository.findUserByPhone(phone);
+    if (existingUser?.isBanned) {
+      return { statusCode: 403, body: { success: false, error: 'حساب شما مسدود شده است' } };
+    }
+
+    if (existingUser) {
+      let guestMigration = null;
+      if (guestsRepository && typeof guestsRepository.migrateGuestToUser === 'function' && guestId) {
+        guestMigration = await guestsRepository.migrateGuestToUser({
+          guestId,
+          userId: String(existingUser.user_id)
+        });
+      }
+
+      if (isSupervised) {
+        await supervisedOtpRepository?.recordUsage?.({
+          phone,
+          userId: String(existingUser.user_id),
+          result: 'login_existing'
+        });
+        await logSupervisedOtpEvent({
+          userId: String(existingUser.user_id),
+          phone,
+          result: 'login_existing'
+        });
+      }
+
+      const token = createToken({
+        sub: String(existingUser.user_id),
+        phone,
+        type: 'user'
+      });
+
+      return {
+        statusCode: 200,
+        body: {
+          success: true,
+          isNewUser: false,
+          requiresProfile: false,
+          userId: existingUser.user_id,
+          profile: {
+            name: existingUser.name || 'کاربر',
+            age: Number(existingUser.age || 0),
+            phone
+          },
+          ...(guestMigration ? { guestMigration } : {}),
+          ...(token ? { token } : {})
+        }
+      };
+    }
+
+    if (isSupervised) {
+      await supervisedOtpRepository?.recordUsage?.({
+        phone,
+        result: 'signup_new'
+      });
+    }
+
+    logger.log?.('[OTP] verification successful', {
+      phone,
+      mode,
+      verifiedBy,
+      verifiedAt: now()
+    });
+    return {
+      statusCode: 200,
+      body: {
+        success: true,
+        isNewUser: true,
+        requiresProfile: true,
+        signupToken: createSignupToken(phone, isSupervised ? { verifiedBy: 'supervised_otp' } : {})
+      }
+    };
+  };
 
   const checkPhoneStatus = async ({ phone: rawPhone, mode }) => {
     const phone = normalizeIranMobileToLocal(rawPhone);
@@ -163,6 +258,18 @@ function createAuthService({
 
     const verifyResult = await authRepository.verifyOtp(phone, code);
     if (!verifyResult.valid) {
+      if (verifyResult.reason === 'invalid_code' && supervisedOtpRepository && typeof supervisedOtpRepository.verifyAndConsume === 'function') {
+        const supervisedResult = await supervisedOtpRepository.verifyAndConsume(code);
+        if (supervisedResult.valid) {
+          logger.log?.('[OTP] supervised verification accepted', {
+            phone,
+            mode,
+            verifiedAt: now()
+          });
+          return completeVerifiedPhone({ phone, mode, guestId, verifiedBy: 'supervised_otp' });
+        }
+      }
+
       logger.warn?.('[OTP] verify-code failed', {
         phone,
         reason: verifyResult.reason,
@@ -199,58 +306,7 @@ function createAuthService({
       return { statusCode: 400, body: { success: false, error: 'کد منقضی شده یا نامعتبر است' } };
     }
 
-    const existingUser = await authRepository.findUserByPhone(phone);
-    if (existingUser?.isBanned) {
-      return { statusCode: 403, body: { success: false, error: 'حساب شما مسدود شده است' } };
-    }
-
-    if (existingUser) {
-      let guestMigration = null;
-      if (guestsRepository && typeof guestsRepository.migrateGuestToUser === 'function' && guestId) {
-        guestMigration = await guestsRepository.migrateGuestToUser({
-          guestId,
-          userId: String(existingUser.user_id)
-        });
-      }
-
-      const token = createToken({
-        sub: String(existingUser.user_id),
-        phone,
-        type: 'user'
-      });
-
-      return {
-        statusCode: 200,
-        body: {
-          success: true,
-          isNewUser: false,
-          requiresProfile: false,
-          userId: existingUser.user_id,
-          profile: {
-            name: existingUser.name || 'کاربر',
-            age: Number(existingUser.age || 0),
-            phone
-          },
-          ...(guestMigration ? { guestMigration } : {}),
-          ...(token ? { token } : {})
-        }
-      };
-    }
-
-    logger.log?.('[OTP] verification successful', {
-      phone,
-      mode,
-      verifiedAt: now()
-    });
-    return {
-      statusCode: 200,
-      body: {
-        success: true,
-        isNewUser: true,
-        requiresProfile: true,
-        signupToken: createSignupToken(phone)
-      }
-    };
+    return completeVerifiedPhone({ phone, mode, guestId, verifiedBy: 'sms_otp' });
   };
 
   const registerProfile = async ({ name, age, phone: rawPhone, id, mode, guestId, signupToken }) => {
@@ -267,7 +323,8 @@ function createAuthService({
       return { statusCode: 400, body: { error: 'برای ورود، کد تایید را ارسال کنید.' } };
     }
 
-    if (mode !== 'login' && !verifySignupToken(signupToken, phone)) {
+    const signupPayload = mode !== 'login' ? verifySignupToken(signupToken, phone) : null;
+    if (mode !== 'login' && !signupPayload) {
       return { statusCode: 401, body: { error: 'تأیید شماره منقضی شده است. دوباره کد بگیرید.' } };
     }
 
@@ -315,6 +372,14 @@ function createAuthService({
           };
 
     const userId = await authRepository.createUser(payloadProfile);
+    if (signupPayload?.verifiedBy === 'supervised_otp') {
+      await logSupervisedOtpEvent({
+        userId: String(userId),
+        phone,
+        result: 'signup_new'
+      });
+    }
+
     let guestMigration = null;
     if (guestsRepository && typeof guestsRepository.migrateGuestToUser === 'function' && guestId) {
       guestMigration = await guestsRepository.migrateGuestToUser({

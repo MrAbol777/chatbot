@@ -100,6 +100,15 @@ type SiteSettingsPayload = {
   definitions?: Record<string, { label: string; type: string; category: string; allowedValues?: string[] }>;
 };
 
+type SupervisedOtpConfig = {
+  enabled: boolean;
+  hasCode: boolean;
+  expires_at?: string | null;
+  max_uses?: number | null;
+  used_count: number;
+  updated_at?: string | null;
+};
+
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
 type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'errors' | 'siteSettings' | 'config' | 'audit';
 type ReportUserScope = 'all' | 'selected';
@@ -112,7 +121,8 @@ type ReportSection =
   | 'plans_usage'
   | 'guest_usage'
   | 'ai_performance'
-  | 'guest_conversations';
+  | 'guest_conversations'
+  | 'supervised_otp_usage';
 type ReportRangePreset = 'today' | '7d' | '30d' | 'custom';
 const USERS_PAGE_SIZE = 10;
 const TAB_LABELS: Record<AdminTab, string> = {
@@ -143,12 +153,21 @@ const REPORT_SECTION_OPTIONS: Array<{ key: ReportSection; label: string }> = [
   { key: 'plans_usage', label: 'plans usage' },
   { key: 'guest_usage', label: 'guest usage' },
   { key: 'ai_performance', label: 'AI performance' },
-  { key: 'guest_conversations', label: 'چت‌های مهمان' }
+  { key: 'guest_conversations', label: 'چت‌های مهمان' },
+  { key: 'supervised_otp_usage', label: 'Supervised OTP' }
 ];
 
 const formatDateInput = (date: Date) => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
   return localDate.toISOString().slice(0, 10);
+};
+
+const formatDateTimeLocalInput = (value?: string | null) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+  return localDate.toISOString().slice(0, 16);
 };
 
 // ─── Shared error helpers for admin routes ───
@@ -198,7 +217,8 @@ function AdminPanel() {
     plans_usage: false,
     guest_usage: false,
     ai_performance: true,
-    guest_conversations: false
+    guest_conversations: false,
+    supervised_otp_usage: false
   });
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
@@ -218,6 +238,15 @@ function AdminPanel() {
   const [siteSettings, setSiteSettings] = useState<SiteSettingsPayload | null>(null);
   const [siteSettingsSaving, setSiteSettingsSaving] = useState(false);
   const [siteSettingsMessage, setSiteSettingsMessage] = useState('');
+  const [supervisedOtp, setSupervisedOtp] = useState<SupervisedOtpConfig | null>(null);
+  const [supervisedOtpForm, setSupervisedOtpForm] = useState({
+    enabled: false,
+    code: '',
+    expires_at: '',
+    max_uses: ''
+  });
+  const [supervisedOtpSaving, setSupervisedOtpSaving] = useState(false);
+  const [supervisedOtpMessage, setSupervisedOtpMessage] = useState('');
 
   const loadUsers = async (page = usersPage) => {
     setLoadError('');
@@ -344,6 +373,25 @@ function AdminPanel() {
     }
   };
 
+  const loadSupervisedOtp = async () => {
+    setSupervisedOtpMessage('');
+    try {
+      const response = await fetch('/api/admin/supervised-otp', { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری Supervised OTP ناموفق بود.');
+      if (!result.ok) return;
+      const config = result.data as SupervisedOtpConfig;
+      setSupervisedOtp(config);
+      setSupervisedOtpForm({
+        enabled: Boolean(config.enabled),
+        code: '',
+        expires_at: formatDateTimeLocalInput(config.expires_at),
+        max_uses: config.max_uses == null ? '' : String(config.max_uses)
+      });
+    } catch (error) {
+      setSupervisedOtpMessage(error instanceof Error ? error.message : 'اتصال به سرور برای دریافت Supervised OTP برقرار نشد.');
+    }
+  };
+
   useEffect(() => {
     void loadDashboard();
     void loadUsers();
@@ -353,6 +401,7 @@ function AdminPanel() {
     void loadLogs();
     void loadSubscriptions();
     void loadSiteSettings();
+    void loadSupervisedOtp();
   }, []);
 
   const visibleUsers = useMemo(() => users, [users]);
@@ -631,6 +680,93 @@ function AdminPanel() {
       setSiteSettingsMessage(error instanceof Error ? error.message : 'ذخیره تنظیمات سایت ناموفق بود.');
     } finally {
       setSiteSettingsSaving(false);
+    }
+  };
+
+  const updateSupervisedOtpForm = (key: keyof typeof supervisedOtpForm, value: string | boolean) => {
+    setSupervisedOtpForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const saveSupervisedOtp = async () => {
+    setSupervisedOtpSaving(true);
+    setSupervisedOtpMessage('');
+    try {
+      const payload: Record<string, unknown> = {
+        enabled: supervisedOtpForm.enabled,
+        expires_at: supervisedOtpForm.expires_at ? new Date(supervisedOtpForm.expires_at).toISOString() : null,
+        max_uses: supervisedOtpForm.max_uses.trim() ? Number(supervisedOtpForm.max_uses) : null
+      };
+      if (supervisedOtpForm.code.trim()) payload.code = supervisedOtpForm.code.trim();
+      const response = await fetch('/api/admin/supervised-otp', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      const result = await handleAdminResponse(response, 'ذخیره Supervised OTP ناموفق بود.');
+      if (result.ok) {
+        const config = result.data as SupervisedOtpConfig;
+        setSupervisedOtp(config);
+        setSupervisedOtpForm({
+          enabled: Boolean(config.enabled),
+          code: '',
+          expires_at: formatDateTimeLocalInput(config.expires_at),
+          max_uses: config.max_uses == null ? '' : String(config.max_uses)
+        });
+        setSupervisedOtpMessage('Supervised OTP با موفقیت ذخیره شد.');
+      }
+    } catch (error) {
+      setSupervisedOtpMessage(error instanceof Error ? error.message : 'ذخیره Supervised OTP ناموفق بود.');
+    } finally {
+      setSupervisedOtpSaving(false);
+    }
+  };
+
+  const resetSupervisedOtpUsedCount = async () => {
+    setSupervisedOtpSaving(true);
+    setSupervisedOtpMessage('');
+    try {
+      const response = await fetch('/api/admin/supervised-otp/reset-used-count', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const result = await handleAdminResponse(response, 'ریست تعداد استفاده ناموفق بود.');
+      if (result.ok) {
+        setSupervisedOtp(result.data);
+        setSupervisedOtpMessage('تعداد استفاده ریست شد.');
+      }
+    } catch (error) {
+      setSupervisedOtpMessage(error instanceof Error ? error.message : 'ریست تعداد استفاده ناموفق بود.');
+    } finally {
+      setSupervisedOtpSaving(false);
+    }
+  };
+
+  const deleteSupervisedOtp = async () => {
+    if (!window.confirm('کد Supervised OTP حذف و غیرفعال شود؟')) return;
+    setSupervisedOtpSaving(true);
+    setSupervisedOtpMessage('');
+    try {
+      const response = await fetch('/api/admin/supervised-otp', {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const result = await handleAdminResponse(response, 'حذف Supervised OTP ناموفق بود.');
+      if (result.ok) {
+        const config = result.data as SupervisedOtpConfig;
+        setSupervisedOtp(config);
+        setSupervisedOtpForm({
+          enabled: Boolean(config.enabled),
+          code: '',
+          expires_at: '',
+          max_uses: ''
+        });
+        setSupervisedOtpMessage('Supervised OTP حذف و غیرفعال شد.');
+      }
+    } catch (error) {
+      setSupervisedOtpMessage(error instanceof Error ? error.message : 'حذف Supervised OTP ناموفق بود.');
+    } finally {
+      setSupervisedOtpSaving(false);
     }
   };
 
@@ -1180,6 +1316,68 @@ function AdminPanel() {
                   value={String(siteSettings.settings['auth.validation.age_max'] ?? 18)}
                   onChange={(e) => updateSiteSetting('auth.validation.age_max', Number(e.target.value))}
                 />
+              </FieldGroup>
+
+              <h4>Supervised OTP</h4>
+              {supervisedOtpMessage ? (
+                <InlineMessage
+                  text={supervisedOtpMessage}
+                  variant={supervisedOtpMessage.includes('موفقیت') || supervisedOtpMessage.includes('ریست') || supervisedOtpMessage.includes('حذف') ? 'success' : 'error'}
+                />
+              ) : null}
+              <FieldGroup direction="row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={supervisedOtpForm.enabled}
+                    onChange={(e) => updateSupervisedOtpForm('enabled', e.target.checked)}
+                  /> فعال
+                </label>
+                <TextField
+                  label="کد ۴ رقمی جدید"
+                  value={supervisedOtpForm.code}
+                  maxLength={4}
+                  inputMode="numeric"
+                  placeholder={supervisedOtp?.hasCode ? 'برای تغییر کد جدید وارد کنید' : 'مثلاً 1234'}
+                  onChange={(e) => updateSupervisedOtpForm('code', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                />
+                <TextField
+                  label="انقضا"
+                  type="datetime-local"
+                  value={supervisedOtpForm.expires_at}
+                  onChange={(e) => updateSupervisedOtpForm('expires_at', e.target.value)}
+                />
+              </FieldGroup>
+              <FieldGroup direction="row">
+                <TextField
+                  label="سقف استفاده"
+                  type="number"
+                  min="1"
+                  value={supervisedOtpForm.max_uses}
+                  placeholder="خالی یعنی نامحدود"
+                  onChange={(e) => updateSupervisedOtpForm('max_uses', e.target.value)}
+                />
+                <TextField
+                  label="تعداد استفاده"
+                  value={String(supervisedOtp?.used_count ?? 0)}
+                  disabled
+                />
+                <TextField
+                  label="وضعیت کد"
+                  value={supervisedOtp?.hasCode ? 'کد ذخیره شده است' : 'کدی ذخیره نشده'}
+                  disabled
+                />
+              </FieldGroup>
+              <FieldGroup direction="row" className="config-actions">
+                <Button variant="secondary" onClick={() => void saveSupervisedOtp()} disabled={supervisedOtpSaving}>
+                  {supervisedOtpSaving ? 'در حال ذخیره...' : 'ذخیره Supervised OTP'}
+                </Button>
+                <Button variant="ghost" onClick={() => void resetSupervisedOtpUsedCount()} disabled={supervisedOtpSaving}>
+                  reset_used_count
+                </Button>
+                <Button variant="ghost" onClick={() => void deleteSupervisedOtp()} disabled={supervisedOtpSaving || !supervisedOtp?.hasCode}>
+                  delete/disable code
+                </Button>
               </FieldGroup>
 
               <FieldGroup direction="row" className="config-actions">
