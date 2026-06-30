@@ -47,7 +47,7 @@ export async function startImageGeneration(prompt: string): Promise<{ taskId: st
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || 'ساخت عکس ناموفق بود.');
+    throw new Error(e.message || e.error || 'ساخت عکس ناموفق بود.');
   }
   const d = await res.json() as GenerateImageResponse;
   if (!d.success || !d.taskId) throw new Error(d.error || 'شناسه تسک دریافت نشد.');

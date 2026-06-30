@@ -2,6 +2,7 @@ function createAdminSystemService({
   ensureConfigData,
   fileStore,
   configFilePath,
+  systemPromptFilePath,
   appendAudit,
   isSystemPromptEditEnabled,
   onSystemPromptUpdated,
@@ -20,8 +21,7 @@ function createAdminSystemService({
         voiceInput: Boolean(body?.features?.voiceInput),
         quickChips: Boolean(body?.features?.quickChips),
         practiceMode: Boolean(body?.features?.practiceMode)
-      },
-      systemPrompt: current.systemPrompt || defaultConfig.systemPrompt
+      }
     };
 
     await writeJson(configFilePath, nextConfig, { spaces: 2 });
@@ -54,7 +54,7 @@ function createAdminSystemService({
       return { statusCode: 403, body: { error: 'ویرایش سیستم پرامپت غیرفعال است.' } };
     }
     const config = await ensureConfigData();
-    return { statusCode: 200, body: { systemPrompt: config.systemPrompt || defaultConfig.systemPrompt } };
+    return { statusCode: 200, body: { systemPrompt: config.systemPrompt || '' } };
   };
 
   const updateSystemPrompt = async ({ body, admin }) => {
@@ -68,11 +68,7 @@ function createAdminSystemService({
     }
 
     const current = await ensureConfigData();
-    const nextConfig = {
-      ...current,
-      systemPrompt: nextPrompt
-    };
-    await writeJson(configFilePath, nextConfig, { spaces: 2 });
+    await fileStore.writeFile(systemPromptFilePath, `${nextPrompt}\n`, 'utf8');
 
     if (typeof onSystemPromptUpdated === 'function') {
       onSystemPromptUpdated();

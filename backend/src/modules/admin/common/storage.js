@@ -61,9 +61,9 @@ const ensureConfigData = async () => {
   await fs.ensureFile(CONFIG_FILE_PATH);
   const raw = await fs.readFile(CONFIG_FILE_PATH, 'utf8');
   if (!raw.trim()) {
-    const seedConfig = { ...DEFAULT_CONFIG, systemPrompt: defaultSystemPrompt };
+    const seedConfig = { ...DEFAULT_CONFIG };
     await fs.writeJson(CONFIG_FILE_PATH, seedConfig, { spaces: 2 });
-    return seedConfig;
+    return { ...seedConfig, systemPrompt: defaultSystemPrompt };
   }
 
   const parsed = JSON.parse(raw);
@@ -75,10 +75,7 @@ const ensureConfigData = async () => {
       quickChips: Boolean(parsed.features?.quickChips),
       practiceMode: Boolean(parsed.features?.practiceMode)
     },
-    systemPrompt:
-      typeof parsed.systemPrompt === 'string' && parsed.systemPrompt.trim()
-        ? parsed.systemPrompt.trim()
-        : defaultSystemPrompt
+    systemPrompt: defaultSystemPrompt
   };
 };
 
@@ -115,6 +112,7 @@ const appendAudit = async ({ adminUsername, action, target, details }) => {
 module.exports = {
   ADMIN_FILE_PATH,
   CONFIG_FILE_PATH,
+  SYSTEM_PROMPT_PATH,
   DEFAULT_CONFIG,
   ensureAdminData,
   ensureConfigData,

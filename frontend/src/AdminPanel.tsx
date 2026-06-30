@@ -110,7 +110,7 @@ type SupervisedOtpConfig = {
 };
 
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
-type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'errors' | 'siteSettings' | 'config' | 'audit';
+type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'errors' | 'siteSettings' | 'supervisedOtp' | 'config' | 'audit';
 type ReportUserScope = 'all' | 'selected';
 type ReportFormat = 'csv' | 'txt';
 type ReportSection =
@@ -131,6 +131,7 @@ const TAB_LABELS: Record<AdminTab, string> = {
   subscriptions: 'اشتراک‌ها',
   errors: 'خطاها',
   siteSettings: 'تنظیمات سایت',
+  supervisedOtp: 'Supervised OTP',
   config: 'سیستم',
   audit: 'Audit'
 };
@@ -141,6 +142,7 @@ const TAB_ICONS: Record<keyof typeof TAB_LABELS, string> = {
   subscriptions: '◈',
   errors: '!',
   siteSettings: '⚙',
+  supervisedOtp: 'OTP',
   config: '⚙',
   audit: '⌁'
 };
@@ -770,6 +772,88 @@ function AdminPanel() {
     }
   };
 
+  const supervisedOtpStatus = supervisedOtp?.enabled ? 'فعال' : 'غیرفعال';
+  const supervisedOtpHasCode = supervisedOtp?.hasCode ? 'کد ذخیره شده است' : 'کدی ذخیره نشده';
+  const supervisedOtpCard = (
+    <div className="admin-section supervised-otp-card">
+      <div className="admin-section-header">
+        <div>
+          <h3>Supervised OTP</h3>
+          <p className="admin-note">مدیریت کد ۴ رقمی نظارت‌شده برای تایید ورود و ثبت‌نام.</p>
+        </div>
+        <div className="supervised-otp-card__status">
+          <span>{supervisedOtpStatus}</span>
+          <strong>{supervisedOtpHasCode}</strong>
+        </div>
+      </div>
+
+      {supervisedOtpMessage ? (
+        <InlineMessage
+          text={supervisedOtpMessage}
+          variant={supervisedOtpMessage.includes('موفقیت') || supervisedOtpMessage.includes('ریست') || supervisedOtpMessage.includes('حذف') ? 'success' : 'error'}
+        />
+      ) : null}
+
+      <FieldGroup direction="row">
+        <label className="admin-control-field supervised-otp-card__toggle">
+          <span>فعال/غیرفعال</span>
+          <input
+            type="checkbox"
+            checked={supervisedOtpForm.enabled}
+            onChange={(e) => updateSupervisedOtpForm('enabled', e.target.checked)}
+          />
+        </label>
+        <TextField
+          label="کد ۴ رقمی جدید"
+          value={supervisedOtpForm.code}
+          maxLength={4}
+          inputMode="numeric"
+          placeholder={supervisedOtp?.hasCode ? 'برای تغییر کد جدید وارد کنید' : 'مثلاً 1234'}
+          onChange={(e) => updateSupervisedOtpForm('code', e.target.value.replace(/\D/g, '').slice(0, 4))}
+        />
+        <TextField
+          label="تاریخ انقضا"
+          type="datetime-local"
+          value={supervisedOtpForm.expires_at}
+          onChange={(e) => updateSupervisedOtpForm('expires_at', e.target.value)}
+        />
+      </FieldGroup>
+
+      <FieldGroup direction="row">
+        <TextField
+          label="سقف استفاده"
+          type="number"
+          min="1"
+          value={supervisedOtpForm.max_uses}
+          placeholder="خالی یعنی نامحدود"
+          onChange={(e) => updateSupervisedOtpForm('max_uses', e.target.value)}
+        />
+        <TextField
+          label="تعداد استفاده‌شده"
+          value={String(supervisedOtp?.used_count ?? 0)}
+          disabled
+        />
+        <TextField
+          label="وضعیت کد"
+          value={supervisedOtpHasCode}
+          disabled
+        />
+      </FieldGroup>
+
+      <FieldGroup direction="row" className="config-actions">
+        <Button variant="secondary" onClick={() => void saveSupervisedOtp()} disabled={supervisedOtpSaving}>
+          {supervisedOtpSaving ? 'در حال ذخیره...' : 'ذخیره'}
+        </Button>
+        <Button variant="ghost" onClick={() => void resetSupervisedOtpUsedCount()} disabled={supervisedOtpSaving}>
+          ریست تعداد استفاده
+        </Button>
+        <Button variant="ghost" onClick={() => void deleteSupervisedOtp()} disabled={supervisedOtpSaving || !supervisedOtp?.hasCode}>
+          حذف/غیرفعال کردن
+        </Button>
+      </FieldGroup>
+    </div>
+  );
+
   return (
     <div className="admin-panel">
       <div className="admin-panel__header">
@@ -1318,68 +1402,6 @@ function AdminPanel() {
                 />
               </FieldGroup>
 
-              <h4>Supervised OTP</h4>
-              {supervisedOtpMessage ? (
-                <InlineMessage
-                  text={supervisedOtpMessage}
-                  variant={supervisedOtpMessage.includes('موفقیت') || supervisedOtpMessage.includes('ریست') || supervisedOtpMessage.includes('حذف') ? 'success' : 'error'}
-                />
-              ) : null}
-              <FieldGroup direction="row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={supervisedOtpForm.enabled}
-                    onChange={(e) => updateSupervisedOtpForm('enabled', e.target.checked)}
-                  /> فعال
-                </label>
-                <TextField
-                  label="کد ۴ رقمی جدید"
-                  value={supervisedOtpForm.code}
-                  maxLength={4}
-                  inputMode="numeric"
-                  placeholder={supervisedOtp?.hasCode ? 'برای تغییر کد جدید وارد کنید' : 'مثلاً 1234'}
-                  onChange={(e) => updateSupervisedOtpForm('code', e.target.value.replace(/\D/g, '').slice(0, 4))}
-                />
-                <TextField
-                  label="انقضا"
-                  type="datetime-local"
-                  value={supervisedOtpForm.expires_at}
-                  onChange={(e) => updateSupervisedOtpForm('expires_at', e.target.value)}
-                />
-              </FieldGroup>
-              <FieldGroup direction="row">
-                <TextField
-                  label="سقف استفاده"
-                  type="number"
-                  min="1"
-                  value={supervisedOtpForm.max_uses}
-                  placeholder="خالی یعنی نامحدود"
-                  onChange={(e) => updateSupervisedOtpForm('max_uses', e.target.value)}
-                />
-                <TextField
-                  label="تعداد استفاده"
-                  value={String(supervisedOtp?.used_count ?? 0)}
-                  disabled
-                />
-                <TextField
-                  label="وضعیت کد"
-                  value={supervisedOtp?.hasCode ? 'کد ذخیره شده است' : 'کدی ذخیره نشده'}
-                  disabled
-                />
-              </FieldGroup>
-              <FieldGroup direction="row" className="config-actions">
-                <Button variant="secondary" onClick={() => void saveSupervisedOtp()} disabled={supervisedOtpSaving}>
-                  {supervisedOtpSaving ? 'در حال ذخیره...' : 'ذخیره Supervised OTP'}
-                </Button>
-                <Button variant="ghost" onClick={() => void resetSupervisedOtpUsedCount()} disabled={supervisedOtpSaving}>
-                  reset_used_count
-                </Button>
-                <Button variant="ghost" onClick={() => void deleteSupervisedOtp()} disabled={supervisedOtpSaving || !supervisedOtp?.hasCode}>
-                  delete/disable code
-                </Button>
-              </FieldGroup>
-
               <FieldGroup direction="row" className="config-actions">
                 <Button onClick={() => void saveSiteSettings()} disabled={siteSettingsSaving}>
                   {siteSettingsSaving ? 'در حال ذخیره...' : 'ذخیره تنظیمات سایت'}
@@ -1391,6 +1413,8 @@ function AdminPanel() {
           )}
         </div>
       ) : null}
+
+      {tab === 'supervisedOtp' ? supervisedOtpCard : null}
 
       {tab === 'errors' ? (
         <div className="admin-table-wrap">

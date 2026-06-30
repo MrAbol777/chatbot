@@ -1,8 +1,16 @@
 const path = require('path');
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
+const {
+  getGuestIdFromUserId,
+  isGuestUserId,
+  normalizeGuestId
+} = require('../../repositories/GuestRepository');
+const { generateUserId } = require('../../repositories/helpers');
 
 const GENERATED_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
+const GUEST_COOKIE_NAME = 'danoa_guest_id';
+const DEFAULT_GUEST_IMAGE_LIMIT_DAILY = 0;
 const MIME_BY_EXTENSION = {
   png: 'image/png',
   jpg: 'image/jpeg',
@@ -17,8 +25,62 @@ const MIME_BY_EXTENSION = {
  * creating an internal task, doing generation in the background, and saving
  * uploads/images-generated/{id}.{ext} for same-origin serving.
  */
-function createImageGenerationController({ imageGenerationService, db, plansRepository }) {
+function createImageGenerationController({ imageGenerationService, db, plansRepository, settingsRepository, guestsRepository }) {
   const getImagesDir = () => path.join(__dirname, '../../../uploads/images-generated');
+
+  const setGuestCookie = (res, guestId) => {
+    res.cookie(GUEST_COOKIE_NAME, guestId, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 365 * 24 * 60 * 60 * 1000
+    });
+  };
+
+  const getGuestImageLimit = async () => {
+    if (!settingsRepository || typeof settingsRepository.get !== 'function') {
+      return DEFAULT_GUEST_IMAGE_LIMIT_DAILY;
+    }
+    const value = await settingsRepository.get('guest.image_limit_daily');
+    return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : DEFAULT_GUEST_IMAGE_LIMIT_DAILY;
+  };
+
+  const resolveUserContext = async (req, res) => {
+    const authenticatedUserId = typeof req.user?.id === 'string' ? req.user.id.trim() : '';
+    if (authenticatedUserId && !isGuestUserId(authenticatedUserId)) {
+      return { userId: authenticatedUserId, isGuest: false, guestId: '' };
+    }
+
+    const existingGuestId = normalizeGuestId(req.cookies?.[GUEST_COOKIE_NAME] || getGuestIdFromUserId(authenticatedUserId));
+    const guestId = existingGuestId || getGuestIdFromUserId(generateUserId({ isGuest: true }));
+    if (!existingGuestId) {
+      setGuestCookie(res, guestId);
+    }
+
+    if (!guestsRepository || typeof guestsRepository.ensureGuestUser !== 'function') {
+      return { userId: generateUserId({ isGuest: true, uuid: guestId }), isGuest: true, guestId };
+    }
+
+    const guestUserId = await guestsRepository.ensureGuestUser(guestId);
+    return { userId: guestUserId, isGuest: true, guestId };
+  };
+
+  const checkGuestImageLimit = async (userId) => {
+    const limit = await getGuestImageLimit();
+    if (limit === null || limit === undefined) {
+      return { allowed: true, limit: null, usage: null };
+    }
+    if (!plansRepository || typeof plansRepository.getDailyUsage !== 'function') {
+      return { allowed: limit > 0, limit, usage: null };
+    }
+    const usage = await plansRepository.getDailyUsage(userId);
+    return {
+      allowed: Number(usage.imageCount || 0) < limit,
+      limit,
+      usage,
+      remaining: Math.max(0, limit - Number(usage.imageCount || 0))
+    };
+  };
 
   const findGeneratedImage = async (recordId) => {
     const imagesDir = getImagesDir();
@@ -115,12 +177,23 @@ function createImageGenerationController({ imageGenerationService, db, plansRepo
         return res.status(400).json({ success: false, error: 'Prompt is required.' });
       }
 
-      const userId = req.user?.id;
+      const { userId, isGuest } = await resolveUserContext(req, res);
       if (!userId) {
         return res.status(401).json({ success: false, error: 'Authentication required.' });
       }
 
-      if (plansRepository && typeof plansRepository.checkLimit === 'function') {
+      if (isGuest) {
+        const limitState = await checkGuestImageLimit(userId);
+        if (!limitState.allowed) {
+          return res.status(403).json({
+            success: false,
+            error: 'GUEST_IMAGE_LIMIT_REACHED',
+            message: 'سقف ساخت تصویر روزانه مهمان تمام شده است.',
+            limit: limitState.limit,
+            usage: limitState.usage
+          });
+        }
+      } else if (plansRepository && typeof plansRepository.checkLimit === 'function') {
         const limitState = await plansRepository.checkLimit(userId, 'image');
         if (!limitState.allowed) {
           return res.status(402).json({
@@ -178,7 +251,7 @@ function createImageGenerationController({ imageGenerationService, db, plansRepo
   const getImageStatus = async (req, res) => {
     try {
       const { taskId } = req.params;
-      const userId = req.user?.id;
+      const { userId } = await resolveUserContext(req, res);
 
       if (!taskId) {
         return res.status(400).json({ success: false, error: 'taskId is required.' });

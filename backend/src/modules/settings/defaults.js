@@ -7,6 +7,14 @@ const SETTING_DEFINITIONS = {
     min: 0,
     adminEditable: true
   },
+  'guest.image_limit_daily': {
+    label: 'سقف ساخت تصویر مهمان در روز',
+    type: 'number',
+    category: 'guest',
+    defaultValue: 0,
+    min: 0,
+    adminEditable: true
+  },
   'guest.limit_modal.title': {
     label: 'عنوان مودال محدودیت مهمان',
     type: 'string',

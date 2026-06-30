@@ -14,6 +14,7 @@ const { createAdminSettingsRouter } = require('./modules/admin/settings/routes')
 const { createLoginLimiter, createRequireAdminAuth, parseBannedFilter } = require('./modules/admin/common/auth');
 const {
   CONFIG_FILE_PATH,
+  SYSTEM_PROMPT_PATH,
   DEFAULT_CONFIG,
   ensureAdminData,
   ensureConfigData,
@@ -402,6 +403,7 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
     ensureConfigData,
     fileStore: fs,
     configFilePath: CONFIG_FILE_PATH,
+    systemPromptFilePath: SYSTEM_PROMPT_PATH,
     appendAudit,
     isSystemPromptEditEnabled,
     onSystemPromptUpdated,

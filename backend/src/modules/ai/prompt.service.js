@@ -22,26 +22,8 @@ function createPromptService({ fileStore, configPath, systemPromptPath, defaultM
     }
 
     try {
-      const fallbackPrompt = (await fileStore.readFile(systemPromptPath, 'utf8')).trim();
-      const parsed = await fileStore.readJson(configPath);
-      const configuredPrompt =
-        typeof parsed?.systemPrompt === 'string' && parsed.systemPrompt.trim()
-          ? parsed.systemPrompt.trim()
-          : fallbackPrompt;
-
-      if (!parsed?.systemPrompt || typeof parsed.systemPrompt !== 'string' || !parsed.systemPrompt.trim()) {
-        await fileStore.writeJson(
-          configPath,
-          {
-            ...parsed,
-            systemPrompt: configuredPrompt
-          },
-          { spaces: 2 }
-        );
-      }
-
-      systemPromptCache = configuredPrompt;
-      return configuredPrompt;
+      systemPromptCache = (await fileStore.readFile(systemPromptPath, 'utf8')).trim();
+      return systemPromptCache;
     } catch (_error) {
       systemPromptCache = '';
       return systemPromptCache;

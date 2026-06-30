@@ -398,6 +398,8 @@ const imageGenerationModule = createImageGenerationRouter({
   geminiBaseUrl,
   db: repositories.db,
   plansRepository: repositories.plans,
+  settingsRepository: repositories.settings,
+  guestsRepository: repositories.guests,
   authJwtSecret
 });
 // Public serve endpoint (no auth — img tags can't send Authorization headers)

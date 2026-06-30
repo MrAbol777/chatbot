@@ -658,6 +658,38 @@ textarea {
   flex-wrap: wrap;
 }
 
+.supervised-otp-card {
+  display: grid;
+  gap: 16px;
+}
+
+.supervised-otp-card__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  color: var(--admin-text-soft);
+}
+
+.supervised-otp-card__status span,
+.supervised-otp-card__status strong {
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background: #f8fbff;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.supervised-otp-card__status strong {
+  color: var(--admin-text);
+}
+
+.supervised-otp-card__toggle input {
+  width: 20px;
+  height: 20px;
+}
+
 .system-prompt-box {
   margin-top: 16px;
   border-top: 1px dashed var(--admin-border);
