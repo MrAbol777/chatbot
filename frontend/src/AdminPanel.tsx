@@ -1300,14 +1300,16 @@ function AdminPanel() {
                   value={String(siteSettings.settings['guest.message_limit'] ?? 10)}
                   onChange={(e) => updateSiteSetting('guest.message_limit', Number(e.target.value))}
                 />
+              </FieldGroup>
+              <FieldGroup direction="row">
                 <TextField
-                  label="سقف ساخت تصویر مهمان در روز"
+                  label="سقف تصویر روزانه مهمان"
                   value={siteSettings.settings['guest.image_limit_daily'] === null ? '' : String(siteSettings.settings['guest.image_limit_daily'] ?? '')}
                   placeholder="خالی = نامحدود، ۰ = غیرفعال"
                   onChange={(e) => updateSiteSetting('guest.image_limit_daily', parseNullableNumberInput(e.target.value))}
                 />
                 <TextField
-                  label="سقف ساخت تصویر مهمان در ساعت"
+                  label="سقف تصویر ساعتی مهمان"
                   value={siteSettings.settings['guest.image_limit_hourly'] === null ? '' : String(siteSettings.settings['guest.image_limit_hourly'] ?? '')}
                   placeholder="خالی = نامحدود، ۰ = غیرفعال"
                   onChange={(e) => updateSiteSetting('guest.image_limit_hourly', parseNullableNumberInput(e.target.value))}
