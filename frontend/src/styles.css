@@ -730,6 +730,7 @@ textarea {
 }
 
 .admin-report-options input[type="date"],
+.admin-report-options input[type="number"],
 .admin-report-options select {
   border: 1px solid var(--admin-border);
   border-radius: 9px;

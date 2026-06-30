@@ -111,7 +111,8 @@ type ReportSection =
   | 'messages'
   | 'plans_usage'
   | 'guest_usage'
-  | 'ai_performance';
+  | 'ai_performance'
+  | 'guest_conversations';
 type ReportRangePreset = 'today' | '7d' | '30d' | 'custom';
 const USERS_PAGE_SIZE = 10;
 const TAB_LABELS: Record<AdminTab, string> = {
@@ -141,7 +142,8 @@ const REPORT_SECTION_OPTIONS: Array<{ key: ReportSection; label: string }> = [
   { key: 'messages', label: 'messages' },
   { key: 'plans_usage', label: 'plans usage' },
   { key: 'guest_usage', label: 'guest usage' },
-  { key: 'ai_performance', label: 'AI performance' }
+  { key: 'ai_performance', label: 'AI performance' },
+  { key: 'guest_conversations', label: 'چت‌های مهمان' }
 ];
 
 const formatDateInput = (date: Date) => {
@@ -184,6 +186,10 @@ function AdminPanel() {
   const [reportRangePreset, setReportRangePreset] = useState<ReportRangePreset>('7d');
   const [reportCustomFromDate, setReportCustomFromDate] = useState('');
   const [reportCustomToDate, setReportCustomToDate] = useState('');
+  const [reportGuestOnly, setReportGuestOnly] = useState(false);
+  const [reportMinGuestMessages, setReportMinGuestMessages] = useState('0');
+  const [reportGuestErrorsOnly, setReportGuestErrorsOnly] = useState(false);
+  const [reportAmbiguousOnly, setReportAmbiguousOnly] = useState(false);
   const [reportOptions, setReportOptions] = useState<Record<ReportSection, boolean>>({
     users: true,
     errors: false,
@@ -191,7 +197,8 @@ function AdminPanel() {
     messages: false,
     plans_usage: false,
     guest_usage: false,
-    ai_performance: true
+    ai_performance: true,
+    guest_conversations: false
   });
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
@@ -484,6 +491,10 @@ function AdminPanel() {
     if (reportUserScope === 'selected' && selectedReportUserIds.length > 0) {
       params.set('userIds', selectedReportUserIds.join(','));
     }
+    if (reportGuestOnly) params.set('guestOnly', '1');
+    if (Number.parseInt(reportMinGuestMessages, 10) > 0) params.set('minGuestMessages', reportMinGuestMessages);
+    if (reportGuestErrorsOnly) params.set('guestErrorsOnly', '1');
+    if (reportAmbiguousOnly) params.set('ambiguousOnly', '1');
     window.open(`/api/admin/reports/export?${params.toString()}`, '_blank');
   };
 
@@ -1308,6 +1319,38 @@ function AdminPanel() {
               /> {section.label}
             </label>
           ))}
+        </FieldGroup>
+        <FieldGroup direction="row" className="admin-report-options">
+          <label>
+            <input
+              type="checkbox"
+              checked={reportGuestOnly}
+              onChange={(e) => setReportGuestOnly(e.target.checked)}
+            /> فقط مهمان‌ها
+          </label>
+          <label className="admin-control-field">
+            <span>حداقل تعداد پیام</span>
+            <input
+              type="number"
+              min="0"
+              value={reportMinGuestMessages}
+              onChange={(e) => setReportMinGuestMessages(e.target.value)}
+            />
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={reportGuestErrorsOnly}
+              onChange={(e) => setReportGuestErrorsOnly(e.target.checked)}
+            /> فقط گفتگوهای دارای خطا
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={reportAmbiguousOnly}
+              onChange={(e) => setReportAmbiguousOnly(e.target.checked)}
+            /> فقط پیام‌های کوتاه مبهم
+          </label>
         </FieldGroup>
         <FieldGroup direction="row" className="admin-report-options">
           <label>

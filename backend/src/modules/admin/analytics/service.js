@@ -5,7 +5,8 @@ const REPORT_SECTIONS = [
   'messages',
   'plans_usage',
   'guest_usage',
-  'ai_performance'
+  'ai_performance',
+  'guest_conversations'
 ];
 
 const SECTION_LABELS = {
@@ -15,8 +16,11 @@ const SECTION_LABELS = {
   messages: 'Messages',
   plans_usage: 'Plans usage',
   guest_usage: 'Guest usage',
-  ai_performance: 'AI performance'
+  ai_performance: 'AI performance',
+  guest_conversations: 'Guest conversations'
 };
+
+const GUEST_USER_PREFIX = 'guest:';
 
 function createAdminAnalyticsService({
   analyticsRepository,
@@ -56,6 +60,16 @@ function createAdminAnalyticsService({
   const normalizeUserIds = (value) => {
     const rawItems = Array.isArray(value) ? value : String(value || '').split(',');
     return new Set(rawItems.map((item) => String(item || '').trim()).filter(Boolean));
+  };
+
+  const normalizeBooleanFlag = (value) => {
+    const text = String(value ?? '').trim().toLowerCase();
+    return text === '1' || text === 'true' || text === 'yes' || text === 'on';
+  };
+
+  const normalizePositiveNumber = (value) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   };
 
   const parseDateBoundary = (value, endOfDay = false) => {
@@ -111,6 +125,15 @@ function createAdminAnalyticsService({
     return value === 'txt' ? 'txt' : 'csv';
   };
 
+  const isGuestUserId = (value) => String(value || '').startsWith(GUEST_USER_PREFIX);
+  const deriveGuestId = (item = {}) => {
+    if (item.guest_id) return String(item.guest_id);
+    if (isGuestUserId(item.user_id)) return String(item.user_id).slice(GUEST_USER_PREFIX.length);
+    if (item.userId && isGuestUserId(item.userId)) return String(item.userId).slice(GUEST_USER_PREFIX.length);
+    return '';
+  };
+  const isGuestRecord = (item = {}) => item.user_type === 'guest' || Boolean(item.guest_id) || isGuestUserId(item.user_id) || isGuestUserId(item.userId);
+
   const looksAmbiguous = (content) => {
     const text = String(content || '').trim().toLowerCase();
     return ['چرا', 'چی', 'نه'].includes(text) || text.length <= 3;
@@ -139,7 +162,7 @@ function createAdminAnalyticsService({
         const assistantResponse = sorted.slice(index + 1).find((item) => item.role === 'assistant');
         turns.push({
           user_id: userMessage.user_id || '',
-          guest_id: userMessage.guest_id || '',
+          guest_id: userMessage.guest_id || deriveGuestId(userMessage),
           user_type: userMessage.user_type || '',
           conversation_id: userMessage.conversation_id || '',
           user_message: userMessage.content || '',
@@ -149,7 +172,8 @@ function createAdminAnalyticsService({
           limit_status: assistantResponse?.limit_status || userMessage.limit_status || '',
           error_code: assistantResponse?.error_code || userMessage.error_code || '',
           created_at: formatDate(userMessage.created_at),
-          ambiguous_user_message: looksAmbiguous(userMessage.content) ? 'yes' : 'no'
+          ambiguous_user_message: looksAmbiguous(userMessage.content) ? 'yes' : 'no',
+          has_error: Boolean(assistantResponse?.error_code || userMessage.error_code)
         });
       }
     }
@@ -168,11 +192,138 @@ function createAdminAnalyticsService({
       .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
   };
 
+  const buildGuestConversationGroups = ({ users, conversations, messages, guestMessageCounts, filters }) => {
+    const guestMessages = messages.filter((item) => isGuestRecord(item));
+    const guestConversations = conversations.filter((item) => isGuestRecord(item) || deriveGuestId(item));
+    const guestUsers = users.filter((item) => isGuestUserId(item.user_id));
+    const guestTurns = pairMessageTurns(guestMessages);
+
+    const ipByGuest = new Map();
+    for (const item of guestMessageCounts) {
+      const guestId = String(item.guest_id || '').trim();
+      if (!guestId) continue;
+      if (!ipByGuest.has(guestId)) ipByGuest.set(guestId, []);
+      ipByGuest.get(guestId).push(item);
+    }
+
+    const userByGuest = new Map(guestUsers.map((item) => [deriveGuestId(item), item]));
+    const conversationByGuest = new Map();
+    for (const item of guestConversations) {
+      const guestId = deriveGuestId(item);
+      if (!guestId) continue;
+      if (!conversationByGuest.has(guestId)) conversationByGuest.set(guestId, []);
+      conversationByGuest.get(guestId).push(item);
+    }
+
+    const turnsByGuest = new Map();
+    for (const turn of guestTurns) {
+      const guestId = String(turn.guest_id || '').trim();
+      if (!guestId) continue;
+      if (!turnsByGuest.has(guestId)) turnsByGuest.set(guestId, []);
+      turnsByGuest.get(guestId).push(turn);
+    }
+
+    const guestIds = new Set([
+      ...ipByGuest.keys(),
+      ...userByGuest.keys(),
+      ...conversationByGuest.keys(),
+      ...turnsByGuest.keys()
+    ]);
+
+    const groups = [];
+    for (const guestId of guestIds) {
+      const guestIpRows = [...(ipByGuest.get(guestId) || [])].sort(
+        (a, b) => new Date(b.last_message_at || b.created_at || 0).getTime() - new Date(a.last_message_at || a.created_at || 0).getTime()
+      );
+      const ips = [...new Set(guestIpRows.map((item) => String(item.ip_address || '').trim()).filter(Boolean))];
+      const guestUser = userByGuest.get(guestId) || null;
+      const guestConversationItems = [...(conversationByGuest.get(guestId) || [])];
+      const guestTurnItems = [...(turnsByGuest.get(guestId) || [])].sort(
+        (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+      );
+
+      const baseMessageCount = guestTurnItems.length;
+      if (filters.minGuestMessages > 0 && baseMessageCount < filters.minGuestMessages) continue;
+
+      const knownConversationIds = new Set(guestConversationItems.map((item) => String(item.conversation_id || '')).filter(Boolean));
+      const syntheticConversations = [...new Set(guestTurnItems.map((item) => String(item.conversation_id || '')).filter(Boolean))]
+        .filter((conversationId) => !knownConversationIds.has(conversationId))
+        .map((conversationId) => {
+          const turns = guestTurnItems.filter((turn) => turn.conversation_id === conversationId);
+          const createdTimes = turns
+            .map((turn) => new Date(turn.created_at || 0).getTime())
+            .filter((time) => Number.isFinite(time) && time > 0);
+          const createdAt = createdTimes.length > 0 ? new Date(Math.min(...createdTimes)).toISOString() : '';
+          const updatedAt = createdTimes.length > 0 ? new Date(Math.max(...createdTimes)).toISOString() : createdAt;
+          return {
+            conversation_id: conversationId,
+            created_at: createdAt,
+            updated_at: updatedAt
+          };
+        });
+
+      const allConversationItems = [...guestConversationItems, ...syntheticConversations];
+      const conversationSummaries = allConversationItems.map((conversation) => {
+        const turns = guestTurnItems.filter((turn) => turn.conversation_id === conversation.conversation_id);
+        const filteredTurns = turns.filter((turn) => {
+          if (filters.guestErrorsOnly && !turn.has_error) return false;
+          if (filters.ambiguousOnly && turn.ambiguous_user_message !== 'yes') return false;
+          return true;
+        });
+        return {
+          conversation_id: conversation.conversation_id || '',
+          created_at: formatDate(conversation.created_at),
+          updated_at: formatDate(conversation.updated_at || conversation.created_at),
+          turn_count: turns.length,
+          has_error: filteredTurns.some((turn) => turn.has_error) || turns.some((turn) => turn.has_error),
+          turns: filteredTurns
+        };
+      }).filter((conversation) => conversation.turns.length > 0 || (!filters.guestErrorsOnly && !filters.ambiguousOnly));
+
+      if (conversationSummaries.length === 0) continue;
+
+      const filteredTurnItems = conversationSummaries.flatMap((conversation) => conversation.turns);
+      const lastTurnWithLimit = [...filteredTurnItems].reverse().find((turn) => turn.limit_status);
+      const timeCandidates = [
+        guestUser?.registered_at,
+        guestUser?.last_active,
+        ...guestIpRows.map((item) => item.created_at),
+        ...guestIpRows.map((item) => item.last_message_at),
+        ...guestConversationItems.map((item) => item.created_at),
+        ...guestConversationItems.map((item) => item.updated_at),
+        ...guestTurnItems.map((item) => item.created_at)
+      ].filter(Boolean).map((item) => new Date(item).getTime()).filter((item) => Number.isFinite(item));
+
+      const firstSeen = timeCandidates.length > 0 ? new Date(Math.min(...timeCandidates)).toISOString() : '';
+      const lastActive = timeCandidates.length > 0 ? new Date(Math.max(...timeCandidates)).toISOString() : '';
+
+      groups.push({
+        guest_id: guestId,
+        ip_address: ips.join(', '),
+        first_seen: firstSeen,
+        last_active: lastActive,
+        message_count: baseMessageCount,
+        conversation_count: new Set(allConversationItems.map((item) => item.conversation_id)).size || new Set(guestTurnItems.map((item) => item.conversation_id)).size,
+        limit_status: lastTurnWithLimit?.limit_status || '',
+        latest_messages: filteredTurnItems.slice(-3),
+        conversations: conversationSummaries.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
+      });
+    }
+
+    return groups.sort((a, b) => new Date(b.last_active || 0).getTime() - new Date(a.last_active || 0).getTime());
+  };
+
   const prepareReport = async (options = {}) => {
     const sections = normalizeSections(options);
     const dateRange = normalizeDateRange(options);
     const selectedUserIds = normalizeUserIds(options.userIds);
     const hasUserFilter = selectedUserIds.size > 0;
+    const guestFilters = {
+      guestOnly: normalizeBooleanFlag(options.guestOnly),
+      minGuestMessages: normalizePositiveNumber(options.minGuestMessages),
+      guestErrorsOnly: normalizeBooleanFlag(options.guestErrorsOnly),
+      ambiguousOnly: normalizeBooleanFlag(options.ambiguousOnly)
+    };
     const data = analyticsRepository
       ? await analyticsRepository.readDB()
       : await Promise.resolve({
@@ -188,12 +339,15 @@ function createAdminAnalyticsService({
     const planSubscriptions = typeof getPlanSubscriptions === 'function' ? await getPlanSubscriptions() : [];
 
     const matchesUser = (item) => {
+      if (guestFilters.guestOnly && !isGuestRecord(item)) return false;
       if (!hasUserFilter) return true;
       const userId = item.user_id || item.userId;
       return selectedUserIds.has(String(userId || ''));
     };
 
-    const users = (data.users || []).filter((item) => matchesUser(item) && isInDateRange(item.registered_at, dateRange));
+    const users = (data.users || []).filter(
+      (item) => (!guestFilters.guestOnly || isGuestUserId(item.user_id)) && matchesUser(item) && isInDateRange(item.registered_at, dateRange)
+    );
     const conversations = (data.conversations || []).filter(
       (item) => matchesUser(item) && isInDateRange(item.updated_at || item.created_at, dateRange)
     );
@@ -215,6 +369,13 @@ function createAdminAnalyticsService({
     const limitErrors = errors.filter((item) => /LIMIT/i.test(`${item.error_type || ''} ${item.details || ''}`));
     const ambiguousMessages = messages.filter((item) => item.role === 'user' && looksAmbiguous(item.content));
     const messageTurns = pairMessageTurns(messages);
+    const guestConversationGroups = buildGuestConversationGroups({
+      users: data.users || [],
+      conversations,
+      messages,
+      guestMessageCounts,
+      filters: guestFilters
+    });
     const activeUserIds = new Set(messages.filter((item) => item.user_id).map((item) => String(item.user_id)));
     const unansweredConversations = conversations.filter((conversation) => {
       const conversationMessages = messages.filter((item) => item.conversation_id === conversation.conversation_id);
@@ -238,15 +399,17 @@ function createAdminAnalyticsService({
         planDailyUsage,
         planSubscriptions,
         guestMessageCounts,
-        messageTurns
+        messageTurns,
+        guestConversationGroups
       },
+      filters: guestFilters,
       summary: {
         registeredUsers: (data.users || []).filter((item) => !String(item.user_id || '').startsWith('guest:')).length,
         guestUsers: (data.users || []).filter((item) => String(item.user_id || '').startsWith('guest:')).length,
         activeUsers: activeUserIds.size,
         conversations: conversations.length,
         messages: userMessageCount,
-        guestMessages: messages.filter((item) => item.role === 'user' && item.user_type === 'guest').length,
+        guestMessages: messages.filter((item) => item.role === 'user' && isGuestRecord(item)).length,
         registeredUserMessages: messages.filter((item) => item.role === 'user' && item.user_type !== 'guest').length,
         successfulMessages: assistantMessages.filter((item) => !item.error_code).length,
         limitedMessages: limitErrors.length + messages.filter((item) => /limit/i.test(String(item.limit_status || ''))).length,
@@ -371,6 +534,34 @@ function createAdminAnalyticsService({
             .map(csvEscape)
             .join(',')
         );
+      }
+      lines.push('');
+    }
+
+    if (sections.includes('guest_conversations')) {
+      lines.push('GUEST_CONVERSATIONS');
+      lines.push('guest_id,ip_address,conversation_id,created_at,user_message,ai_response,model,response_time_ms,limit_status,error_code');
+      for (const guest of data.guestConversationGroups) {
+        for (const conversation of guest.conversations) {
+          for (const turn of conversation.turns) {
+            lines.push(
+              [
+                guest.guest_id || '',
+                guest.ip_address || '',
+                conversation.conversation_id || '',
+                turn.created_at || conversation.created_at || '',
+                turn.user_message || '',
+                turn.ai_response || '',
+                turn.model || '',
+                turn.response_time_ms || '',
+                turn.limit_status || '',
+                turn.error_code || ''
+              ]
+                .map(csvEscape)
+                .join(',')
+            );
+          }
+        }
       }
       lines.push('');
     }
@@ -513,6 +704,45 @@ function createAdminAnalyticsService({
         lines.push(`  message_count: ${item.message_count || 0}`);
         lines.push(`  created_at: ${formatDate(item.created_at)}`);
         lines.push(`  last_message_at: ${formatDate(item.last_message_at)}`);
+      }
+    }
+
+    if (sections.includes('guest_conversations')) {
+      appendSection(lines, 'GUEST_CONVERSATIONS');
+      for (const guest of data.guestConversationGroups) {
+        lines.push(`- guest_id: ${guest.guest_id || ''}`);
+        lines.push(`  ip_address: ${guest.ip_address || ''}`);
+        lines.push(`  first_seen: ${guest.first_seen || ''}`);
+        lines.push(`  last_active: ${guest.last_active || ''}`);
+        lines.push(`  message_count: ${guest.message_count || 0}`);
+        lines.push(`  conversation_count: ${guest.conversation_count || 0}`);
+        lines.push(`  limit_status: ${guest.limit_status || ''}`);
+        if (guest.latest_messages.length > 0) {
+          lines.push('  latest_messages:');
+          for (const turn of guest.latest_messages) {
+            lines.push(`    - ${turn.created_at || ''} | ${turn.user_message || ''} => ${turn.ai_response || ''}`);
+          }
+        }
+        lines.push('  conversations:');
+        for (const conversation of guest.conversations) {
+          lines.push(`  - conversation_id: ${conversation.conversation_id || ''}`);
+          lines.push(`    created_at: ${conversation.created_at || ''}`);
+          lines.push(`    updated_at: ${conversation.updated_at || ''}`);
+          lines.push(`    turn_count: ${conversation.turn_count || 0}`);
+          lines.push(`    has_error: ${conversation.has_error ? 'yes' : 'no'}`);
+          for (const turn of conversation.turns) {
+            lines.push(`    - created_at: ${turn.created_at || ''}`);
+            lines.push(`      model: ${turn.model || ''}`);
+            lines.push(`      response_time_ms: ${turn.response_time_ms || ''}`);
+            lines.push(`      limit_status: ${turn.limit_status || ''}`);
+            lines.push(`      error_code: ${turn.error_code || ''}`);
+            lines.push(`      ambiguous_user_message: ${turn.ambiguous_user_message || 'no'}`);
+            lines.push('      user_message: |');
+            lines.push(...String(turn.user_message || '').split(/\r?\n/).map((line) => `        ${line}`));
+            lines.push('      ai_response: |');
+            lines.push(...String(turn.ai_response || '').split(/\r?\n/).map((line) => `        ${line}`));
+          }
+        }
       }
     }
 

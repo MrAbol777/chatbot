@@ -18,7 +18,11 @@ function createAdminAnalyticsRouter({ analyticsService, adminApiKey, requireAdmi
       messages: req.query.messages,
       userIds: req.query.userIds,
       fromDate: req.query.fromDate,
-      toDate: req.query.toDate
+      toDate: req.query.toDate,
+      guestOnly: req.query.guestOnly,
+      minGuestMessages: req.query.minGuestMessages,
+      guestErrorsOnly: req.query.guestErrorsOnly,
+      ambiguousOnly: req.query.ambiguousOnly
     });
     const fileName = buildReportFileName(report.extension);
     res.setHeader('Content-Type', report.contentType);
