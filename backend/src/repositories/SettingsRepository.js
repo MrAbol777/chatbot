@@ -37,6 +37,22 @@ class SettingsRepository {
     return settings[key] ?? getDefaultSetting(key);
   }
 
+  async getStored(key) {
+    await this.db.init();
+    if (!SETTING_DEFINITIONS[key]) return undefined;
+    const [rows] = await this.db.query('SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1', [key]);
+    if (!rows[0]) return undefined;
+    try {
+      const rawValue =
+        typeof rows[0].setting_value === 'string'
+          ? JSON.parse(rows[0].setting_value)
+          : rows[0].setting_value;
+      return coerceSettingValue(key, rawValue);
+    } catch (_error) {
+      return undefined;
+    }
+  }
+
   async updateMany(input = {}) {
     await this.db.init();
     const entries = Object.entries(input)

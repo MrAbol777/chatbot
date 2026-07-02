@@ -35,7 +35,7 @@ function authHeaders(): Record<string, string> {
 
 export type ImageTaskStatus = 'QUEUE' | 'RUNNING' | 'WAITING' | 'COMPLETED' | 'ERROR';
 
-interface GenerateImageResponse { success: boolean; taskId: string; error?: string; }
+interface GenerateImageResponse { success: boolean; taskId: string; error?: string; message?: string; }
 interface ImageStatusResponse {
   success: boolean; taskId: string; status: ImageTaskStatus;
   imageUrl?: string | null; error?: string | null;
@@ -57,7 +57,14 @@ export async function startImageGeneration(prompt: string): Promise<{ taskId: st
 export async function getImageGenerationStatus(taskId: string): Promise<{
   status: ImageTaskStatus; imageUrl?: string | null; error?: string | null;
 }> {
-  const res = await safeFetch(apiUrl(`/api/images/status/${taskId}`), {
+  return getImageGenerationStatusForConversation(taskId);
+}
+
+export async function getImageGenerationStatusForConversation(taskId: string, conversationId?: string): Promise<{
+  status: ImageTaskStatus; imageUrl?: string | null; error?: string | null;
+}> {
+  const query = conversationId ? `?conversationId=${encodeURIComponent(conversationId)}` : '';
+  const res = await safeFetch(apiUrl(`/api/images/status/${taskId}${query}`), {
     headers: { ...authHeaders(), 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
   });
   if (!res.ok) {
@@ -68,13 +75,26 @@ export async function getImageGenerationStatus(taskId: string): Promise<{
   return { status: d.status, imageUrl: d.imageUrl, error: d.error };
 }
 
+export async function fetchProtectedImageBlobUrl(imageUrl: string): Promise<string> {
+  const res = await safeFetch(apiUrl(imageUrl), {
+    headers: authHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error || 'بارگذاری تصویر انجام نشد.');
+  }
+  return URL.createObjectURL(await res.blob());
+}
+
 /**
  * Starts generation, polls until COMPLETED or ERROR, returns the final imageUrl.
  * Includes retry logic for 404 on image load (race condition fix).
  */
 export async function generateImageWithPolling(
   prompt: string,
-  onProgress?: (status: string) => void
+  onProgress?: (status: string) => void,
+  options?: { conversationId?: string }
 ): Promise<string> {
   const { taskId } = await startImageGeneration(prompt);
 
@@ -86,9 +106,12 @@ export async function generateImageWithPolling(
     await new Promise((r) => setTimeout(r, INTERVAL));
     polls++;
 
-    const { status, imageUrl, error } = await getImageGenerationStatus(taskId);
+    const { status, imageUrl, error } = await getImageGenerationStatusForConversation(taskId, options?.conversationId);
 
     if (status === 'COMPLETED' && imageUrl) {
+      if (imageUrl.startsWith('/api/images/result/')) {
+        return imageUrl;
+      }
       // Backend returns a same-origin URL like /api/uploads/images/:id
       // Retry if 404 (file might still be flushing to disk)
       const maxRetries = 5;

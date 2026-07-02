@@ -6,6 +6,8 @@
 export {
   startImageGeneration,
   getImageGenerationStatus,
+  getImageGenerationStatusForConversation,
+  fetchProtectedImageBlobUrl,
   generateImageWithPolling
 } from './imageGeneration';
 

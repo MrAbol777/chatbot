@@ -4,6 +4,11 @@ const {
   normalizeGuestId
 } = require('../../repositories/GuestRepository');
 const { generateUserId } = require('../../repositories/helpers');
+const {
+  detectChatIntent,
+  getSafeAlternativeMessage,
+  isUnsafeImagePrompt
+} = require('./intent.service');
 
 const GUEST_COOKIE_NAME = 'danoa_guest_id';
 
@@ -26,7 +31,18 @@ const setGuestCookie = (res, guestId) => {
   });
 };
 
-function createAiController({ aiService, errorsRepository, guestsRepository, usersRepository, plansRepository, settingsRepository, jwt, jwtSecret }) {
+function createAiController({
+  aiService,
+  errorsRepository,
+  guestsRepository,
+  usersRepository,
+  plansRepository,
+  settingsRepository,
+  imageGenerationController,
+  imageGenerationService,
+  jwt,
+  jwtSecret
+}) {
   const getGuestMessageLimit = async () => {
     if (!settingsRepository || typeof settingsRepository.get !== 'function') {
       return GUEST_MESSAGE_LIMIT;
@@ -65,13 +81,16 @@ function createAiController({ aiService, errorsRepository, guestsRepository, use
     let guestContext = null;
 
     try {
-      const { message, profile, history, conversationId, imageIds } = req.body || {};
+      const { message, profile, history, conversationId, imageIds, clientMessageId } = req.body || {};
       const authContext = await getAuthenticatedUserId(req);
       if (authContext.invalid) {
         return res.status(401).json({ error: 'Invalid or expired token.' });
       }
 
       const authenticatedUserId = authContext.userId;
+      if (authenticatedUserId) {
+        req.user = { id: authenticatedUserId };
+      }
       const isGuest = !authenticatedUserId;
       let effectiveProfile = profile;
       let limitStatus = null;
@@ -81,6 +100,109 @@ function createAiController({ aiService, errorsRepository, guestsRepository, use
           ...(profile && typeof profile === 'object' ? profile : {}),
           id: authenticatedUserId
         };
+      }
+
+      const intentResult = await detectChatIntent({
+        message,
+        hasAttachedImages: Array.isArray(imageIds) && imageIds.length > 0,
+        hasRecentImage: Array.isArray(history) && history.some((item) => Array.isArray(item?.images) && item.images.length > 0),
+        classify:
+          aiService && typeof aiService.classifyIntent === 'function'
+            ? (text) => aiService.classifyIntent(text, { requestId: res.locals.requestId })
+            : null
+      });
+
+      if (intentResult.intent === 'image_generation' || intentResult.intent === 'image_edit') {
+        const trimmedMessage = typeof message === 'string' ? message.trim() : '';
+        const prompt = trimmedMessage.replace(/^\/imagine\s+/i, '').trim();
+        const isEdit = intentResult.intent === 'image_edit';
+        const persistFailure = async ({ userId, assistantText, errorCode }) => {
+          if (!userId || !aiService || typeof aiService.persistImageChatTurn !== 'function') return [];
+          return aiService.persistImageChatTurn({
+            userId,
+            conversationId,
+            userMessage: trimmedMessage || 'درخواست تصویر',
+            assistantText,
+            intent: intentResult.intent,
+            errorCode,
+            requestId: res.locals.requestId,
+            clientMessageId
+          });
+        };
+
+        if (isEdit && !(imageGenerationService && typeof imageGenerationService.supportsImageEdit === 'function' && imageGenerationService.supportsImageEdit())) {
+          const { userId } = await imageGenerationController.resolveUserContext(req, res);
+          const assistantText = 'ویرایش تصویر در این provider فعلاً پشتیبانی نمی‌شود؛ ساخت تصویر جدید فعال است.';
+          const messages = await persistFailure({ userId, assistantText, errorCode: 'IMAGE_EDIT_UNSUPPORTED' });
+          return res.json({
+            intent: 'image_edit',
+            status: 'ERROR',
+            unsupported: true,
+            assistantText,
+            messages
+          });
+        }
+
+        if (isUnsafeImagePrompt(prompt)) {
+          const { userId } = await imageGenerationController.resolveUserContext(req, res);
+          const assistantText = getSafeAlternativeMessage();
+          const messages = await persistFailure({ userId, assistantText, errorCode: 'UNSAFE_IMAGE_PROMPT' });
+          return res.json({
+            intent: intentResult.intent,
+            status: 'ERROR',
+            blocked: true,
+            assistantText,
+            messages
+          });
+        }
+
+        try {
+          const task = await imageGenerationController.createImageTask(req, res, { prompt });
+          const assistantText = 'باشه، دارم تصویرت رو می‌سازم...';
+          const messages = await aiService.persistImageChatTurn({
+            userId: task.userId,
+            conversationId,
+            userMessage: trimmedMessage || prompt,
+            assistantText,
+            taskId: task.taskId,
+            status: task.status,
+            intent: intentResult.intent,
+            requestId: res.locals.requestId,
+            clientMessageId
+          });
+
+          return res.status(202).json({
+            intent: intentResult.intent,
+            status: task.status,
+            assistantText,
+            taskId: task.taskId,
+            messages
+          });
+        } catch (imageError) {
+          const payload = imageError?.publicPayload || {};
+          const assistantText =
+            payload.message ||
+            (payload.error === 'IMAGE_LIMIT_REACHED' || payload.error === 'IMAGE_GENERATION_DISABLED'
+              ? 'محدودیت ساخت تصویر تمام شده است.'
+              : 'ساخت تصویر انجام نشد. مشکل از سرویس تصویر بود، نه درخواست تو. دوباره امتحان کن.');
+          const userId =
+            imageError?.userId ||
+            (await imageGenerationController.resolveUserContext(req, res).catch(() => ({ userId: '' }))).userId;
+          const messages = await persistFailure({
+            userId,
+            assistantText,
+            errorCode: payload.error || 'IMAGE_TASK_FAILED'
+          });
+
+          return res.json({
+            intent: intentResult.intent,
+            status: 'ERROR',
+            assistantText,
+            error: payload.error || 'IMAGE_TASK_FAILED',
+            reason: payload.reason || null,
+            messages
+          });
+        }
       }
 
       if (isGuest) {

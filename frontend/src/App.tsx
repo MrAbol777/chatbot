@@ -8,7 +8,10 @@ import DanuaLanding from './DanuaLanding';
 import PlansPage from './PlansPage';
 import PaymentSuccessPage from './PaymentSuccessPage';
 import defaultBotAvatar from './image.png';
-import { generateImageWithPolling } from './services/imageGeneration';
+import {
+  fetchProtectedImageBlobUrl,
+  getImageGenerationStatusForConversation
+} from './services/imageGeneration';
 import { Button, Dialog, TextField, ToastProvider, useToast } from './design-system/components';
 import DesignSystemPreview from './design-system/preview/DesignSystemPreview';
 
@@ -55,6 +58,18 @@ type VerifyCodeResult = {
 const getAppViewFromPath = (pathname: string): AppView => (pathname === '/chat' ? 'chat' : 'home');
 type ApiError = Error & { redirectTo?: AuthMode | null };
 type ChatRequestError = Error & { status?: number; payload?: ApiErrorData };
+type ChatImageIntentResponse = {
+  intent?: 'chat' | 'image_generation' | 'image_edit';
+  status?: 'QUEUE' | 'WAITING' | 'RUNNING' | 'COMPLETED' | 'ERROR';
+  assistantText?: string;
+  taskId?: string;
+  error?: string;
+  reason?: string | null;
+  blocked?: boolean;
+  unsupported?: boolean;
+  messages?: ChatMessage[];
+  reply?: string;
+};
 type AttachmentStatus = 'pending' | 'uploading' | 'uploaded' | 'error';
 type ImageAttachment = {
   id: string;
@@ -101,10 +116,43 @@ const withImageRetryParam = (src: string, retry: number): string => {
 const MessageImage = ({ src, alt }: { src: string; alt: string }) => {
   const [retryCount, setRetryCount] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [resolvedSrc, setResolvedSrc] = useState(src);
+  const protectedBlobUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     setRetryCount(0);
     setFailed(false);
+    setResolvedSrc(src);
+    if (protectedBlobUrlRef.current) {
+      URL.revokeObjectURL(protectedBlobUrlRef.current);
+      protectedBlobUrlRef.current = null;
+    }
+
+    if (!src.startsWith('/api/images/result/')) {
+      return;
+    }
+
+    let cancelled = false;
+    fetchProtectedImageBlobUrl(src)
+      .then((blobUrl) => {
+        if (cancelled) {
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        protectedBlobUrlRef.current = blobUrl;
+        setResolvedSrc(blobUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+      if (protectedBlobUrlRef.current) {
+        URL.revokeObjectURL(protectedBlobUrlRef.current);
+        protectedBlobUrlRef.current = null;
+      }
+    };
   }, [src]);
 
   if (failed) {
@@ -118,7 +166,7 @@ const MessageImage = ({ src, alt }: { src: string; alt: string }) => {
   return (
     <img
       className="message-image"
-      src={withImageRetryParam(src, retryCount)}
+      src={resolvedSrc.startsWith('blob:') ? resolvedSrc : withImageRetryParam(resolvedSrc, retryCount)}
       alt={alt}
       loading="lazy"
       decoding="async"
@@ -229,8 +277,9 @@ const postChatWithRetry = async (payload: {
   imageIds?: string[];
   profile: UserProfile;
   personality: PersonalityProfile;
-  history: Array<{ role: 'user' | 'assistant'; content: string }>;
+  history: Array<{ role: 'user' | 'assistant'; content: string; images?: Array<{ url: string; alt?: string }> }>;
   conversationId?: string;
+  clientMessageId?: string;
 }) => {
   for (let attempt = 0; attempt <= CHAT_MAX_RETRIES; attempt += 1) {
     const controller = new AbortController();
@@ -452,7 +501,7 @@ const loadRemoteConversations = async (profile: UserProfile & { id?: string | nu
       pinned?: boolean;
       created_at?: string;
       updated_at?: string;
-      messages?: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string; images?: Array<{ url: string; alt?: string }> }>;
+      messages?: ChatMessage[];
     }>;
   };
 };
@@ -542,21 +591,177 @@ const formatMessageTime = (value: string): string => {
   return new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' }).format(date);
 };
 
+const imageMessagePriority = (message: ChatMessage): number => {
+  if (message.type === 'image_result') return 30;
+  if (message.type === 'image_error') return 20;
+  if (message.type === 'image_loading') return 10;
+  return 0;
+};
+
+const normalizeImageDedupeUrl = (value: unknown): string => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) {
+    return '';
+  }
+
+  try {
+    const url = new URL(raw, window.location.origin);
+    return url.pathname.replace(/\/+$/, '') || url.pathname;
+  } catch {
+    return raw.split('?')[0].split('#')[0].replace(/\/+$/, '');
+  }
+};
+
+const getMessageTaskId = (message: ChatMessage): string => {
+  const candidate = message.taskId ?? message.imageTaskId;
+  return typeof candidate === 'string' || typeof candidate === 'number' ? String(candidate).trim() : '';
+};
+
+const getMessageImageUrls = (message: ChatMessage): string[] => {
+  const urls = [
+    message.imageUrl,
+    message.resultUrl,
+    Array.isArray(message.images) ? message.images[0]?.url : undefined,
+    ...(Array.isArray(message.images) ? message.images.map((image) => image?.url) : [])
+  ];
+  return Array.from(
+    new Set(
+      urls
+        .map((url) => (typeof url === 'string' ? url.trim() : ''))
+        .filter(Boolean)
+    )
+  );
+};
+
+const getMessageImageDedupeUrls = (message: ChatMessage): string[] =>
+  Array.from(new Set(getMessageImageUrls(message).map(normalizeImageDedupeUrl).filter(Boolean)));
+
+const getImageMessageCompletenessScore = (message: ChatMessage): number => {
+  const hasImage = getMessageImageDedupeUrls(message).length > 0 ? 6 : 0;
+  const completed = message.status === 'COMPLETED' ? 4 : 0;
+  const readyText = /عکس آماده شد|تصویر آماده شد/.test(message.content || '') ? 2 : 0;
+  const task = getMessageTaskId(message) ? 1 : 0;
+  return imageMessagePriority(message) + hasImage + completed + readyText + task;
+};
+
+const mergeImageTaskMessages = (current: ChatMessage, next: ChatMessage): ChatMessage => {
+  const currentPriority = getImageMessageCompletenessScore(current);
+  const nextPriority = getImageMessageCompletenessScore(next);
+  const base = nextPriority >= currentPriority ? next : current;
+  const fallback = base === next ? current : next;
+  const taskId = getMessageTaskId(current) || getMessageTaskId(next);
+  const images = getMessageImageUrls(base).length > 0 ? base.images : fallback.images;
+  const imageUrl = base.imageUrl || fallback.imageUrl;
+  const resultUrl = base.resultUrl || fallback.resultUrl;
+
+  return {
+    ...fallback,
+    ...base,
+    id: current.id || next.id,
+    timestamp: current.timestamp || next.timestamp,
+    ...(taskId ? { taskId } : {}),
+    ...(images ? { images } : {}),
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(resultUrl ? { resultUrl } : {})
+  };
+};
+
+const dedupeChatMessages = (messages: ChatMessage[]): ChatMessage[] => {
+  const deduped: ChatMessage[] = [];
+  const taskIndexes = new Map<string, number>();
+  const imageUrlIndexes = new Map<string, number>();
+
+  const rememberImageMessage = (message: ChatMessage, index: number) => {
+    const taskId = getMessageTaskId(message);
+    if (taskId) {
+      taskIndexes.set(taskId, index);
+    }
+    getMessageImageDedupeUrls(message).forEach((url) => imageUrlIndexes.set(url, index));
+  };
+
+  for (const message of messages) {
+    const taskId = getMessageTaskId(message);
+    const isImageTaskMessage =
+      message.role === 'assistant' &&
+      (message.type === 'image_loading' || message.type === 'image_result' || message.type === 'image_error');
+
+    if (isImageTaskMessage) {
+      const imageUrls = getMessageImageDedupeUrls(message);
+      const existingIndex =
+        (taskId ? taskIndexes.get(taskId) : undefined) ??
+        imageUrls.map((url) => imageUrlIndexes.get(url)).find((index) => index !== undefined);
+
+      if (existingIndex !== undefined) {
+        const merged = mergeImageTaskMessages(deduped[existingIndex], message);
+        deduped[existingIndex] = merged;
+        rememberImageMessage(merged, existingIndex);
+        continue;
+      }
+
+      const nextMessage = taskId ? { ...message, taskId } : message;
+      deduped.push(nextMessage);
+      rememberImageMessage(nextMessage, deduped.length - 1);
+      continue;
+    }
+
+    if (message.role === 'assistant' && getMessageImageDedupeUrls(message).length > 0) {
+      const imageUrls = getMessageImageDedupeUrls(message);
+      const existingIndex = imageUrls.map((url) => imageUrlIndexes.get(url)).find((index) => index !== undefined);
+      if (existingIndex !== undefined) {
+        deduped[existingIndex] = mergeImageTaskMessages(deduped[existingIndex], {
+          ...message,
+          type: message.type || 'image_result'
+        });
+        rememberImageMessage(deduped[existingIndex], existingIndex);
+        continue;
+      }
+    }
+
+    deduped.push(message);
+    if (message.role === 'assistant') {
+      rememberImageMessage(message, deduped.length - 1);
+    }
+  }
+
+  const seenFinalImageUrls = new Set<string>();
+  return deduped.filter((message) => {
+    if (message.role !== 'assistant' || getMessageImageDedupeUrls(message).length === 0) {
+      return true;
+    }
+
+    const imageUrls = getMessageImageDedupeUrls(message);
+    if (imageUrls.some((url) => seenFinalImageUrls.has(url))) {
+      return false;
+    }
+
+    imageUrls.forEach((url) => seenFinalImageUrls.add(url));
+    return true;
+  });
+};
+
 const normalizeConversationFromServer = (item: {
   conversation_id: string;
   title?: string | null;
   pinned?: boolean;
   created_at?: string;
   updated_at?: string;
-  messages?: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: string; images?: Array<{ url: string; alt?: string }> }>;
+  messages?: ChatMessage[];
 }): Conversation => {
   const createdAt = item.created_at || new Date().toISOString();
   const updatedAt = item.updated_at || createdAt;
   const messages = Array.isArray(item.messages)
-    ? item.messages.map((msg) => ({
+    ? dedupeChatMessages(item.messages.map((msg) => ({
+        id: typeof msg.id === 'string' ? msg.id : undefined,
         role: msg.role,
+        type: msg.type,
+        intent: msg.intent,
         content: msg.content,
         timestamp: msg.timestamp || updatedAt,
+        taskId: msg.taskId,
+        imageTaskId: msg.imageTaskId,
+        status: msg.status,
+        imageUrl: msg.imageUrl,
+        resultUrl: msg.resultUrl,
         images: Array.isArray(msg.images)
           ? msg.images
               .filter((image) => image && typeof image.url === 'string' && image.url.trim().length > 0)
@@ -565,7 +770,7 @@ const normalizeConversationFromServer = (item: {
                 alt: typeof image.alt === 'string' && image.alt.trim() ? image.alt.trim() : 'تصویر ارسال شده'
               }))
           : undefined
-      }))
+      })))
     : [];
 
   return {
@@ -588,6 +793,8 @@ const inferTitle = (text: string): string => {
 };
 
 const generateUniqueId = () => Date.now() + Math.floor(Math.random() * 10000);
+const generateMessageId = (prefix = 'msg') =>
+  `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 const getDefaultThemeByAge = (age: number): 'energy' | 'calm' => (age < 13 ? 'energy' : 'calm');
 
 export const loadProfile = (): AppProfile | null => {
@@ -687,6 +894,7 @@ function ChatApp() {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentBoxRef = useRef<HTMLDivElement | null>(null);
   const attachmentUrlsRef = useRef<Set<string>>(new Set());
+  const imageTaskPollingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -715,11 +923,15 @@ function ChatApp() {
     () => conversations.find((item) => item.id === activeConversationId) ?? null,
     [conversations, activeConversationId]
   );
+  const visibleMessages = useMemo(
+    () => dedupeChatMessages(activeConversation?.messages || []),
+    [activeConversation?.messages]
+  );
 
   const orderedConversations = useMemo(() => sortConversations(conversations), [conversations]);
   const lastAssistantMessageIndex = useMemo(
-    () => (activeConversation ? activeConversation.messages.map((item) => item.role).lastIndexOf('assistant') : -1),
-    [activeConversation]
+    () => visibleMessages.map((item) => item.role).lastIndexOf('assistant'),
+    [visibleMessages]
   );
   const uploadMaxFiles = Number.isFinite(Number(publicSettings['upload.image.max_files']))
     ? Number(publicSettings['upload.image.max_files'])
@@ -937,7 +1149,12 @@ function ChatApp() {
       if (rawConversations) {
         const parsedConversations = JSON.parse(rawConversations) as Conversation[];
         if (parsedConversations.length > 0) {
-          const sorted = sortConversations(parsedConversations);
+          const sorted = sortConversations(
+            parsedConversations.map((conversation) => ({
+              ...conversation,
+              messages: dedupeChatMessages(Array.isArray(conversation.messages) ? conversation.messages : [])
+            }))
+          );
           setConversations(sorted);
           const validActiveConversation =
             savedActiveConversationId && sorted.some((item) => item.id === savedActiveConversationId)
@@ -1041,7 +1258,11 @@ function ChatApp() {
 
   useEffect(() => {
     if (conversations.length > 0) {
-      localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
+      const normalized = conversations.map((conversation) => ({
+        ...conversation,
+        messages: dedupeChatMessages(Array.isArray(conversation.messages) ? conversation.messages : [])
+      }));
+      localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(normalized));
     }
   }, [conversations]);
 
@@ -1108,7 +1329,7 @@ function ChatApp() {
       const justReceivedBotReply =
         prevIsSendingRef.current &&
         !isSending &&
-        activeConversation?.messages[lastAssistantMessageIndex]?.role === 'assistant';
+        visibleMessages[lastAssistantMessageIndex]?.role === 'assistant';
 
       if (justReceivedBotReply) {
         botMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1133,7 +1354,7 @@ function ChatApp() {
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [activeConversationId, activeConversation?.messages.length, isSending, lastAssistantMessageIndex, activeConversation]);
+  }, [activeConversationId, visibleMessages.length, isSending, lastAssistantMessageIndex, visibleMessages]);
 
   useEffect(() => {
     const SpeechRecognitionApi = window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -1218,7 +1439,18 @@ function ChatApp() {
   }, [pushToast]);
 
   const updateConversation = (conversationId: string, updater: (conversation: Conversation) => Conversation) => {
-    setConversations((prev) => prev.map((item) => (item.id === conversationId ? updater(item) : item)));
+    setConversations((prev) =>
+      prev.map((item) => {
+        if (item.id !== conversationId) {
+          return item;
+        }
+        const next = updater(item);
+        return {
+          ...next,
+          messages: dedupeChatMessages(Array.isArray(next.messages) ? next.messages : [])
+        };
+      })
+    );
   };
 
   const ensureConversation = (): Conversation => {
@@ -1231,6 +1463,118 @@ function ChatApp() {
     setActiveConversationId(created.id);
     return created;
   };
+
+  const updateImageTaskMessage = (
+    conversationId: string,
+    taskId: string,
+    patch: Partial<ChatMessage>
+  ) => {
+    updateConversation(conversationId, (item) => {
+      let foundTaskMessage = false;
+      const messages = item.messages.map((message) => {
+        if (String(message.taskId || '') !== String(taskId)) {
+          return message;
+        }
+
+        foundTaskMessage = true;
+        return {
+          ...message,
+          ...patch,
+          taskId: String(taskId)
+        };
+      });
+
+      if (
+        !foundTaskMessage &&
+        (patch.type === 'image_result' || patch.type === 'image_error' || patch.type === 'image_loading')
+      ) {
+        messages.push({
+          id: `image-task-${taskId}`,
+          role: 'assistant',
+          type: patch.type,
+          intent: patch.intent || 'image_generation',
+          content: patch.content || (patch.type === 'image_result' ? 'تصویر آماده شد.' : 'در حال ساخت تصویر...'),
+          timestamp: new Date().toISOString(),
+          taskId: String(taskId),
+          status: patch.status,
+          images: patch.images
+        });
+      }
+
+      return {
+        ...item,
+        messages: dedupeChatMessages(messages),
+        updatedAt: new Date().toISOString()
+      };
+    });
+  };
+
+  const pollImageTask = async (conversationId: string, taskId: string, prompt = 'تصویر ساخته شده') => {
+    const key = `${conversationId}:${taskId}`;
+    if (!taskId || imageTaskPollingRef.current.has(key)) {
+      return;
+    }
+    imageTaskPollingRef.current.add(key);
+
+    const maxPolls = 90;
+    try {
+      for (let attempt = 0; attempt < maxPolls; attempt += 1) {
+        const { status, imageUrl, error } = await getImageGenerationStatusForConversation(taskId, conversationId);
+
+        if (status === 'COMPLETED' && imageUrl) {
+          updateImageTaskMessage(conversationId, taskId, {
+            type: 'image_result',
+            content: 'تصویر آماده شد.',
+            status: 'COMPLETED',
+            images: [{ url: imageUrl, alt: prompt }]
+          });
+          pushToast('عکس با موفقیت ساخته شد', 'success');
+          return;
+        }
+
+        if (status === 'ERROR') {
+          updateImageTaskMessage(conversationId, taskId, {
+            type: 'image_error',
+            content: 'ساخت تصویر انجام نشد. مشکل از سرویس تصویر بود، نه درخواست تو. دوباره امتحان کن.',
+            status: 'ERROR',
+            images: undefined
+          });
+          pushToast(error || 'ساخت عکس ناموفق بود', 'danger');
+          return;
+        }
+
+        updateImageTaskMessage(conversationId, taskId, {
+          type: 'image_loading',
+          content: status === 'QUEUE' || status === 'WAITING' ? 'در صف ساخت تصویر...' : 'در حال ساخت تصویر...',
+          status
+        });
+        await wait(2000);
+      }
+
+      updateImageTaskMessage(conversationId, taskId, {
+        type: 'image_error',
+        content: 'ساخت تصویر بیش از حد طول کشید. دوباره امتحان کن.',
+        status: 'ERROR'
+      });
+    } finally {
+      imageTaskPollingRef.current.delete(key);
+    }
+  };
+
+  useEffect(() => {
+    for (const conversation of conversations) {
+      conversation.messages.forEach((message, index) => {
+        if (message.role !== 'assistant' || message.type !== 'image_loading' || !message.taskId) {
+          return;
+        }
+        const prompt =
+          [...conversation.messages.slice(0, index)]
+            .reverse()
+            .find((item) => item.role === 'user' && item.content.trim())?.content || 'تصویر ساخته شده';
+        void pollImageTask(conversation.id, message.taskId, prompt);
+      });
+    }
+  }, [conversations]);
 
   const saveAuthenticatedProfile = (nextProfile: AppProfile, token?: string) => {
     const normalizedPhone = typeof nextProfile.phone === 'string' ? normalizePhoneInput(nextProfile.phone) : '';
@@ -1422,17 +1766,6 @@ function ChatApp() {
       return;
     }
 
-    // Detect /imagine command — route to image generation instead of chat
-    const imagineMatch = content.match(/^\/imagine\s+(.+)/i);
-    if (imagineMatch && !hasAttachments) {
-      const imaginePrompt = imagineMatch[1].trim();
-      if (imaginePrompt) {
-        await handleImagineCommand(imaginePrompt);
-        setInputValue('');
-        return;
-      }
-    }
-
     const effectiveUserText = content || 'لطفاً محتوای عکس را توضیح بده.';
     const nextPersonality = updatePersonalityFromMessage(normalizePersonality(profile.personality), effectiveUserText);
     const nextProfile: AppProfile = {
@@ -1448,7 +1781,9 @@ function ChatApp() {
       alt: attachment.file.name || `تصویر ارسال شده ${index + 1}`
     }));
     const userMessage: ChatMessage = {
+      id: generateMessageId('user'),
       role: 'user',
+      type: 'text',
       content: content || '📷 عکس ارسال شد',
       timestamp: new Date().toISOString(),
       images: previewImages.length > 0 ? previewImages : undefined
@@ -1565,7 +1900,8 @@ function ChatApp() {
 
       const history = updatedMessages.map((msg) => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content,
+        images: msg.images
       }));
 
       const response = await postChatWithRetry({
@@ -1574,7 +1910,8 @@ function ChatApp() {
         profile: nextProfile,
         personality: nextPersonality,
         history,
-        conversationId: currentConversation.id
+        conversationId: currentConversation.id,
+        clientMessageId: userMessage.id
       });
 
       if (!response.ok) {
@@ -1588,11 +1925,54 @@ function ChatApp() {
         throw createChatRequestError(message, response.status, payload);
       }
 
-      const data = (await response.json()) as { reply?: string };
+      const data = (await response.json()) as ChatImageIntentResponse;
+      if (
+        data.intent === 'image_generation' ||
+        data.intent === 'image_edit'
+      ) {
+        const responseMessages = Array.isArray(data.messages) ? data.messages : [];
+        if (responseMessages.length > 0) {
+          updateConversation(currentConversation.id, (item) => {
+            const optimisticIds = new Set([userMessage.id].filter(Boolean));
+            const withoutOptimistic = item.messages.filter((message) => !message.id || !optimisticIds.has(message.id));
+            const existingIds = new Set(withoutOptimistic.map((message) => message.id).filter(Boolean));
+            const canonicalMessages = responseMessages.filter((message) => !message.id || !existingIds.has(message.id));
+            return {
+              ...item,
+              messages: dedupeChatMessages([...withoutOptimistic, ...canonicalMessages]),
+              updatedAt: new Date().toISOString()
+            };
+          });
+        } else {
+          const assistantText = data.assistantText || 'باشه، دارم تصویرت رو می‌سازم...';
+          const assistantMessage: ChatMessage = {
+            id: generateMessageId('assistant-image'),
+            role: 'assistant',
+            type: data.status === 'ERROR' ? 'image_error' : 'text',
+            intent: data.intent,
+            content: assistantText,
+            timestamp: new Date().toISOString(),
+            status: data.status
+          };
+          updateConversation(currentConversation.id, (item) => ({
+            ...item,
+            messages: dedupeChatMessages([...item.messages, assistantMessage]),
+            updatedAt: new Date().toISOString()
+          }));
+        }
+
+        if (data.status === 'ERROR') {
+          pushToast(data.assistantText || 'ساخت عکس ناموفق بود', 'warning');
+        }
+        return;
+      }
+
       const replyText = data.reply?.trim() || 'الان نتوانستم پاسخ بدهم. لطفاً دوباره امتحان کن.';
 
       const botMessage: ChatMessage = {
+        id: generateMessageId('assistant'),
         role: 'assistant',
+        type: 'text',
         content: replyText,
         timestamp: new Date().toISOString()
       };
@@ -1949,107 +2329,6 @@ function ChatApp() {
    setImageGenStatus('');
  };
 
- /**
-  * Handles the /imagine <prompt> command from the chat input.
-  * Adds user + bot messages to the conversation and polls for the result.
-  */
- const handleImagineCommand = async (prompt: string) => {
-   if (!profile || isSending) {
-     return;
-   }
-
-   // Check for JWT token before starting image generation
-   if (!localStorage.getItem('chat_auth_token')) {
-     pushToast('توکن احراز هویت موجود نیست. لطفاً یک‌بار خارج و دوباره وارد شوید.', 'danger');
-     return;
-   }
-
-   const currentConversation = ensureConversation();
-
-   // Add user message showing the command
-   const userMessage: ChatMessage = {
-     role: 'user',
-     content: `🎨 /imagine ${prompt}`,
-     timestamp: new Date().toISOString()
-   };
-
-   const updatedMessages = [...currentConversation.messages, userMessage];
-   const tempBotMessage: ChatMessage = {
-     role: 'assistant',
-     content: '🎨 در حال ساخت عکس... لطفاً صبر کن',
-     timestamp: new Date().toISOString()
-   };
-
-   updateConversation(currentConversation.id, (item) => ({
-     ...item,
-     title: item.title === DEFAULT_TITLE ? `🎨 ${prompt.slice(0, 28)}...` : item.title,
-     messages: [...updatedMessages, tempBotMessage],
-     updatedAt: new Date().toISOString()
-   }));
-
-   setIsSending(true);
-
-   try {
-     const imageUrl = await generateImageWithPolling(prompt, (statusLabel) => {
-       updateConversation(currentConversation.id, (item) => ({
-         ...item,
-         messages: item.messages.map((msg) =>
-           msg.timestamp === tempBotMessage.timestamp
-             ? { ...msg, content: `🎨 ${statusLabel}` }
-             : msg
-         ),
-         updatedAt: new Date().toISOString()
-       }));
-     });
-
-     // generateImageWithPolling returns a same-origin image URL, use directly.
-     const botMessage: ChatMessage = {
-       role: 'assistant',
-       content: 'عکس آماده شد! 🎉',
-       timestamp: new Date().toISOString(),
-       images: [{ url: imageUrl, alt: prompt }]
-     };
-
-     updateConversation(currentConversation.id, (item) => {
-       let replaced = false;
-       const messages = item.messages.map((msg) => {
-         if (msg.timestamp !== tempBotMessage.timestamp) {
-           return msg;
-         }
-         replaced = true;
-         return botMessage;
-       });
-
-       return {
-         ...item,
-         messages: replaced ? messages : [...messages, botMessage],
-         updatedAt: new Date().toISOString()
-       };
-     });
-
-     // Trigger immediate re-render by updating state
-     setConversations((prev) => [...prev]);
-
-     pushToast('عکس با موفقیت ساخته شد', 'success');
-   } catch (error) {
-     const errorMessage: ChatMessage = {
-       role: 'assistant',
-       content: error instanceof Error ? error.message : 'مشکلی در ساخت عکس پیش آمد.',
-       timestamp: new Date().toISOString()
-     };
-
-     updateConversation(currentConversation.id, (item) => ({
-       ...item,
-       messages: [...item.messages, errorMessage],
-       updatedAt: new Date().toISOString()
-     }));
-
-     pushToast('ساخت عکس ناموفق بود', 'danger');
-   } finally {
-     setIsSending(false);
-   }
- };
-
  const handleGenerateImageSubmit = async () => {
    const prompt = imageGenPrompt.trim();
    if (!prompt) {
@@ -2057,106 +2336,20 @@ function ChatApp() {
      return;
    }
 
-   // Check for JWT token before starting image generation
-   if (!localStorage.getItem('chat_auth_token')) {
-     pushToast('توکن احراز هویت موجود نیست. لطفاً یک‌بار خارج و دوباره وارد شوید.', 'danger');
-     setImageGenError('برای ساخت عکس نیاز به ورود مجدد دارید.');
-     return;
-   }
-
    setIsGeneratingImage(true);
    setImageGenStatus('در حال ارسال درخواست...');
    setImageGenError('');
    setShowImageGenModal(false);
-
-   const currentConversation = ensureConversation();
    navigateToView('chat');
-   const userMessage: ChatMessage = {
-     role: 'user',
-     content: `🎨 درخواست ساخت عکس: ${prompt}`,
-     timestamp: new Date().toISOString()
-   };
-
-   updateConversation(currentConversation.id, (item) => ({
-     ...item,
-     messages: [...item.messages, userMessage],
-     updatedAt: new Date().toISOString()
-   }));
-
-   // Add a temporary "generating" bot message to show progress
-   const tempBotMessage: ChatMessage = {
-     role: 'assistant',
-     content: '🎨 در حال ساخت عکس... لطفاً صبر کن',
-     timestamp: new Date().toISOString()
-   };
-
-   updateConversation(currentConversation.id, (item) => ({
-     ...item,
-     messages: [...item.messages, tempBotMessage],
-     updatedAt: new Date().toISOString()
-   }));
 
    try {
-     const imageUrl = await generateImageWithPolling(prompt, (statusLabel) => {
-       setImageGenStatus(statusLabel);
-       updateConversation(currentConversation.id, (item) => ({
-         ...item,
-         messages: item.messages.map((msg) =>
-           msg.timestamp === tempBotMessage.timestamp
-             ? { ...msg, content: `🎨 ${statusLabel}` }
-             : msg
-         ),
-         updatedAt: new Date().toISOString()
-       }));
-     });
-
-     // generateImageWithPolling returns a same-origin image URL, use directly.
-     const botMessage: ChatMessage = {
-       role: 'assistant',
-       content: 'عکس آماده شد! 🎉',
-       timestamp: new Date().toISOString(),
-       images: [{ url: imageUrl, alt: prompt }]
-     };
-
-     updateConversation(currentConversation.id, (item) => {
-       let replaced = false;
-       const messages = item.messages.map((msg) => {
-         if (msg.timestamp !== tempBotMessage.timestamp) {
-           return msg;
-         }
-         replaced = true;
-         return botMessage;
-       });
-
-       return {
-         ...item,
-         messages: replaced ? messages : [...messages, botMessage],
-         updatedAt: new Date().toISOString()
-       };
-     });
-
-     // Trigger immediate re-render by updating state
-     setConversations((prev) => [...prev]);
-
-     pushToast('عکس با موفقیت ساخته شد', 'success');
+     await handleSendMessage(prompt);
+     setImageGenPrompt('');
    } catch (error) {
-     const errorMessage: ChatMessage = {
-       role: 'assistant',
-       content: error instanceof Error ? error.message : 'مشکلی در ساخت عکس پیش آمد.',
-       timestamp: new Date().toISOString()
-     };
-
-     updateConversation(currentConversation.id, (item) => ({
-       ...item,
-       messages: [...item.messages, errorMessage],
-       updatedAt: new Date().toISOString()
-     }));
-
-     pushToast('ساخت عکس ناموفق بود', 'danger');
+     setImageGenError(error instanceof Error ? error.message : 'مشکلی در ساخت عکس پیش آمد.');
    } finally {
      setIsGeneratingImage(false);
      setImageGenStatus('');
-     setImageGenError('');
    }
  };
 
@@ -2877,13 +3070,13 @@ function ChatApp() {
 
        {currentView === 'chat' ? (
        <main className="messages-area" ref={messagesContainerRef}>
-          {activeConversation?.messages.length ? (
-            activeConversation.messages.map((message, index) => (
+          {visibleMessages.length ? (
+            visibleMessages.map((message, index) => (
               <div
                 key={`${message.timestamp}-${index}`}
                 className={`message-row ${message.role}`}
                 ref={(node) => {
-                  if (index === activeConversation.messages.length - 1) {
+                  if (index === visibleMessages.length - 1) {
                     lastMessageRef.current = node;
                   }
                   if (message.role === 'assistant' && index === lastAssistantMessageIndex) {

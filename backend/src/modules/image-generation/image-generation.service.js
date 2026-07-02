@@ -1,20 +1,23 @@
 /**
- * Image generation service — calls the official Google Gemini API.
+ * Image generation service — calls Google Gemini or Metis image APIs.
  *
  * The public app contract remains async/polled at our API boundary, but Gemini
  * image generation itself is a single generateContent request handled by the
  * controller's background worker.
  */
-const REQUIRED_GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
+const DEFAULT_IMAGE_MODEL = 'gemini-2.5-flash-image';
 
 function createImageGenerationService({
   httpClient,
   geminiApiKey,
-  imageModel = REQUIRED_GEMINI_IMAGE_MODEL,
+  imageModel = DEFAULT_IMAGE_MODEL,
   baseUrl = 'https://generativelanguage.googleapis.com/v1beta'
 }) {
   const normalizedBaseUrl = String(baseUrl || '').replace(/\/+$/, '');
-  const normalizedModel = String(imageModel || REQUIRED_GEMINI_IMAGE_MODEL).trim();
+  const defaultModel = String(imageModel || DEFAULT_IMAGE_MODEL).trim() || DEFAULT_IMAGE_MODEL;
+  const isMetisProvider = /(^|\.)metisai\.ir$/i.test(new URL(normalizedBaseUrl).hostname);
+
+  const resolveModel = (overrideModel) => String(overrideModel || defaultModel || DEFAULT_IMAGE_MODEL).trim() || DEFAULT_IMAGE_MODEL;
 
   const getImageExtension = (mimeType = '') => {
     const normalized = String(mimeType).toLowerCase();
@@ -22,6 +25,23 @@ function createImageGenerationService({
     if (normalized.includes('jpeg') || normalized.includes('jpg')) return 'jpg';
     if (normalized.includes('webp')) return 'webp';
     return 'png';
+  };
+
+  const getMetisProvider = (model) => {
+    const openaiModels = ['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'dall-e-3', 'dall-e-2'];
+    const googleModels = ['nano-banana', 'nano-banana-pro', 'nano-banana-2'];
+    const blackForestModels = ['flux-pro', 'flux-schnell', 'flux-kontext-max', 'flux-kontext-pro'];
+    const qwenModels = ['qwen-image-edit'];
+    const nightmareModels = ['real-esrgan', 'remove-bg'];
+    const fofrModels = ['face-to-sticker', 'become-image'];
+    const normalized = String(model || '').toLowerCase();
+    if (openaiModels.includes(normalized)) return 'openai';
+    if (googleModels.includes(normalized)) return 'google';
+    if (blackForestModels.includes(normalized)) return 'black-forest-labs';
+    if (qwenModels.includes(normalized)) return 'qwen';
+    if (nightmareModels.includes(normalized)) return 'nightmareai';
+    if (fofrModels.includes(normalized)) return 'fofr';
+    return 'openai';
   };
 
   const extractImagePart = (responseData) => {
@@ -47,33 +67,135 @@ function createImageGenerationService({
     const responseData = error?.response?.data;
     const apiError = responseData && typeof responseData === 'object' ? responseData.error : null;
 
-    if (apiError?.message) {
-      return apiError.message;
-    }
-
     if (statusCode === 401 || statusCode === 403) {
-      return `Gemini API request was rejected (HTTP ${statusCode}). Check GEMINI_API_KEY and Google API access for ${REQUIRED_GEMINI_IMAGE_MODEL}.`;
+      return `Gemini API request was rejected (HTTP ${statusCode}). Check GEMINI_API_KEY and Google API access.`;
     }
 
     if (statusCode === 404) {
-      return `Gemini image model was not found. GEMINI_IMAGE_MODEL must be ${REQUIRED_GEMINI_IMAGE_MODEL}.`;
+      return 'مدل ساخت تصویر توسط سرویس‌دهنده پشتیبانی نمی‌شود';
+    }
+
+    if (apiError?.message) {
+      return apiError.message;
     }
 
     return error?.message || 'Gemini image generation failed.';
   };
 
-  const generateImage = async (prompt) => {
+  const getProviderErrorMessage = (error, fallback = 'Image generation failed.') => {
+    const statusCode = error?.response?.status;
+    const responseData = error?.response?.data;
+    const apiError = responseData && typeof responseData === 'object' ? responseData.error : null;
+    const message = apiError?.message || apiError || responseData?.message || error?.message || fallback;
+    const normalized = String(message || '').toLowerCase();
+    if (
+      statusCode === 404 ||
+      normalized.includes('model') ||
+      normalized.includes('not found') ||
+      normalized.includes('unsupported') ||
+      normalized.includes('not supported')
+    ) {
+      return 'مدل ساخت تصویر توسط سرویس‌دهنده پشتیبانی نمی‌شود';
+    }
+    return String(message);
+  };
+
+  const generateWithMetis = async (prompt, model) => {
+    if (!geminiApiKey) {
+      const error = new Error('Image provider API key is missing');
+      error.code = 'MISSING_IMAGE_API_KEY';
+      throw error;
+    }
+
+    const provider = getMetisProvider(model);
+    const createUrl = `${normalizedBaseUrl}/api/v2/generate`;
+    const headers = {
+      Authorization: `Bearer ${geminiApiKey}`,
+      'Content-Type': 'application/json; charset=utf-8'
+    };
+    const body = {
+      model: { name: provider, model },
+      operation: 'Imagine',
+      args: { prompt }
+    };
+
+    console.log('[image-generation] Metis request started', {
+      model,
+      provider,
+      promptLength: prompt.length,
+      hasApiKey: Boolean(geminiApiKey)
+    });
+
+    try {
+      const createResponse = await httpClient.post(createUrl, body, { headers, timeout: 120000 });
+      const taskId = createResponse?.data?.id;
+      if (!taskId) {
+        throw new Error('Image provider did not return a task id.');
+      }
+
+      let statusPayload = null;
+      for (let attempt = 0; attempt < 36; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        const statusResponse = await httpClient.get(`${normalizedBaseUrl}/api/v2/generate/${encodeURIComponent(taskId)}`, {
+          headers,
+          timeout: 30000
+        });
+        statusPayload = statusResponse?.data || null;
+        const status = String(statusPayload?.status || '').toUpperCase();
+        if (status === 'COMPLETED') break;
+        if (status === 'ERROR' || status === 'FAILED') {
+          throw new Error(statusPayload?.error || 'Image provider task failed.');
+        }
+      }
+
+      const imageUrl = statusPayload?.generations?.[0]?.url || statusPayload?.generations?.[0]?.content || null;
+      if (!imageUrl) {
+        throw new Error('Image provider did not return image data.');
+      }
+
+      const imageResponse = await httpClient.get(imageUrl, {
+        responseType: 'arraybuffer',
+        timeout: 120000
+      });
+      const mimeType = imageResponse?.headers?.['content-type'] || 'image/png';
+      const buffer = Buffer.from(imageResponse?.data || []);
+      if (!buffer.length) {
+        throw new Error('Image provider returned empty image data.');
+      }
+
+      console.log('[image-generation] Metis request succeeded', {
+        model,
+        provider,
+        mimeType,
+        bytes: buffer.length
+      });
+
+      return {
+        buffer,
+        mimeType,
+        extension: getImageExtension(mimeType),
+        model
+      };
+    } catch (error) {
+      const message = getProviderErrorMessage(error, 'Metis image generation failed.');
+      console.error('[image-generation] Metis request failed', {
+        message,
+        statusCode: error?.response?.status || null,
+        model,
+        provider
+      });
+      throw new Error(message);
+    }
+  };
+
+  const generateWithGemini = async (prompt, model) => {
     if (!geminiApiKey) {
       const error = new Error('GEMINI_API_KEY is missing');
       error.code = 'MISSING_GEMINI_API_KEY';
       throw error;
     }
 
-    if (normalizedModel !== REQUIRED_GEMINI_IMAGE_MODEL) {
-      throw new Error(`GEMINI_IMAGE_MODEL must be ${REQUIRED_GEMINI_IMAGE_MODEL}.`);
-    }
-
-    const url = `${normalizedBaseUrl}/models/${encodeURIComponent(normalizedModel)}:generateContent`;
+    const url = `${normalizedBaseUrl}/models/${encodeURIComponent(model)}:generateContent`;
     const body = {
       contents: [
         {
@@ -87,7 +209,7 @@ function createImageGenerationService({
     };
 
     console.log('[image-generation] Gemini request started', {
-      model: normalizedModel,
+      model,
       promptLength: prompt.length,
       hasApiKey: Boolean(geminiApiKey)
     });
@@ -113,7 +235,7 @@ function createImageGenerationService({
       }
 
       console.log('[image-generation] Gemini request succeeded', {
-        model: normalizedModel,
+        model,
         mimeType: imagePart.mimeType,
         bytes: buffer.length
       });
@@ -122,7 +244,7 @@ function createImageGenerationService({
         buffer,
         mimeType: imagePart.mimeType,
         extension: getImageExtension(imagePart.mimeType),
-        model: normalizedModel
+        model
       };
     } catch (error) {
       const statusCode = error?.response?.status;
@@ -133,14 +255,23 @@ function createImageGenerationService({
         message,
         statusCode,
         reason: apiError?.status || apiError?.code || null,
-        model: normalizedModel
+        model
       });
       throw new Error(message);
     }
   };
 
+  const generateImage = async (prompt, options = {}) => {
+    const model = resolveModel(options.imageModel);
+    if (isMetisProvider) {
+      return generateWithMetis(prompt, model);
+    }
+    return generateWithGemini(prompt, model);
+  };
+
   return {
-    generateImage
+    generateImage,
+    supportsImageEdit: () => false
   };
 }
 

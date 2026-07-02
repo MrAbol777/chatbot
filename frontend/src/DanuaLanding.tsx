@@ -1,33 +1,219 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Button, Card } from './design-system/components';
 import './DanuaLanding.css';
 
 type PlanId = string;
+type IconName =
+  | 'book'
+  | 'image'
+  | 'story'
+  | 'companion'
+  | 'shield'
+  | 'check'
+  | 'plans'
+  | 'question'
+  | 'plus'
+  | 'minus'
+  | 'family'
+  | 'chat'
+  | 'spark'
+  | 'login'
+  | 'rocket'
+  | 'star'
+  | 'instagram'
+  | 'telegram'
+  | 'linkedin';
 
-const features = [
+type IconProps = {
+  name: IconName;
+  className?: string;
+};
+
+function DanuaIcon({ name, className = '' }: IconProps) {
+  const common = {
+    className: `danua-icon ${className}`.trim(),
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    xmlns: 'http://www.w3.org/2000/svg',
+    'aria-hidden': true,
+    focusable: 'false'
+  } as const;
+
+  switch (name) {
+    case 'book':
+      return (
+        <svg {...common}>
+          <path d="M5 5.7c0-1 .8-1.7 1.8-1.5 1.7.2 3.4.8 5.2 1.8v13.2c-1.8-1-3.5-1.6-5.2-1.8A1.6 1.6 0 0 1 5 15.8V5.7Z" />
+          <path d="M19 5.7c0-1-.8-1.7-1.8-1.5-1.7.2-3.4.8-5.2 1.8v13.2c1.8-1 3.5-1.6 5.2-1.8a1.6 1.6 0 0 0 1.8-1.6V5.7Z" />
+          <path d="M8 8.2h1.5M8 11h1.5M16 8.2h-1.5M16 11h-1.5" />
+        </svg>
+      );
+    case 'image':
+      return (
+        <svg {...common}>
+          <rect x="4" y="5" width="16" height="14" rx="3" />
+          <path d="m6.8 16 3.6-3.8 2.6 2.7 1.5-1.7 2.8 2.8" />
+          <circle cx="15.8" cy="9.2" r="1.4" />
+        </svg>
+      );
+    case 'story':
+      return (
+        <svg {...common}>
+          <path d="M6 5.5h9.5A2.5 2.5 0 0 1 18 8v10.5H7.7A2.7 2.7 0 0 1 5 15.8V6.5c0-.6.4-1 1-1Z" />
+          <path d="M8 9h6M8 12h7M8 15h4" />
+          <path d="M18 8.2h.7c.7 0 1.3.6 1.3 1.3v7.2c0 1-.8 1.8-1.8 1.8H18" />
+        </svg>
+      );
+    case 'companion':
+      return (
+        <svg {...common}>
+          <path d="M12 20s-7-3.9-7-9.3A4 4 0 0 1 12 8a4 4 0 0 1 7 2.7C19 16.1 12 20 12 20Z" />
+          <path d="M9 11.4c.6.7 1.5 1.1 3 1.1s2.4-.4 3-1.1" />
+        </svg>
+      );
+    case 'shield':
+      return (
+        <svg {...common}>
+          <path d="M12 3.5 19 6v5.4c0 4.1-2.8 7.8-7 9.1-4.2-1.3-7-5-7-9.1V6l7-2.5Z" />
+          <path d="m8.8 12.2 2.1 2.1 4.5-4.7" />
+        </svg>
+      );
+    case 'check':
+      return (
+        <svg {...common}>
+          <path d="m6 12.5 3.2 3.2L18 7.3" />
+        </svg>
+      );
+    case 'plans':
+      return (
+        <svg {...common}>
+          <rect x="4" y="6" width="16" height="12" rx="3" />
+          <path d="M7.5 10h9M7.5 14h4.4" />
+          <path d="M17.5 14.2h.1" />
+        </svg>
+      );
+    case 'question':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="8" />
+          <path d="M9.8 9.4a2.4 2.4 0 1 1 3.4 2.2c-.9.4-1.2.9-1.2 1.7" />
+          <path d="M12 16.7h.1" />
+        </svg>
+      );
+    case 'plus':
+      return (
+        <svg {...common}>
+          <path d="M12 6v12M6 12h12" />
+        </svg>
+      );
+    case 'minus':
+      return (
+        <svg {...common}>
+          <path d="M6 12h12" />
+        </svg>
+      );
+    case 'family':
+      return (
+        <svg {...common}>
+          <circle cx="8" cy="8" r="2.2" />
+          <circle cx="16" cy="8" r="2.2" />
+          <circle cx="12" cy="13" r="2" />
+          <path d="M4.8 18.5c.4-2.5 2-3.8 4.4-3.8M19.2 18.5c-.4-2.5-2-3.8-4.4-3.8M8.2 20c.4-2.2 1.7-3.2 3.8-3.2s3.4 1 3.8 3.2" />
+        </svg>
+      );
+    case 'chat':
+      return (
+        <svg {...common}>
+          <path d="M6.5 17.5 4 20V7.7C4 5.7 5.7 4 7.7 4h8.6C18.3 4 20 5.7 20 7.7v6.1c0 2-1.7 3.7-3.7 3.7H6.5Z" />
+          <path d="M8 9h8M8 12.3h5.6" />
+        </svg>
+      );
+    case 'spark':
+      return (
+        <svg {...common}>
+          <path d="M12 3.8 13.9 9l5.3 1.9-5.3 1.9L12 18l-1.9-5.2-5.3-1.9L10.1 9 12 3.8Z" />
+          <path d="m18.2 15.7.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8 2.1-.8.8-2.1Z" />
+        </svg>
+      );
+    case 'login':
+      return (
+        <svg {...common}>
+          <path d="M10.5 7.2 15.3 12l-4.8 4.8" />
+          <path d="M4 12h11" />
+          <path d="M14 5h3.5A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19H14" />
+        </svg>
+      );
+    case 'rocket':
+      return (
+        <svg {...common}>
+          <path d="M13.7 4.4c2.2-.9 4.5-.8 5.9-.5.3 1.4.4 3.7-.5 5.9-.9 2.3-2.8 4.2-5.7 5.7l-4.9-4.9c1.5-2.9 3.4-4.8 5.2-6.2Z" />
+          <path d="M9.4 10.1 6 10.7 4.3 14l4.2-.5M13.9 14.6l-.5 4.2 3.3-1.7.6-3.4" />
+          <circle cx="15.4" cy="7.9" r="1.4" />
+        </svg>
+      );
+    case 'star':
+      return (
+        <svg {...common}>
+          <path d="m12 4 2.2 4.5 5 .7-3.6 3.5.8 5-4.4-2.4-4.4 2.4.8-5-3.6-3.5 5-.7L12 4Z" />
+        </svg>
+      );
+    case 'instagram':
+      return (
+        <svg {...common}>
+          <rect x="5" y="5" width="14" height="14" rx="4" />
+          <circle cx="12" cy="12" r="3.2" />
+          <path d="M16.5 7.7h.1" />
+        </svg>
+      );
+    case 'telegram':
+      return (
+        <svg {...common}>
+          <path d="M20 5 4.8 11.2c-.8.3-.8 1.4.1 1.6l3.8 1.1 1.5 4.5c.3.8 1.4.9 1.8.2l2.2-3.1 4 2.8c.7.5 1.6.1 1.8-.8L22 6.5c.2-1-.9-1.8-2-1.5Z" />
+          <path d="m8.8 13.8 8-5.1-5.7 6.7" />
+        </svg>
+      );
+    case 'linkedin':
+      return (
+        <svg {...common}>
+          <rect x="4" y="4" width="16" height="16" rx="3" />
+          <path d="M8 10.5V16M8 8h.1M12 16v-5.4M12 13.1c0-1.7 1-2.7 2.4-2.7 1.5 0 2.6 1 2.6 3V16" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+const features: Array<{
+  icon: IconName;
+  title: string;
+  text: string;
+  tone: string;
+}> = [
   {
-    icon: '📚',
+    icon: 'book',
     title: 'کمک درسی',
-    text: 'حل تمرین و توضیح مفاهیم سخت با زبان ساده و قدم به قدم.',
-    tone: 'mint'
+    text: 'پاسخ ساده و قابل فهم برای درس‌ها',
+    tone: 'primary'
   },
   {
-    icon: '💕',
-    title: 'همراه عاطفی',
-    text: 'گفتگوی دوستانه، امن و حمایتگر برای روزهای شلوغ ذهن بچه ها.',
-    tone: 'pink'
-  },
-  {
-    icon: '✨',
-    title: 'داستان سازی',
-    text: 'قصه های شبانه، شخصیت های خیالی و ماجراجویی های خلاقانه.',
-    tone: 'yellow'
-  },
-  {
-    icon: '🎨',
+    icon: 'image',
     title: 'ساخت تصویر',
-    text: 'تبدیل ایده های کودکانه به تصویرهای رنگی با هوش مصنوعی.',
+    text: 'تبدیل ایده‌های بچه‌ها به تصویر',
     tone: 'blue'
+  },
+  {
+    icon: 'story',
+    title: 'داستان‌سازی',
+    text: 'ساخت داستان‌های تازه و خلاقانه',
+    tone: 'lavender'
+  },
+  {
+    icon: 'companion',
+    title: 'همراه امن',
+    text: 'گفت‌وگویی آرام، فارسی و مناسب سن',
+    tone: 'cyan'
   }
 ];
 
@@ -38,7 +224,9 @@ type LandingPlan = {
   detail: string;
   items: string[];
   tone: string;
-  popular?: boolean;
+  icon: IconName;
+  featured?: boolean;
+  label?: string;
 };
 
 const fallbackPlans: LandingPlan[] = [
@@ -47,64 +235,88 @@ const fallbackPlans: LandingPlan[] = [
     name: 'رایگان',
     price: '۰ تومان',
     detail: 'برای شروع و آشنایی',
-    items: ['۲۰ پیام در روز', 'گفتگوی آموزشی و خلاقانه', 'مناسب تجربه اولیه'],
-    tone: 'blue'
+    items: ['۲۰ پیام در روز', 'گفت‌وگوی آموزشی و خلاقانه', 'شروع بدون پرداخت'],
+    tone: 'free',
+    icon: 'spark',
+    featured: true,
+    label: 'شروع پیشنهادی'
   },
   {
     id: 'gold',
     name: 'طلایی',
     price: '۹۹,۰۰۰ تومان',
     detail: 'ماهانه',
-    items: ['پیام بیشتر', 'ساخت تصویر', 'انتخاب محبوب خانواده ها'],
+    items: ['پیام بیشتر', 'ساخت تصویر', 'مناسب استفاده خانوادگی'],
     tone: 'gold',
-    popular: true
+    icon: 'plans',
+    label: 'محبوب'
   },
   {
     id: 'diamond',
     name: 'الماسی',
     price: '۱۹۹,۰۰۰ تومان',
     detail: 'ماهانه',
-    items: ['پیام نامحدود', 'ساخت تصویر', 'برای استفاده روزانه و جدی'],
-    tone: 'mint'
+    items: ['پیام نامحدود', 'ساخت تصویر', 'برای استفاده روزانه'],
+    tone: 'diamond',
+    icon: 'shield'
   }
 ];
 
 const testimonials = [
   {
     name: 'مادر آرتین، ۹ ساله',
-    text: 'دانوآ تمرین های مدرسه را با حوصله توضیح می دهد و لحنش برای بچه ها آرامش بخش است. آرتین عاشق صحبت با دانوآ شده!'
+    text: 'تمرین‌ها را ساده توضیح می‌دهد و لحنش برای آرتین آرام و قابل فهم است.'
   },
   {
-    name: 'پدر رها، ۱۳ ساله',
-    text: 'برای ما مهم بود محیط فارسی، امن و قابل اعتماد باشد. رها هم از داستان ساختن با دانوآ لذت می برد.'
+    name: 'پدر رها، ۱۲ ساله',
+    text: 'محیط فارسی و کنترل‌شده برای ما مهم بود؛ رها بیشتر برای داستان‌سازی از دانوآ استفاده می‌کند.'
   },
   {
-    name: 'مادر نیما، ۱۶ ساله',
-    text: 'وقتی سوال درسی دارد، جواب آماده نمی گیرد؛ مسیر فکر کردن را یاد می گیرد. خیلی خوبه که به جای جواب دادن، راهنمایی می کنه!'
+    name: 'مادر نیما، ۱۰ ساله',
+    text: 'دانوآ جواب آماده نمی‌دهد؛ قدم‌به‌قدم کمک می‌کند خودش مسیر حل را بفهمد.'
   }
 ];
 
 const faqs = [
   {
     question: 'دانوآ برای چه سنینی مناسب است؟',
-    answer: 'برای کودکان و نوجوانان ۵ تا ۱۸ سال طراحی شده و پاسخ ها با زبان ساده، گرم و مناسب سن ارائه می شوند.'
+    answer: 'تمرکز تجربه لندینگ و چت روی بچه‌های ۷ تا ۱۳ سال و همراهی والدین است.'
   },
   {
-    question: 'آیا محتوا برای بچه ها امن است؟',
-    answer: 'تمرکز دانوآ روی گفتگوی حمایتی، آموزشی و مناسب سن است و تجربه محصول با اولویت اعتماد والدین طراحی می شود.'
+    question: 'آیا محتوا برای بچه‌ها امن است؟',
+    answer: 'دانوآ با پاسخ‌های فارسی، مناسب سن و فضای کنترل‌شده طراحی شده تا والدین با خیال راحت‌تری همراه کودک باشند.'
   },
   {
-    question: 'آیا دانوآ تکلیف را کامل به جای کودک انجام می دهد؟',
-    answer: 'هدف کمک به یادگیری است؛ دانوآ مفهوم را توضیح می دهد، راهنمایی می کند و بچه را قدم به قدم همراهی می کند.'
+    question: 'آیا دانوآ تکلیف را کامل به جای کودک انجام می‌دهد؟',
+    answer: 'هدف کمک به یادگیری است؛ دانوآ مفهوم را توضیح می‌دهد و کودک را مرحله‌به‌مرحله جلو می‌برد.'
   },
   {
-    question: 'ساخت تصویر در کدام پلن ها فعال است؟',
-    answer: 'وضعیت و سقف ساخت تصویر برای هر پلن از پنل مدیریت تنظیم می شود.'
+    question: 'ساخت تصویر در کدام پلن‌ها فعال است؟',
+    answer: 'دسترسی و سقف ساخت تصویر برای هر پلن از پنل مدیریت تنظیم می‌شود.'
   },
   {
-    question: 'می توان رایگان شروع کرد؟',
-    answer: 'بله، پلن رایگان با ۲۰ پیام روزانه برای شروع در دسترس است.'
+    question: 'می‌توان رایگان شروع کرد؟',
+    answer: 'بله، پلن رایگان برای شروع و تجربه اولیه در دسترس است.'
   }
+];
+
+const navLinks: Array<{ href: string; label: string; icon: IconName }> = [
+  { href: '#features', label: 'قابلیت‌ها', icon: 'spark' },
+  { href: '#safety', label: 'اعتماد والدین', icon: 'shield' },
+  { href: '#plans', label: 'پلن‌ها', icon: 'plans' },
+  { href: '#faq', label: 'سوالات', icon: 'question' }
+];
+
+const trustBadges: Array<{ icon: IconName; label: string }> = [
+  { icon: 'shield', label: 'مناسب سن' },
+  { icon: 'chat', label: 'فارسی و صمیمی' },
+  { icon: 'family', label: 'کنار خانواده' }
+];
+
+const safetyItems = [
+  'محتوای مناسب سن و قابل فهم',
+  'پاسخ‌های فارسی با لحن آرام',
+  'تمرکز روی یادگیری، نه جایگزینی تلاش کودک'
 ];
 
 function navigateToChat(mode?: 'signup' | 'login', plan?: PlanId) {
@@ -125,12 +337,9 @@ function navigateToChat(mode?: 'signup' | 'login', plan?: PlanId) {
   }
 }
 
-const navLinks = [
-  { href: '#features', label: 'قابلیت ها', icon: '✨' },
-  { href: '#safety', label: 'اعتماد والدین', icon: '🛡️' },
-  { href: '#plans', label: 'پلن ها', icon: '💰' },
-  { href: '#faq', label: 'سوالات', icon: '❓' }
-];
+function PlanIcon({ children }: { children: ReactNode }) {
+  return <span className="danua-plan-icon" aria-hidden="true">{children}</span>;
+}
 
 function DanuaLanding() {
   const [openFaq, setOpenFaq] = useState<number>(-1);
@@ -161,6 +370,7 @@ function DanuaLanding() {
           .map((plan: any) => {
             const monthlyPrice = Number(plan.monthlyPrice ?? plan.price ?? 0);
             const isFree = monthlyPrice <= 0;
+            const isGold = plan.id === 'gold';
             return {
               id: plan.id,
               name: typeof plan.name === 'string' && plan.name.trim() ? plan.name.trim() : plan.id,
@@ -171,8 +381,10 @@ function DanuaLanding() {
                   ? 'برای شروع و آشنایی'
                   : 'ماهانه',
               items: Array.isArray(plan.features) && plan.features.length > 0 ? plan.features : [],
-              tone: plan.id === 'gold' ? 'gold' : plan.id === 'free' ? 'blue' : 'mint',
-              popular: plan.id === 'gold'
+              tone: isFree ? 'free' : isGold ? 'gold' : 'diamond',
+              icon: isFree ? 'spark' : isGold ? 'plans' : 'shield',
+              featured: isFree,
+              label: isFree ? 'شروع پیشنهادی' : isGold ? 'محبوب' : undefined
             } as LandingPlan;
           });
 
@@ -217,7 +429,8 @@ function DanuaLanding() {
                 handleNavClick(link.href);
               }}
             >
-              <span aria-hidden="true">{link.icon}</span> {link.label}
+              <DanuaIcon name={link.icon} />
+              <span>{link.label}</span>
             </a>
           ))}
         </nav>
@@ -226,9 +439,10 @@ function DanuaLanding() {
             type="button"
             className="danua-header-cta"
             data-cta="header-signup"
+            startIcon={<DanuaIcon name="rocket" />}
             onClick={() => navigateToChat('signup')}
           >
-            <span aria-hidden="true">🚀</span> شروع رایگان
+            شروع رایگان
           </Button>
           <button
             type="button"
@@ -263,7 +477,8 @@ function DanuaLanding() {
                   handleNavClick(link.href);
                 }}
               >
-                <span aria-hidden="true">{link.icon}</span> {link.label}
+                <DanuaIcon name={link.icon} />
+                <span>{link.label}</span>
               </a>
             ))}
           </nav>
@@ -272,23 +487,23 @@ function DanuaLanding() {
             size="lg"
             className="danua-cta-button"
             data-cta="menu-signup"
+            startIcon={<DanuaIcon name="rocket" />}
             onClick={() => navigateToChat('signup')}
           >
-            <span aria-hidden="true">🚀</span> شروع رایگان
+            شروع رایگان
           </Button>
         </div>
       ) : null}
 
       <section className="danua-hero" id="main-content">
         <div className="danua-hero-copy">
-          <span className="danua-kicker">🤖 هوش مصنوعی فارسی برای ۵ تا ۱۸ سال</span>
-          <h1>
-            دانوآ، دوست <span aria-hidden="true">🤗</span> هوش مصنوعی بچه های تو!
-          </h1>
+          <span className="danua-kicker">
+            <DanuaIcon name="spark" />
+            هوش مصنوعی فارسی برای ۷ تا ۱۳ سال
+          </span>
+          <h1>دانوآ، دوست هوشمند بچه‌های فارسی‌زبان</h1>
           <p>
-            همراهی امن، شاد و فارسی برای کمک درسی <span aria-hidden="true">📖</span>، حرف زدن از احساسات{' '}
-            <span aria-hidden="true">💭</span>، ساختن قصه <span aria-hidden="true">✨</span> و تبدیل خیال بچه ها به تصویر{' '}
-            <span aria-hidden="true">🎨</span>!
+            کمک درسی، ساخت تصویر، داستان‌سازی و گفت‌وگوی امن؛ همه در یک فضای فارسی و کودک‌پسند.
           </p>
           <div className="danua-hero-actions">
             <Button
@@ -296,9 +511,10 @@ function DanuaLanding() {
               size="lg"
               className="danua-cta-button"
               data-cta="hero-signup"
+              startIcon={<DanuaIcon name="rocket" />}
               onClick={() => navigateToChat('signup')}
             >
-              <span aria-hidden="true">🚀</span> شروع رایگان
+              شروع رایگان
             </Button>
             <Button
               type="button"
@@ -306,24 +522,23 @@ function DanuaLanding() {
               variant="secondary"
               className="danua-soft-button"
               data-cta="hero-login"
+              startIcon={<DanuaIcon name="login" />}
               onClick={() => navigateToChat('login')}
             >
-              <span aria-hidden="true">🔐</span> ورود به حساب
+              ورود به حساب
             </Button>
           </div>
-          <div className="danua-trust-row" aria-label="ویژگی های اعتماد">
-            <span><span aria-hidden="true">🌟</span> مناسب سن</span>
-            <span><span aria-hidden="true">💬</span> فارسی و صمیمی</span>
-            <span><span aria-hidden="true">👨‍👩‍👧‍👦</span> طراحی شده برای خانواده</span>
+          <div className="danua-trust-row" aria-label="ویژگی‌های اعتماد">
+            {trustBadges.map((badge) => (
+              <span key={badge.label}>
+                <DanuaIcon name={badge.icon} />
+                {badge.label}
+              </span>
+            ))}
           </div>
         </div>
 
         <div className="danua-hero-visual" aria-label="نمونه رابط چت دانوآ">
-          <span className="danua-sun" aria-hidden="true">
-            <span className="smile" />
-          </span>
-          <span className="danua-cloud danua-cloud-one" aria-hidden="true" />
-          <span className="danua-cloud danua-cloud-two" aria-hidden="true" />
           <div className="danua-phone">
             <div className="danua-phone-top">
               <span className="danua-avatar" aria-hidden="true">د</span>
@@ -331,15 +546,16 @@ function DanuaLanding() {
                 <strong>دانوآ</strong>
                 <span>آنلاین و آماده کمک</span>
               </div>
+              <span className="danua-status-dot" aria-hidden="true" />
             </div>
             <div className="danua-chat-preview">
               <p className="danua-bubble bot">سلام! امروز با چی شروع کنیم؟</p>
-              <p className="danua-bubble user">کسرها رو ساده توضیح میدی؟</p>
-              <p className="danua-bubble bot">حتما! فکر کن یک کیک را به قسمت های برابر تقسیم کردیم...</p>
+              <p className="danua-bubble user">کسرها رو ساده توضیح می‌دی؟</p>
+              <p className="danua-bubble bot">حتما. فکر کن یک کیک را به قسمت‌های برابر تقسیم کردیم...</p>
             </div>
             <div className="danua-composer" aria-hidden="true">
               <span>پیامت رو بنویس...</span>
-              <span className="danua-composer-send">✨</span>
+              <span className="danua-composer-send"><DanuaIcon name="chat" /></span>
             </div>
           </div>
         </div>
@@ -347,13 +563,15 @@ function DanuaLanding() {
 
       <section id="features" className="danua-section">
         <div className="danua-section-heading">
-          <span>🎯 چه کارهایی بلد است؟</span>
-          <h2>چهار همراه کوچک برای روزهای بزرگ بچه ها!</h2>
+          <span><DanuaIcon name="spark" /> قابلیت‌های دانوآ</span>
+          <h2>چهار همراه ساده برای یادگیری و خیال‌پردازی</h2>
         </div>
         <div className="danua-feature-grid">
           {features.map((feature) => (
             <Card key={feature.title} className={`danua-feature-card danua-tone-${feature.tone}`} padding="lg">
-              <span className="danua-feature-icon" aria-hidden="true">{feature.icon}</span>
+              <span className="danua-feature-icon" aria-hidden="true">
+                <DanuaIcon name={feature.icon} />
+              </span>
               <h3>{feature.title}</h3>
               <p>{feature.text}</p>
             </Card>
@@ -363,35 +581,39 @@ function DanuaLanding() {
 
       <section id="safety" className="danua-safety">
         <div className="danua-safety-art" aria-hidden="true">
-          <span className="danua-shield">🛡️</span>
+          <DanuaIcon name="shield" />
         </div>
-        <div>
-          <span className="danua-kicker">💝 برای آرامش خیال والدین</span>
-          <h2>فضایی گرم، مراقب و مناسب سن!</h2>
+        <div className="danua-safety-copy">
+          <span className="danua-kicker"><DanuaIcon name="family" /> برای آرامش خیال والدین</span>
+          <h2>فضایی امن‌تر برای یادگیری و خیال‌پردازی</h2>
           <p>
-            دانوآ برای خانواده هایی ساخته شده که هم یادگیری و خلاقیت می خواهند، هم لحن محترمانه، محتوای مناسب سن و تجربه ای قابل اعتماد.
+            دانوآ با محتوای مناسب سن، پاسخ‌های فارسی و فضای کنترل‌شده طراحی شده تا والدین با خیال راحت‌تری کنار کودک باشند.
           </p>
           <div className="danua-safety-list">
-            <span><span aria-hidden="true">🌈</span> پاسخ های ساده و سن محور</span>
-            <span><span aria-hidden="true">💕</span> گفتگوی حمایتگر و بدون قضاوت</span>
-            <span><span aria-hidden="true">🎯</span> تمرکز روی یادگیری، نه جایگزینی تلاش کودک</span>
+            {safetyItems.map((item) => (
+              <span key={item}>
+                <DanuaIcon name="check" />
+                {item}
+              </span>
+            ))}
           </div>
         </div>
       </section>
 
       <section id="plans" className="danua-section">
         <div className="danua-section-heading">
-          <span>💰 پلن های اشتراک</span>
-          <h2>از شروع رایگان تا همراهی نامحدود!</h2>
+          <span><DanuaIcon name="plans" /> پلن‌ها</span>
+          <h2>رایگان شروع کن، اگر خواستی بیشتر استفاده کن</h2>
         </div>
         <div className="danua-plan-grid">
           {(plans.length > 0 ? plans : fallbackPlans).map((plan) => (
             <Card
               key={plan.id}
-              className={`danua-plan-card danua-plan-${plan.tone} ${plan.popular ? 'is-popular' : ''}`}
+              className={`danua-plan-card danua-plan-${plan.tone} ${plan.featured ? 'is-featured' : ''}`}
               padding="lg"
             >
-              {plan.popular ? <span className="danua-badge">محبوب ترین</span> : null}
+              {plan.label ? <span className="danua-badge">{plan.label}</span> : null}
+              <PlanIcon><DanuaIcon name={plan.icon} /></PlanIcon>
               <h3>{plan.name}</h3>
               <div className="danua-price">
                 <strong>{plan.price}</strong>
@@ -399,12 +621,15 @@ function DanuaLanding() {
               </div>
               <ul>
                 {plan.items.map((item) => (
-                  <li key={item}><span aria-hidden="true">🎯</span> {item}</li>
+                  <li key={item}>
+                    <DanuaIcon name="check" />
+                    <span>{item}</span>
+                  </li>
                 ))}
               </ul>
               <Button
                 type="button"
-                className={plan.popular ? 'danua-cta-button' : 'danua-plan-button'}
+                className={plan.featured ? 'danua-cta-button' : 'danua-plan-button'}
                 data-cta={`plan-${plan.id}`}
                 onClick={() => navigateToChat('signup', plan.id)}
               >
@@ -417,13 +642,17 @@ function DanuaLanding() {
 
       <section className="danua-section">
         <div className="danua-section-heading">
-          <span>💬 نظر خانواده ها</span>
-          <h2>چند تجربه کوتاه از والدین شاد!</h2>
+          <span><DanuaIcon name="family" /> نظر خانواده‌ها</span>
+          <h2>چند تجربه کوتاه از والدین</h2>
         </div>
         <div className="danua-testimonial-grid">
           {testimonials.map((testimonial) => (
             <Card key={testimonial.name} className="danua-testimonial-card" padding="lg">
-              <div className="danua-stars" aria-label="۵ ستاره">★★★★★</div>
+              <div className="danua-stars" aria-label="۵ ستاره">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <DanuaIcon key={index} name="star" />
+                ))}
+              </div>
               <p>{testimonial.text}</p>
               <strong>{testimonial.name}</strong>
             </Card>
@@ -433,8 +662,8 @@ function DanuaLanding() {
 
       <section id="faq" className="danua-section danua-faq-section">
         <div className="danua-section-heading">
-          <span>❓ سوالات متداول</span>
-          <h2>چیزهایی که والدین معمولا می پرسند!</h2>
+          <span><DanuaIcon name="question" /> سوالات متداول</span>
+          <h2>چیزهایی که والدین معمولا می‌پرسند</h2>
         </div>
         <div className="danua-faq-list">
           {faqs.map((faq, index) => {
@@ -449,7 +678,9 @@ function DanuaLanding() {
                   aria-controls={panelId}
                 >
                   <span>{faq.question}</span>
-                  <span aria-hidden="true">{isOpen ? '−' : '+'}</span>
+                  <span className="danua-faq-toggle" aria-hidden="true">
+                    <DanuaIcon name={isOpen ? 'minus' : 'plus'} />
+                  </span>
                 </button>
                 {isOpen ? <p id={panelId}>{faq.answer}</p> : null}
               </Card>
@@ -460,17 +691,18 @@ function DanuaLanding() {
 
       <section className="danua-final-cta">
         <div>
-          <span className="danua-kicker">🎈 شروع یک گفتگوی امن</span>
-          <h2>بگذار دانوآ کنار یادگیری و خیال پردازی بچه ها باشد!</h2>
+          <span className="danua-kicker"><DanuaIcon name="chat" /> شروع یک گفت‌وگوی امن</span>
+          <h2>بگذار دانوآ کنار یادگیری و خیال‌پردازی بچه‌ها باشد.</h2>
         </div>
         <Button
           type="button"
           size="lg"
           className="danua-cta-button"
           data-cta="final-signup"
+          startIcon={<DanuaIcon name="rocket" />}
           onClick={() => navigateToChat('signup')}
         >
-          <span aria-hidden="true">🌟</span> ثبت نام رایگان
+          شروع رایگان
         </Button>
       </section>
 
@@ -489,14 +721,21 @@ function DanuaLanding() {
                 handleNavClick(link.href);
               }}
             >
-              <span aria-hidden="true">{link.icon}</span> {link.label}
+              <DanuaIcon name={link.icon} />
+              <span>{link.label}</span>
             </a>
           ))}
         </div>
-        <div className="danua-socials" aria-label="شبکه های اجتماعی">
-          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="اینستاگرام دانوآ">📸</a>
-          <a href="https://t.me" target="_blank" rel="noopener noreferrer" aria-label="کانال تلگرام دانوآ">✈️</a>
-          <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="لینکدین دانوآ">💼</a>
+        <div className="danua-socials" aria-label="شبکه‌های اجتماعی">
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="اینستاگرام دانوآ">
+            <DanuaIcon name="instagram" />
+          </a>
+          <a href="https://t.me" target="_blank" rel="noopener noreferrer" aria-label="کانال تلگرام دانوآ">
+            <DanuaIcon name="telegram" />
+          </a>
+          <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="لینکدین دانوآ">
+            <DanuaIcon name="linkedin" />
+          </a>
         </div>
       </footer>
     </main>

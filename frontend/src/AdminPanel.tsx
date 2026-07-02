@@ -1376,6 +1376,12 @@ function AdminPanel() {
                   onChange={(e) => updateSiteSetting('ai.chat.model', e.target.value)}
                 />
                 <TextField
+                  label="مدل ساخت تصویر"
+                  value={String(siteSettings.settings['ai.image.model'] ?? '')}
+                  placeholder="خالی = استفاده از env"
+                  onChange={(e) => updateSiteSetting('ai.image.model', e.target.value)}
+                />
+                <TextField
                   label="Temperature"
                   type="number"
                   step="0.1"

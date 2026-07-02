@@ -24,9 +24,14 @@ function createConversationsService({ usersRepository, conversationsRepository, 
       updated_at: item?.updatedAt || item?.createdAt || now(),
       messages: Array.isArray(item?.messages)
         ? item.messages.map((msg) => ({
+            id: typeof msg?.id === 'string' ? msg.id : undefined,
             role: msg?.role,
+            type: typeof msg?.type === 'string' ? msg.type : undefined,
+            intent: typeof msg?.intent === 'string' ? msg.intent : undefined,
             content: msg?.content,
             timestamp: msg?.timestamp,
+            taskId: typeof msg?.taskId === 'string' || typeof msg?.taskId === 'number' ? String(msg.taskId) : undefined,
+            status: typeof msg?.status === 'string' ? msg.status : undefined,
             images: Array.isArray(msg?.images)
               ? msg.images
                   .filter((image) => image && typeof image.url === 'string' && image.url.trim())

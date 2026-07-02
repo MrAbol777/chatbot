@@ -14,9 +14,17 @@ export interface UserProfile {
 }
 
 export interface ChatMessage {
+  id?: string;
   role: 'user' | 'assistant';
+  type?: 'text' | 'image_loading' | 'image_result' | 'image_error';
+  intent?: 'chat' | 'image_generation' | 'image_edit';
   content: string;
   timestamp: string;
+  taskId?: string;
+  imageTaskId?: string;
+  status?: 'QUEUE' | 'WAITING' | 'RUNNING' | 'COMPLETED' | 'ERROR' | 'CANCELLED';
+  imageUrl?: string;
+  resultUrl?: string;
   images?: Array<{
     url: string;
     alt?: string;

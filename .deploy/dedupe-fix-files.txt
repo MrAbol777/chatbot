@@ -1,0 +1,3 @@
+frontend/src/App.tsx
+frontend/src/types.ts
+backend/src/repositories/ConversationRepository.js

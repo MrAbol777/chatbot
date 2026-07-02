@@ -93,6 +93,14 @@ const SETTING_DEFINITIONS = {
     defaultValue: 'gemini-2.5-flash',
     adminEditable: true
   },
+  'ai.image.model': {
+    label: 'مدل ساخت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash-image',
+    nullable: true,
+    adminEditable: true
+  },
   'ai.chat.temperature': {
     label: 'Temperature چت',
     type: 'number',
@@ -198,6 +206,10 @@ const coerceSettingValue = (key, value) => {
       }
     }
     return [...new Set(items)];
+  }
+
+  if (definition.nullable && (value === null || value === undefined || value === '')) {
+    return null;
   }
 
   const text = typeof value === 'string' ? value.trim() : String(value ?? '').trim();

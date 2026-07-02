@@ -334,12 +334,10 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
     }
   }
 
-  // 2. Check generated images: uploads/images-generated/{id}.{ext}
-  for (const ext of allowedImageExtensions) {
-    const generatedPath = path.join(generatedImagesDir, `${imageId}${ext}`);
-    if (await fs.pathExists(generatedPath)) {
-      return streamImage(generatedPath, imageMimeTypeByExtension[ext]);
-    }
+  // Generated chat images are served through /api/images/result/:taskId,
+  // where task ownership is checked for logged-in users and guests.
+  if (/^[1-9]\d*$|^0$/.test(imageId)) {
+    return res.status(404).json({ error: 'IMAGE_NOT_FOUND' });
   }
 
   // Don't cache 404 — file might be created by concurrent request
@@ -369,6 +367,22 @@ const { router: authRouter } = createAuthModule({
 });
 app.use(authRouter);
 
+const imageGenerationModule = createImageGenerationRouter({
+  httpClient: axios,
+  geminiApiKey,
+  geminiImageModel,
+  geminiBaseUrl,
+  db: repositories.db,
+  plansRepository: repositories.plans,
+  settingsRepository: repositories.settings,
+  guestsRepository: repositories.guests,
+  conversationsRepository: repositories.conversations,
+  eventsRepository: repositories.events,
+  authJwtSecret
+});
+app.use('/api/images', imageGenerationModule.publicRouter);
+app.use('/api/images', imageGenerationModule.router);
+
 app.use(createAiRouter({
   apiKey: metisApiKey,
   baseUrl: metisBaseUrl,
@@ -386,26 +400,12 @@ app.use(createAiRouter({
   errorsRepository: repositories.errors,
   uploadedImagesRepository,
   settingsRepository: repositories.settings,
+  imageGenerationController: imageGenerationModule.controller,
+  imageGenerationService: imageGenerationModule.imageGenerationService,
   logger: {
     log
   }
 }));
-
-const imageGenerationModule = createImageGenerationRouter({
-  httpClient: axios,
-  geminiApiKey,
-  geminiImageModel,
-  geminiBaseUrl,
-  db: repositories.db,
-  plansRepository: repositories.plans,
-  settingsRepository: repositories.settings,
-  guestsRepository: repositories.guests,
-  authJwtSecret
-});
-// Public serve endpoint (no auth — img tags can't send Authorization headers)
-app.use('/api/images', imageGenerationModule.publicRouter);
-// Protected endpoints (generate, status)
-app.use('/api/images', imageGenerationModule.router);
 
 
 const { router: conversationRouter } = createConversationsModule({

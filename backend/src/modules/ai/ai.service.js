@@ -118,6 +118,8 @@ const detectCategory = (msg) => {
   return 'general';
 };
 
+const makeMessageId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
 const imageIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const normalizeImageIds = (imageIds) => {
@@ -651,9 +653,178 @@ function createAiService({
     return { reply };
   };
 
+  const classifyIntent = async (message, { requestId } = {}) => {
+    const text = typeof message === 'string' ? message.trim() : '';
+    if (!text) return 'chat';
+
+    const result = await callOpenAI(
+      [
+        {
+          role: 'system',
+          content:
+            'Classify the user intent for a Persian chat app. Reply with exactly one token: chat, image_generation, or image_edit. Choose image_generation only when the user wants a new image made. Choose image_edit only when they ask to modify an existing image. Otherwise choose chat.'
+        },
+        { role: 'user', content: text }
+      ],
+      { requestId }
+    );
+
+    const value = String(result.reply || '').trim().toLowerCase();
+    if (value.includes('image_edit')) return 'image_edit';
+    if (value.includes('image_generation')) return 'image_generation';
+    return 'chat';
+  };
+
+  const appendUniqueMessages = (currentMessages, nextMessages) => {
+    const messages = Array.isArray(currentMessages) ? [...currentMessages] : [];
+    const seenIds = new Set(messages.map((item) => String(item?.id || '')).filter(Boolean));
+
+    for (const messageItem of nextMessages) {
+      const id = String(messageItem?.id || '').trim();
+      if (id && seenIds.has(id)) {
+        continue;
+      }
+      if (!id) {
+        const duplicate = messages.some(
+          (item) =>
+            item?.role === messageItem?.role &&
+            item?.content === messageItem?.content &&
+            item?.type === messageItem?.type &&
+            String(item?.taskId || '') === String(messageItem?.taskId || '')
+        );
+        if (duplicate) continue;
+      }
+      if (id) seenIds.add(id);
+      messages.push(messageItem);
+    }
+
+    return messages;
+  };
+
+  const persistImageChatTurn = async ({
+    userId,
+    conversationId,
+    userMessage,
+    assistantText,
+    taskId = null,
+    status = null,
+    imageUrl = null,
+    intent = 'image_generation',
+    errorCode = null,
+    requestId,
+    clientMessageId = null
+  }) => {
+    const normalizedConversationId =
+      typeof conversationId === 'string' && conversationId.trim().length > 0 ? conversationId.trim() : 'default';
+    const prompt = typeof userMessage === 'string' && userMessage.trim() ? userMessage.trim() : 'درخواست ساخت تصویر';
+    const now = new Date().toISOString();
+    const userMessageId = clientMessageId || makeMessageId('user-image');
+    const assistantMessageId = makeMessageId('assistant-image');
+    const loadingMessageId = taskId ? `image-task-${taskId}` : makeMessageId('image-error');
+
+    const messagesToAppend = [
+      {
+        id: userMessageId,
+        role: 'user',
+        type: 'text',
+        intent,
+        content: prompt,
+        timestamp: now
+      },
+      {
+        id: assistantMessageId,
+        role: 'assistant',
+        type: 'text',
+        intent,
+        content: assistantText,
+        timestamp: now
+      }
+    ];
+
+    if (taskId) {
+      messagesToAppend.push({
+        id: loadingMessageId,
+        role: 'assistant',
+        type: 'image_loading',
+        intent,
+        content: 'در حال ساخت تصویر...',
+        taskId: String(taskId),
+        status: status || 'QUEUE',
+        timestamp: now
+      });
+    } else {
+      messagesToAppend.push({
+        id: loadingMessageId,
+        role: 'assistant',
+        type: 'image_error',
+        intent,
+        content: assistantText,
+        status: 'ERROR',
+        timestamp: now
+      });
+    }
+
+    if (imageUrl) {
+      messagesToAppend[messagesToAppend.length - 1] = {
+        ...messagesToAppend[messagesToAppend.length - 1],
+        type: 'image_result',
+        content: 'تصویر آماده شد.',
+        status: 'COMPLETED',
+        images: [{ url: imageUrl, alt: prompt }]
+      };
+    }
+
+    const currentMessages = await conversationsRepository.getConversationMessages(userId, normalizedConversationId);
+    const nextMessages = appendUniqueMessages(currentMessages, messagesToAppend);
+    await conversationsRepository.saveConversationMessages(userId, normalizedConversationId, nextMessages);
+    conversationStore.set(`${userId}:${normalizedConversationId}`, nextMessages);
+
+    await eventsRepository.logEvent(
+      userId,
+      intent === 'image_edit' ? 'image_edit_requested' : 'image_generation_requested',
+      intent,
+      {
+        messageLength: prompt.length,
+        taskId: taskId ? String(taskId) : null,
+        requestId,
+        status: status || (errorCode ? 'ERROR' : 'QUEUE')
+      }
+    );
+
+    if (errorCode) {
+      await eventsRepository.logEvent(userId, intent === 'image_edit' ? 'image_edit_failed' : 'image_generation_failed', intent, {
+        taskId: taskId ? String(taskId) : null,
+        requestId,
+        errorCode
+      });
+    }
+
+    if (chatMessagesRepository && typeof chatMessagesRepository.logMessage === 'function') {
+      await chatMessagesRepository.logMessage({
+        userId,
+        conversationId: normalizedConversationId,
+        role: 'user',
+        content: prompt,
+        limitStatus: intent
+      });
+      await chatMessagesRepository.logMessage({
+        userId,
+        conversationId: normalizedConversationId,
+        role: 'assistant',
+        content: taskId ? `${assistantText}\nTASK:${taskId}` : assistantText,
+        errorCode,
+        limitStatus: taskId ? `${intent}_queued` : `${intent}_not_started`
+      });
+    }
+
+    return messagesToAppend;
+  };
+
   return {
     sendChatMessage,
-    callOpenAI
+    callOpenAI,
+    classifyIntent,
+    persistImageChatTurn
   };
 }
 

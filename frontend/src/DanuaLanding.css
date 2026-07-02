@@ -1,41 +1,29 @@
-/* ═══════════════════════════════════════════════════
-   🧸 دانوآ لندینگ - نسخه بچه‌گونه و شاد! 🌈
-   ═══════════════════════════════════════════════════ */
-
 .danua-landing {
-  /* پس‌زمینه رنگین‌کمانی */
-  --danua-bg: #fff5f7;
-  --danua-rainbow-1: #ffb3ba;
-  --danua-rainbow-2: #ffdfba;
-  --danua-rainbow-3: #ffffba;
-  --danua-rainbow-4: #baffc9;
-  --danua-rainbow-5: #bae1ff;
-  --danua-rainbow-6: #e8baff;
-
-  /* رنگ‌های اصلی */
-  --danua-pink: #ff6b9d;
-  --danua-pink-soft: #ffb8d0;
-  --danua-purple: #9b72cf;
-  --danua-blue: #5bb8f5;
-  --danua-blue-deep: #4aa3e8;
-  --danua-yellow: #ffd93d;
-  --danua-yellow-soft: #ffe066;
-  --danua-green: #6bcb77;
-  --danua-orange: #ff9a3c;
-  --danua-red: #ff6b6b;
-
-  /* رنگ‌های متن */
-  --danua-text: #5a4a6b;
-  --danua-text-dark: #3d2e50;
-  --danua-muted: #6f5f85;
+  --danua-primary: #630ed4;
+  --danua-primary-strong: #5a00c6;
+  --danua-primary-vivid: #7c3aed;
+  --danua-lavender: #eaddff;
+  --danua-lavender-soft: #f8f4ff;
+  --danua-sky: #eaf7ff;
+  --danua-sky-strong: #bde8ff;
+  --danua-surface: #ffffff;
+  --danua-surface-soft: #f7f9fb;
+  --danua-text: #191c1e;
+  --danua-text-soft: #4a4455;
+  --danua-muted: #7b7487;
+  --danua-border: #d8d0e6;
+  --danua-border-soft: rgba(204, 195, 216, 0.62);
+  --danua-accent: #ffd166;
+  --danua-shadow-sm: 0 8px 22px rgba(99, 14, 212, 0.08);
+  --danua-shadow-md: 0 16px 38px rgba(99, 14, 212, 0.12);
+  --danua-shadow-strong: 0 18px 42px rgba(99, 14, 212, 0.2);
+  --danua-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   min-height: 100dvh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 10% 20%, rgba(255, 107, 157, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(91, 184, 245, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(255, 217, 61, 0.1) 0%, transparent 50%),
-    linear-gradient(180deg, #fff5f7 0%, #fff9e6 30%, #e6f5ff 70%, #f5e6ff 100%);
+    linear-gradient(145deg, rgba(234, 221, 255, 0.75) 0%, rgba(255, 255, 255, 0) 38%),
+    linear-gradient(180deg, #ffffff 0%, #fbf8ff 40%, #eef8ff 100%);
   color: var(--danua-text);
   font-family: 'Sahel', sans-serif;
   font-size: 16px;
@@ -44,34 +32,8 @@
   position: relative;
 }
 
-/* ستاره‌های پس‌زمینه ✨ */
-.danua-landing::before {
-  content: '⭐🌟✨⭐🌟✨⭐🌟✨';
-  position: fixed;
-  top: 10%;
-  right: 5%;
-  font-size: 2rem;
-  opacity: 0.3;
-  animation: twinkle 3s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.danua-landing::after {
-  content: '✨🌟⭐🌟✨🌟⭐🌟✨';
-  position: fixed;
-  bottom: 20%;
-  left: 3%;
-  font-size: 1.5rem;
-  opacity: 0.25;
-  animation: twinkle 4s ease-in-out infinite reverse;
-  pointer-events: none;
-  z-index: 0;
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(1) rotate(0deg); }
-  50% { opacity: 0.5; transform: scale(1.2) rotate(10deg); }
+.danua-landing * {
+  box-sizing: border-box;
 }
 
 .danua-landing a {
@@ -79,9 +41,16 @@
   text-decoration: none;
 }
 
-/* ═══════════════════════════════════════════════════
-   🎀 هدر - نوار بالایی با گوشه‌های گرد و شاد
-   ═══════════════════════════════════════════════════ */
+.danua-icon {
+  width: 1.15em;
+  height: 1.15em;
+  flex: 0 0 auto;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
 
 .danua-header,
 .danua-hero,
@@ -95,6 +64,24 @@
   z-index: 1;
 }
 
+.danua-skip-link {
+  position: absolute;
+  top: -60px;
+  right: 16px;
+  z-index: 100;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: var(--danua-primary);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: var(--danua-shadow-strong);
+  transition: top 160ms var(--danua-ease);
+}
+
+.danua-skip-link:focus {
+  top: 16px;
+}
+
 .danua-header {
   position: sticky;
   top: 8px;
@@ -103,15 +90,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 14px;
-  border: 3px solid rgba(255, 255, 255, 0.9);
-  border-radius: 100px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  box-shadow:
-    0 8px 32px rgba(155, 114, 207, 0.15),
-    0 2px 8px rgba(255, 107, 157, 0.1),
-    inset 0 -2px 0 rgba(155, 114, 207, 0.1);
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  box-shadow: 0 12px 30px rgba(45, 49, 51, 0.08);
 }
 
 .danua-header-actions {
@@ -121,26 +106,59 @@
   flex: 0 0 auto;
 }
 
-/* لینک پرش به محتوا - فقط برای کیبورد */
-.danua-skip-link {
-  position: absolute;
-  top: -60px;
-  right: 16px;
-  z-index: 100;
-  padding: 10px 18px;
-  border-radius: 12px;
-  background: var(--danua-purple);
+.danua-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0 0 auto;
+  color: var(--danua-text);
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.danua-logo-mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: linear-gradient(135deg, var(--danua-primary-vivid) 0%, var(--danua-primary) 100%);
   color: #fff;
+  font-size: 1.35rem;
+  box-shadow: 0 10px 24px rgba(99, 14, 212, 0.2);
+}
+
+.danua-nav {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  color: var(--danua-text-soft);
+  font-size: 0.93rem;
   font-weight: 800;
-  box-shadow: 0 8px 24px rgba(155, 114, 207, 0.4);
-  transition: top 0.2s ease;
 }
 
-.danua-skip-link:focus {
-  top: 16px;
+.danua-nav a,
+.danua-footer-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  transition:
+    background-color 160ms var(--danua-ease),
+    color 160ms var(--danua-ease),
+    transform 160ms var(--danua-ease);
 }
 
-/* دکمه همبرگر موبایل */
+.danua-nav a:hover,
+.danua-nav a:focus-visible,
+.danua-footer-links a:hover,
+.danua-footer-links a:focus-visible {
+  color: var(--danua-primary);
+  background: rgba(234, 221, 255, 0.58);
+}
+
 .danua-menu-toggle {
   display: inline-flex;
   flex-direction: column;
@@ -149,29 +167,35 @@
   width: 44px;
   height: 44px;
   padding: 10px;
-  border: none;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--danua-pink-soft) 0%, var(--danua-purple) 100%);
+  border: 1px solid rgba(99, 14, 212, 0.18);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--danua-primary);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(155, 114, 207, 0.25);
-  transition: transform 0.3s ease;
+  box-shadow: var(--danua-shadow-sm);
+  transition:
+    transform 160ms var(--danua-ease),
+    border-color 160ms var(--danua-ease),
+    box-shadow 160ms var(--danua-ease);
 }
 
-.danua-menu-toggle:hover {
-  transform: scale(1.05);
+.danua-menu-toggle:hover,
+.danua-menu-toggle:focus-visible {
+  border-color: rgba(99, 14, 212, 0.36);
+  box-shadow: var(--danua-shadow-md);
 }
 
 .danua-menu-toggle span {
   display: block;
   width: 100%;
-  height: 3px;
-  border-radius: 2px;
-  background: #fff;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transition: transform 180ms var(--danua-ease), opacity 180ms var(--danua-ease);
 }
 
 .danua-menu-toggle.is-open span:nth-child(1) {
-  transform: translateY(8px) rotate(45deg);
+  transform: translateY(7px) rotate(45deg);
 }
 
 .danua-menu-toggle.is-open span:nth-child(2) {
@@ -179,16 +203,9 @@
 }
 
 .danua-menu-toggle.is-open span:nth-child(3) {
-  transform: translateY(-8px) rotate(-45deg);
+  transform: translateY(-7px) rotate(-45deg);
 }
 
-@media (min-width: 720px) {
-  .danua-menu-toggle {
-    display: none;
-  }
-}
-
-/* منوی موبایل - overlay */
 .danua-mobile-menu {
   position: fixed;
   inset: 0;
@@ -197,14 +214,19 @@
   align-content: start;
   gap: 16px;
   padding: 88px 20px 24px;
-  background: linear-gradient(180deg, rgba(255, 245, 247, 0.98) 0%, rgba(245, 230, 255, 0.98) 100%);
-  backdrop-filter: blur(12px);
-  animation: menu-slide 0.3s ease;
+  background: rgba(248, 244, 255, 0.98);
+  animation: menu-slide 180ms var(--danua-ease);
 }
 
 @keyframes menu-slide {
-  from { opacity: 0; transform: translateY(-12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .danua-mobile-menu nav {
@@ -218,253 +240,117 @@
   gap: 10px;
   min-height: 52px;
   padding: 14px 18px;
+  border: 1px solid var(--danua-border-soft);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.9);
-  color: var(--danua-text-dark);
+  color: var(--danua-text);
   font-weight: 800;
-  font-size: 1.05rem;
-  box-shadow: 0 4px 12px rgba(155, 114, 207, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.danua-mobile-menu nav a:hover,
-.danua-mobile-menu nav a:focus-visible {
-  transform: scale(1.02);
-  box-shadow: 0 8px 20px rgba(255, 107, 157, 0.2);
+  box-shadow: var(--danua-shadow-sm);
 }
 
 .danua-mobile-menu .ds-button {
   width: 100%;
-  min-height: 52px;
+  min-height: 54px;
 }
 
-@media (min-width: 720px) {
-  .danua-mobile-menu {
-    display: none;
-  }
-}
-
-/* لوگو با شکل قلب-ستاره */
-.danua-logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-  color: var(--danua-text-dark);
-  font-size: 1.15rem;
-  font-weight: 900;
-  transition: transform 0.3s ease;
-}
-
-.danua-logo:hover {
-  transform: scale(1.05);
-}
-
-.danua-logo-mark {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--danua-pink) 0%, var(--danua-purple) 100%);
-  color: #fff;
-  font-size: 1.4rem;
-  box-shadow:
-    0 6px 20px rgba(255, 107, 157, 0.4),
-    0 2px 4px rgba(155, 114, 207, 0.3);
-  animation: logo-bounce 2s ease-in-out infinite;
-}
-
-@keyframes logo-bounce {
-  0%, 100% { transform: translateY(0) rotate(-3deg); }
-  50% { transform: translateY(-3px) rotate(3deg); }
-}
-
-.danua-nav {
-  display: none;
-  align-items: center;
-  gap: 24px;
-  color: var(--danua-muted);
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.danua-nav a {
-  position: relative;
-  padding: 6px 12px;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-}
-
-.danua-nav a:hover {
-  color: var(--danua-pink);
-  background: rgba(255, 107, 157, 0.1);
-}
-
-.danua-nav a::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  right: 50%;
-  transform: translateX(50%);
-  width: 0;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--danua-pink);
-  transition: width 0.3s ease;
-}
-
-.danua-nav a:hover::after {
-  width: 60%;
-}
-
-/* ═══════════════════════════════════════════════════
-   🎨 دکمه‌ها - دکمه‌های رنگی و بامزه
-   ═══════════════════════════════════════════════════ */
-
-.danua-header-cta {
-  min-width: 120px;
-}
-
+.danua-header-cta.ds-button,
 .danua-cta-button.ds-button {
   border: none;
-  border-radius: 50px;
-  background: linear-gradient(135deg, var(--danua-pink) 0%, var(--danua-purple) 100%);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--danua-primary-vivid) 0%, #732ee4 46%, var(--danua-primary) 100%);
   color: #fff;
-  font-weight: 800;
-  font-size: 1rem;
-  box-shadow:
-    0 8px 24px rgba(255, 107, 157, 0.4),
-    0 4px 8px rgba(155, 114, 207, 0.3),
-    inset 0 2px 0 rgba(255, 255, 255, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
+  font-weight: 900;
+  box-shadow: 0 12px 30px rgba(115, 46, 228, 0.28);
 }
 
+.danua-header-cta.ds-button:hover:not(:disabled),
 .danua-cta-button.ds-button:hover:not(:disabled) {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow:
-    0 12px 32px rgba(255, 107, 157, 0.5),
-    0 6px 12px rgba(155, 114, 207, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 36px rgba(115, 46, 228, 0.34);
 }
 
-.danua-cta-button.ds-button:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
-}
-
-.danua-soft-button.ds-button {
-  border: 3px solid rgba(155, 114, 207, 0.3);
-  border-radius: 50px;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--danua-purple);
-  box-shadow:
-    0 4px 16px rgba(155, 114, 207, 0.15),
-    inset 0 2px 0 rgba(255, 255, 255, 0.8);
-}
-
-.danua-soft-button.ds-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  border-color: var(--danua-pink);
-  background: rgba(255, 248, 250, 1);
-  box-shadow: 0 8px 24px rgba(255, 107, 157, 0.2);
-}
-
+.danua-soft-button.ds-button,
 .danua-plan-button.ds-button {
-  border: 3px solid rgba(155, 114, 207, 0.25);
-  border-radius: 50px;
-  background: linear-gradient(135deg, #fff 0%, #f8f4ff 100%);
-  color: var(--danua-purple);
-  box-shadow: 0 4px 16px rgba(155, 114, 207, 0.1);
+  border: 1px solid rgba(99, 14, 212, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--danua-primary);
+  font-weight: 900;
+  box-shadow: 0 8px 22px rgba(99, 14, 212, 0.08);
 }
 
+.danua-soft-button.ds-button:hover:not(:disabled),
 .danua-plan-button.ds-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: linear-gradient(135deg, var(--danua-pink-soft) 0%, var(--danua-pink) 100%);
-  color: #fff;
-  border-color: transparent;
+  transform: translateY(-1px);
+  border-color: rgba(99, 14, 212, 0.34);
+  background: #fff;
+  box-shadow: var(--danua-shadow-md);
 }
-
-/* ═══════════════════════════════════════════════════
-   🌟 بخش هیرو - صفحه اصلی با عکس گوشی
-   ═══════════════════════════════════════════════════ */
 
 .danua-hero {
   display: grid;
-  gap: 40px;
+  gap: 32px;
   align-items: center;
-  padding: 50px 8px 40px;
-  min-height: 85vh;
+  padding: 50px 8px 36px;
 }
 
 .danua-hero-copy {
   display: grid;
-  gap: 20px;
+  gap: 18px;
   text-align: center;
+  justify-items: center;
 }
 
-/* تگ کیکر با استایل آدامسی */
-.danua-kicker {
+.danua-kicker,
+.danua-section-heading span {
   display: inline-flex;
   width: fit-content;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  padding: 8px 18px;
-  border-radius: 50px;
-  background: linear-gradient(135deg, var(--danua-yellow) 0%, var(--danua-orange) 100%);
-  color: var(--danua-text-dark);
-  font-size: 0.9rem;
-  font-weight: 800;
-  box-shadow:
-    0 4px 16px rgba(255, 217, 61, 0.4),
-    inset 0 2px 0 rgba(255, 255, 255, 0.5);
-  margin: 0 auto;
-  animation: kicker-float 3s ease-in-out infinite;
-}
-
-@keyframes kicker-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-/* عنوان بزرگ */
-.danua-hero h1 {
-  margin: 0;
-  color: var(--danua-text-dark);
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 14px;
+  border: 1px solid rgba(99, 14, 212, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--danua-primary);
+  font-size: 0.86rem;
   font-weight: 900;
-  letter-spacing: -0.5px;
-  line-height: 1.3;
-  font-size: clamp(2.2rem, 8vw, 3.8rem);
-  text-shadow: 2px 2px 0 rgba(255, 107, 157, 0.2);
+  box-shadow: 0 6px 18px rgba(99, 14, 212, 0.06);
 }
 
-/* پاراگراف توضیح */
-.danua-hero p {
+.danua-hero h1 {
+  max-width: 760px;
   margin: 0;
-  max-width: 580px;
-  color: var(--danua-muted);
-  font-size: clamp(1rem, 3vw, 1.15rem);
-  line-height: 2;
-  margin: 0 auto;
+  color: var(--danua-text);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.28;
+  font-size: clamp(2rem, 9vw, 3.35rem);
 }
 
-/* دکمه‌های اکشن */
+.danua-hero p {
+  max-width: 610px;
+  margin: 0;
+  color: var(--danua-text-soft);
+  font-size: clamp(1rem, 2.7vw, 1.15rem);
+  line-height: 2;
+}
+
 .danua-hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px;
   justify-content: center;
+  width: 100%;
 }
 
 .danua-hero-actions .ds-button {
-  flex: 1 1 180px;
-  max-width: 220px;
+  flex: 1 1 174px;
+  max-width: 224px;
   min-height: 52px;
-  font-size: 1.05rem;
 }
 
-/* ردیف اعتماد */
 .danua-trust-row {
   display: flex;
   flex-wrap: wrap;
@@ -473,579 +359,440 @@
 }
 
 .danua-trust-row span {
-  min-height: 40px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
-  padding: 8px 16px;
-  border-radius: 50px;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--danua-muted);
-  font-size: 0.88rem;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(155, 114, 207, 0.1);
-  border: 2px solid rgba(155, 114, 207, 0.1);
-  transition: all 0.3s ease;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid var(--danua-border-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--danua-text-soft);
+  font-size: 0.87rem;
+  font-weight: 800;
 }
-
-.danua-trust-row span:hover {
-  transform: scale(1.05);
-  border-color: var(--danua-pink);
-  box-shadow: 0 4px 16px rgba(255, 107, 157, 0.2);
-}
-
-/* ═══════════════════════════════════════════════════
-   📱 تصویر گوشی - خیلی بامزه و کارتونی
-   ═══════════════════════════════════════════════════ */
 
 .danua-hero-visual {
   position: relative;
-  min-height: 520px;
+  min-height: 460px;
   display: grid;
   place-items: center;
 }
 
-/* خورشید خندان */
-.danua-sun {
-  position: absolute;
-  top: 20px;
-  right: 8%;
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--danua-yellow) 0%, var(--danua-orange) 100%);
-  box-shadow:
-    0 0 0 20px rgba(255, 217, 61, 0.25),
-    0 0 40px rgba(255, 217, 61, 0.4);
-  animation: sun-pulse 4s ease-in-out infinite;
-}
-
-.danua-sun::before,
-.danua-sun::after {
-  content: '';
-  position: absolute;
-  top: 38px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #6b4c35;
-}
-
-.danua-sun::before {
-  right: 28px;
-}
-
-.danua-sun::after {
-  left: 28px;
-}
-
-/* لبخند خورشید */
-.danua-sun .smile {
-  position: absolute;
-  bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 20px;
-  border: 4px solid #6b4c35;
-  border-top: none;
-  border-radius: 0 0 40px 40px;
-}
-
-@keyframes sun-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
-
-/* ابرهای بامزه */
-.danua-cloud {
-  position: absolute;
-  width: 120px;
-  height: 50px;
-  border-radius: 100px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(155, 114, 207, 0.12);
-  animation: cloud-float 5s ease-in-out infinite;
-}
-
-.danua-cloud::before,
-.danua-cloud::after {
-  content: '';
-  position: absolute;
-  bottom: 15px;
-  border-radius: 50%;
-  background: #fff;
-}
-
-.danua-cloud::before {
-  right: 20px;
-  width: 50px;
-  height: 50px;
-}
-
-.danua-cloud::after {
-  left: 18px;
-  width: 60px;
-  height: 60px;
-}
-
-.danua-cloud-one {
-  top: 120px;
-  left: -20px;
-  animation-delay: 0s;
-}
-
-.danua-cloud-two {
-  right: -30px;
-  bottom: 60px;
-  background: linear-gradient(135deg, var(--danua-blue-soft) 0%, var(--danua-blue) 100%);
-  animation-delay: 1s;
-}
-
-.danua-cloud-two::before {
-  background: var(--danua-blue-soft);
-}
-
-.danua-cloud-two::after {
-  background: var(--danua-blue-soft);
-}
-
-@keyframes cloud-float {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  33% { transform: translateY(-8px) translateX(5px); }
-  66% { transform: translateY(-4px) translateX(-3px); }
-}
-
-/* گوشی موبایل */
 .danua-phone {
   position: relative;
-  z-index: 2;
-  width: min(300px, 88vw);
-  min-height: 520px;
-  padding: 16px;
-  border: 12px solid #fff;
-  border-radius: 40px;
-  background: linear-gradient(180deg, #fff 0%, #fff9f0 100%);
-  box-shadow:
-    0 30px 60px rgba(155, 114, 207, 0.25),
-    0 10px 20px rgba(255, 107, 157, 0.15),
-    inset 0 0 0 2px rgba(155, 114, 207, 0.1);
-  animation: phone-bounce 3s ease-in-out infinite;
+  width: min(318px, 92vw);
+  min-height: 500px;
+  padding: 14px;
+  border: 8px solid #fff;
+  border-radius: 38px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, #fffdfb 0%, var(--danua-lavender-soft) 34%, var(--danua-sky) 100%);
+  box-shadow: 0 24px 58px rgba(45, 49, 51, 0.16);
+  overflow: hidden;
 }
 
-@keyframes phone-bounce {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-8px) rotate(1deg); }
+.danua-phone::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  right: 50%;
+  width: 74px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(25, 28, 30, 0.12);
+  transform: translateX(50%);
 }
 
-/* بالای گوشی */
 .danua-phone-top {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 14px;
+  margin-top: 10px;
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
   border-radius: 26px;
-  background: linear-gradient(135deg, var(--danua-pink-soft) 0%, var(--danua-purple) 100%);
-  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 22px rgba(99, 14, 212, 0.08);
 }
 
 .danua-phone-top div {
+  min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: 1px;
 }
 
 .danua-phone-top strong {
+  color: var(--danua-text);
   font-size: 1rem;
-  color: #fff;
+  font-weight: 900;
 }
 
-.danua-phone-top span:not(.danua-avatar) {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.75rem;
+.danua-phone-top span:not(.danua-avatar):not(.danua-status-dot) {
+  color: var(--danua-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
 }
 
 .danua-avatar {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--danua-yellow) 0%, var(--danua-orange) 100%);
-  color: var(--danua-text-dark);
+  background: var(--danua-lavender);
+  color: var(--danua-primary);
   font-weight: 900;
-  font-size: 1.4rem;
-  box-shadow: 0 4px 12px rgba(255, 217, 61, 0.4);
+  font-size: 1.35rem;
 }
 
-/* چت پیش‌نمایش */
+.danua-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #19a974;
+  box-shadow: 0 0 0 4px rgba(25, 169, 116, 0.12);
+}
+
 .danua-chat-preview {
   display: grid;
-  gap: 14px;
-  padding: 20px 4px;
+  gap: 13px;
+  padding: 10px 2px 76px;
 }
 
 .danua-bubble {
   width: fit-content;
-  max-width: 85%;
+  max-width: 88%;
   margin: 0;
-  padding: 14px 18px;
-  border-radius: 24px;
-  color: var(--danua-text-dark);
-  line-height: 1.7;
-  font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(155, 114, 207, 0.1);
-  animation: bubble-pop 0.5s ease-out;
-}
-
-@keyframes bubble-pop {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  padding: 12px 15px;
+  border-radius: 20px;
+  color: var(--danua-text);
+  line-height: 1.75;
+  font-size: 0.92rem;
+  box-shadow: 0 5px 18px rgba(45, 49, 51, 0.06);
 }
 
 .danua-bubble.bot {
   justify-self: start;
-  background: linear-gradient(135deg, var(--danua-blue-soft) 0%, var(--danua-blue) 100%);
-  border-bottom-right-radius: 6px;
+  background: var(--danua-primary);
+  color: #fff;
+  border-bottom-right-radius: 5px;
 }
 
 .danua-bubble.user {
   justify-self: end;
-  background: linear-gradient(135deg, var(--danua-pink-soft) 0%, var(--danua-pink) 100%);
-  color: #fff;
-  border-bottom-left-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-bottom-left-radius: 5px;
 }
 
-/* کامپوزر پیام */
 .danua-composer {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
-  left: 16px;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   min-height: 54px;
-  padding: 10px 12px;
-  border-radius: 50px;
+  padding: 7px 8px 7px 16px;
+  border: 2px solid #e0e3e5;
+  border-radius: 999px;
   background: #fff;
-  color: #b8a8c8;
-  box-shadow:
-    inset 0 0 0 2px rgba(155, 114, 207, 0.15),
-    0 4px 12px rgba(155, 114, 207, 0.1);
-}
-
-.danua-composer span {
-  font-size: 0.88rem;
+  color: rgba(74, 68, 85, 0.64);
+  font-size: 0.86rem;
+  box-shadow: 0 8px 20px rgba(45, 49, 51, 0.12);
 }
 
 .danua-composer-send {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--danua-purple) 0%, var(--danua-pink) 100%);
+  border-radius: 999px;
+  background: var(--danua-primary);
   color: #fff;
-  font-size: 1.3rem;
-  box-shadow: 0 4px 12px rgba(155, 114, 207, 0.3);
+  box-shadow: 0 8px 18px rgba(99, 14, 212, 0.26);
 }
 
-/* ═══════════════════════════════════════════════════
-   🎯 بخش‌های عمومی - فاصله و عناوین
-   ═══════════════════════════════════════════════════ */
+.danua-composer-send .danua-icon {
+  width: 20px;
+  height: 20px;
+}
 
 .danua-section {
-  padding: 40px 8px;
+  padding: 34px 8px;
 }
 
 .danua-section-heading {
   display: grid;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 22px;
   text-align: center;
-}
-
-.danua-section-heading span {
-  display: inline-flex;
-  width: fit-content;
-  align-items: center;
-  justify-content: center;
-  min-height: 34px;
-  padding: 6px 16px;
-  border-radius: 50px;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--danua-purple);
-  font-size: 0.85rem;
-  font-weight: 800;
-  margin: 0 auto;
-  box-shadow: 0 2px 8px rgba(155, 114, 207, 0.1);
+  justify-items: center;
 }
 
 .danua-section-heading h2,
 .danua-safety h2,
 .danua-final-cta h2 {
   margin: 0;
-  color: var(--danua-text-dark);
+  color: var(--danua-text);
   font-weight: 900;
-  letter-spacing: -0.3px;
-  line-height: 1.3;
-  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  letter-spacing: 0;
+  line-height: 1.35;
+  font-size: clamp(1.45rem, 5vw, 2.2rem);
 }
-
-/* ═══════════════════════════════════════════════════
-   🌈 کارت‌های ویژگی - رنگی و جذاب
-   ═══════════════════════════════════════════════════ */
 
 .danua-feature-grid,
 .danua-plan-grid,
 .danua-testimonial-grid {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .danua-feature-card.ds-card,
 .danua-plan-card.ds-card,
 .danua-testimonial-card.ds-card,
 .danua-faq-card.ds-card {
-  border: 3px solid rgba(255, 255, 255, 0.9);
-  border-radius: 28px;
-  box-shadow:
-    0 12px 32px rgba(155, 114, 207, 0.12),
-    0 4px 8px rgba(155, 114, 207, 0.08);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--danua-border-soft);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--danua-shadow-sm);
+  transition:
+    transform 180ms var(--danua-ease),
+    border-color 180ms var(--danua-ease),
+    box-shadow 180ms var(--danua-ease);
+}
+
+.danua-feature-card.ds-card,
+.danua-plan-card.ds-card,
+.danua-testimonial-card.ds-card {
+  padding: 22px;
+}
+
+.danua-faq-card.ds-card {
+  padding: 6px 16px;
 }
 
 .danua-feature-card {
-  min-height: 220px;
+  min-height: 184px;
   display: grid;
   align-content: start;
 }
 
-.danua-feature-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow:
-    0 20px 48px rgba(155, 114, 207, 0.2),
-    0 8px 16px rgba(155, 114, 207, 0.12);
+.danua-feature-card:hover,
+.danua-plan-card:hover,
+.danua-testimonial-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(99, 14, 212, 0.2);
+  box-shadow: var(--danua-shadow-md);
 }
 
-/* آیکون ویژگی */
-.danua-feature-icon {
-  width: 64px;
-  height: 64px;
+.danua-feature-icon,
+.danua-plan-icon {
+  width: 54px;
+  height: 54px;
   display: grid;
   place-items: center;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  color: var(--danua-primary);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(99, 14, 212, 0.1);
+}
+
+.danua-feature-icon .danua-icon,
+.danua-plan-icon .danua-icon {
+  width: 27px;
+  height: 27px;
+}
+
+.danua-feature-card h3,
+.danua-plan-card h3 {
+  margin: 16px 0 6px;
+  font-size: 1.18rem;
+  color: var(--danua-text);
   font-weight: 900;
-  font-size: 1.8rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  animation: icon-wiggle 2s ease-in-out infinite;
 }
 
-@keyframes icon-wiggle {
-  0%, 100% { transform: rotate(-3deg); }
-  50% { transform: rotate(3deg); }
-}
-
-.danua-feature-card h3 {
-  margin: 16px 0 8px;
-  font-size: 1.3rem;
-  color: var(--danua-text-dark);
-  font-weight: 800;
-}
-
-.danua-feature-card p {
+.danua-feature-card p,
+.danua-testimonial-card p {
   margin: 0;
-  color: var(--danua-muted);
-  line-height: 1.8;
+  color: var(--danua-text-soft);
+  line-height: 1.85;
   font-size: 0.95rem;
 }
 
-/* تم‌های رنگی */
-.danua-tone-mint {
-  background: linear-gradient(180deg, #b8f0d8 0%, #e8fff3 100%);
-}
-
-.danua-tone-pink {
-  background: linear-gradient(180deg, #ffd6e4 0%, #fff0f5 100%);
-}
-
-.danua-tone-yellow {
-  background: linear-gradient(180deg, #fff0b3 0%, #fffbe6 100%);
+.danua-tone-primary {
+  background: linear-gradient(180deg, rgba(234, 221, 255, 0.78) 0%, rgba(255, 255, 255, 0.92) 100%);
 }
 
 .danua-tone-blue {
-  background: linear-gradient(180deg, #c8e6ff 0%, #e6f4ff 100%);
+  background: linear-gradient(180deg, rgba(189, 232, 255, 0.72) 0%, rgba(255, 255, 255, 0.92) 100%);
 }
 
-/* ═══════════════════════════════════════════════════
-   🛡️ بخش اعتماد - با شکل قلب و سپر
-   ═══════════════════════════════════════════════════ */
+.danua-tone-lavender {
+  background: linear-gradient(180deg, rgba(248, 244, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%);
+}
+
+.danua-tone-cyan {
+  background: linear-gradient(180deg, rgba(221, 250, 246, 0.82) 0%, rgba(255, 255, 255, 0.92) 100%);
+}
 
 .danua-safety {
   display: grid;
-  gap: 28px;
+  gap: 24px;
   align-items: center;
-  margin-top: 24px;
-  margin-bottom: 24px;
-  padding: 32px 24px;
-  border-radius: 36px;
-  background: linear-gradient(135deg, rgba(200, 230, 255, 0.6) 0%, rgba(255, 230, 200, 0.6) 100%);
-  box-shadow: 0 16px 40px rgba(155, 114, 207, 0.1);
-  border: 3px solid rgba(255, 255, 255, 0.8);
+  margin-top: 18px;
+  margin-bottom: 18px;
+  padding: 28px 20px;
+  border: 1px solid rgba(99, 14, 212, 0.12);
+  border-radius: 26px;
+  background:
+    linear-gradient(135deg, rgba(248, 244, 255, 0.94) 0%, rgba(234, 247, 255, 0.94) 100%);
+  box-shadow: var(--danua-shadow-sm);
 }
 
 .danua-safety-art {
-  min-height: 200px;
+  width: 112px;
+  height: 112px;
   display: grid;
   place-items: center;
+  justify-self: center;
+  border-radius: 30px;
+  background: #fff;
+  color: var(--danua-primary);
+  box-shadow: var(--danua-shadow-md);
 }
 
-/* سپر با قلب */
-.danua-shield {
-  width: 180px;
-  height: 200px;
+.danua-safety-art .danua-icon {
+  width: 58px;
+  height: 58px;
+  stroke-width: 1.55;
+}
+
+.danua-safety-copy {
   display: grid;
-  place-items: center;
-  border-radius: 50% 50% 45% 45%;
-  background: linear-gradient(180deg, #fff 0%, #ffe6f0 100%);
-  color: var(--danua-pink);
-  font-size: 3rem;
-  font-weight: 900;
-  box-shadow:
-    0 16px 40px rgba(255, 107, 157, 0.25),
-    inset 0 4px 0 rgba(255, 255, 255, 0.8);
-  animation: shield-pulse 3s ease-in-out infinite;
-}
-
-@keyframes shield-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
 }
 
 .danua-safety p {
+  max-width: 680px;
   margin: 0;
-  color: var(--danua-muted);
+  color: var(--danua-text-soft);
   line-height: 1.9;
 }
 
 .danua-safety-list {
+  width: 100%;
   display: grid;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .danua-safety-list span {
-  min-height: 44px;
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: 9px;
+  padding: 10px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--danua-text);
-  font-size: 0.95rem;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(155, 114, 207, 0.08);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--danua-text-soft);
+  font-size: 0.93rem;
+  font-weight: 800;
 }
 
-.danua-safety-list span::before {
-  content: '✅';
-  font-size: 1.2rem;
+.danua-safety-list .danua-icon,
+.danua-plan-card li .danua-icon {
+  color: #0f766e;
 }
-
-/* ═══════════════════════════════════════════════════
-   💎 کارت‌های پلن - با برچسب محبوب
-   ═══════════════════════════════════════════════════ */
 
 .danua-plan-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.95);
   display: grid;
   align-content: start;
 }
 
-.danua-plan-blue {
-  background: linear-gradient(180deg, #d4ecff 0%, #f0f8ff 100%);
+.danua-plan-free {
+  background: linear-gradient(180deg, rgba(234, 221, 255, 0.88) 0%, rgba(255, 255, 255, 0.94) 100%);
 }
 
 .danua-plan-gold {
-  background: linear-gradient(180deg, #fff4cc 0%, #fffbf0 100%);
+  background: linear-gradient(180deg, rgba(255, 245, 208, 0.72) 0%, rgba(255, 255, 255, 0.94) 100%);
 }
 
-.danua-plan-mint {
-  background: linear-gradient(180deg, #c8f5e0 0%, #f0fff8 100%);
+.danua-plan-diamond {
+  background: linear-gradient(180deg, rgba(234, 247, 255, 0.9) 0%, rgba(255, 255, 255, 0.94) 100%);
 }
 
-.danua-plan-card.is-popular {
-  transform: translateY(-8px);
-  box-shadow:
-    0 24px 56px rgba(255, 107, 157, 0.25),
-    0 8px 16px rgba(155, 114, 207, 0.15);
-  border-color: var(--danua-pink);
+.danua-plan-card.is-featured {
+  border-color: rgba(99, 14, 212, 0.4);
+  box-shadow: var(--danua-shadow-strong);
 }
 
 .danua-badge {
   position: absolute;
-  top: -12px;
-  right: 20px;
+  top: 14px;
+  left: 16px;
   display: inline-flex;
-  min-height: 32px;
+  min-height: 30px;
   align-items: center;
-  padding: 6px 14px;
-  border-radius: 50px;
-  background: linear-gradient(135deg, var(--danua-pink) 0%, var(--danua-purple) 100%);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--danua-primary);
   color: #fff;
-  font-size: 0.8rem;
-  font-weight: 800;
-  box-shadow: 0 4px 12px rgba(255, 107, 157, 0.4);
-  animation: badge-bounce 2s ease-in-out infinite;
-}
-
-@keyframes badge-bounce {
-  0%, 100% { transform: translateY(0) rotate(-2deg); }
-  50% { transform: translateY(-3px) rotate(2deg); }
+  font-size: 0.78rem;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(99, 14, 212, 0.18);
 }
 
 .danua-price {
   display: grid;
-  gap: 4px;
-  margin: 8px 0 18px;
+  gap: 3px;
+  margin: 8px 0 16px;
 }
 
 .danua-price strong {
-  font-size: 1.8rem;
-  color: var(--danua-text-dark);
+  font-size: 1.58rem;
+  color: var(--danua-text);
   font-weight: 900;
 }
 
 .danua-price span {
   color: var(--danua-muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .danua-plan-card ul {
   display: grid;
-  gap: 12px;
-  margin: 0 0 22px;
+  gap: 10px;
+  margin: 0 0 20px;
   padding: 0;
   list-style: none;
 }
 
 .danua-plan-card li {
-  position: relative;
-  padding-inline-start: 28px;
-  color: var(--danua-text);
-  font-weight: 700;
-  font-size: 0.95rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--danua-text-soft);
+  font-weight: 800;
+  font-size: 0.92rem;
+  line-height: 1.7;
 }
 
-.danua-plan-card li::before {
-  content: '🎯';
-  position: absolute;
-  inset-inline-start: 0;
-  top: 2px;
-  font-size: 1rem;
+.danua-plan-card li .danua-icon {
+  width: 18px;
+  height: 18px;
+  margin-top: 4px;
 }
 
 .danua-plan-card .ds-button {
@@ -1053,134 +800,124 @@
   margin-top: auto;
 }
 
-/* ═══════════════════════════════════════════════════
-   💬 نظرات - با ستاره‌های رنگی
-   ═══════════════════════════════════════════════════ */
-
 .danua-testimonial-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .danua-testimonial-card strong {
   display: block;
   margin-top: 14px;
-  color: var(--danua-text-dark);
-  font-weight: 800;
+  color: var(--danua-text);
+  font-weight: 900;
 }
 
 .danua-stars {
-  color: var(--danua-yellow);
-  letter-spacing: 2px;
+  display: flex;
+  gap: 2px;
+  color: #f5b82e;
   margin-bottom: 10px;
-  font-size: 1.1rem;
 }
 
-/* ═══════════════════════════════════════════════════
-   ❓ سوالات متداول - آکاردئونی بامزه
-   ═══════════════════════════════════════════════════ */
+.danua-stars .danua-icon {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.6;
+}
 
 .danua-faq-section {
-  max-width: 800px;
+  max-width: 820px;
 }
 
 .danua-faq-list {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .danua-faq-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .danua-faq-card button {
   width: 100%;
-  min-height: 48px;
+  min-height: 54px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   border: none;
   background: transparent;
-  color: var(--danua-text-dark);
+  color: var(--danua-text);
   cursor: pointer;
   font: inherit;
-  font-weight: 800;
-  font-size: 1rem;
+  font-weight: 900;
+  font-size: 0.98rem;
   text-align: right;
-  transition: color 0.3s ease;
 }
 
-.danua-faq-card button:hover {
-  color: var(--danua-pink);
+.danua-faq-card button:hover,
+.danua-faq-card button:focus-visible {
+  color: var(--danua-primary);
 }
 
-.danua-faq-card button span:last-child {
-  width: 36px;
-  height: 36px;
+.danua-faq-toggle {
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--danua-yellow) 0%, var(--danua-orange) 100%);
-  color: var(--danua-text-dark);
-  font-size: 1.4rem;
-  font-weight: 900;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(255, 217, 61, 0.3);
+  border-radius: 999px;
+  background: var(--danua-lavender);
+  color: var(--danua-primary);
 }
 
-.danua-faq-card button:hover span:last-child {
-  transform: rotate(90deg) scale(1.1);
+.danua-faq-toggle .danua-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .danua-faq-card p {
-  padding-top: 14px;
-  color: var(--danua-muted);
-  line-height: 1.8;
+  margin: 0;
+  padding: 0 0 14px;
+  color: var(--danua-text-soft);
+  line-height: 1.85;
 }
-
-/* ═══════════════════════════════════════════════════
-   🎉 بخش CTA نهایی - با رنگ‌های شاد
-   ═══════════════════════════════════════════════════ */
 
 .danua-final-cta {
   display: grid;
-  gap: 24px;
+  gap: 22px;
   align-items: center;
-  margin-top: 32px;
-  padding: 40px 28px;
-  border-radius: 40px;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.5) 0%, transparent 30%),
-    linear-gradient(135deg, var(--danua-pink-soft) 0%, var(--danua-purple) 50%, var(--danua-blue) 100%);
-  box-shadow:
-    0 24px 56px rgba(155, 114, 207, 0.25),
-    0 8px 16px rgba(255, 107, 157, 0.15);
-  border: 3px solid rgba(255, 255, 255, 0.6);
+  margin-top: 28px;
+  padding: 32px 22px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, var(--danua-primary-vivid) 0%, var(--danua-primary) 55%, #2087d8 100%);
+  color: #fff;
+  box-shadow: var(--danua-shadow-strong);
   text-align: center;
 }
 
 .danua-final-cta h2 {
   color: #fff;
-  text-shadow: 2px 2px 4px rgba(155, 114, 207, 0.3);
+}
+
+.danua-final-cta .danua-kicker {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  box-shadow: none;
 }
 
 .danua-final-cta .ds-button {
   width: 100%;
-  max-width: 280px;
+  max-width: 260px;
   min-height: 54px;
-  font-size: 1.1rem;
+  justify-self: center;
 }
-
-/* ═══════════════════════════════════════════════════
-   📍 فوتر - با رنگ‌های ملایم
-   ═══════════════════════════════════════════════════ */
 
 .danua-footer {
   display: grid;
-  gap: 20px;
+  gap: 18px;
   align-items: center;
-  padding: 40px 8px 24px;
+  padding: 34px 8px 22px;
   text-align: center;
 }
 
@@ -1188,47 +925,53 @@
 .danua-socials {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 10px;
   justify-content: center;
 }
 
 .danua-footer-links a {
   color: var(--danua-muted);
-  font-weight: 800;
-  padding: 6px 14px;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-}
-
-.danua-footer-links a:hover {
-  color: var(--danua-pink);
-  background: rgba(255, 107, 157, 0.1);
+  font-weight: 900;
 }
 
 .danua-socials a {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #fff 0%, #f8f4ff 100%);
-  color: var(--danua-purple);
-  font-size: 0.85rem;
-  font-weight: 900;
-  box-shadow:
-    0 4px 12px rgba(155, 114, 207, 0.15),
-    inset 0 2px 0 rgba(255, 255, 255, 0.8);
-  transition: all 0.3s ease;
+  border: 1px solid var(--danua-border-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--danua-primary);
+  box-shadow: var(--danua-shadow-sm);
+  transition:
+    transform 160ms var(--danua-ease),
+    background-color 160ms var(--danua-ease),
+    box-shadow 160ms var(--danua-ease);
 }
 
-.danua-socials a:hover {
-  transform: translateY(-4px) scale(1.1);
-  box-shadow: 0 8px 20px rgba(155, 114, 207, 0.25);
+.danua-socials a:hover,
+.danua-socials a:focus-visible {
+  transform: translateY(-1px);
+  background: #fff;
+  box-shadow: var(--danua-shadow-md);
 }
 
-/* ═══════════════════════════════════════════════════
-   📱 ریسپانسیو - تبلت و موبایل
-   ═══════════════════════════════════════════════════ */
+.danua-socials .danua-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.danua-header :focus-visible,
+.danua-mobile-menu :focus-visible,
+.danua-hero :focus-visible,
+.danua-section :focus-visible,
+.danua-safety :focus-visible,
+.danua-final-cta :focus-visible,
+.danua-footer :focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(115, 46, 228, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.75);
+}
 
 @media (min-width: 720px) {
   .danua-landing {
@@ -1239,23 +982,24 @@
     display: flex;
   }
 
+  .danua-menu-toggle {
+    display: none;
+  }
+
+  .danua-mobile-menu {
+    display: none;
+  }
+
   .danua-hero {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
-    padding-top: 70px;
-    min-height: auto;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.78fr);
+    gap: 44px;
+    padding: 68px 8px 44px;
   }
 
   .danua-hero-copy {
     text-align: right;
-    gap: 24px;
-  }
-
-  .danua-hero h1 {
-    font-size: clamp(2.4rem, 5vw, 3.6rem);
-  }
-
-  .danua-hero p {
-    margin: 0;
+    justify-items: start;
+    gap: 20px;
   }
 
   .danua-hero-actions,
@@ -1265,12 +1009,11 @@
 
   .danua-hero-actions .ds-button {
     flex: 0 0 auto;
-    min-width: 170px;
+    min-width: 172px;
   }
 
-  .danua-kicker,
-  .danua-section-heading span {
-    margin: 0;
+  .danua-section {
+    padding: 44px 8px;
   }
 
   .danua-feature-grid {
@@ -1283,23 +1026,32 @@
   }
 
   .danua-safety {
-    grid-template-columns: auto 1fr;
-    padding: 40px 32px;
+    grid-template-columns: 132px minmax(0, 1fr);
+    padding: 34px 34px;
+  }
+
+  .danua-safety-copy {
+    text-align: right;
+    justify-items: start;
   }
 
   .danua-safety-art {
-    min-height: auto;
+    justify-self: start;
+  }
+
+  .danua-safety-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .danua-final-cta {
     grid-template-columns: 1fr auto;
     text-align: right;
-    padding: 48px 36px;
+    padding: 38px 34px;
   }
 
   .danua-final-cta .ds-button {
     width: auto;
-    min-width: 180px;
+    min-width: 172px;
   }
 
   .danua-footer {
@@ -1319,158 +1071,68 @@
 }
 
 @media (max-width: 520px) {
+  .danua-landing {
+    padding: 10px;
+  }
+
   .danua-header {
-    border-radius: 24px;
-    padding: 6px 10px;
+    top: 6px;
+    border-radius: 22px;
+    padding: 7px 9px;
   }
 
   .danua-header-cta {
     min-width: auto;
-    padding-inline: 14px;
-    font-size: 0.85rem;
-  }
-
-  .danua-logo span:last-child {
-    display: none;
+    padding-inline: 12px;
+    font-size: 0.84rem;
   }
 
   .danua-logo-mark {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     font-size: 1.2rem;
-    border-radius: 12px;
+    border-radius: 13px;
   }
 
   .danua-hero {
     padding-top: 40px;
   }
 
+  .danua-hero-actions .ds-button {
+    max-width: none;
+  }
+
+  .danua-hero-visual {
+    min-height: 430px;
+  }
+
   .danua-phone {
-    min-height: 480px;
+    min-height: 466px;
+    border-radius: 34px;
   }
 
-  .danua-sun {
-    width: 80px;
-    height: 80px;
-    top: 10px;
-    right: 5%;
-  }
-
-  .danua-sun::before,
-  .danua-sun::after {
-    top: 30px;
-    width: 10px;
-    height: 10px;
-  }
-
-  .danua-sun::before {
-    right: 22px;
-  }
-
-  .danua-sun::after {
-    left: 22px;
-  }
-
-  .danua-cloud-one {
-    left: -30px;
-    width: 100px;
-    height: 40px;
-  }
-
-  .danua-cloud-two {
-    right: -35px;
-    width: 100px;
-    height: 40px;
+  .danua-feature-card.ds-card,
+  .danua-plan-card.ds-card,
+  .danua-testimonial-card.ds-card {
+    padding: 20px;
   }
 
   .danua-safety,
   .danua-final-cta {
+    border-radius: 22px;
     padding: 24px 16px;
-    border-radius: 28px;
-  }
-
-  .danua-feature-icon {
-    width: 56px;
-    height: 56px;
-    font-size: 1.6rem;
-  }
-
-  .danua-avatar {
-    width: 42px;
-    height: 42px;
-    font-size: 1.2rem;
   }
 }
 
-/* ═══════════════════════════════════════════════════
-   ✨ افکت‌های اضافی برای جذابیت بیشتر
-   ═══════════════════════════════════════════════════ */
+@media (max-width: 380px) {
+  .danua-logo span:last-child {
+    display: none;
+  }
 
-/* افکت گرادیانت متحرک برای پس‌زمینه */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  .danua-header-cta .danua-icon {
+    display: none;
+  }
 }
-
-/* هاور افکت برای کارت‌ها */
-.danua-feature-card:hover .danua-feature-icon {
-  animation: icon-spin 0.6s ease;
-}
-
-@keyframes icon-spin {
-  0% { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.2); }
-  100% { transform: rotate(360deg) scale(1); }
-}
-
-/* افکت پرش برای دکمه CTA */
-.danua-cta-button.ds-button:active {
-  animation: button-pop 0.3s ease;
-}
-
-@keyframes button-pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-/* ستاره‌های متحرک */
-.sparkle {
-  position: absolute;
-  pointer-events: none;
-  animation: sparkle-fade 1.5s ease-out forwards;
-}
-
-@keyframes sparkle-fade {
-  0% { opacity: 1; transform: scale(0) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1) rotate(180deg); }
-  100% { opacity: 0; transform: scale(0.5) rotate(360deg); }
-}
-
-/* تنظیمات اسکرولbar */
-.danua-landing::-webkit-scrollbar {
-  width: 10px;
-}
-
-.danua-landing::-webkit-scrollbar-track {
-  background: rgba(155, 114, 207, 0.1);
-}
-
-.danua-landing::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--danua-pink) 0%, var(--danua-purple) 100%);
-  border-radius: 10px;
-}
-
-/* انتخاب متن */
-.danua-landing ::selection {
-  background: var(--danua-pink-soft);
-  color: var(--danua-text-dark);
-}
-
-/* ═══════════════════════════════════════════════════
-   🤚 دسترس‌پذیری حرکت - کاهش انیمیشن برای حساس‌ها و موبایل ضعیف
-   ═══════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
   .danua-landing *,
@@ -1480,26 +1142,5 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/* موبایل: غیرفعال‌سازی backdrop-filter سنگین هدر برای عملکرد بهتر */
-@media (max-width: 719px) {
-  .danua-header {
-    backdrop-filter: none;
-    background: rgba(255, 255, 255, 0.98);
-  }
-
-  .danua-mobile-menu {
-    backdrop-filter: none;
-    background: linear-gradient(180deg, rgba(255, 245, 247, 1) 0%, rgba(245, 230, 255, 1) 100%);
-  }
-
-  /* کاهش تپش‌های بی‌نهایت روی موبایل ضعیف */
-  .danua-sun,
-  .danua-logo-mark,
-  .danua-feature-icon,
-  .danua-badge {
-    animation: none;
   }
 }
