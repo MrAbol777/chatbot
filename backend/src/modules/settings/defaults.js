@@ -11,7 +11,7 @@ const SETTING_DEFINITIONS = {
     label: 'سقف ساخت تصویر مهمان در روز',
     type: 'number',
     category: 'guest',
-    defaultValue: null,
+    defaultValue: 0,
     nullable: true,
     min: 0,
     adminEditable: true
@@ -20,7 +20,7 @@ const SETTING_DEFINITIONS = {
     label: 'سقف ساخت تصویر مهمان در ساعت',
     type: 'number',
     category: 'guest',
-    defaultValue: null,
+    defaultValue: 0,
     nullable: true,
     min: 0,
     adminEditable: true
@@ -97,8 +97,153 @@ const SETTING_DEFINITIONS = {
     label: 'مدل ساخت تصویر',
     type: 'string',
     category: 'ai',
-    defaultValue: 'gemini-2.5-flash-image',
+    defaultValue: 'gemini-3-pro-image',
     nullable: true,
+    adminEditable: true
+  },
+  'ai.image.enabled': {
+    label: 'فعال بودن ساخت تصویر',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.image.model_preset': {
+    label: 'Preset مدل ساخت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'nano-banana-pro',
+    allowedValues: ['nano-banana-pro', 'nano-banana', 'flux-schnell', 'custom'],
+    adminEditable: true
+  },
+  'ai.image.model.admin_value': {
+    label: 'Admin model ساخت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-3-pro-image',
+    adminEditable: true
+  },
+  'ai.image.model.runtime_provider_name': {
+    label: 'Runtime provider name ساخت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'google',
+    adminEditable: true
+  },
+  'ai.image.model.runtime_model': {
+    label: 'Runtime model ساخت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'nano-banana-pro',
+    adminEditable: true
+  },
+  'ai.image.operation': {
+    label: 'Operation ساخت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'Imagine',
+    adminEditable: true
+  },
+  'ai.image.provider': {
+    label: 'Provider ساخت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'metis',
+    allowedValues: ['metis', 'gemini', 'xai'],
+    adminEditable: true
+  },
+  'ai.image.base_url': {
+    label: 'Base URL ساخت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'https://api.metisai.ir',
+    adminEditable: true
+  },
+  'ai.image.resolution': {
+    label: 'رزولوشن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: '1K',
+    allowedValues: ['1K', '2K'],
+    adminEditable: true
+  },
+  'ai.image.aspect_ratio': {
+    label: 'نسبت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: '1:1',
+    allowedValues: ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'],
+    adminEditable: true
+  },
+  'ai.image.output_format': {
+    label: 'فرمت خروجی تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'jpg',
+    allowedValues: ['jpg', 'png'],
+    adminEditable: true
+  },
+  'ai.image.safety_filter_level': {
+    label: 'سطح safety filter تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'block_only_high',
+    allowedValues: ['block_only_high', 'block_medium_and_above', 'block_low_and_above', 'block_none'],
+    adminEditable: true
+  },
+  'ai.image.prompt_enhancer_enabled': {
+    label: 'فعال بودن prompt enhancer تصویر',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.image.default_negative_prompt': {
+    label: 'Negative prompt پیش‌فرض تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'no humans, no unrelated objects, no text distortion, no watermark',
+    adminEditable: true
+  },
+  'ai.image.poll_interval_ms': {
+    label: 'Image poll interval (ms)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 2000,
+    min: 500,
+    max: 10000,
+    adminEditable: true
+  },
+  'ai.image.poll_timeout_ms': {
+    label: 'Image poll timeout (ms)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 120000,
+    min: 10000,
+    max: 300000,
+    adminEditable: true
+  },
+  'ai.image.max_download_mb': {
+    label: 'حداکثر حجم دانلود تصویر (MB)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 10,
+    min: 1,
+    max: 25,
+    adminEditable: true
+  },
+  'ai.image.edit_enabled': {
+    label: 'فعال بودن image edit',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: false,
+    adminEditable: true
+  },
+  'ai.image.custom_args_json': {
+    label: 'Custom args JSON تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: '{}',
     adminEditable: true
   },
   'ai.chat.temperature': {
@@ -194,6 +339,17 @@ const coerceSettingValue = (key, value) => {
     return numeric;
   }
 
+  if (definition.type === 'boolean') {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+      if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+    }
+    return Boolean(value);
+  }
+
   if (definition.type === 'stringArray') {
     const items = normalizeStringArray(value);
     if (items.length === 0) {
@@ -215,6 +371,9 @@ const coerceSettingValue = (key, value) => {
   const text = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
   if (!text) {
     throw new Error(`${key} cannot be empty`);
+  }
+  if (Array.isArray(definition.allowedValues) && !definition.allowedValues.includes(text)) {
+    throw new Error(`${key} contains an unsupported value: ${text}`);
   }
   return text;
 };

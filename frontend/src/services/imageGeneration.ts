@@ -109,7 +109,7 @@ export async function generateImageWithPolling(
     const { status, imageUrl, error } = await getImageGenerationStatusForConversation(taskId, options?.conversationId);
 
     if (status === 'COMPLETED' && imageUrl) {
-      if (imageUrl.startsWith('/api/images/result/')) {
+      if (imageUrl.startsWith('/api/images/result/') || imageUrl.startsWith('/api/images/serve/')) {
         return imageUrl;
       }
       // Backend returns a same-origin URL like /api/uploads/images/:id

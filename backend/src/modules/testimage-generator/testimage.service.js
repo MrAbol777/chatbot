@@ -12,7 +12,27 @@ const path = require('path');
 
 const API_BASE = (process.env.METIS_OPENAI_BASE_URL || 'https://api.metisai.ir').replace(/\/openai\/v1$/, '');
 const API_KEY = process.env.METIS_API_KEY;
-const MODEL_NAME = process.env.METIS_IMAGE_MODEL || 'flux-schnell';
+const MODEL_NAME = process.env.IMAGE_MODEL || process.env.METIS_IMAGE_MODEL || 'gemini-3-pro-image';
+
+const resolveMetisImageModel = (modelName) => {
+  const normalized = String(modelName || '').trim().toLowerCase();
+  const aliases = {
+    'gemini-3-pro-image': 'nano-banana-pro',
+    'nano-banana-pro': 'nano-banana-pro',
+    'gemini-2.5-flash-image': 'nano-banana',
+    'gemini-2.5-flash-image-preview': 'nano-banana',
+    'nano-banana': 'nano-banana'
+  };
+  return aliases[normalized] || normalized || 'nano-banana-pro';
+};
+
+const getMetisProvider = (modelName) => {
+  const normalized = String(modelName || '').trim().toLowerCase();
+  if (['nano-banana', 'nano-banana-pro', 'nano-banana-2'].includes(normalized)) return 'google';
+  if (['flux-pro', 'flux-schnell', 'flux-kontext-max', 'flux-kontext-pro'].includes(normalized)) return 'black-forest-labs';
+  if (['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'dall-e-3', 'dall-e-2'].includes(normalized)) return 'openai';
+  return 'openai';
+};
 
 // Output directory for saved images
 const OUTPUT_DIR = path.join(__dirname, '..', '..', '..', 'testimage', 'output');
@@ -28,12 +48,13 @@ if (!fs.existsSync(OUTPUT_DIR)) {
  * @returns {{ id: string }}
  */
 async function createTask(prompt) {
+  const runtimeModel = resolveMetisImageModel(MODEL_NAME);
   const response = await axios.post(
     `${API_BASE}/api/v2/generate`,
     {
       model: {
-        name: 'openai',
-        model: MODEL_NAME,
+        name: getMetisProvider(runtimeModel),
+        model: runtimeModel,
       },
       operation: 'Imagine',
       args: { prompt },

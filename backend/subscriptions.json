@@ -10,10 +10,11 @@
       "monthlyPrice": 0,
       "dailyPrice": 0,
       "dailyMessageLimit": 20,
-      "dailyImageLimit": null,
-      "hourlyImageLimit": null,
+      "dailyImageLimit": 3,
+      "hourlyImageLimit": 2,
       "features": [
-        "۲۰ پیام در روز"
+        "۲۰ پیام در روز",
+        "۳ تصویر در روز"
       ],
       "isActive": true,
       "sortOrder": 1
@@ -57,6 +58,15 @@
       "sortOrder": 3
     }
   ],
-  "userSubscriptions": [],
-  "updatedAt": "2026-06-30T21:23:55.728Z"
+  "userSubscriptions": [
+    {
+      "userId": "1778751798070",
+      "planId": "diamond",
+      "status": "active",
+      "assignedAt": "2026-07-05T10:57:34.311Z",
+      "expiresAt": null,
+      "note": ""
+    }
+  ],
+  "updatedAt": "2026-07-05T10:57:34.313Z"
 }

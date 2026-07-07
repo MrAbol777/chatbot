@@ -71,6 +71,36 @@ function createAuthService({
     }
   };
 
+  const buildFamilyPayload = (user, fallback = {}) => {
+    const childId = user?.child_id || user?.user_id || fallback.userId || null;
+    const guardianId = user?.guardian_id || fallback.guardianId || null;
+    const guardianPhone = user?.guardian_phone || fallback.phone || user?.phone || null;
+
+    return {
+      child: childId
+        ? {
+            id: String(childId),
+            name: user?.name || fallback.name || 'کاربر',
+            age: Number(user?.age ?? fallback.age ?? 0),
+            avatar: user?.avatar || null,
+            grade: user?.grade || null,
+            safetyLevel: user?.safety_level || 'standard'
+          }
+        : null,
+      guardian: guardianId
+        ? {
+            id: String(guardianId),
+            phone: guardianPhone
+          }
+        : guardianPhone
+          ? {
+              id: null,
+              phone: guardianPhone
+            }
+          : null
+    };
+  };
+
   const generateOtp = () => String(Math.floor(10000 + Math.random() * 90000));
 
   const logSupervisedOtpEvent = async ({ userId, phone, result }) => {
@@ -91,12 +121,22 @@ function createAuthService({
 
   const completeVerifiedPhone = async ({ phone, mode, guestId, verifiedBy = 'sms_otp' }) => {
     const isSupervised = verifiedBy === 'supervised_otp';
-    const existingUser = await authRepository.findUserByPhone(phone);
+    let existingUser = await authRepository.findUserByPhone(phone);
     if (existingUser?.isBanned) {
       return { statusCode: 403, body: { success: false, error: 'حساب شما مسدود شده است' } };
     }
 
     if (existingUser) {
+      if (!existingUser.guardian_id && typeof authRepository.createUser === 'function') {
+        await authRepository.createUser({
+          id: existingUser.user_id,
+          name: existingUser.name || 'کاربر',
+          age: Number(existingUser.age || 0),
+          phone
+        });
+        existingUser = (await authRepository.findUserByPhone(phone)) || existingUser;
+      }
+
       let guestMigration = null;
       if (guestsRepository && typeof guestsRepository.migrateGuestToUser === 'function' && guestId) {
         guestMigration = await guestsRepository.migrateGuestToUser({
@@ -121,8 +161,11 @@ function createAuthService({
       const token = createToken({
         sub: String(existingUser.user_id),
         phone,
-        type: 'user'
+        type: 'user',
+        child_id: String(existingUser.child_id || existingUser.user_id),
+        ...(existingUser.guardian_id ? { guardian_id: String(existingUser.guardian_id) } : {})
       });
+      const family = buildFamilyPayload(existingUser, { phone });
 
       return {
         statusCode: 200,
@@ -136,6 +179,7 @@ function createAuthService({
             age: Number(existingUser.age || 0),
             phone
           },
+          ...family,
           ...(guestMigration ? { guestMigration } : {}),
           ...(token ? { token } : {})
         }
@@ -331,7 +375,7 @@ function createAuthService({
     return completeVerifiedPhone({ phone, mode, guestId, verifiedBy: 'sms_otp' });
   };
 
-  const registerProfile = async ({ name, age, phone: rawPhone, id, mode, guestId, signupToken }) => {
+  const registerProfile = async ({ name, age, phone: rawPhone, id, mode, guestId, signupToken, guardianConsent }) => {
     const inputName = typeof name === 'string' ? name.trim() : '';
     const rawName = inputName || 'کاربر';
     const phone = normalizeIranMobileToLocal(rawPhone);
@@ -367,6 +411,12 @@ function createAuthService({
     }
 
     if (mode !== 'login') {
+      if (guardianConsent !== true) {
+        return {
+          statusCode: 400,
+          body: { error: 'برای ساخت حساب کودک، تایید والد یا قیم لازم است.' }
+        };
+      }
       if (!Number.isFinite(rawAge)) {
         return { statusCode: 400, body: { error: 'سن معتبر نیست.' } };
       }
@@ -390,10 +440,13 @@ function createAuthService({
         : {
             name: rawName,
             age: rawAge,
-            phone
+            phone,
+            guardianConsent: true,
+            guardianConsentVersion: '2026-07-02'
           };
 
     const userId = await authRepository.createUser(payloadProfile);
+    const savedUser = await authRepository.findUserByPhone(phone);
     if (signupPayload?.verifiedBy === 'supervised_otp') {
       await logSupervisedOtpEvent({
         userId: String(userId),
@@ -413,7 +466,15 @@ function createAuthService({
     const token = createToken({
       sub: String(userId),
       phone,
-      type: 'user'
+      type: 'user',
+      child_id: String(savedUser?.child_id || userId),
+      ...(savedUser?.guardian_id ? { guardian_id: String(savedUser.guardian_id) } : {})
+    });
+    const family = buildFamilyPayload(savedUser, {
+      userId,
+      phone,
+      name: payloadProfile.name,
+      age: payloadProfile.age
     });
 
     return {
@@ -426,6 +487,7 @@ function createAuthService({
           age: Number(payloadProfile.age),
           phone
         },
+        ...family,
         ...(guestMigration ? { guestMigration } : {}),
         ...(token ? { token } : {})
       }

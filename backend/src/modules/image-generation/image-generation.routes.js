@@ -3,6 +3,7 @@ const axios = require('axios');
 const { createImageGenerationController } = require('./image-generation.controller');
 const { createImageGenerationService } = require('./image-generation.service');
 const { createAuthMiddleware } = require('./auth.middleware');
+const { createImageRuntimeSettingsResolver } = require('./image-runtime-settings');
 
 function createImageGenerationRouter(deps) {
   const router = express.Router();
@@ -18,7 +19,14 @@ function createImageGenerationRouter(deps) {
       httpClient: deps.httpClient || axios,
       geminiApiKey: deps.geminiApiKey,
       baseUrl: deps.geminiBaseUrl,
-      imageModel: deps.geminiImageModel || 'gemini-2.5-flash-image'
+      imageModel: deps.geminiImageModel || 'gemini-3-pro-image',
+      imageConfig: deps.imageConfig
+    });
+  const imageRuntimeSettingsResolver =
+    deps.imageRuntimeSettingsResolver ||
+    createImageRuntimeSettingsResolver({
+      settingsRepository: deps.settingsRepository,
+      imageConfig: deps.imageConfig
     });
 
   const controller = createImageGenerationController({
@@ -29,21 +37,27 @@ function createImageGenerationRouter(deps) {
     guestsRepository: deps.guestsRepository,
     conversationsRepository: deps.conversationsRepository,
     eventsRepository: deps.eventsRepository,
-    imageModelFallback: deps.geminiImageModel
+    imageModelFallback: deps.imageConfig?.model || deps.geminiImageModel,
+    imageModelSourceFallback: deps.imageConfig?.modelSource || (deps.geminiImageModel ? 'legacy GEMINI_IMAGE_MODEL' : 'default'),
+    imageProviderFallback: deps.imageConfig?.provider,
+    imageBaseUrlFallback: deps.imageConfig?.baseUrl,
+    imageStorageDirFallback: deps.imageConfig?.storageDir,
+    imagePublicBaseUrlFallback: deps.imageConfig?.publicBaseUrl,
+    imageMaxDownloadMbFallback: deps.imageConfig?.maxDownloadMb,
+    imageRuntimeSettingsResolver
   });
 
-  // Protected routes (generate, status)
+  // Protected routes (generate, status, same-origin image serving)
   router.use(authMiddleware);
   router.post('/generate', controller.generateImage);
   router.get('/status/:taskId', controller.getImageStatus);
   router.get('/result/:taskId', controller.getImageResult);
+  router.get('/serve/:taskId', controller.serveImage);
 
-  // Serve endpoint is public — img tags can't send Authorization headers.
-  // The taskId itself acts as access control.
+  // Keep an empty public router for mount compatibility; image serving is ownership-checked.
   const publicRouter = express.Router();
-  publicRouter.get('/serve/:taskId', controller.serveImage);
 
-  return { router, publicRouter, controller, imageGenerationService };
+  return { router, publicRouter, controller, imageGenerationService, imageRuntimeSettingsResolver };
 }
 
 module.exports = { createImageGenerationRouter };

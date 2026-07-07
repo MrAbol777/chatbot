@@ -3,6 +3,16 @@ const fs = require('fs-extra');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const { resolveImageRuntimeModel } = require('./bootstrap/config');
+const {
+  IMAGE_MODEL_PRESETS,
+  buildMetisRequestBody,
+  imageSettingsPayloadToSettings,
+  normalizeRuntimeSettings,
+  settingKey,
+  validateRuntimeSettings
+} = require('./modules/image-generation/image-runtime-settings');
+const { buildFinalImagePrompt } = require('./modules/image-generation/image-generation.controller');
 const { createAdminAnalyticsService } = require('./modules/admin/analytics/service');
 const { createAdminAnalyticsRouter } = require('./modules/admin/analytics/routes');
 const { createAdminSystemService } = require('./modules/admin/system/service');
@@ -22,7 +32,16 @@ const {
   appendAudit
 } = require('./modules/admin/common/storage');
 
-function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemPromptUpdated, adminApiKey = '', repositories }) {
+function createAdminModule({
+  jwtSecret,
+  cookieName = 'admin_token',
+  onSystemPromptUpdated,
+  adminApiKey = '',
+  repositories,
+  runtimeConfig = {},
+  imageRuntimeSettingsResolver,
+  imageGenerationService
+}) {
   const router = express.Router();
   const isSystemPromptEditEnabled = () => process.env.ENABLE_SYSTEM_PROMPT_EDIT !== 'false';
   const usersRepository = repositories?.users;
@@ -102,6 +121,315 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
 
   router.get('/me', requireAdminAuth, (req, res) => {
     return res.json({ admin: req.admin });
+  });
+
+  const getImageRuntimeSettings = async (options = {}) => {
+    if (imageRuntimeSettingsResolver && typeof imageRuntimeSettingsResolver.getRuntimeSettings === 'function') {
+      return imageRuntimeSettingsResolver.getRuntimeSettings(options);
+    }
+    const settings = repositories?.settings && typeof repositories.settings.getAll === 'function'
+      ? await repositories.settings.getAll().catch(() => ({}))
+      : {};
+    return normalizeRuntimeSettings({
+      settings,
+      stored: {},
+      imageConfig: runtimeConfig.ai?.image || {}
+    });
+  };
+
+  const makeImageDryRun = async (prompt, overrideSettings = null) => {
+    let runtimeSettings;
+    if (overrideSettings && typeof overrideSettings === 'object') {
+      const current = repositories?.settings && typeof repositories.settings.getAll === 'function'
+        ? await repositories.settings.getAll()
+        : {};
+      runtimeSettings = normalizeRuntimeSettings({
+        settings: { ...current, ...overrideSettings },
+        stored: overrideSettings,
+        imageConfig: runtimeConfig.ai?.image || {}
+      });
+      validateRuntimeSettings(runtimeSettings);
+    } else {
+      runtimeSettings = await getImageRuntimeSettings({ force: true });
+    }
+    const finalPrompt = buildFinalImagePrompt(prompt || 'A single blue banana, clean white background', {
+      promptEnhancerEnabled: runtimeSettings.promptEnhancerEnabled,
+      defaultNegativePrompt: runtimeSettings.defaultNegativePrompt
+    });
+    return {
+      runtimeSettings,
+      originalPrompt: prompt,
+      finalPrompt,
+      requestBody: buildMetisRequestBody({ prompt: finalPrompt, runtimeSettings })
+    };
+  };
+
+  router.get('/image-model-presets', requireAdminAuth, (_req, res) => {
+    return res.json({ presets: IMAGE_MODEL_PRESETS });
+  });
+
+  router.get('/image-settings', requireAdminAuth, async (_req, res) => {
+    const runtimeSettings = await getImageRuntimeSettings({ force: true });
+    return res.json({
+      settings: runtimeSettings,
+      presets: IMAGE_MODEL_PRESETS,
+      settingKeys: settingKey
+    });
+  });
+
+  router.put('/image-settings', requireAdminAuth, async (req, res) => {
+    try {
+      const incomingSettings = imageSettingsPayloadToSettings(req.body);
+      const cleanSettings = Object.fromEntries(
+        Object.entries(incomingSettings).filter(([, value]) => value !== undefined)
+      );
+      const current = repositories?.settings && typeof repositories.settings.getAll === 'function'
+        ? await repositories.settings.getAll()
+        : {};
+      const nextSettings = { ...current, ...cleanSettings };
+      const runtimeSettings = normalizeRuntimeSettings({
+        settings: nextSettings,
+        stored: cleanSettings,
+        imageConfig: runtimeConfig.ai?.image || {}
+      });
+      validateRuntimeSettings(runtimeSettings);
+
+      const before = current;
+      const result = await repositories.settings.updateMany(cleanSettings);
+      if (imageRuntimeSettingsResolver && typeof imageRuntimeSettingsResolver.invalidate === 'function') {
+        imageRuntimeSettingsResolver.invalidate();
+      }
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'update_image_settings',
+        target: 'image_settings',
+        details: {
+          changedKeys: Object.keys(cleanSettings),
+          before: Object.fromEntries(Object.keys(cleanSettings).map((key) => [key, before[key]])),
+          after: cleanSettings
+        }
+      });
+
+      return res.json({
+        success: true,
+        settings: await getImageRuntimeSettings({ force: true }),
+        siteSettings: result.settings
+      });
+    } catch (error) {
+      return res.status(400).json({
+        error: error instanceof Error ? error.message : 'ذخیره تنظیمات ساخت تصویر ناموفق بود.'
+      });
+    }
+  });
+
+  router.post('/image-settings/test-dry-run', requireAdminAuth, async (req, res) => {
+    try {
+      const dryRun = await makeImageDryRun(String(req.body?.prompt || '').trim(), req.body?.settings);
+      return res.json({
+        success: true,
+        mode: 'dry-run',
+        originalPrompt: dryRun.originalPrompt,
+        finalPrompt: dryRun.finalPrompt,
+        runtime: {
+          provider: dryRun.runtimeSettings.provider,
+          modelSource: dryRun.runtimeSettings.modelSource,
+          modelAdminValue: dryRun.runtimeSettings.modelAdminValue,
+          runtimeProviderName: dryRun.runtimeSettings.runtimeProviderName,
+          runtimeModel: dryRun.runtimeSettings.runtimeModel,
+          operation: dryRun.runtimeSettings.operation,
+          resolution: dryRun.runtimeSettings.resolution,
+          aspectRatio: dryRun.runtimeSettings.aspectRatio,
+          outputFormat: dryRun.runtimeSettings.outputFormat,
+          safetyFilterLevel: dryRun.runtimeSettings.safetyFilterLevel
+        },
+        requestBody: dryRun.requestBody
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : 'Dry-run ساخت تصویر ناموفق بود.' });
+    }
+  });
+
+  router.post('/image-settings/test-live', requireAdminAuth, async (req, res) => {
+    try {
+      if (!imageGenerationService || typeof imageGenerationService.generateImage !== 'function') {
+        return res.status(503).json({ error: 'سرویس ساخت تصویر در دسترس نیست.' });
+      }
+      const dryRun = await makeImageDryRun(String(req.body?.prompt || '').trim(), req.body?.settings);
+      const runtimeSettings = dryRun.runtimeSettings;
+      const image = await imageGenerationService.generateImage(dryRun.finalPrompt, {
+        imageModel: runtimeSettings.modelAdminValue,
+        modelSource: runtimeSettings.modelSource,
+        runtimeProviderName: runtimeSettings.runtimeProviderName,
+        runtimeModel: runtimeSettings.runtimeModel,
+        operation: runtimeSettings.operation,
+        provider: runtimeSettings.provider,
+        baseUrl: runtimeSettings.baseUrl,
+        resolution: runtimeSettings.resolution,
+        aspectRatio: runtimeSettings.aspectRatio,
+        outputFormat: runtimeSettings.outputFormat,
+        safetyFilterLevel: runtimeSettings.safetyFilterLevel,
+        pollIntervalMs: runtimeSettings.pollIntervalMs,
+        pollTimeoutMs: runtimeSettings.pollTimeoutMs,
+        customArgs: runtimeSettings.customArgs,
+        editEnabled: runtimeSettings.editEnabled,
+        originalPrompt: dryRun.originalPrompt,
+        taskId: 'admin-live-test',
+        maxDownloadMb: runtimeSettings.maxDownloadMb
+      });
+      return res.json({
+        success: true,
+        mode: 'live',
+        finalPrompt: dryRun.finalPrompt,
+        requestBody: dryRun.requestBody,
+        result: {
+          provider: image.provider,
+          modelAdminValue: image.modelAdminValue,
+          modelRuntimeValue: image.modelRuntimeValue,
+          mimeType: image.mimeType,
+          bytes: image.buffer?.length || 0,
+          remoteImageUrlHost: image.remoteImageUrlHost || null
+        }
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : 'تست واقعی ساخت تصویر ناموفق بود.' });
+    }
+  });
+
+  router.get('/ai-runtime-status', requireAdminAuth, async (_req, res) => {
+    const getHost = (value) => {
+      try {
+        return new URL(String(value || '')).hostname;
+      } catch (_error) {
+        return '';
+      }
+    };
+    const safeKey = (keyInfo = {}) => ({
+      apiKeySource: keyInfo.apiKeySource || 'missing',
+      apiKeySet: Boolean(keyInfo.apiKey),
+      apiKeyFingerprint: keyInfo.apiKeyFingerprint || ''
+    });
+    const getMetisModelProviderName = (model) => {
+      const normalized = String(model || '').trim().toLowerCase();
+      if (['nano-banana', 'nano-banana-pro', 'nano-banana-2'].includes(normalized)) return 'google';
+      if (['flux-pro', 'flux-schnell', 'flux-kontext-max', 'flux-kontext-pro'].includes(normalized)) return 'black-forest-labs';
+      if (['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'dall-e-3', 'dall-e-2'].includes(normalized)) return 'openai';
+      if (normalized === 'qwen-image-edit') return 'qwen';
+      if (['real-esrgan', 'remove-bg'].includes(normalized)) return 'nightmareai';
+      if (['face-to-sticker', 'become-image'].includes(normalized)) return 'fofr';
+      return 'unknown';
+    };
+    const titleProvider = (value) => {
+      const normalized = String(value || '').trim().toLowerCase();
+      if (normalized === 'metis') return 'Metis';
+      if (normalized === 'gemini') return 'Gemini';
+      if (normalized === 'xai') return 'xAI';
+      return normalized || 'unknown';
+    };
+    const checkStorageWritable = async (storageDir) => {
+      const normalized = typeof storageDir === 'string' ? storageDir.trim() : '';
+      if (!normalized) return false;
+      try {
+        await fs.ensureDir(normalized);
+        await fs.access(normalized, fs.constants.W_OK);
+        return true;
+      } catch (_error) {
+        return false;
+      }
+    };
+
+    const settings = repositories?.settings && typeof repositories.settings.getAll === 'function'
+      ? await repositories.settings.getAll().catch(() => ({}))
+      : {};
+    const storedImageModel = repositories?.settings && typeof repositories.settings.getStored === 'function'
+      ? await repositories.settings.getStored('ai.image.model').catch(() => undefined)
+      : undefined;
+    const chatRuntime = runtimeConfig.ai?.chat || {};
+    const imageRuntime = runtimeConfig.ai?.image || {};
+    const resolvedImageRuntime = await getImageRuntimeSettings();
+    const imageProvider = String(resolvedImageRuntime.provider || settings['ai.image.provider'] || imageRuntime.provider || 'metis').trim().toLowerCase();
+    const imageModel = String(resolvedImageRuntime.modelAdminValue || storedImageModel || imageRuntime.model || 'gemini-3-pro-image').trim();
+    const imageModelSource = resolvedImageRuntime.modelSource || (storedImageModel ? 'ai.image.model' : imageRuntime.modelSource || 'default');
+    const imageRuntimeModel = String(resolvedImageRuntime.runtimeModel || resolveImageRuntimeModel(imageModel, imageProvider)).trim();
+    const imageBaseUrl = String(resolvedImageRuntime.baseUrl || settings['ai.image.base_url'] || imageRuntime.baseUrl || 'https://api.metisai.ir').trim();
+    const imageStorageDir = String(imageRuntime.storageDir || process.env.IMAGE_STORAGE_DIR || '').trim();
+    const imagePublicBaseUrl = String(imageRuntime.publicBaseUrl || process.env.IMAGE_PUBLIC_BASE_URL || '/api/images/serve').replace(/\/+$/, '');
+    const imageKey = imageRuntime.keys?.[imageProvider] || {
+      apiKeySource: 'missing',
+      apiKey: '',
+      apiKeyFingerprint: ''
+    };
+    const storageWritable = await checkStorageWritable(imageStorageDir);
+    const freePlan =
+      plansRepository && typeof plansRepository.getDefaultPlanForFreeUser === 'function'
+        ? await plansRepository.getDefaultPlanForFreeUser().catch(() => null)
+        : null;
+    const guestDailyLimit = settings['guest.image_limit_daily'] ?? null;
+    const guestHourlyLimit = settings['guest.image_limit_hourly'] ?? null;
+    const freeDailyLimit = freePlan?.dailyImageLimit ?? null;
+    const freeHourlyLimit = freePlan?.hourlyImageLimit ?? null;
+    const describeImagePlan = ({ planId, planName, dailyLimit, hourlyLimit }) => {
+      const disabledReason =
+        dailyLimit === 0 ? 'daily_image_limit_disabled' :
+        hourlyLimit === 0 ? 'hourly_image_limit_disabled' :
+        null;
+      return {
+        planId,
+        planName,
+        dailyImageLimit: dailyLimit,
+        hourlyImageLimit: hourlyLimit,
+        usedToday: null,
+        usedThisHour: null,
+        enabled: !disabledReason,
+        disabledReason
+      };
+    };
+
+    return res.json({
+      chat: {
+        provider: titleProvider(chatRuntime.provider),
+        model: settings['ai.chat.model'] || chatRuntime.model || null,
+        baseUrlHost: chatRuntime.baseUrlHost || getHost(chatRuntime.baseUrl),
+        ...safeKey(chatRuntime)
+      },
+      image: {
+        enabled: Boolean(resolvedImageRuntime.enabled),
+        provider: titleProvider(imageProvider),
+        modelSource: imageModelSource,
+        modelAdminValue: imageModel,
+        modelRuntimeValue: imageRuntimeModel,
+        modelProviderName: resolvedImageRuntime.runtimeProviderName || (imageProvider === 'metis' ? getMetisModelProviderName(imageRuntimeModel) : imageProvider),
+        operation: resolvedImageRuntime.operation || 'Imagine',
+        baseUrlHost: getHost(imageBaseUrl),
+        ...safeKey(imageKey),
+        resolution: resolvedImageRuntime.resolution || settings['ai.image.resolution'] || imageRuntime.resolution || '1K',
+        aspectRatio: resolvedImageRuntime.aspectRatio || settings['ai.image.aspect_ratio'] || imageRuntime.aspectRatio || '1:1',
+        outputFormat: resolvedImageRuntime.outputFormat || settings['ai.image.output_format'] || imageRuntime.outputFormat || 'jpg',
+        safetyFilterLevel: resolvedImageRuntime.safetyFilterLevel || settings['ai.image.safety_filter_level'] || imageRuntime.safetyFilterLevel || 'block_only_high',
+        pollIntervalMs: resolvedImageRuntime.pollIntervalMs,
+        pollTimeoutMs: resolvedImageRuntime.pollTimeoutMs,
+        maxDownloadMb: resolvedImageRuntime.maxDownloadMb,
+        editEnabled: Boolean(resolvedImageRuntime.editEnabled),
+        promptEnhancerEnabled: Boolean(resolvedImageRuntime.promptEnhancerEnabled),
+        lastValidationStatus: resolvedImageRuntime.lastValidationStatus || 'valid',
+        storageDir: imageStorageDir,
+        storageWritable,
+        publicServeRoute: `${imagePublicBaseUrl}/:taskId`
+      },
+      imagePlan: {
+        defaultFree: describeImagePlan({
+          planId: freePlan?.id || 'free',
+          planName: freePlan?.name || 'free',
+          dailyLimit: freeDailyLimit,
+          hourlyLimit: freeHourlyLimit
+        }),
+        guest: describeImagePlan({
+          planId: 'guest',
+          planName: 'guest',
+          dailyLimit: guestDailyLimit,
+          hourlyLimit: guestHourlyLimit
+        })
+      }
+    });
   });
 
   router.get('/users', requireAdminAuth, async (req, res) => {
@@ -427,7 +755,16 @@ function createAdminModule({ jwtSecret, cookieName = 'admin_token', onSystemProm
 
   const settingsService = createAdminSettingsService({
     settingsRepository: repositories.settings,
-    appendAudit
+    appendAudit,
+    onSettingsUpdated: async ({ changedKeys }) => {
+      if (
+        changedKeys.some((key) => String(key).startsWith('ai.image.')) &&
+        imageRuntimeSettingsResolver &&
+        typeof imageRuntimeSettingsResolver.invalidate === 'function'
+      ) {
+        imageRuntimeSettingsResolver.invalidate();
+      }
+    }
   });
   const settingsRouter = createAdminSettingsRouter({
     settingsService,

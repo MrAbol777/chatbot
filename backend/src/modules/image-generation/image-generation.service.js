@@ -5,26 +5,139 @@
  * image generation itself is a single generateContent request handled by the
  * controller's background worker.
  */
-const DEFAULT_IMAGE_MODEL = 'gemini-2.5-flash-image';
+const DEFAULT_IMAGE_MODEL = 'gemini-3-pro-image';
+const UNSUPPORTED_MODEL_MESSAGE = 'مدل ساخت تصویر توسط سرویس‌دهنده پشتیبانی نمی‌شود.';
+const PAYMENT_REQUIRED_MESSAGE = 'ساخت تصویر فعلاً به‌دلیل مشکل اعتبار یا دسترسی سرویس تصویر انجام نشد. لطفاً بعداً دوباره امتحان کن.';
+const MISSING_IMAGE_API_KEY_MESSAGE = 'کلید سرویس ساخت تصویر تنظیم نشده است.';
+const IMAGE_PROVIDER_EMPTY_RESULT_MESSAGE = 'تصویر ساخته نشد. لطفاً دوباره امتحان کن.';
+const IMAGE_STORAGE_FAILED_MESSAGE = 'تصویر ساخته شد، اما ذخیره‌سازی آن با مشکل روبه‌رو شد. لطفاً دوباره امتحان کن.';
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const { buildMetisRequestBody } = require('./image-runtime-settings');
+
+const IMAGE_MODEL_ALIASES = {
+  'nano-banana-pro': {
+    gemini: 'gemini-3-pro-image',
+    metis: 'nano-banana-pro'
+  },
+  'gemini-3-pro-image': {
+    gemini: 'gemini-3-pro-image',
+    metis: 'nano-banana-pro'
+  },
+  'nano-banana': {
+    gemini: 'gemini-2.5-flash-image',
+    metis: 'nano-banana'
+  },
+  'gemini-2.5-flash-image': {
+    gemini: 'gemini-2.5-flash-image',
+    metis: 'nano-banana'
+  },
+  'gemini-2.5-flash-image-preview': {
+    gemini: 'gemini-2.5-flash-image',
+    metis: 'nano-banana'
+  }
+};
+
+const debugImagePromptsEnabled = () => String(process.env.DEBUG_IMAGE_PROMPTS || '').toLowerCase() === 'true';
 
 function createImageGenerationService({
   httpClient,
   geminiApiKey,
   imageModel = DEFAULT_IMAGE_MODEL,
-  baseUrl = 'https://generativelanguage.googleapis.com/v1beta'
+  baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
+  imageConfig = null
 }) {
-  const normalizedBaseUrl = String(baseUrl || '').replace(/\/+$/, '');
-  const defaultModel = String(imageModel || DEFAULT_IMAGE_MODEL).trim() || DEFAULT_IMAGE_MODEL;
-  const isMetisProvider = /(^|\.)metisai\.ir$/i.test(new URL(normalizedBaseUrl).hostname);
+  const normalizeProviderName = (value, fallback = 'gemini') => {
+    const normalized = String(value || fallback).trim().toLowerCase();
+    if (['metis', 'gemini', 'xai'].includes(normalized)) return normalized;
+    return fallback;
+  };
 
-  const resolveModel = (overrideModel) => String(overrideModel || defaultModel || DEFAULT_IMAGE_MODEL).trim() || DEFAULT_IMAGE_MODEL;
+  const getHostname = (value) => {
+    try {
+      return new URL(String(value || '')).hostname;
+    } catch (_error) {
+      return '';
+    }
+  };
+
+  const defaultBaseUrl = String(imageConfig?.baseUrl || baseUrl || '').replace(/\/+$/, '');
+  const defaultProviderName = normalizeProviderName(
+    imageConfig?.provider || (/(^|\.)metisai\.ir$/i.test(getHostname(defaultBaseUrl)) ? 'metis' : 'gemini'),
+    'gemini'
+  );
+  const defaultModel = String(imageConfig?.model || imageModel || DEFAULT_IMAGE_MODEL).trim() || DEFAULT_IMAGE_MODEL;
+  const defaultModelSource = imageConfig?.modelSource || 'default';
+  const fallbackKeyInfo = {
+    apiKey: typeof (imageConfig?.apiKey || geminiApiKey) === 'string' ? (imageConfig?.apiKey || geminiApiKey).trim() : '',
+    apiKeySource: imageConfig?.apiKeySource || (geminiApiKey ? 'legacy GEMINI_API_KEY' : 'missing'),
+    apiKeyFingerprint: imageConfig?.apiKeyFingerprint || ''
+  };
+  const imageKeys = imageConfig?.keys && typeof imageConfig.keys === 'object' ? imageConfig.keys : {};
+
+  const resolveModel = (overrideModel, providerName) => {
+    const configuredModel = String(overrideModel || defaultModel || DEFAULT_IMAGE_MODEL).trim() || DEFAULT_IMAGE_MODEL;
+    const alias = IMAGE_MODEL_ALIASES[configuredModel.toLowerCase()];
+    return alias ? alias[providerName] : configuredModel;
+  };
+
+  const resolveRuntime = (options = {}) => {
+    const providerName = normalizeProviderName(options.provider || imageConfig?.provider || defaultProviderName, defaultProviderName);
+    const runtimeBaseUrl = String(options.baseUrl || imageConfig?.baseUrl || defaultBaseUrl).replace(/\/+$/, '');
+    const modelAdminValue = String(options.imageModel || imageConfig?.model || defaultModel || DEFAULT_IMAGE_MODEL).trim() || DEFAULT_IMAGE_MODEL;
+    const modelRuntimeValue = String(options.runtimeModel || options.modelRuntimeValue || '').trim() || resolveModel(modelAdminValue, providerName);
+    const modelSource = options.modelSource || imageConfig?.modelSource || defaultModelSource;
+    const keyInfo = imageKeys[providerName] || fallbackKeyInfo;
+    return {
+      providerName,
+      baseUrl: runtimeBaseUrl,
+      baseUrlHost: getHostname(runtimeBaseUrl),
+      modelAdminValue,
+      modelRuntimeValue,
+      modelSource,
+      runtimeProviderName: String(options.runtimeProviderName || options.modelProviderName || '').trim(),
+      operation: String(options.operation || 'Imagine').trim() || 'Imagine',
+      apiKey: typeof keyInfo?.apiKey === 'string' ? keyInfo.apiKey.trim() : '',
+      apiKeySource: keyInfo?.apiKeySource || 'missing',
+      apiKeyFingerprint: keyInfo?.apiKeyFingerprint || ''
+    };
+  };
+
+  const debugLog = (runtime, payload) => {
+    if (!debugImagePromptsEnabled()) return;
+    console.log('[image-generation][debug]', {
+      image: {
+        provider: runtime.providerName,
+        baseURL: { hostname: runtime.baseUrlHost },
+        model: {
+          source: runtime.modelSource,
+          adminValue: runtime.modelAdminValue,
+          runtimeValue: runtime.modelRuntimeValue,
+          runtimeProviderName: runtime.runtimeProviderName,
+          operation: runtime.operation
+        },
+        apiKeySource: runtime.apiKeySource,
+        apiKeyFingerprint: runtime.apiKeyFingerprint
+      },
+      ...payload
+    });
+  };
 
   const getImageExtension = (mimeType = '') => {
-    const normalized = String(mimeType).toLowerCase();
-    if (normalized.includes('png')) return 'png';
-    if (normalized.includes('jpeg') || normalized.includes('jpg')) return 'jpg';
-    if (normalized.includes('webp')) return 'webp';
+    const normalized = String(mimeType).split(';')[0].trim().toLowerCase();
+    if (normalized === 'image/png') return 'png';
+    if (normalized === 'image/jpeg' || normalized === 'image/jpg') return 'jpg';
+    if (normalized === 'image/webp') return 'webp';
     return 'png';
+  };
+
+  const normalizeMimeType = (value) => String(value || '').split(';')[0].trim().toLowerCase();
+
+  const getMaxDownloadBytes = (options = {}) => {
+    const explicitBytes = Number(options.maxDownloadBytes);
+    if (Number.isFinite(explicitBytes) && explicitBytes > 0) return explicitBytes;
+    const configuredMb = Number(options.maxDownloadMb || imageConfig?.maxDownloadMb || 10);
+    const safeMb = Number.isFinite(configuredMb) && configuredMb > 0 ? configuredMb : 10;
+    return Math.floor(safeMb * 1024 * 1024);
   };
 
   const getMetisProvider = (model) => {
@@ -67,12 +180,16 @@ function createImageGenerationService({
     const responseData = error?.response?.data;
     const apiError = responseData && typeof responseData === 'object' ? responseData.error : null;
 
+    if (statusCode === 402) {
+      return PAYMENT_REQUIRED_MESSAGE;
+    }
+
     if (statusCode === 401 || statusCode === 403) {
       return `Gemini API request was rejected (HTTP ${statusCode}). Check GEMINI_API_KEY and Google API access.`;
     }
 
     if (statusCode === 404) {
-      return 'مدل ساخت تصویر توسط سرویس‌دهنده پشتیبانی نمی‌شود';
+      return UNSUPPORTED_MODEL_MESSAGE;
     }
 
     if (apiError?.message) {
@@ -88,6 +205,20 @@ function createImageGenerationService({
     const apiError = responseData && typeof responseData === 'object' ? responseData.error : null;
     const message = apiError?.message || apiError || responseData?.message || error?.message || fallback;
     const normalized = String(message || '').toLowerCase();
+    if (statusCode === 402 || normalized.includes('payment required')) {
+      return PAYMENT_REQUIRED_MESSAGE;
+    }
+    if (normalized.includes('did not return image data')) {
+      return IMAGE_PROVIDER_EMPTY_RESULT_MESSAGE;
+    }
+    if (
+      normalized.includes('maxcontentlength') ||
+      normalized.includes('max body length') ||
+      normalized.includes('empty image data') ||
+      message === IMAGE_STORAGE_FAILED_MESSAGE
+    ) {
+      return IMAGE_STORAGE_FAILED_MESSAGE;
+    }
     if (
       statusCode === 404 ||
       normalized.includes('model') ||
@@ -95,53 +226,118 @@ function createImageGenerationService({
       normalized.includes('unsupported') ||
       normalized.includes('not supported')
     ) {
-      return 'مدل ساخت تصویر توسط سرویس‌دهنده پشتیبانی نمی‌شود';
+      return UNSUPPORTED_MODEL_MESSAGE;
     }
     return String(message);
   };
 
-  const generateWithMetis = async (prompt, model) => {
-    if (!geminiApiKey) {
-      const error = new Error('Image provider API key is missing');
+  const normalizeImageOptions = (options = {}) => ({
+    aspect_ratio: String(options.aspectRatio || options.aspect_ratio || '1:1'),
+    resolution: String(options.resolution || '1K'),
+    output_format: String(options.outputFormat || options.output_format || 'jpg'),
+    safety_filter_level: String(options.safetyFilterLevel || options.safety_filter_level || 'block_only_high')
+  });
+
+  const getPollingOptions = (options = {}) => {
+    const pollIntervalMs = Number(options.pollIntervalMs || options.poll_interval_ms || 2500);
+    const pollTimeoutMs = Number(options.pollTimeoutMs || options.poll_timeout_ms || 90000);
+    const safeInterval = Number.isFinite(pollIntervalMs) && pollIntervalMs >= 500 ? pollIntervalMs : 2500;
+    const safeTimeout = Number.isFinite(pollTimeoutMs) && pollTimeoutMs >= 10000 ? pollTimeoutMs : 90000;
+    return {
+      pollIntervalMs: safeInterval,
+      maxAttempts: Math.max(1, Math.ceil(safeTimeout / safeInterval))
+    };
+  };
+
+  const generateWithMetis = async (prompt, runtime, options = {}) => {
+    const model = runtime.modelRuntimeValue;
+    if (!runtime.apiKey) {
+      const error = new Error(MISSING_IMAGE_API_KEY_MESSAGE);
       error.code = 'MISSING_IMAGE_API_KEY';
       throw error;
     }
 
-    const provider = getMetisProvider(model);
-    const createUrl = `${normalizedBaseUrl}/api/v2/generate`;
+    const provider = runtime.runtimeProviderName || getMetisProvider(model);
+    if (provider === 'openai' && !['gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'dall-e-3', 'dall-e-2'].includes(String(model).toLowerCase())) {
+      throw new Error(UNSUPPORTED_MODEL_MESSAGE);
+    }
+    const imageOptions = normalizeImageOptions(options);
+    const imageInput = Array.isArray(options.imageInput)
+      ? options.imageInput.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    const createUrl = `${runtime.baseUrl}/api/v2/generate`;
     const headers = {
-      Authorization: `Bearer ${geminiApiKey}`,
+      Authorization: `Bearer ${runtime.apiKey}`,
       'Content-Type': 'application/json; charset=utf-8'
     };
-    const body = {
-      model: { name: provider, model },
-      operation: 'Imagine',
-      args: { prompt }
+    const runtimeSettings = {
+      runtimeProviderName: provider,
+      runtimeModel: model,
+      operation: runtime.operation,
+      aspectRatio: imageOptions.aspect_ratio,
+      resolution: imageOptions.resolution,
+      outputFormat: imageOptions.output_format,
+      safetyFilterLevel: imageOptions.safety_filter_level,
+      customArgs: options.customArgs && typeof options.customArgs === 'object' ? options.customArgs : {},
+      editEnabled: Boolean(options.editEnabled)
     };
+    const body = buildMetisRequestBody({ prompt, runtimeSettings, imageInput });
 
     console.log('[image-generation] Metis request started', {
       model,
       provider,
+      modelSource: runtime.modelSource,
+      modelAdminValue: runtime.modelAdminValue,
+      runtimeProviderName: provider,
+      runtimeModel: model,
+      operation: runtime.operation,
+      resolution: imageOptions.resolution,
+      aspectRatio: imageOptions.aspect_ratio,
+      outputFormat: imageOptions.output_format,
       promptLength: prompt.length,
-      hasApiKey: Boolean(geminiApiKey)
+      apiKeySource: runtime.apiKeySource,
+      hasApiKey: Boolean(runtime.apiKey)
     });
 
+    let phase = 'create';
     try {
       const createResponse = await httpClient.post(createUrl, body, { headers, timeout: 120000 });
       const taskId = createResponse?.data?.id;
       if (!taskId) {
         throw new Error('Image provider did not return a task id.');
       }
+      debugLog(runtime, {
+        originalUserMessage: options.originalPrompt || prompt,
+        finalImagePrompt: prompt,
+        resolution: imageOptions.resolution,
+        aspect_ratio: imageOptions.aspect_ratio,
+        output_format: imageOptions.output_format,
+        safetyFilterLevel: imageOptions.safety_filter_level,
+        taskId: options.taskId || taskId,
+        status: 'QUEUE'
+      });
 
+      phase = 'poll';
       let statusPayload = null;
-      for (let attempt = 0; attempt < 36; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2500));
-        const statusResponse = await httpClient.get(`${normalizedBaseUrl}/api/v2/generate/${encodeURIComponent(taskId)}`, {
+      const { pollIntervalMs, maxAttempts } = getPollingOptions(options);
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        const statusResponse = await httpClient.get(`${runtime.baseUrl}/api/v2/generate/${encodeURIComponent(taskId)}`, {
           headers,
           timeout: 30000
         });
         statusPayload = statusResponse?.data || null;
         const status = String(statusPayload?.status || '').toUpperCase();
+        debugLog(runtime, {
+          originalUserMessage: options.originalPrompt || prompt,
+          finalImagePrompt: prompt,
+          resolution: imageOptions.resolution,
+          aspect_ratio: imageOptions.aspect_ratio,
+          output_format: imageOptions.output_format,
+          safetyFilterLevel: imageOptions.safety_filter_level,
+          taskId: options.taskId || taskId,
+          status
+        });
         if (status === 'COMPLETED') break;
         if (status === 'ERROR' || status === 'FAILED') {
           throw new Error(statusPayload?.error || 'Image provider task failed.');
@@ -150,52 +346,105 @@ function createImageGenerationService({
 
       const imageUrl = statusPayload?.generations?.[0]?.url || statusPayload?.generations?.[0]?.content || null;
       if (!imageUrl) {
-        throw new Error('Image provider did not return image data.');
+        throw new Error(IMAGE_PROVIDER_EMPTY_RESULT_MESSAGE);
       }
 
+      const maxDownloadBytes = getMaxDownloadBytes(options);
+      const remoteImageUrlHost = getHostname(imageUrl);
+      phase = 'download';
       const imageResponse = await httpClient.get(imageUrl, {
         responseType: 'arraybuffer',
-        timeout: 120000
+        timeout: 120000,
+        maxContentLength: maxDownloadBytes,
+        maxBodyLength: maxDownloadBytes
       });
-      const mimeType = imageResponse?.headers?.['content-type'] || 'image/png';
-      const buffer = Buffer.from(imageResponse?.data || []);
-      if (!buffer.length) {
-        throw new Error('Image provider returned empty image data.');
+      const mimeType = normalizeMimeType(imageResponse?.headers?.['content-type'] || 'image/png');
+      const contentLength = Number(imageResponse?.headers?.['content-length'] || 0);
+      if (contentLength > maxDownloadBytes || !ALLOWED_IMAGE_MIME_TYPES.has(mimeType)) {
+        throw new Error(IMAGE_STORAGE_FAILED_MESSAGE);
       }
+      const buffer = Buffer.from(imageResponse?.data || []);
+      if (!buffer.length || buffer.length > maxDownloadBytes) {
+        throw new Error(IMAGE_STORAGE_FAILED_MESSAGE);
+      }
+      phase = 'complete';
 
       console.log('[image-generation] Metis request succeeded', {
         model,
         provider,
+        resolution: imageOptions.resolution,
+        aspectRatio: imageOptions.aspect_ratio,
+        outputFormat: imageOptions.output_format,
         mimeType,
         bytes: buffer.length
+      });
+      debugLog(runtime, {
+        originalUserMessage: options.originalPrompt || prompt,
+        finalImagePrompt: prompt,
+        resolution: imageOptions.resolution,
+        aspect_ratio: imageOptions.aspect_ratio,
+        output_format: imageOptions.output_format,
+        safetyFilterLevel: imageOptions.safety_filter_level,
+        metisTaskId: taskId,
+        localTaskId: options.taskId || null,
+        remoteImageUrlHost,
+        downloadStatus: 'downloaded',
+        mimeType,
+        fileSize: buffer.length,
+        status: 'COMPLETED'
       });
 
       return {
         buffer,
         mimeType,
         extension: getImageExtension(mimeType),
-        model
+        model,
+        provider: 'Metis',
+        modelSource: runtime.modelSource,
+        modelAdminValue: runtime.modelAdminValue,
+        modelRuntimeValue: model,
+        metisTaskId: taskId,
+        remoteImageUrl: imageUrl,
+        remoteImageUrlHost
       };
     } catch (error) {
-      const message = getProviderErrorMessage(error, 'Metis image generation failed.');
+      const message = phase === 'download'
+        ? IMAGE_STORAGE_FAILED_MESSAGE
+        : getProviderErrorMessage(error, 'Metis image generation failed.');
       console.error('[image-generation] Metis request failed', {
         message,
         statusCode: error?.response?.status || null,
         model,
-        provider
+        provider,
+        modelSource: runtime.modelSource,
+        modelAdminValue: runtime.modelAdminValue,
+        runtimeProviderName: provider,
+        runtimeModel: model
+      });
+      debugLog(runtime, {
+        originalUserMessage: options.originalPrompt || prompt,
+        finalImagePrompt: prompt,
+        resolution: imageOptions.resolution,
+        aspect_ratio: imageOptions.aspect_ratio,
+        output_format: imageOptions.output_format,
+        safetyFilterLevel: imageOptions.safety_filter_level,
+        taskId: options.taskId || null,
+        status: 'ERROR',
+        errorMessage: message
       });
       throw new Error(message);
     }
   };
 
-  const generateWithGemini = async (prompt, model) => {
-    if (!geminiApiKey) {
-      const error = new Error('GEMINI_API_KEY is missing');
+  const generateWithGemini = async (prompt, runtime, options = {}) => {
+    const model = runtime.modelRuntimeValue;
+    if (!runtime.apiKey) {
+      const error = new Error(MISSING_IMAGE_API_KEY_MESSAGE);
       error.code = 'MISSING_GEMINI_API_KEY';
       throw error;
     }
 
-    const url = `${normalizedBaseUrl}/models/${encodeURIComponent(model)}:generateContent`;
+    const url = `${runtime.baseUrl}/models/${encodeURIComponent(model)}:generateContent`;
     const body = {
       contents: [
         {
@@ -210,15 +459,28 @@ function createImageGenerationService({
 
     console.log('[image-generation] Gemini request started', {
       model,
+      modelSource: runtime.modelSource,
+      modelAdminValue: runtime.modelAdminValue,
       promptLength: prompt.length,
-      hasApiKey: Boolean(geminiApiKey)
+      apiKeySource: runtime.apiKeySource,
+      hasApiKey: Boolean(runtime.apiKey)
+    });
+    debugLog(runtime, {
+      originalUserMessage: options.originalPrompt || prompt,
+      finalImagePrompt: prompt,
+      resolution: options.resolution || '1K',
+      aspect_ratio: options.aspectRatio || options.aspect_ratio || '1:1',
+      output_format: options.outputFormat || options.output_format || 'jpg',
+      safetyFilterLevel: options.safetyFilterLevel || options.safety_filter_level || 'block_only_high',
+      taskId: options.taskId || null,
+      status: 'RUNNING'
     });
 
     try {
       const response = await httpClient.post(url, body, {
         headers: {
           'Content-Type': 'application/json',
-          'x-goog-api-key': geminiApiKey
+          'x-goog-api-key': runtime.apiKey
         },
         timeout: 120000
       });
@@ -244,7 +506,11 @@ function createImageGenerationService({
         buffer,
         mimeType: imagePart.mimeType,
         extension: getImageExtension(imagePart.mimeType),
-        model
+        model,
+        provider: 'Gemini',
+        modelSource: runtime.modelSource,
+        modelAdminValue: runtime.modelAdminValue,
+        modelRuntimeValue: model
       };
     } catch (error) {
       const statusCode = error?.response?.status;
@@ -255,23 +521,39 @@ function createImageGenerationService({
         message,
         statusCode,
         reason: apiError?.status || apiError?.code || null,
-        model
+        model,
+        modelSource: runtime.modelSource,
+        modelAdminValue: runtime.modelAdminValue
+      });
+      debugLog(runtime, {
+        originalUserMessage: options.originalPrompt || prompt,
+        finalImagePrompt: prompt,
+        resolution: options.resolution || '1K',
+        aspect_ratio: options.aspectRatio || options.aspect_ratio || '1:1',
+        output_format: options.outputFormat || options.output_format || 'jpg',
+        safetyFilterLevel: options.safetyFilterLevel || options.safety_filter_level || 'block_only_high',
+        taskId: options.taskId || null,
+        status: 'ERROR',
+        errorMessage: message
       });
       throw new Error(message);
     }
   };
 
   const generateImage = async (prompt, options = {}) => {
-    const model = resolveModel(options.imageModel);
-    if (isMetisProvider) {
-      return generateWithMetis(prompt, model);
+    const runtime = resolveRuntime(options);
+    if (runtime.providerName === 'metis') {
+      return generateWithMetis(prompt, runtime, options);
     }
-    return generateWithGemini(prompt, model);
+    if (runtime.providerName === 'gemini') {
+      return generateWithGemini(prompt, runtime, options);
+    }
+    throw new Error(UNSUPPORTED_MODEL_MESSAGE);
   };
 
   return {
     generateImage,
-    supportsImageEdit: () => false
+    supportsImageEdit: () => true
   };
 }
 

@@ -10,7 +10,8 @@ import PaymentSuccessPage from './PaymentSuccessPage';
 import defaultBotAvatar from './image.png';
 import {
   fetchProtectedImageBlobUrl,
-  getImageGenerationStatusForConversation
+  getImageGenerationStatusForConversation,
+  startImageGeneration
 } from './services/imageGeneration';
 import { Button, Dialog, TextField, ToastProvider, useToast } from './design-system/components';
 import DesignSystemPreview from './design-system/preview/DesignSystemPreview';
@@ -28,6 +29,12 @@ const WAITING_MESSAGES = [
   'نزدیک به پایان',
   'لحظاتی دیگر پاسخ می دهم'
 ];
+const IMAGE_PROMPT_EXAMPLES = [
+  'یک ربات مهربان در حال کمک به کودک برای حل تمرین، سبک کارتونی نرم',
+  'یک شهر آینده‌نگر رنگی در غروب، پرجزئیات و شاد',
+  'پوستر کودکانه درباره مراقبت از زمین، رنگ‌های روشن و فضای امیدبخش'
+];
+const IMAGE_PROMPT_MAX_LENGTH = 700;
 const CHAT_REQUEST_TIMEOUT_MS = 35000;
 const CHAT_MAX_RETRIES = 1;
 const BOT_AVATAR_FALLBACK_URL = '/image.png';
@@ -35,7 +42,7 @@ const BOT_AVATAR_FALLBACK_URL = '/image.png';
 type AppProfile = UserProfile & { id?: number | string };
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
 type LandingStep = 'landing' | 'login' | 'signup' | 'chat';
-type AppView = 'home' | 'chat';
+type AppView = 'home' | 'chat' | 'generate' | 'profile';
 type PersonalityProfile = {
   interests: string[];
   preferredStyle: 'formal' | 'casual' | 'playful';
@@ -44,7 +51,30 @@ type PersonalityProfile = {
   lastTopics: string[];
 };
 type AuthMode = 'login' | 'signup';
-type ApiErrorData = { error?: string; message?: string; details?: string; redirectTo?: AuthMode | null };
+type ApiErrorData = {
+  error?: string;
+  message?: string;
+  details?: string;
+  redirectTo?: AuthMode | null;
+  limit?: number;
+  usage?: number;
+  remaining?: number;
+  nextAction?: string;
+};
+type AuthFamilyPayload = {
+  child?: {
+    id: string;
+    name: string;
+    age: number;
+    avatar?: string | null;
+    grade?: string | null;
+    safetyLevel?: string;
+  } | null;
+  guardian?: {
+    id?: string | null;
+    phone?: string | null;
+  } | null;
+};
 type VerifyCodeResult = {
   success: boolean;
   isNewUser?: boolean;
@@ -53,11 +83,27 @@ type VerifyCodeResult = {
   userId?: string;
   profile?: { name: string; age: number; phone: string };
   token?: string;
+} & AuthFamilyPayload;
+type PhoneStatusResult = {
+  success: boolean;
+  exists: boolean;
+  recommendedMode: AuthMode;
+  redirectTo?: AuthMode | null;
 };
 
-const getAppViewFromPath = (pathname: string): AppView => (pathname === '/chat' ? 'chat' : 'home');
+const getAppViewFromPath = (pathname: string): AppView => {
+  if (pathname === '/chat') return 'chat';
+  if (pathname === '/generate' || pathname === '/photos') return 'generate';
+  if (pathname === '/profile' || pathname === '/settings') return 'profile';
+  return 'home';
+};
 type ApiError = Error & { redirectTo?: AuthMode | null };
 type ChatRequestError = Error & { status?: number; payload?: ApiErrorData };
+type GuestLimitInfo = {
+  limit: number;
+  usage: number;
+  remaining: number;
+};
 type ChatImageIntentResponse = {
   intent?: 'chat' | 'image_generation' | 'image_edit';
   status?: 'QUEUE' | 'WAITING' | 'RUNNING' | 'COMPLETED' | 'ERROR';
@@ -128,7 +174,7 @@ const MessageImage = ({ src, alt }: { src: string; alt: string }) => {
       protectedBlobUrlRef.current = null;
     }
 
-    if (!src.startsWith('/api/images/result/')) {
+    if (!src.startsWith('/api/images/result/') && !src.startsWith('/api/images/serve/')) {
       return;
     }
 
@@ -408,11 +454,11 @@ const isMessageLimitError = (error: unknown): error is ChatRequestError => {
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_ATTACHMENT_COUNT = 5;
 const PUBLIC_SETTINGS_DEFAULTS = {
-  'guest.limit_modal.title': 'برای ادامه ثبت‌نام کن',
-  'guest.limit_modal.heading': 'برای ادامه‌ی گفتگو، لطفاً ثبت‌نام کن!',
-  'guest.limit_modal.body': 'گفتگوی مهمان به سقف پیام‌ها رسیده و ادامه چت فقط با حساب کاربری انجام می‌شود.',
+  'guest.limit_modal.title': 'برای ادامه از والد کمک بگیر',
+  'guest.limit_modal.heading': 'برای نگه داشتن گفتگوها، شماره والد لازم است',
+  'guest.limit_modal.body': 'گفتگوی مهمان به سقف پیام‌ها رسیده؛ با کمک والد می‌توانی همین گفتگوها را ذخیره کنی و ادامه بدهی.',
   'guest.limit_modal.badge_text': '۱۰',
-  'guest.limit_modal.cta': 'ثبت‌نام',
+  'guest.limit_modal.cta': 'ذخیره با کمک والد',
   'upload.image.max_size_mb': 5,
   'upload.image.max_files': 5,
   'upload.image.allowed_types': ['image/jpeg', 'image/png', 'image/webp'],
@@ -458,6 +504,23 @@ const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<
   return (await response.json()) as VerifyCodeResult;
 };
 
+const checkPhoneStatus = async (phone: string, mode: AuthMode): Promise<PhoneStatusResult> => {
+  const response = await safeFetch('/api/auth/phone-status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ phone, mode })
+  });
+
+  if (!response.ok) {
+    const payload = await parseApiError(response);
+    const fallback = await buildRequestErrorMessage(response);
+    throw createApiError(payload.error?.trim() || fallback || 'بررسی شماره انجام نشد.', payload.redirectTo ?? null);
+  }
+
+  return (await response.json()) as PhoneStatusResult;
+};
+
 const registerProfile = async (profile: {
   name: string;
   age: number | string;
@@ -465,7 +528,8 @@ const registerProfile = async (profile: {
   id?: number | string;
   mode: AuthMode;
   signupToken?: string;
-}): Promise<{ userId: string; profile: { name: string; age: number; phone: string }; token?: string }> => {
+  guardianConsent?: boolean;
+}): Promise<{ userId: string; profile: { name: string; age: number; phone: string }; token?: string } & AuthFamilyPayload> => {
   const response = await safeFetch('/api/register-profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -479,7 +543,7 @@ const registerProfile = async (profile: {
     throw createApiError(payload.error?.trim() || fallback || 'ثبت پروفایل انجام نشد.', payload.redirectTo ?? null);
   }
 
-  return (await response.json()) as { userId: string; profile: { name: string; age: number; phone: string }; token?: string };
+  return (await response.json()) as { userId: string; profile: { name: string; age: number; phone: string }; token?: string } & AuthFamilyPayload;
 };
 
 const loadRemoteConversations = async (profile: UserProfile & { id?: string | number }) => {
@@ -595,6 +659,7 @@ const imageMessagePriority = (message: ChatMessage): number => {
   if (message.type === 'image_result') return 30;
   if (message.type === 'image_error') return 20;
   if (message.type === 'image_loading') return 10;
+  if (getMessageTaskId(message) && message.status && message.status !== 'COMPLETED' && message.status !== 'ERROR') return 8;
   return 0;
 };
 
@@ -683,24 +748,32 @@ const dedupeChatMessages = (messages: ChatMessage[]): ChatMessage[] => {
     const taskId = getMessageTaskId(message);
     const isImageTaskMessage =
       message.role === 'assistant' &&
-      (message.type === 'image_loading' || message.type === 'image_result' || message.type === 'image_error');
+      (message.type === 'image_loading' ||
+        message.type === 'image_result' ||
+        message.type === 'image_error' ||
+        Boolean(taskId && message.status));
 
     if (isImageTaskMessage) {
+      const normalizedTaskMessage =
+        taskId && message.type !== 'image_result' && message.type !== 'image_error'
+          ? { ...message, type: 'image_loading' as const, taskId }
+          : taskId
+            ? { ...message, taskId }
+            : message;
       const imageUrls = getMessageImageDedupeUrls(message);
       const existingIndex =
         (taskId ? taskIndexes.get(taskId) : undefined) ??
         imageUrls.map((url) => imageUrlIndexes.get(url)).find((index) => index !== undefined);
 
       if (existingIndex !== undefined) {
-        const merged = mergeImageTaskMessages(deduped[existingIndex], message);
+        const merged = mergeImageTaskMessages(deduped[existingIndex], normalizedTaskMessage);
         deduped[existingIndex] = merged;
         rememberImageMessage(merged, existingIndex);
         continue;
       }
 
-      const nextMessage = taskId ? { ...message, taskId } : message;
-      deduped.push(nextMessage);
-      rememberImageMessage(nextMessage, deduped.length - 1);
+      deduped.push(normalizedTaskMessage);
+      rememberImageMessage(normalizedTaskMessage, deduped.length - 1);
       continue;
     }
 
@@ -836,10 +909,11 @@ function ChatApp() {
   const [phone, setPhone] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [signupToken, setSignupToken] = useState('');
+  const [guardianConsent, setGuardianConsent] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; age?: string; phone?: string; code?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; age?: string; phone?: string; code?: string; guardianConsent?: string }>({});
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string>('');
@@ -865,6 +939,8 @@ function ChatApp() {
  const [showImageGenModal, setShowImageGenModal] = useState(false);
  const [showMessageLimitModal, setShowMessageLimitModal] = useState(false);
  const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
+ const [guestLimitInfo, setGuestLimitInfo] = useState<GuestLimitInfo | null>(null);
+ const [returnToChatAfterAuth, setReturnToChatAfterAuth] = useState(false);
  const [imageGenPrompt, setImageGenPrompt] = useState('');
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
@@ -885,6 +961,7 @@ function ChatApp() {
   const transcriptRef = useRef('');
   const keepRecordingRef = useRef(false);
   const sendMessageRef = useRef<(value?: string) => Promise<void>>(async () => {});
+  const sendInFlightRef = useRef(false);
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const botMessageRef = useRef<HTMLDivElement | null>(null);
   const prevIsSendingRef = useRef(false);
@@ -989,7 +1066,7 @@ function ChatApp() {
   };
 
   const navigateToView = (view: AppView, mode: 'push' | 'replace' = 'push') => {
-    const nextPath = view === 'home' ? '/home' : '/chat';
+    const nextPath = view === 'home' ? '/home' : view === 'generate' ? '/generate' : view === 'profile' ? '/profile' : '/chat';
     if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
       if (mode === 'replace') {
         window.history.replaceState({}, '', nextPath);
@@ -1016,18 +1093,50 @@ function ChatApp() {
 
   const handleGuestSignupRequired = () => {
     setShowGuestLimitModal(false);
-    localStorage.removeItem(PROFILE_KEY);
-    setProfile(null);
-    setAuthTransition('forward');
-    setAuthMode('signup');
-    setRegistrationStep(1);
-    setLandingStep('signup');
+    setReturnToChatAfterAuth(true);
+    beginAuthFlow('signup');
     setErrors({});
     setVerificationCode('');
     setSignupToken('');
     if (typeof window !== 'undefined') {
-      window.history.replaceState({}, '', '/chat?auth=signup');
+      window.history.replaceState({}, '', '/chat');
     }
+    setShowSettingsAuthModal(true);
+  };
+
+  const handleOpenGuestAuth = () => {
+    setReturnToChatAfterAuth(true);
+    beginAuthFlow('signup');
+    setErrors({});
+    setVerificationCode('');
+    setSignupToken('');
+    setShowProfileModal(false);
+    setShowSettingsAuthModal(true);
+  };
+
+  const startGuestSession = () => {
+    setReturnToChatAfterAuth(false);
+    const guestProfile = createGuestProfile();
+    setProfile(guestProfile);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(guestProfile));
+    sessionStorage.setItem(GUEST_PROFILE_KEY, '1');
+    setLandingStep('chat');
+    setCurrentView('chat');
+    setSidebarOpen(false);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/chat');
+    }
+  };
+
+  const beginAuthFlow = (mode: AuthMode) => {
+    setAuthTransition('forward');
+    setAuthMode(mode);
+    setRegistrationStep(1);
+    setLandingStep(mode);
+    setErrors({});
+    setVerificationCode('');
+    setSignupToken('');
+    setGuardianConsent(false);
   };
 
   const resetAuthFlow = (mode: AuthMode) => {
@@ -1040,17 +1149,19 @@ function ChatApp() {
     setAge('');
     setVerificationCode('');
     setSignupToken('');
+    setGuardianConsent(false);
   };
 
   const handleOpenSettings = () => {
     if (isGuestProfile(profile)) {
+      setReturnToChatAfterAuth(false);
       resetAuthFlow('login');
       setShowProfileModal(false);
       setShowSettingsAuthModal(true);
       return;
     }
 
-    setShowProfileModal(true);
+    navigateToView('profile');
   };
 
   const releaseMicStream = () => {
@@ -1130,13 +1241,19 @@ function ChatApp() {
         setAuthMode('signup');
         setRegistrationStep(1);
         setLandingStep('signup');
-      } else if (window.location.pathname === '/chat') {
+      } else if (
+        window.location.pathname === '/chat' ||
+        window.location.pathname === '/generate' ||
+        window.location.pathname === '/photos' ||
+        window.location.pathname === '/profile' ||
+        window.location.pathname === '/settings'
+      ) {
         const guestProfile = createGuestProfile();
         setProfile(guestProfile);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(guestProfile));
         sessionStorage.setItem(GUEST_PROFILE_KEY, '1');
         setLandingStep('chat');
-        setCurrentView('chat');
+        setCurrentView(routeView);
         setSidebarOpen(false);
       } else {
         if (window.location.pathname === '/home') {
@@ -1178,7 +1295,7 @@ function ChatApp() {
   useEffect(() => {
     const handlePopState = () => {
       const pathname = window.location.pathname;
-      if (pathname === '/home' || pathname === '/chat') {
+      if (pathname === '/home' || pathname === '/chat' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings') {
         const nextView = getAppViewFromPath(pathname);
         setCurrentView(nextView);
         setSidebarOpen(nextView === 'home');
@@ -1240,7 +1357,7 @@ function ChatApp() {
   }, [profile]);
 
   useEffect(() => {
-    if (!profile || !showProfileModal) {
+    if (!profile || (!showProfileModal && currentView !== 'profile')) {
       return;
     }
 
@@ -1254,7 +1371,7 @@ function ChatApp() {
     setProfileFormName(nextProfile.name);
     setProfileFormAge(String(nextProfile.age));
     setProfileFormErrors({});
-  }, [profile, showProfileModal]);
+  }, [profile, showProfileModal, currentView]);
 
   useEffect(() => {
     if (conversations.length > 0) {
@@ -1533,13 +1650,14 @@ function ChatApp() {
         }
 
         if (status === 'ERROR') {
+          const errorMessage = error || 'ساخت تصویر انجام نشد. مشکل از سرویس تصویر بود، نه درخواست تو. دوباره امتحان کن.';
           updateImageTaskMessage(conversationId, taskId, {
             type: 'image_error',
-            content: 'ساخت تصویر انجام نشد. مشکل از سرویس تصویر بود، نه درخواست تو. دوباره امتحان کن.',
+            content: errorMessage,
             status: 'ERROR',
             images: undefined
           });
-          pushToast(error || 'ساخت عکس ناموفق بود', 'danger');
+          pushToast(errorMessage, 'danger');
           return;
         }
 
@@ -1564,21 +1682,28 @@ function ChatApp() {
   useEffect(() => {
     for (const conversation of conversations) {
       conversation.messages.forEach((message, index) => {
-        if (message.role !== 'assistant' || message.type !== 'image_loading' || !message.taskId) {
+        const taskId = getMessageTaskId(message);
+        const isPendingImageTask =
+          message.role === 'assistant' &&
+          Boolean(taskId) &&
+          (message.type === 'image_loading' ||
+            (message.intent === 'image_generation' && message.status !== 'COMPLETED' && message.status !== 'ERROR') ||
+            (message.intent === 'image_edit' && message.status !== 'COMPLETED' && message.status !== 'ERROR'));
+        if (!isPendingImageTask) {
           return;
         }
         const prompt =
           [...conversation.messages.slice(0, index)]
             .reverse()
             .find((item) => item.role === 'user' && item.content.trim())?.content || 'تصویر ساخته شده';
-        void pollImageTask(conversation.id, message.taskId, prompt);
+        void pollImageTask(conversation.id, taskId, prompt);
       });
     }
   }, [conversations]);
 
   const saveAuthenticatedProfile = (nextProfile: AppProfile, token?: string) => {
     const normalizedPhone = typeof nextProfile.phone === 'string' ? normalizePhoneInput(nextProfile.phone) : '';
-    const shouldReturnToSettings = showSettingsAuthModal;
+    const shouldReturnToSettings = showSettingsAuthModal && !returnToChatAfterAuth;
 
     if (token) {
       localStorage.setItem('chat_auth_token', token);
@@ -1599,6 +1724,13 @@ function ChatApp() {
     localStorage.setItem(PROFILES_KEY, JSON.stringify([...withoutSamePhone, nextProfile]));
     setHasSavedAccount(true);
     setLandingStep('chat');
+    if (returnToChatAfterAuth) {
+      setShowSettingsAuthModal(false);
+      setReturnToChatAfterAuth(false);
+      setGuestLimitInfo(null);
+      navigateToView('chat', 'replace');
+      return;
+    }
     if (shouldReturnToSettings) {
       setShowSettingsAuthModal(false);
       setShowProfileModal(true);
@@ -1615,7 +1747,7 @@ function ChatApp() {
     const nextErrors: { phone?: string } = {};
 
     if (!PERSIAN_PHONE_REGEX.test(normalizedPhone)) {
-      nextErrors.phone = 'شماره موبایل باید با 09 شروع شود و 11 رقم باشد.';
+      nextErrors.phone = 'شماره والد باید با 09 شروع شود و 11 رقم باشد.';
     }
 
     setErrors(nextErrors);
@@ -1629,7 +1761,11 @@ function ChatApp() {
     setIsCheckingPhone(true);
 
     try {
-      await sendVerificationCode(normalizedPhone, authMode);
+      const phoneStatus = await checkPhoneStatus(normalizedPhone, authMode);
+      const nextAuthMode = phoneStatus.recommendedMode || authMode;
+      setAuthMode(nextAuthMode);
+      setLandingStep(nextAuthMode);
+      await sendVerificationCode(normalizedPhone, nextAuthMode);
 
       setVerificationCode('');
       setErrors({});
@@ -1686,6 +1822,7 @@ function ChatApp() {
       setSignupToken(verificationResult.signupToken || '');
       setName('');
       setAge('');
+      setGuardianConsent(false);
       setErrors({});
       setRegistrationStep(3);
     } catch (error) {
@@ -1709,14 +1846,18 @@ function ChatApp() {
 
     const normalizedPhone = normalizePhoneInput(phone);
     const numericAge = parseAgeInput(age);
-    const nextErrors: { name?: string; age?: string } = {};
+    const nextErrors: { name?: string; age?: string; guardianConsent?: string } = {};
 
     if (!name.trim()) {
-      nextErrors.name = 'اسم خودت را بنویس تا با هم آشنا شویم.';
+      nextErrors.name = 'اسم کودک را بنویس تا با هم آشنا شویم.';
     }
 
     if (!age || Number.isNaN(numericAge) || numericAge < ageMin) {
       nextErrors.age = `سن باید حداقل ${ageMin} سال باشد.`;
+    }
+
+    if (!guardianConsent) {
+      nextErrors.guardianConsent = 'برای ساخت حساب کودک، تایید والد یا قیم لازم است.';
     }
 
     setErrors(nextErrors);
@@ -1731,7 +1872,8 @@ function ChatApp() {
         age: normalizeLocalizedDigits(age.trim()),
         phone: normalizedPhone,
         mode: 'signup',
-        signupToken
+        signupToken,
+        guardianConsent
       });
 
       saveAuthenticatedProfile(
@@ -1754,7 +1896,7 @@ function ChatApp() {
   };
 
   const handleSendMessage = async (value?: string) => {
-    if (!profile || isSending) {
+    if (!profile || isSending || sendInFlightRef.current) {
       return;
     }
 
@@ -1765,6 +1907,7 @@ function ChatApp() {
     if (!content && !hasAttachments) {
       return;
     }
+    sendInFlightRef.current = true;
 
     const effectiveUserText = content || 'لطفاً محتوای عکس را توضیح بده.';
     const nextPersonality = updatePersonalityFromMessage(normalizePersonality(profile.personality), effectiveUserText);
@@ -1930,6 +2073,7 @@ function ChatApp() {
         data.intent === 'image_generation' ||
         data.intent === 'image_edit'
       ) {
+        const imageTaskId = typeof data.taskId === 'string' || typeof data.taskId === 'number' ? String(data.taskId).trim() : '';
         const responseMessages = Array.isArray(data.messages) ? data.messages : [];
         if (responseMessages.length > 0) {
           updateConversation(currentConversation.id, (item) => {
@@ -1948,11 +2092,12 @@ function ChatApp() {
           const assistantMessage: ChatMessage = {
             id: generateMessageId('assistant-image'),
             role: 'assistant',
-            type: data.status === 'ERROR' ? 'image_error' : 'text',
+            type: data.status === 'ERROR' ? 'image_error' : imageTaskId ? 'image_loading' : 'text',
             intent: data.intent,
             content: assistantText,
             timestamp: new Date().toISOString(),
-            status: data.status
+            status: data.status,
+            taskId: imageTaskId || undefined
           };
           updateConversation(currentConversation.id, (item) => ({
             ...item,
@@ -1963,6 +2108,16 @@ function ChatApp() {
 
         if (data.status === 'ERROR') {
           pushToast(data.assistantText || 'ساخت عکس ناموفق بود', 'warning');
+        } else if (imageTaskId) {
+          updateImageTaskMessage(currentConversation.id, imageTaskId, {
+            type: 'image_loading',
+            intent: data.intent,
+            content: data.assistantText || 'درخواست ساخت تصویر ثبت شد. در حال ساخت تصویر...',
+            status: data.status || 'QUEUE',
+            taskId: imageTaskId
+          });
+          void pollImageTask(currentConversation.id, imageTaskId, content || 'تصویر ساخته شده');
+          pushToast('درخواست ساخت تصویر ثبت شد', 'success');
         }
         return;
       }
@@ -1987,6 +2142,15 @@ function ChatApp() {
         error instanceof Error &&
         (error as ChatRequestError).payload?.error === 'GUEST_LIMIT_REACHED'
       ) {
+        const payload = (error as ChatRequestError).payload || {};
+        const limit = Number(payload.limit);
+        const usage = Number(payload.usage);
+        const remaining = Number(payload.remaining);
+        setGuestLimitInfo({
+          limit: Number.isFinite(limit) && limit > 0 ? limit : Number(PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text']) || 10,
+          usage: Number.isFinite(usage) && usage >= 0 ? usage : Number.isFinite(limit) && limit > 0 ? limit : 10,
+          remaining: Number.isFinite(remaining) && remaining >= 0 ? remaining : 0
+        });
         updateConversation(currentConversation.id, (item) => {
           const remainingMessages = item.messages.filter((message) => message.timestamp !== userMessage.timestamp);
           return {
@@ -2037,6 +2201,7 @@ function ChatApp() {
         updatedAt: new Date().toISOString()
       }));
     } finally {
+      sendInFlightRef.current = false;
       setIsSending(false);
       setAttachmentMenuOpen(false);
     }
@@ -2250,6 +2415,9 @@ function ChatApp() {
     setInputValue('');
     setIsSending(false);
     setIsRecording(false);
+    setShowGuestLimitModal(false);
+    setGuestLimitInfo(null);
+    setReturnToChatAfterAuth(false);
     setHasSavedAccount(Boolean(localStorage.getItem(PROFILES_KEY)));
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', '/');
@@ -2317,10 +2485,9 @@ function ChatApp() {
 
  const handleGenerateImageClick = () => {
    setAttachmentMenuOpen(false);
-   setImageGenPrompt('');
    setImageGenError('');
    setImageGenStatus('');
-   setShowImageGenModal(true);
+   navigateToView('generate');
  };
 
  const handleCloseImageGenerator = () => {
@@ -2335,18 +2502,72 @@ function ChatApp() {
      pushToast('لطفاً توضیح عکس را بنویس', 'danger');
      return;
    }
+   if (prompt.length < 8) {
+     setImageGenError('توضیح تصویر را کمی کامل‌تر بنویس تا نتیجه دقیق‌تر شود.');
+     return;
+   }
 
    setIsGeneratingImage(true);
-   setImageGenStatus('در حال ارسال درخواست...');
+   setImageGenStatus('در حال ثبت درخواست ساخت تصویر...');
    setImageGenError('');
    setShowImageGenModal(false);
    navigateToView('chat');
 
    try {
-     await handleSendMessage(prompt);
+     const currentConversation = ensureConversation();
+     const userMessage: ChatMessage = {
+       id: generateMessageId('user-image-prompt'),
+       role: 'user',
+       type: 'text',
+       intent: 'image_generation',
+       content: prompt,
+       timestamp: new Date().toISOString()
+     };
+
+     const nextTitle =
+       currentConversation.title === DEFAULT_TITLE && currentConversation.messages.length === 0
+         ? inferTitle(prompt)
+         : currentConversation.title;
+
+     updateConversation(currentConversation.id, (item) => ({
+       ...item,
+       title: nextTitle,
+       messages: dedupeChatMessages([...item.messages, userMessage]),
+       updatedAt: new Date().toISOString()
+     }));
+
+     const { taskId } = await startImageGeneration(prompt);
+     updateImageTaskMessage(currentConversation.id, taskId, {
+       type: 'image_loading',
+       intent: 'image_generation',
+       content: 'درخواست ساخت تصویر ثبت شد. در حال ساخت تصویر...',
+       status: 'QUEUE',
+       taskId
+     });
+     void pollImageTask(currentConversation.id, taskId, prompt);
      setImageGenPrompt('');
+     pushToast('درخواست ساخت تصویر ثبت شد', 'success');
    } catch (error) {
-     setImageGenError(error instanceof Error ? error.message : 'مشکلی در ساخت عکس پیش آمد.');
+     const message = error instanceof Error ? error.message : 'مشکلی در ساخت عکس پیش آمد.';
+     setImageGenError(message);
+     const currentConversation = ensureConversation();
+     updateConversation(currentConversation.id, (item) => ({
+       ...item,
+       messages: dedupeChatMessages([
+         ...item.messages,
+         {
+           id: generateMessageId('assistant-image-error'),
+           role: 'assistant',
+           type: 'image_error',
+           intent: 'image_generation',
+           content: message,
+           timestamp: new Date().toISOString(),
+           status: 'ERROR'
+         }
+       ]),
+       updatedAt: new Date().toISOString()
+     }));
+     pushToast(message, 'danger');
    } finally {
      setIsGeneratingImage(false);
      setImageGenStatus('');
@@ -2400,39 +2621,34 @@ function ChatApp() {
             <h1>
               به دانوآ خوش آمدید <span>🌤️</span>
             </h1>
-            <p className="subtitle">همراه یادگیری تو، با حال خوب و گفتگوی هوشمند</p>
+            <p className="subtitle">اول حرف بزن، بعد اگر خواستی گفتگوها را با کمک والد نگه دار.</p>
             <Button
               type="button"
               className="start-btn landing-btn"
-              onClick={() => {
-                setAuthTransition('forward');
-                setAuthMode('login');
-                setRegistrationStep(1);
-                setLandingStep('login');
-                setErrors({});
-                setVerificationCode('');
-                setSignupToken('');
-              }}
+              onClick={startGuestSession}
             >
-              حساب کاربری دارم
+              شروع مهمان
             </Button>
-            <Button
-              type="button"
-              className="start-btn landing-btn secondary"
-              variant="secondary"
-              onClick={() => {
-                setAuthTransition('forward');
-                setAuthMode('signup');
-                setRegistrationStep(1);
-                setLandingStep('signup');
-                setErrors({});
-                setSignupToken('');
-              }}
-            >
-              حساب کاربری ندارم
-            </Button>
+            <div className="auth-landing-actions">
+              <Button
+                type="button"
+                className="landing-btn secondary"
+                variant="secondary"
+                onClick={() => beginAuthFlow('signup')}
+              >
+                ذخیره گفتگوها با کمک والد
+              </Button>
+              <Button
+                type="button"
+                className="landing-link"
+                variant="ghost"
+                onClick={() => beginAuthFlow('login')}
+              >
+                قبلا حساب داشتم
+              </Button>
+            </div>
             <p className="helper onboarding-help">
-              {hasSavedAccount ? 'حساب قبلی روی این مرورگر پیدا شد ✅' : 'اگر اولین بارته، ثبت نام را انتخاب کن.'}
+              {hasSavedAccount ? 'حساب قبلی روی این مرورگر پیدا شد ✅' : 'برای امتحان کردن نیازی به ثبت‌نام نیست.'}
             </p>
           </div>
         ) : registrationStep === 1 ? (
@@ -2452,13 +2668,13 @@ function ChatApp() {
               </button>
             ) : null}
             <h1>
-              شماره موبایل <span>📱</span>
+              شماره والد <span>📱</span>
             </h1>
-            <p className="subtitle">برای ورود یا ثبت‌نام، شماره موبایل را وارد کن.</p>
-            <p className="helper onboarding-help">کد تایید از طریق پیامک ارسال می‌شود.</p>
+            <p className="subtitle">شماره مامان، بابا یا بزرگ‌ترت را وارد کن تا کد پیامک شود.</p>
+            <p className="helper onboarding-help">اگر حساب قبلی داشته باشی، همین شماره تو را وارد می‌کند.</p>
 
             <TextField
-              label="شماره موبایل"
+              label="شماره والد"
               value={phone}
               onChange={(event) => setPhone(filterLocalizedDigits(event.target.value))}
               placeholder="09123456789"
@@ -2472,7 +2688,7 @@ function ChatApp() {
             />
 
             <Button type="submit" className="start-btn" disabled={isSendingVerification || isCheckingPhone}>
-              {isSendingVerification ? 'در حال ارسال...' : 'دریافت کد'}
+              {isSendingVerification ? 'در حال ارسال...' : 'فرستادن کد برای والد'}
             </Button>
           </form>
         ) : registrationStep === 2 ? (
@@ -2491,8 +2707,8 @@ function ChatApp() {
             <h1>
               کد را وارد کن <span>✅</span>
             </h1>
-            <p className="subtitle">کد تایید ارسال‌شده به {phone || 'شماره موبایل'} را وارد کن.</p>
-            <p className="helper onboarding-help">کد تا چند دقیقه معتبر است.</p>
+            <p className="subtitle">کدی که برای {phone || 'شماره والد'} پیامک شده را وارد کن.</p>
+            <p className="helper onboarding-help">اگر کنار والدت هستی، از او کمک بگیر.</p>
 
             <TextField
               label="کد تایید"
@@ -2536,13 +2752,13 @@ function ChatApp() {
               ← بازگشت
             </button>
             <h1>
-              تکمیل پروفایل <span>✨</span>
+              پروفایل کودک <span>✨</span>
             </h1>
-            <p className="subtitle">حسابت ساخته می‌شود و گفتگوهای مهمان هم منتقل می‌شود.</p>
-            <p className="helper onboarding-help">مرحله آخر: نام و سن را وارد کن.</p>
+            <p className="subtitle">حساب با شماره والد ساخته می‌شود و گفتگوهای مهمان هم می‌ماند.</p>
+            <p className="helper onboarding-help">فقط اسم کوچک و سن کودک را وارد کن.</p>
 
             <TextField
-              label="نام"
+              label="اسم کودک"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="مثلا: علی"
@@ -2552,7 +2768,7 @@ function ChatApp() {
             />
 
             <TextField
-              label="سن"
+              label="سن کودک"
               value={age}
               onChange={(event) => setAge(filterLocalizedDigits(event.target.value))}
               placeholder="فقط عدد"
@@ -2562,6 +2778,18 @@ function ChatApp() {
               helperText={`سن مجاز: ${ageMin} سال به بالا`}
               errorText={errors.age}
             />
+
+            <label className={`guardian-consent ${errors.guardianConsent ? 'has-error' : ''}`}>
+              <input
+                type="checkbox"
+                checked={guardianConsent}
+                onChange={(event) => setGuardianConsent(event.target.checked)}
+              />
+              <span>
+                من والد یا قیم کودک هستم و اجازه می‌دهم حساب کودک با این شماره ساخته شود.
+              </span>
+            </label>
+            {errors.guardianConsent ? <p className="error guardian-consent-error">{errors.guardianConsent}</p> : null}
 
             <div className="ds-auth-actions">
               <Button
@@ -2603,6 +2831,9 @@ function ChatApp() {
 
   const shouldShowSendAction = inputValue.trim().length > 0 || attachments.length > 0;
   const canSendMessage = !isRecording && !isSending && shouldShowSendAction;
+  const shouldShowGuestAuthCta = isGuestProfile(profile);
+  const imagePromptLength = imageGenPrompt.trim().length;
+  const canSubmitImagePrompt = imagePromptLength > 0 && !isGeneratingImage;
 
   return (
     <div className={`app-shell chat-shell view-${currentView} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
@@ -2677,6 +2908,15 @@ function ChatApp() {
           </div>
 
           <div className="top-bar-actions">
+            {shouldShowGuestAuthCta ? (
+              <button
+                className="header-auth-cta"
+                type="button"
+                onClick={handleOpenGuestAuth}
+              >
+                ورود / ثبت‌نام
+              </button>
+            ) : null}
             <button
               className="header-action-btn header-action-btn-secondary chat-share-btn"
               type="button"
@@ -2818,12 +3058,12 @@ function ChatApp() {
           </div>
 
           <nav className="conversation-bottom-nav" aria-label="ناوبری گفتگوها">
-            <button type="button" className="conversation-nav-item" onClick={handleOpenSettings}>
+            <button type="button" className="conversation-nav-item" onClick={handleOpenSettings} aria-label="پروفایل">
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" />
                 <path d="M19.4 15a1.7 1.7 0 00.34 1.88l.05.05a2 2 0 01-2.83 2.83l-.05-.05a1.7 1.7 0 00-1.88-.34 1.7 1.7 0 00-1.03 1.56V21a2 2 0 01-4 0v-.07a1.7 1.7 0 00-1.03-1.56 1.7 1.7 0 00-1.88.34l-.05.05a2 2 0 01-2.83-2.83l.05-.05A1.7 1.7 0 004.6 15 1.7 1.7 0 003.04 14H3a2 2 0 010-4h.04A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.88l-.05-.05a2 2 0 012.83-2.83l.05.05A1.7 1.7 0 008.97 4.6 1.7 1.7 0 0010 3.04V3a2 2 0 014 0v.04a1.7 1.7 0 001.03 1.56 1.7 1.7 0 001.88-.34l.05-.05a2 2 0 012.83 2.83l-.05.05A1.7 1.7 0 0019.4 9c.23.63.81 1 1.56 1H21a2 2 0 010 4h-.04A1.7 1.7 0 0019.4 15z" />
               </svg>
-              <span>تنظیمات</span>
+              <span>پروفایل</span>
             </button>
             <button type="button" className="conversation-nav-item" onClick={handleViewPlans}>
               <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -2850,6 +3090,209 @@ function ChatApp() {
             </button>
           </nav>
         </aside>
+        ) : null}
+        {currentView === 'generate' ? (
+          <main className="generate-page">
+            <header className="generate-page-header">
+              <button
+                className="generate-page-back"
+                type="button"
+                onClick={handleBackToHome}
+                aria-label="بازگشت به گفتگوها"
+                title="بازگشت"
+              >
+                <svg className="chat-header-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15 18 9 12l6-6" />
+                </svg>
+              </button>
+              <div>
+                <span>ابزار خلاقیت</span>
+                <h1>ساخت تصویر</h1>
+              </div>
+            </header>
+
+            <section className="generate-page-card">
+              <div className="image-gen-hero" aria-hidden="true">
+                <span className="image-gen-glow" />
+                <span className="image-gen-orb">
+                  <span className="image-gen-wand">🪄</span>
+                </span>
+                <span className="image-gen-star image-gen-star--one" />
+                <span className="image-gen-star image-gen-star--two" />
+                <span className="image-gen-star image-gen-star--three" />
+              </div>
+
+              <div className="image-gen-copy">
+                <h2>چی می‌خوای بسازی؟</h2>
+                <p>سوژه، سبک، رنگ و حس تصویر را کوتاه و روشن بنویس.</p>
+              </div>
+
+              <div className="image-gen-examples" aria-label="نمونه پرامپت‌ها">
+                {IMAGE_PROMPT_EXAMPLES.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => {
+                      setImageGenPrompt(example);
+                      setImageGenError('');
+                    }}
+                    disabled={isGeneratingImage}
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+
+              <label className="image-gen-field">
+                <textarea
+                  dir="rtl"
+                  value={imageGenPrompt}
+                  onChange={(event) => {
+                    setImageGenPrompt(event.target.value.slice(0, IMAGE_PROMPT_MAX_LENGTH));
+                    setImageGenError('');
+                  }}
+                  onKeyDown={(event) => {
+                    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                      event.preventDefault();
+                      void handleGenerateImageSubmit();
+                    }
+                  }}
+                  placeholder="مثلاً: یک گربه فضایی بامزه، سبک سه‌بعدی، رنگ‌های شاد، نور نرم"
+                  disabled={isGeneratingImage}
+                  aria-label="توضیح تصویر"
+                  maxLength={IMAGE_PROMPT_MAX_LENGTH}
+                />
+              </label>
+
+              <div className="image-gen-meta">
+                <span>{imagePromptLength}/{IMAGE_PROMPT_MAX_LENGTH}</span>
+                <span>Ctrl + Enter برای ساخت</span>
+              </div>
+
+              {imageGenStatus ? <div className="image-gen-status">{imageGenStatus}</div> : null}
+              {imageGenError ? <div className="image-gen-error">{imageGenError}</div> : null}
+
+              <Button
+                type="button"
+                className="image-gen-submit generate-page-submit"
+                onClick={handleGenerateImageSubmit}
+                disabled={!canSubmitImagePrompt}
+              >
+                <span>{isGeneratingImage ? 'در حال ساخت...' : 'ساخت تصویر'}</span>
+                <span aria-hidden="true">✦</span>
+              </Button>
+            </section>
+          </main>
+        ) : null}
+        {currentView === 'profile' ? (
+          <main className="profile-page">
+            <header className="profile-page-header">
+              <button
+                className="generate-page-back"
+                type="button"
+                onClick={handleBackToHome}
+                aria-label="بازگشت به گفتگوها"
+                title="بازگشت"
+              >
+                <svg className="chat-header-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15 18 9 12l6-6" />
+                </svg>
+              </button>
+              <div>
+                <span>حساب کاربری</span>
+                <h1>پروفایل</h1>
+              </div>
+            </header>
+
+            <section className="profile-page-grid">
+              <div className="profile-page-card profile-page-card-main">
+                <div className="profile-avatar" aria-hidden="true">
+                  {String(profile.name || 'ک').trim().charAt(0) || 'ک'}
+                </div>
+                <div className="profile-page-fields">
+                  <TextField label="نام" type="text" value={profileFormName} onChange={(event) => setProfileFormName(event.target.value)} errorText={profileFormErrors.name} />
+                  <TextField
+                    label="سن"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9۰-۹٠-٩]*"
+                    value={profileFormAge}
+                    onChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
+                    errorText={profileFormErrors.age}
+                  />
+                  <TextField label="شماره والد" type="text" value={profile.phone || '-'} readOnly helperText="شماره والد هنگام ثبت نام تعیین می‌شود." />
+                </div>
+                <div className="profile-id-box">
+                  <span>شناسه یکتا:</span>
+                  <code>{String(profile.id ?? '')}</code>
+                </div>
+                <Button type="button" className="start-btn" onClick={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}>
+                  ذخیره تغییرات
+                </Button>
+              </div>
+
+              <div className="profile-page-card">
+                <div className="profile-section">
+                  <label>تم سایت</label>
+                  <div className="profile-theme-actions">
+                    <Button type="button" className={`theme-btn ${theme === 'energy' ? 'active' : ''}`} onClick={() => applyTheme('energy')}>
+                      انرژی
+                    </Button>
+                    <Button type="button" className={`theme-btn ${theme === 'calm' ? 'active' : ''}`} onClick={() => applyTheme('calm')}>
+                      آرامش
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="parent-panel">
+                  <div className="parent-panel__header">
+                    <div>
+                      <strong>پنل والد</strong>
+                      <span>مدیریت امن حساب کودک</span>
+                    </div>
+                    <span className="parent-panel__badge">فعال</span>
+                  </div>
+
+                  <div className="parent-panel__grid">
+                    <div>
+                      <span>کودک</span>
+                      <strong>{profileFormName.trim() || profile.name || 'کودک'}</strong>
+                    </div>
+                    <div>
+                      <span>شماره والد</span>
+                      <strong>{profile.phone || '-'}</strong>
+                    </div>
+                    <div>
+                      <span>سطح ایمنی</span>
+                      <strong>{Number(profile.age || 0) <= 12 ? 'سخت‌گیرانه' : 'استاندارد'}</strong>
+                    </div>
+                    <div>
+                      <span>پیام مهمان</span>
+                      <strong>{String(publicSettings['guest.limit_modal.badge_text'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text'])} پیام</strong>
+                    </div>
+                  </div>
+
+                  <div className="parent-panel__actions">
+                    <Button type="button" variant="secondary" onClick={handleViewPlans}>
+                      مدیریت اشتراک
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={handleDownloadActiveConversation}>
+                      ذخیره گفتگوی فعلی
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="profile-danger-actions">
+                  <Button type="button" variant="danger" onClick={handleDeleteAllConversations}>
+                    حذف همه گفتگوها
+                  </Button>
+                  <Button type="button" variant="danger" onClick={handleLogout}>
+                    خروج از حساب کاربری
+                  </Button>
+                </div>
+              </div>
+            </section>
+          </main>
         ) : null}
         {currentView === 'home' && sidebarOpen ? (
           <button
@@ -2902,7 +3345,43 @@ function ChatApp() {
                 </div>
               </div>
 
-              <div className="parent-panel-soon">پنل والد به زودی فعال می‌شود</div>
+              <div className="parent-panel">
+                <div className="parent-panel__header">
+                  <div>
+                    <strong>پنل والد</strong>
+                    <span>مدیریت امن حساب کودک</span>
+                  </div>
+                  <span className="parent-panel__badge">فعال</span>
+                </div>
+
+                <div className="parent-panel__grid">
+                  <div>
+                    <span>کودک</span>
+                    <strong>{profileFormName.trim() || profile.name || 'کودک'}</strong>
+                  </div>
+                  <div>
+                    <span>شماره والد</span>
+                    <strong>{profile.phone || '-'}</strong>
+                  </div>
+                  <div>
+                    <span>سطح ایمنی</span>
+                    <strong>{Number(profile.age || 0) <= 12 ? 'سخت‌گیرانه' : 'استاندارد'}</strong>
+                  </div>
+                  <div>
+                    <span>پیام مهمان</span>
+                    <strong>{String(publicSettings['guest.limit_modal.badge_text'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text'])} پیام</strong>
+                  </div>
+                </div>
+
+                <div className="parent-panel__actions">
+                  <Button type="button" variant="secondary" onClick={handleViewPlans}>
+                    مدیریت اشتراک
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={handleDownloadActiveConversation}>
+                    ذخیره گفتگوی فعلی
+                  </Button>
+                </div>
+              </div>
 
               <div className="profile-danger-actions">
                 <Button type="button" variant="danger" onClick={handleDeleteAllConversations}>
@@ -2930,6 +3409,7 @@ function ChatApp() {
             title="ورود / ثبت‌نام"
             onClose={() => {
               setShowSettingsAuthModal(false);
+              setReturnToChatAfterAuth(false);
               setErrors({});
               setVerificationCode('');
               setSignupToken('');
@@ -2988,25 +3468,42 @@ function ChatApp() {
        ) : null}
 
        {showGuestLimitModal ? (
-         <Dialog open={showGuestLimitModal} title={String(publicSettings['guest.limit_modal.title'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.title'])} onClose={() => {}} showFooter={false}>
+         <Dialog
+           open={showGuestLimitModal}
+           title={String(publicSettings['guest.limit_modal.title'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.title'])}
+           onClose={() => setShowGuestLimitModal(false)}
+           showFooter={false}
+         >
            <div className="guest-limit-modal">
              <div className="guest-limit-hero" aria-hidden="true">
-               <span className="guest-limit-badge">{String(publicSettings['guest.limit_modal.badge_text'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text'])}</span>
+               <span className="guest-limit-badge">
+                 {guestLimitInfo?.limit ? String(guestLimitInfo.limit) : String(publicSettings['guest.limit_modal.badge_text'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text'])}
+               </span>
              </div>
 
              <div className="guest-limit-copy">
                <h2>{String(publicSettings['guest.limit_modal.heading'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.heading'])}</h2>
                <p>{String(publicSettings['guest.limit_modal.body'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.body'])}</p>
+               {guestLimitInfo ? (
+                 <small>
+                   {guestLimitInfo.usage} پیام مهمان از {guestLimitInfo.limit} پیام رایگان استفاده شده است.
+                 </small>
+               ) : null}
              </div>
 
-             <Button
-               type="button"
-               size="lg"
-               className="guest-limit-primary"
-               onClick={handleGuestSignupRequired}
-             >
-               {String(publicSettings['guest.limit_modal.cta'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.cta'])}
-             </Button>
+             <div className="guest-limit-actions">
+               <Button
+                 type="button"
+                 size="lg"
+                 className="guest-limit-primary"
+                 onClick={handleGuestSignupRequired}
+               >
+                 {String(publicSettings['guest.limit_modal.cta'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.cta'])}
+               </Button>
+               <button type="button" className="guest-limit-later" onClick={() => setShowGuestLimitModal(false)}>
+                 فعلاً در چت بمانم
+               </button>
+             </div>
            </div>
          </Dialog>
        ) : null}
@@ -3038,19 +3535,50 @@ function ChatApp() {
 
              <div className="image-gen-copy">
                <h2>چی می‌خوای بسازی؟</h2>
-               <p>هرچی توی ذهنت هست بنویس...</p>
+               <p>سوژه، سبک، رنگ و حس تصویر را کوتاه و روشن بنویس.</p>
+             </div>
+
+             <div className="image-gen-examples" aria-label="نمونه پرامپت‌ها">
+               {IMAGE_PROMPT_EXAMPLES.map((example) => (
+                 <button
+                   key={example}
+                   type="button"
+                   onClick={() => {
+                     setImageGenPrompt(example);
+                     setImageGenError('');
+                   }}
+                   disabled={isGeneratingImage}
+                 >
+                   {example}
+                 </button>
+               ))}
              </div>
 
              <label className="image-gen-field">
                <textarea
                  dir="rtl"
                  value={imageGenPrompt}
-                 onChange={(event) => setImageGenPrompt(event.target.value)}
-                 placeholder="مثلاً: یه گربه فضایی بامزه"
+                 onChange={(event) => {
+                   setImageGenPrompt(event.target.value.slice(0, IMAGE_PROMPT_MAX_LENGTH));
+                   setImageGenError('');
+                 }}
+                 onKeyDown={(event) => {
+                   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                     event.preventDefault();
+                     void handleGenerateImageSubmit();
+                   }
+                 }}
+                 placeholder="مثلاً: یک گربه فضایی بامزه، سبک سه‌بعدی، رنگ‌های شاد، نور نرم"
                  disabled={isGeneratingImage}
                  aria-label="توضیح تصویر"
+                 maxLength={IMAGE_PROMPT_MAX_LENGTH}
                />
              </label>
+
+             <div className="image-gen-meta">
+               <span>{imagePromptLength}/{IMAGE_PROMPT_MAX_LENGTH}</span>
+               <span>Ctrl + Enter برای ساخت</span>
+             </div>
 
              {imageGenStatus ? <div className="image-gen-status">{imageGenStatus}</div> : null}
              {imageGenError ? <div className="image-gen-error">{imageGenError}</div> : null}
@@ -3059,7 +3587,7 @@ function ChatApp() {
                type="button"
                className="image-gen-submit"
                onClick={handleGenerateImageSubmit}
-               disabled={isGeneratingImage || !imageGenPrompt.trim()}
+               disabled={!canSubmitImagePrompt}
              >
                <span>{isGeneratingImage ? 'در حال ساخت...' : 'بساز'}</span>
                <span aria-hidden="true">✦</span>
@@ -3322,7 +3850,14 @@ function App() {
     return <PaymentSuccessPage />;
   }
 
-  if (pathname !== '/chat' && pathname !== '/home') {
+  if (
+    pathname !== '/chat' &&
+    pathname !== '/home' &&
+    pathname !== '/generate' &&
+    pathname !== '/photos' &&
+    pathname !== '/profile' &&
+    pathname !== '/settings'
+  ) {
     return <DanuaLanding />;
   }
 

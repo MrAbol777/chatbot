@@ -19,6 +19,40 @@ CREATE TABLE IF NOT EXISTS app_users (
   INDEX idx_app_users_last_active (last_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS app_guardians (
+  guardian_id VARCHAR(191) PRIMARY KEY,
+  phone VARCHAR(32) NOT NULL,
+  display_name VARCHAR(191) NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  UNIQUE KEY uq_app_guardians_phone (phone),
+  INDEX idx_app_guardians_updated_at (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS app_children (
+  child_id VARCHAR(191) PRIMARY KEY,
+  guardian_id VARCHAR(191) NOT NULL,
+  name VARCHAR(191) NOT NULL,
+  age INT NOT NULL DEFAULT 0,
+  avatar VARCHAR(255) NULL,
+  grade VARCHAR(64) NULL,
+  safety_level VARCHAR(32) NOT NULL DEFAULT 'standard',
+  guardian_consent_at DATETIME NULL,
+  guardian_consent_version VARCHAR(32) NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_app_children_guardian_id (guardian_id),
+  INDEX idx_app_children_updated_at (updated_at),
+  CONSTRAINT fk_app_children_user
+    FOREIGN KEY (child_id)
+    REFERENCES app_users(user_id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_app_children_guardian
+    FOREIGN KEY (guardian_id)
+    REFERENCES app_guardians(guardian_id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS app_events (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id VARCHAR(191) NOT NULL,
@@ -107,6 +141,14 @@ CREATE TABLE IF NOT EXISTS image_generations (
   prompt TEXT NOT NULL,
   status ENUM('QUEUE', 'WAITING', 'RUNNING', 'COMPLETED', 'ERROR', 'CANCELLED') NOT NULL DEFAULT 'QUEUE',
   image_url TEXT NULL,
+  local_file_path TEXT NULL,
+  mime_type VARCHAR(100) NULL,
+  file_size BIGINT NULL,
+  provider VARCHAR(64) NULL,
+  model_admin_value VARCHAR(191) NULL,
+  model_runtime_value VARCHAR(191) NULL,
+  remote_url_host VARCHAR(255) NULL,
+  metadata JSON NULL,
   error TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

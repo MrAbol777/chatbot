@@ -31,6 +31,65 @@ const setGuestCookie = (res, guestId) => {
   });
 };
 
+const getPublicBaseUrl = (req) => {
+  const configured = String(process.env.PUBLIC_APP_URL || process.env.BALE_WEBHOOK_PUBLIC_URL || '').replace(/\/+$/, '');
+  if (configured) return configured;
+  const protocol = String(req.headers?.['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+  const host = String(req.headers?.['x-forwarded-host'] || req.get?.('host') || '').split(',')[0].trim();
+  return host ? `${protocol}://${host}` : '';
+};
+
+const toAbsoluteImageUrl = (req, value) => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const baseUrl = getPublicBaseUrl(req);
+  if (!baseUrl) return '';
+  return `${baseUrl}${raw.startsWith('/') ? raw : `/${raw}`}`;
+};
+
+const isPrivateImageProviderUrl = (value) => {
+  const raw = String(value || '').trim();
+  try {
+    const url = new URL(raw, 'https://local.invalid');
+    // TODO: replace this block with a short-lived signed /api/images/input/:token URL for provider-side image edit.
+    return (
+      url.pathname.startsWith('/api/images/result/') ||
+      url.pathname.startsWith('/api/images/serve/') ||
+      url.pathname.startsWith('/api/images/status/')
+    );
+  } catch (_error) {
+    return true;
+  }
+};
+
+const getImageInputUrls = (req, imageIds, history) => {
+  const urls = [];
+  let hasPrivateImage = false;
+  for (const imageId of Array.isArray(imageIds) ? imageIds : []) {
+    const normalized = typeof imageId === 'string' ? imageId.trim() : '';
+    if (normalized) urls.push(toAbsoluteImageUrl(req, `/api/uploads/images/${encodeURIComponent(normalized)}`));
+  }
+
+  const recentWithImages = Array.isArray(history)
+    ? [...history].reverse().find((item) => Array.isArray(item?.images) && item.images.length > 0)
+    : null;
+  for (const image of Array.isArray(recentWithImages?.images) ? recentWithImages.images : []) {
+    const url = typeof image?.url === 'string' ? image.url : typeof image === 'string' ? image : '';
+    if (!url) continue;
+    if (isPrivateImageProviderUrl(url)) {
+      hasPrivateImage = true;
+      continue;
+    }
+    urls.push(toAbsoluteImageUrl(req, url));
+  }
+
+  return {
+    urls: [...new Set(urls.filter(Boolean))].slice(0, 14),
+    hasPrivateImage
+  };
+};
+
 function createAiController({
   aiService,
   errorsRepository,
@@ -157,7 +216,36 @@ function createAiController({
         }
 
         try {
-          const task = await imageGenerationController.createImageTask(req, res, { prompt });
+          const imageInput = isEdit ? getImageInputUrls(req, imageIds, history) : { urls: [], hasPrivateImage: false };
+          if (isEdit && imageInput.urls.length === 0) {
+            const { userId } = await imageGenerationController.resolveUserContext(req, res);
+            const assistantText = imageInput.hasPrivateImage
+              ? 'برای ویرایش تصویر، فایل باید به صورت قابل دسترسی برای سرویس تصویر آماده شود.'
+              : 'برای ویرایش تصویر، اول یک تصویر مرجع بفرست یا روی تصویری که قبلاً ساخته شده ادامه بده.';
+            const messages = await persistFailure({
+              userId,
+              assistantText,
+              errorCode: imageInput.hasPrivateImage ? 'IMAGE_EDIT_REQUIRES_PUBLIC_URL' : 'IMAGE_EDIT_REQUIRES_IMAGE'
+            });
+            return res.json({
+              intent: intentResult.intent,
+              status: 'ERROR',
+              assistantText,
+              messages
+            });
+          }
+          const enhancedPrompt =
+            aiService && typeof aiService.enhanceImagePrompt === 'function'
+              ? await aiService.enhanceImagePrompt(prompt, {
+                  requestId: res.locals.requestId,
+                  intent: intentResult.intent
+                })
+              : '';
+          const task = await imageGenerationController.createImageTask(req, res, {
+            prompt,
+            enhancedPrompt,
+            imageInput: imageInput.urls
+          });
           const assistantText = 'باشه، دارم تصویرت رو می‌سازم...';
           const messages = await aiService.persistImageChatTurn({
             userId: task.userId,
@@ -222,7 +310,11 @@ function createAiController({
         if (currentCount >= guestMessageLimit) {
           return res.status(403).json({
             error: 'GUEST_LIMIT_REACHED',
-            limit: guestMessageLimit
+            message: 'برای ادامه گفتگو، لطفاً با کمک والد گفتگوها را ذخیره کنید.',
+            limit: guestMessageLimit,
+            usage: currentCount,
+            remaining: 0,
+            nextAction: 'guardian_signup'
           });
         }
 

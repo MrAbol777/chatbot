@@ -3,6 +3,8 @@ frontend/node_modules
 backend/node_modules
 frontend/dist
 backend/dist
+backend/storage/generated-images
+data/generated-images
 /logs
 .git
 .vscode

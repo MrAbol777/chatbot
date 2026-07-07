@@ -160,6 +160,7 @@ const {
   geminiApiKey,
   geminiImageModel,
   geminiBaseUrl,
+  ai,
   adminApiKey,
   adminJwtSecret,
   authJwtSecret,
@@ -168,6 +169,14 @@ const {
   systemPromptPath,
   frontendDistPath
 } = loadRuntimeConfig(process.env);
+try {
+  fs.ensureDirSync(ai.image.storageDir);
+} catch (error) {
+  console.warn('[image-generation] storage directory is not writable at boot', {
+    storageDir: ai.image.storageDir,
+    message: error instanceof Error ? error.message : String(error)
+  });
+}
 const openaiClient = new OpenAI({
   apiKey: metisApiKey || 'missing-metis-api-key',
   baseURL: metisBaseUrl
@@ -334,7 +343,7 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
     }
   }
 
-  // Generated chat images are served through /api/images/result/:taskId,
+  // Generated chat images are served through /api/images/serve/:taskId,
   // where task ownership is checked for logged-in users and guests.
   if (/^[1-9]\d*$|^0$/.test(imageId)) {
     return res.status(404).json({ error: 'IMAGE_NOT_FOUND' });
@@ -372,6 +381,7 @@ const imageGenerationModule = createImageGenerationRouter({
   geminiApiKey,
   geminiImageModel,
   geminiBaseUrl,
+  imageConfig: ai.image,
   db: repositories.db,
   plansRepository: repositories.plans,
   settingsRepository: repositories.settings,
@@ -443,7 +453,10 @@ const { router: adminRouter } = createAdminRouter({
   cookieName: adminCookieName,
   onSystemPromptUpdated: invalidateSystemPromptCache,
   adminApiKey,
-  repositories
+  repositories,
+  runtimeConfig: { ai },
+  imageRuntimeSettingsResolver: imageGenerationModule.imageRuntimeSettingsResolver,
+  imageGenerationService: imageGenerationModule.imageGenerationService
 });
 app.use('/api/admin', adminRouter);
 

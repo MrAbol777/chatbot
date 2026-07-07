@@ -61,7 +61,11 @@ function goBack() {
 }
 
 function goToTools() {
-  window.location.href = '/home';
+  window.location.href = '/generate';
+}
+
+function goToProfile() {
+  window.location.href = '/profile';
 }
 
 function CheckIcon() {
@@ -72,7 +76,7 @@ function CheckIcon() {
   );
 }
 
-function NavIcon({ name }: { name: 'home' | 'chat' | 'tools' | 'profile' }) {
+function NavIcon({ name }: { name: 'home' | 'chat' | 'tools' | 'profile' | 'subscription' }) {
   if (name === 'home') {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -93,6 +97,14 @@ function NavIcon({ name }: { name: 'home' | 'chat' | 'tools' | 'profile' }) {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="m14.7 6.3 3-3a4 4 0 0 1-5 5l-6.4 6.4a2 2 0 1 0 3 3l6.4-6.4a4 4 0 0 1 5 5l-3 3" />
+      </svg>
+    );
+  }
+
+  if (name === 'subscription') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3Z" />
       </svg>
     );
   }
@@ -273,9 +285,13 @@ function PlansPage() {
         </button>
         <button type="button" onClick={goToTools}>
           <NavIcon name="tools" />
-          <span>ابزارها</span>
+          <span>عکس</span>
         </button>
         <button type="button" className="active">
+          <NavIcon name="subscription" />
+          <span>اشتراک</span>
+        </button>
+        <button type="button" onClick={goToProfile}>
           <NavIcon name="profile" />
           <span>پروفایل</span>
         </button>
@@ -293,9 +309,13 @@ function PlansPage() {
         </button>
         <button type="button" onClick={goToTools}>
           <NavIcon name="tools" />
-          <span>ابزارها</span>
+          <span>عکس</span>
         </button>
         <button type="button" className="active">
+          <NavIcon name="subscription" />
+          <span>اشتراک</span>
+        </button>
+        <button type="button" onClick={goToProfile}>
           <NavIcon name="profile" />
           <span>پروفایل</span>
         </button>

@@ -19,7 +19,10 @@
   position: relative;
   min-height: 100dvh;
   overflow-x: hidden;
-  background: var(--plans-background);
+  background:
+    radial-gradient(circle at 18% 20%, rgba(234, 221, 255, 0.54), transparent 30%),
+    radial-gradient(circle at 84% 16%, rgba(255, 220, 197, 0.48), transparent 28%),
+    var(--plans-background);
   color: var(--plans-text);
   padding-bottom: 104px;
 }
@@ -526,17 +529,44 @@
 
 @media (min-width: 768px) {
   .plans-page {
-    padding-bottom: 64px;
-    padding-right: 264px;
+    padding: 32px 280px 64px 32px;
   }
 
   .plans-main {
-    width: min(100%, 520px);
-    padding-inline: 24px;
+    width: min(100%, 980px);
+    padding: 0 24px;
+  }
+
+  .plans-heading {
+    text-align: right;
+    margin-top: 12px;
+    margin-bottom: 28px;
+  }
+
+  .plans-heading h1,
+  .plans-heading p {
+    justify-content: flex-start;
+  }
+
+  .plans-heading h1 {
+    font-size: clamp(2rem, 3vw, 2.6rem);
+    line-height: 1.35;
+  }
+
+  .plans-toggle {
+    margin-inline: 0;
+    margin-bottom: 28px;
+  }
+
+  .plans-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 18px;
   }
 
   .plans-card {
-    min-height: 338px;
+    min-height: 360px;
+    border-radius: 18px;
   }
 
   .plans-bottom-nav {
@@ -547,14 +577,16 @@
     position: fixed;
     top: 64px;
     right: 0;
-    bottom: 0;
+    bottom: 32px;
     z-index: 4;
     width: 264px;
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 24px;
-    border-left: 1px solid rgba(204, 195, 216, 0.38);
+    border: 1px solid rgba(204, 195, 216, 0.38);
+    border-right: none;
+    border-radius: 24px 0 0 24px;
     background: rgba(255, 255, 255, 0.82);
     backdrop-filter: blur(16px);
     box-shadow: 0 4px 16px rgba(99, 14, 212, 0.06);
@@ -610,6 +642,31 @@
   }
 }
 
+@media (min-width: 1200px) {
+  .plans-main {
+    width: min(100%, 1120px);
+  }
+
+  .plans-list {
+    gap: 22px;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 768px) {
+  .plans-page {
+    padding-right: 220px;
+  }
+
+  .plans-desktop-nav {
+    width: 220px;
+    padding: 18px;
+  }
+
+  .plans-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 360px) {
   .plans-main {
     padding-inline: 14px;
@@ -621,5 +678,72 @@
 
   .plans-price strong {
     font-size: 30px;
+  }
+}
+
+/* Responsive pass for tablet and small laptop widths. */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  .plans-page {
+    padding: 30px 24px 116px;
+  }
+
+  .plans-main {
+    width: min(100%, 820px);
+    padding-inline: 0;
+  }
+
+  .plans-heading {
+    margin-top: 8px;
+    margin-bottom: 24px;
+  }
+
+  .plans-toggle {
+    margin-bottom: 24px;
+  }
+
+  .plans-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .plans-card {
+    min-height: 340px;
+    border-radius: 18px;
+  }
+
+  .plans-bottom-nav {
+    left: 24px;
+    right: 24px;
+    bottom: 18px;
+    width: min(680px, calc(100% - 48px));
+    height: 76px;
+    margin-inline: auto;
+    border: 1px solid rgba(204, 195, 216, 0.38);
+    border-radius: 9999px;
+    box-shadow: 0 16px 42px rgba(45, 49, 51, 0.1);
+  }
+
+  .plans-desktop-nav {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 760px) {
+  .plans-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .plans-page {
+    padding: 32px 280px 64px 32px;
+  }
+
+  .plans-bottom-nav {
+    display: none;
+  }
+
+  .plans-desktop-nav {
+    display: flex;
   }
 }

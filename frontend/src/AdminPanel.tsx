@@ -101,6 +101,55 @@ type SiteSettingsPayload = {
   definitions?: Record<string, { label: string; type: string; category: string; allowedValues?: string[] }>;
 };
 
+type AiRuntimeStatus = {
+  chat: {
+    provider: string;
+    model?: string | null;
+    baseUrlHost?: string;
+    apiKeySource: string;
+    apiKeySet: boolean;
+    apiKeyFingerprint?: string;
+  };
+  image: {
+    enabled?: boolean;
+    provider: string;
+    modelSource?: string;
+    modelAdminValue: string;
+    modelRuntimeValue: string;
+    modelProviderName?: string;
+    operation?: string;
+    baseUrlHost?: string;
+    apiKeySource: string;
+    apiKeySet: boolean;
+    apiKeyFingerprint?: string;
+    resolution: string;
+    aspectRatio: string;
+    outputFormat: string;
+    safetyFilterLevel: string;
+    pollIntervalMs?: number;
+    pollTimeoutMs?: number;
+    maxDownloadMb?: number;
+    editEnabled?: boolean;
+    promptEnhancerEnabled?: boolean;
+    lastValidationStatus?: string;
+    storageDir?: string;
+    storageWritable?: boolean;
+    publicServeRoute?: string;
+  };
+};
+
+type ImageModelPreset = {
+  id: string;
+  label: string;
+  adminValue: string;
+  provider: string;
+  runtimeProviderName: string;
+  runtimeModel: string;
+  operation: string;
+  supportsImageEdit?: boolean;
+  defaultResolution?: string;
+};
+
 type SupervisedOtpConfig = {
   enabled: boolean;
   hasCode: boolean;
@@ -111,7 +160,7 @@ type SupervisedOtpConfig = {
 };
 
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
-type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'errors' | 'siteSettings' | 'supervisedOtp' | 'config' | 'audit';
+type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'limits' | 'errors' | 'siteSettings' | 'supervisedOtp' | 'config' | 'audit';
 type ReportUserScope = 'all' | 'selected';
 type ReportFormat = 'csv' | 'txt';
 type ReportSection =
@@ -129,10 +178,30 @@ const USERS_PAGE_SIZE = 10;
 const parseNullableNumberInput = (value: string): number | null => (
   value.trim() === '' ? null : Number(value)
 );
+const normalizeLimitValue = (value: number | null | undefined) => (
+  value === null || value === undefined ? null : Math.max(0, Number(value) || 0)
+);
+const formatLimitLabel = (value: number | null | undefined, unit: string) => {
+  if (value === null || value === undefined) return 'نامحدود';
+  if (Number(value) === 0) return 'غیرفعال';
+  return `${new Intl.NumberFormat('fa-IR').format(Number(value))} ${unit}`;
+};
+const getLimitTone = (messageLimit: number | null | undefined, dailyImageLimit: number | null | undefined, hourlyImageLimit: number | null | undefined) => {
+  if (messageLimit === 0 || dailyImageLimit === 0 || hourlyImageLimit === 0) return 'blocked';
+  if (messageLimit === null && dailyImageLimit === null && hourlyImageLimit === null) return 'unlimited';
+  return 'limited';
+};
+const LIMIT_PRESETS = [
+  { id: 'starter', label: 'شروع امن', message: 10, dailyImage: 2, hourlyImage: 1 },
+  { id: 'balanced', label: 'متعادل', message: 50, dailyImage: 10, hourlyImage: 4 },
+  { id: 'unlimited', label: 'نامحدود', message: null, dailyImage: null, hourlyImage: null },
+  { id: 'images-off', label: 'تصویر خاموش', message: null, dailyImage: 0, hourlyImage: 0 }
+] as const;
 const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'داشبورد',
   users: 'کاربران',
   subscriptions: 'اشتراک‌ها',
+  limits: 'لیمیت‌ها',
   errors: 'خطاها',
   siteSettings: 'تنظیمات سایت',
   supervisedOtp: 'Supervised OTP',
@@ -144,6 +213,7 @@ const TAB_ICONS: Record<keyof typeof TAB_LABELS, string> = {
   dashboard: '▦',
   users: '◎',
   subscriptions: '◈',
+  limits: '⏱',
   errors: '!',
   siteSettings: '⚙',
   supervisedOtp: 'OTP',
@@ -161,6 +231,62 @@ const REPORT_SECTION_OPTIONS: Array<{ key: ReportSection; label: string }> = [
   { key: 'ai_performance', label: 'AI performance' },
   { key: 'guest_conversations', label: 'چت‌های مهمان' },
   { key: 'supervised_otp_usage', label: 'Supervised OTP' }
+];
+const FALLBACK_IMAGE_MODEL_PRESETS: ImageModelPreset[] = [
+  {
+    id: 'nano-banana-pro',
+    label: 'Nano Banana Pro',
+    adminValue: 'gemini-3-pro-image',
+    provider: 'metis',
+    runtimeProviderName: 'google',
+    runtimeModel: 'nano-banana-pro',
+    operation: 'Imagine',
+    supportsImageEdit: true,
+    defaultResolution: '1K'
+  },
+  {
+    id: 'nano-banana',
+    label: 'Nano Banana',
+    adminValue: 'gemini-2.5-flash-image',
+    provider: 'metis',
+    runtimeProviderName: 'google',
+    runtimeModel: 'nano-banana',
+    operation: 'Imagine',
+    supportsImageEdit: true,
+    defaultResolution: '1K'
+  },
+  {
+    id: 'flux-schnell',
+    label: 'Flux Schnell',
+    adminValue: 'flux-schnell',
+    provider: 'metis',
+    runtimeProviderName: 'black-forest-labs',
+    runtimeModel: 'flux-schnell',
+    operation: 'Imagine',
+    supportsImageEdit: false,
+    defaultResolution: '1K'
+  },
+  {
+    id: 'custom',
+    label: 'Custom',
+    adminValue: 'custom',
+    provider: 'metis',
+    runtimeProviderName: '',
+    runtimeModel: '',
+    operation: 'Imagine',
+    supportsImageEdit: false,
+    defaultResolution: '1K'
+  }
+];
+const IMAGE_PROVIDER_OPTIONS = ['metis', 'gemini', 'xai'];
+const IMAGE_RESOLUTION_OPTIONS = ['1K', '2K'];
+const IMAGE_ASPECT_RATIO_OPTIONS = ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'];
+const IMAGE_OUTPUT_FORMAT_OPTIONS = ['jpg', 'png'];
+const IMAGE_SAFETY_FILTER_OPTIONS = [
+  'block_only_high',
+  'block_medium_and_above',
+  'block_low_and_above',
+  'block_none'
 ];
 
 const formatDateInput = (date: Date) => {
@@ -240,10 +366,18 @@ function AdminPanel() {
   const [subscriptions, setSubscriptions] = useState<SubscriptionsPayload | null>(null);
   const [subscriptionMessage, setSubscriptionMessage] = useState('');
   const [subscriptionSaving, setSubscriptionSaving] = useState(false);
+  const [limitsMessage, setLimitsMessage] = useState('');
+  const [limitsSaving, setLimitsSaving] = useState(false);
   const [assignForm, setAssignForm] = useState({ userId: '', planId: 'gold', expiresAt: '', note: '' });
   const [siteSettings, setSiteSettings] = useState<SiteSettingsPayload | null>(null);
   const [siteSettingsSaving, setSiteSettingsSaving] = useState(false);
   const [siteSettingsMessage, setSiteSettingsMessage] = useState('');
+  const [aiRuntimeStatus, setAiRuntimeStatus] = useState<AiRuntimeStatus | null>(null);
+  const [imageModelPresets, setImageModelPresets] = useState<ImageModelPreset[]>(FALLBACK_IMAGE_MODEL_PRESETS);
+  const [imageTestPrompt, setImageTestPrompt] = useState('A single blue banana, clean white background');
+  const [imageTestResult, setImageTestResult] = useState<any>(null);
+  const [imageTestMessage, setImageTestMessage] = useState('');
+  const [imageTestLoading, setImageTestLoading] = useState(false);
   const [supervisedOtp, setSupervisedOtp] = useState<SupervisedOtpConfig | null>(null);
   const [supervisedOtpForm, setSupervisedOtpForm] = useState({
     enabled: false,
@@ -379,6 +513,28 @@ function AdminPanel() {
     }
   };
 
+  const loadAiRuntimeStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/ai-runtime-status', { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری وضعیت runtime هوش مصنوعی ناموفق بود.');
+      if (result.ok) setAiRuntimeStatus(result.data as AiRuntimeStatus);
+    } catch {
+      setAiRuntimeStatus(null);
+    }
+  };
+
+  const loadImageModelPresets = async () => {
+    try {
+      const response = await fetch('/api/admin/image-model-presets', { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری presetهای مدل تصویر ناموفق بود.');
+      if (result.ok && Array.isArray(result.data?.presets)) {
+        setImageModelPresets(result.data.presets as ImageModelPreset[]);
+      }
+    } catch {
+      setImageModelPresets(FALLBACK_IMAGE_MODEL_PRESETS);
+    }
+  };
+
   const loadSupervisedOtp = async () => {
     setSupervisedOtpMessage('');
     try {
@@ -407,10 +563,22 @@ function AdminPanel() {
     void loadLogs();
     void loadSubscriptions();
     void loadSiteSettings();
+    void loadAiRuntimeStatus();
+    void loadImageModelPresets();
     void loadSupervisedOtp();
   }, []);
 
   const visibleUsers = useMemo(() => users, [users]);
+  const sortedPlans = useMemo(
+    () => [...(subscriptions?.plans || [])].sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999)),
+    [subscriptions?.plans]
+  );
+  const activePlansCount = sortedPlans.filter((plan) => plan.isActive).length;
+  const guestLimitTone = getLimitTone(
+    siteSettings?.settings?.['guest.message_limit'],
+    siteSettings?.settings?.['guest.image_limit_daily'],
+    siteSettings?.settings?.['guest.image_limit_hourly']
+  );
   const usersTotalPages = Math.max(1, Math.ceil(usersTotal / USERS_PAGE_SIZE));
   const selectedReportUsersOnPage = visibleUsers.filter((user) => selectedReportUserIds.includes(user.user_id));
   const isEveryVisibleUserSelected = visibleUsers.length > 0 && selectedReportUsersOnPage.length === visibleUsers.length;
@@ -610,6 +778,67 @@ function AdminPanel() {
     }
   };
 
+  const saveLimitPlan = async (plan: SubscriptionPlan) => {
+    setLimitsSaving(true);
+    setLimitsMessage('');
+    try {
+      const response = await fetch(`/api/admin/subscriptions/plans/${encodeURIComponent(plan.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(plan)
+      });
+      await handleAdminResponse(response, 'ذخیره لیمیت پلن ناموفق بود.');
+      await loadSubscriptions();
+      setLimitsMessage(`لیمیت‌های پلن «${plan.name}» ذخیره شد.`);
+    } catch (error) {
+      setLimitsMessage(error instanceof Error ? error.message : 'ذخیره لیمیت پلن ناموفق بود.');
+    } finally {
+      setLimitsSaving(false);
+    }
+  };
+
+  const saveGuestLimits = async () => {
+    if (!siteSettings) return;
+    setLimitsSaving(true);
+    setLimitsMessage('');
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ settings: siteSettings.settings })
+      });
+      const result = await handleAdminResponse(response, 'ذخیره لیمیت مهمان ناموفق بود.');
+      if (result.ok) {
+        setSiteSettings(result.data);
+        await loadAiRuntimeStatus();
+        setLimitsMessage('لیمیت‌های مهمان ذخیره شد.');
+      }
+    } catch (error) {
+      setLimitsMessage(error instanceof Error ? error.message : 'ذخیره لیمیت مهمان ناموفق بود.');
+    } finally {
+      setLimitsSaving(false);
+    }
+  };
+
+  const applyGuestLimitPreset = (preset: typeof LIMIT_PRESETS[number]) => {
+    updateSiteSettingsPatch({
+      'guest.message_limit': normalizeLimitValue(preset.message),
+      'guest.image_limit_daily': normalizeLimitValue(preset.dailyImage),
+      'guest.image_limit_hourly': normalizeLimitValue(preset.hourlyImage),
+      'guest.limit_modal.badge_text': preset.message === null ? '∞' : String(preset.message)
+    });
+  };
+
+  const applyPlanLimitPreset = (planId: string, preset: typeof LIMIT_PRESETS[number]) => {
+    updateLocalPlan(planId, {
+      dailyMessageLimit: normalizeLimitValue(preset.message),
+      dailyImageLimit: normalizeLimitValue(preset.dailyImage),
+      hourlyImageLimit: normalizeLimitValue(preset.hourlyImage)
+    });
+  };
+
   const assignSubscription = async () => {
     if (!assignForm.userId || !assignForm.planId) {
       setSubscriptionMessage('کاربر و پلن را انتخاب کنید.');
@@ -666,6 +895,82 @@ function AdminPanel() {
     });
   };
 
+  const updateSiteSettingsPatch = (patch: Record<string, any>) => {
+    setSiteSettings((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          ...patch
+        }
+      };
+    });
+  };
+
+  const applyImagePreset = (presetId: string) => {
+    const preset = imageModelPresets.find((item) => item.id === presetId) || FALLBACK_IMAGE_MODEL_PRESETS.find((item) => item.id === presetId);
+    if (!preset) return;
+    updateSiteSettingsPatch({
+      'ai.image.model_preset': preset.id,
+      'ai.image.provider': preset.provider,
+      'ai.image.model': preset.adminValue,
+      'ai.image.model.admin_value': preset.adminValue,
+      'ai.image.model.runtime_provider_name': preset.runtimeProviderName,
+      'ai.image.model.runtime_model': preset.runtimeModel,
+      'ai.image.operation': preset.operation,
+      'ai.image.resolution': preset.defaultResolution || '1K',
+      'ai.image.edit_enabled': Boolean(preset.supportsImageEdit)
+    });
+  };
+
+  const runImageDryRun = async () => {
+    setImageTestLoading(true);
+    setImageTestMessage('');
+    setImageTestResult(null);
+    try {
+      const response = await fetch('/api/admin/image-settings/test-dry-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: imageTestPrompt, settings: siteSettings?.settings || {} })
+      });
+      const result = await handleAdminResponse(response, 'Dry-run ساخت تصویر ناموفق بود.');
+      if (result.ok) {
+        setImageTestResult(result.data);
+        setImageTestMessage('Dry-run با موفقیت ساخته شد.');
+      }
+    } catch (error) {
+      setImageTestMessage(error instanceof Error ? error.message : 'Dry-run ساخت تصویر ناموفق بود.');
+    } finally {
+      setImageTestLoading(false);
+    }
+  };
+
+  const runImageLiveTest = async () => {
+    if (!window.confirm('تست واقعی ساخت تصویر اعتبار مصرف می‌کند. ادامه می‌دهی؟')) return;
+    setImageTestLoading(true);
+    setImageTestMessage('');
+    setImageTestResult(null);
+    try {
+      const response = await fetch('/api/admin/image-settings/test-live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: imageTestPrompt, settings: siteSettings?.settings || {} })
+      });
+      const result = await handleAdminResponse(response, 'تست واقعی ساخت تصویر ناموفق بود.');
+      if (result.ok) {
+        setImageTestResult(result.data);
+        setImageTestMessage('تست واقعی با موفقیت انجام شد.');
+      }
+    } catch (error) {
+      setImageTestMessage(error instanceof Error ? error.message : 'تست واقعی ساخت تصویر ناموفق بود.');
+    } finally {
+      setImageTestLoading(false);
+    }
+  };
+
   const saveSiteSettings = async () => {
     if (!siteSettings) return;
     setSiteSettingsSaving(true);
@@ -680,6 +985,7 @@ function AdminPanel() {
       const result = await handleAdminResponse(response, 'ذخیره تنظیمات سایت ناموفق بود.');
       if (result.ok) {
         setSiteSettings(result.data);
+        await loadAiRuntimeStatus();
         setSiteSettingsMessage('تنظیمات سایت با موفقیت ذخیره شد.');
       }
     } catch (error) {
@@ -1133,6 +1439,206 @@ function AdminPanel() {
         </div>
       ) : null}
 
+      {tab === 'limits' ? (
+        <div className="admin-section limits-center">
+          <div className="admin-section-header limits-center__header">
+            <div>
+              <h3>مرکز کنترل لیمیت‌ها</h3>
+              <p className="admin-note">
+                لیمیت مهمان‌ها و همه اشتراک‌های فعلی از اینجا مدیریت می‌شود. هر پلنی که بعداً به سایت اضافه شود، خودکار در همین لیست دیده می‌شود.
+              </p>
+            </div>
+            <FieldGroup direction="row" className="limits-center__actions">
+              <Button className="admin-action-btn" onClick={() => { void loadSubscriptions(); void loadSiteSettings(); }}>
+                بروزرسانی
+              </Button>
+            </FieldGroup>
+          </div>
+
+          {limitsMessage ? (
+            <InlineMessage
+              text={limitsMessage}
+              variant={limitsMessage.includes('ذخیره شد') ? 'success' : 'error'}
+            />
+          ) : null}
+
+          <div className="limits-overview-grid">
+            <div className={`limits-overview-card tone-${guestLimitTone}`}>
+              <span>مهمان‌ها</span>
+              <strong>{formatLimitLabel(siteSettings?.settings?.['guest.message_limit'] ?? 10, 'پیام')}</strong>
+              <small>تصویر روزانه: {formatLimitLabel(siteSettings?.settings?.['guest.image_limit_daily'] ?? 0, 'تصویر')}</small>
+            </div>
+            <div className="limits-overview-card">
+              <span>پلن‌های فعال</span>
+              <strong>{new Intl.NumberFormat('fa-IR').format(activePlansCount)}</strong>
+              <small>از {new Intl.NumberFormat('fa-IR').format(sortedPlans.length)} پلن ثبت‌شده</small>
+            </div>
+            <div className="limits-overview-card">
+              <span>کاربران دارای اشتراک</span>
+              <strong>{new Intl.NumberFormat('fa-IR').format(subscriptions?.userSubscriptions?.length || 0)}</strong>
+              <small>بر اساس لیست اشتراک‌های فعال/ثبت‌شده</small>
+            </div>
+          </div>
+
+          <div className="limits-help-strip">
+            <span>راهنما</span>
+            <p>خالی یعنی نامحدود، عدد ۰ یعنی آن قابلیت کامل غیرفعال می‌شود، عدد مثبت یعنی سقف مصرف در همان بازه.</p>
+          </div>
+
+          <article className="limit-rule-card limit-rule-card--guest">
+            <div className="limit-rule-card__head">
+              <div>
+                <span className="limit-rule-card__eyebrow">Guest policy</span>
+                <h4>مهمان‌ها</h4>
+                <p>قبل از ثبت‌نام یا ورود، این محدودیت‌ها روی چت و ساخت تصویر مهمان اعمال می‌شود.</p>
+              </div>
+              <strong className={`limit-status-pill tone-${guestLimitTone}`}>
+                {guestLimitTone === 'blocked' ? 'بسته' : guestLimitTone === 'unlimited' ? 'نامحدود' : 'محدود'}
+              </strong>
+            </div>
+
+            <div className="limit-preset-row">
+              {LIMIT_PRESETS.map((preset) => (
+                <button key={preset.id} type="button" onClick={() => applyGuestLimitPreset(preset)}>
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            {siteSettings ? (
+              <>
+                <FieldGroup direction="row">
+                  <TextField
+                    label="سقف پیام مهمان"
+                    type="number"
+                    value={String(siteSettings.settings['guest.message_limit'] ?? 10)}
+                    helperText="برای مهمان عدد مشخص بگذار؛ این مقدار سقف کل گفتگوی مهمان است."
+                    onChange={(e) => updateSiteSetting('guest.message_limit', Math.max(0, Number(e.target.value) || 0))}
+                  />
+                  <TextField
+                    label="سقف تصویر روزانه مهمان"
+                    value={siteSettings.settings['guest.image_limit_daily'] === null ? '' : String(siteSettings.settings['guest.image_limit_daily'] ?? 0)}
+                    placeholder="خالی = نامحدود، ۰ = غیرفعال"
+                    onChange={(e) => updateSiteSetting('guest.image_limit_daily', parseNullableNumberInput(e.target.value))}
+                  />
+                  <TextField
+                    label="سقف تصویر ساعتی مهمان"
+                    value={siteSettings.settings['guest.image_limit_hourly'] === null ? '' : String(siteSettings.settings['guest.image_limit_hourly'] ?? 0)}
+                    placeholder="خالی = نامحدود، ۰ = غیرفعال"
+                    onChange={(e) => updateSiteSetting('guest.image_limit_hourly', parseNullableNumberInput(e.target.value))}
+                  />
+                </FieldGroup>
+                <FieldGroup direction="row">
+                  <TextField
+                    label="نشان مودال لیمیت"
+                    value={String(siteSettings.settings['guest.limit_modal.badge_text'] ?? '')}
+                    onChange={(e) => updateSiteSetting('guest.limit_modal.badge_text', e.target.value)}
+                  />
+                  <TextField
+                    label="متن دکمه مودال"
+                    value={String(siteSettings.settings['guest.limit_modal.cta'] ?? '')}
+                    onChange={(e) => updateSiteSetting('guest.limit_modal.cta', e.target.value)}
+                  />
+                </FieldGroup>
+                <TextAreaField
+                  label="پیام مودال وقتی مهمان به سقف می‌رسد"
+                  rows={3}
+                  value={String(siteSettings.settings['guest.limit_modal.body'] ?? '')}
+                  onChange={(e) => updateSiteSetting('guest.limit_modal.body', e.target.value)}
+                />
+                <Button className="admin-action-btn" disabled={limitsSaving} onClick={() => void saveGuestLimits()}>
+                  ذخیره لیمیت مهمان
+                </Button>
+              </>
+            ) : (
+              <p className="admin-note">تنظیمات مهمان هنوز بارگذاری نشده است.</p>
+            )}
+          </article>
+
+          <div className="limit-plan-grid">
+            {sortedPlans.map((plan) => {
+              const tone = getLimitTone(plan.dailyMessageLimit, plan.dailyImageLimit, plan.hourlyImageLimit);
+              return (
+                <article className={`limit-rule-card tone-${tone}`} key={plan.id}>
+                  <div className="limit-rule-card__head">
+                    <div>
+                      <span className="limit-rule-card__eyebrow">{plan.id}</span>
+                      <h4>{plan.icon} {plan.name}</h4>
+                      <p>{plan.tagline || 'قوانین مصرف این اشتراک را تنظیم کن.'}</p>
+                    </div>
+                    <strong className={`limit-status-pill tone-${tone}`}>
+                      {tone === 'blocked' ? 'قابلیت بسته' : tone === 'unlimited' ? 'نامحدود' : 'دارای سقف'}
+                    </strong>
+                  </div>
+
+                  <div className="limit-card-summary">
+                    <span>{formatLimitLabel(plan.dailyMessageLimit, 'پیام/روز')}</span>
+                    <span>{formatLimitLabel(plan.dailyImageLimit, 'تصویر/روز')}</span>
+                    <span>{formatLimitLabel(plan.hourlyImageLimit, 'تصویر/ساعت')}</span>
+                  </div>
+
+                  <div className="limit-preset-row">
+                    {LIMIT_PRESETS.map((preset) => (
+                      <button key={preset.id} type="button" onClick={() => applyPlanLimitPreset(plan.id, preset)}>
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <FieldGroup direction="row">
+                    <TextField
+                      label="پیام روزانه"
+                      value={plan.dailyMessageLimit === null ? '' : String(plan.dailyMessageLimit)}
+                      placeholder="خالی = نامحدود"
+                      onChange={(e) => updateLocalPlan(plan.id, { dailyMessageLimit: parseNullableNumberInput(e.target.value) })}
+                    />
+                    <TextField
+                      label="تصویر روزانه"
+                      value={plan.dailyImageLimit === null ? '' : String(plan.dailyImageLimit)}
+                      placeholder="خالی = نامحدود، ۰ = خاموش"
+                      onChange={(e) => updateLocalPlan(plan.id, { dailyImageLimit: parseNullableNumberInput(e.target.value) })}
+                    />
+                    <TextField
+                      label="تصویر ساعتی"
+                      value={plan.hourlyImageLimit === null ? '' : String(plan.hourlyImageLimit)}
+                      placeholder="خالی = نامحدود، ۰ = خاموش"
+                      onChange={(e) => updateLocalPlan(plan.id, { hourlyImageLimit: parseNullableNumberInput(e.target.value) })}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup direction="row">
+                    <TextField
+                      label="ترتیب نمایش"
+                      type="number"
+                      value={String(plan.sortOrder || 999)}
+                      onChange={(e) => updateLocalPlan(plan.id, { sortOrder: Number(e.target.value) || 999 })}
+                    />
+                    <label className="admin-select-field">
+                      <span>وضعیت پلن</span>
+                      <select
+                        value={plan.isActive ? 'true' : 'false'}
+                        onChange={(e) => updateLocalPlan(plan.id, { isActive: e.target.value === 'true' })}
+                      >
+                        <option value="true">فعال در سایت</option>
+                        <option value="false">غیرفعال</option>
+                      </select>
+                    </label>
+                  </FieldGroup>
+
+                  <Button className="admin-action-btn" disabled={limitsSaving} onClick={() => void saveLimitPlan(plan)}>
+                    ذخیره لیمیت این پلن
+                  </Button>
+                </article>
+              );
+            })}
+          </div>
+
+          {sortedPlans.length === 0 ? (
+            <p className="admin-note">هنوز پلنی برای نمایش وجود ندارد.</p>
+          ) : null}
+        </div>
+      ) : null}
+
       {tab === 'subscriptions' ? (
         <div className="admin-section">
           <div className="admin-section-header">
@@ -1183,13 +1689,15 @@ function AdminPanel() {
                   <TextField
                     label="سقف تصویر روزانه"
                     value={plan.dailyImageLimit === null ? '' : String(plan.dailyImageLimit)}
-                    placeholder="خالی = نامحدود"
+                    placeholder="خالی = نامحدود، ۰ = غیرفعال"
+                    helperText="خالی = نامحدود، ۰ = غیرفعال، عدد مثبت = سقف مجاز"
                     onChange={(e) => updateLocalPlan(plan.id, { dailyImageLimit: parseNullableNumberInput(e.target.value) })}
                   />
                   <TextField
                     label="سقف تصویر ساعتی"
                     value={plan.hourlyImageLimit === null ? '' : String(plan.hourlyImageLimit)}
-                    placeholder="خالی = نامحدود"
+                    placeholder="خالی = نامحدود، ۰ = غیرفعال"
+                    helperText="خالی = نامحدود، ۰ = غیرفعال، عدد مثبت = سقف مجاز"
                     onChange={(e) => updateLocalPlan(plan.id, { hourlyImageLimit: parseNullableNumberInput(e.target.value) })}
                   />
                 </FieldGroup>
@@ -1368,18 +1876,12 @@ function AdminPanel() {
                 helperText="مقادیر مجاز: image/jpeg, image/png, image/webp"
               />
 
-              <h4>هوش مصنوعی</h4>
+              <h4>تنظیمات چت</h4>
               <FieldGroup direction="row">
                 <TextField
                   label="مدل چت"
                   value={String(siteSettings.settings['ai.chat.model'] ?? '')}
                   onChange={(e) => updateSiteSetting('ai.chat.model', e.target.value)}
-                />
-                <TextField
-                  label="مدل ساخت تصویر"
-                  value={String(siteSettings.settings['ai.image.model'] ?? '')}
-                  placeholder="خالی = استفاده از env"
-                  onChange={(e) => updateSiteSetting('ai.image.model', e.target.value)}
                 />
                 <TextField
                   label="Temperature"
@@ -1395,6 +1897,195 @@ function AdminPanel() {
                   onChange={(e) => updateSiteSetting('ai.chat.timeout_ms', Number(e.target.value))}
                 />
               </FieldGroup>
+              {aiRuntimeStatus ? (
+                <p className="admin-note">
+                  Runtime چت: provider={aiRuntimeStatus.chat.provider}، model={aiRuntimeStatus.chat.model || '-'}، host={aiRuntimeStatus.chat.baseUrlHost || '-'}، key source={aiRuntimeStatus.chat.apiKeySource}، fingerprint={aiRuntimeStatus.chat.apiKeyFingerprint || '-'}
+                </p>
+              ) : null}
+
+              <h4>تنظیمات ساخت تصویر</h4>
+              {aiRuntimeStatus ? (
+                <p className="admin-note">
+                  Runtime تصویر: enabled={aiRuntimeStatus.image.enabled ? 'true' : 'false'}، provider={aiRuntimeStatus.image.provider}، model source={aiRuntimeStatus.image.modelSource || '-'}، admin model={aiRuntimeStatus.image.modelAdminValue}، runtime provider={aiRuntimeStatus.image.modelProviderName || '-'}، runtime model={aiRuntimeStatus.image.modelRuntimeValue}، operation={aiRuntimeStatus.image.operation || '-'}، host={aiRuntimeStatus.image.baseUrlHost || '-'}، key source={aiRuntimeStatus.image.apiKeySource}، fingerprint={aiRuntimeStatus.image.apiKeyFingerprint || '-'}
+                  ، resolution={aiRuntimeStatus.image.resolution}، aspect={aiRuntimeStatus.image.aspectRatio}، output={aiRuntimeStatus.image.outputFormat}، safety={aiRuntimeStatus.image.safetyFilterLevel}، poll={aiRuntimeStatus.image.pollIntervalMs || '-'} / {aiRuntimeStatus.image.pollTimeoutMs || '-'}، maxMB={aiRuntimeStatus.image.maxDownloadMb || '-'}، edit={aiRuntimeStatus.image.editEnabled ? 'true' : 'false'}، validation={aiRuntimeStatus.image.lastValidationStatus || '-'}
+                  ، storage={aiRuntimeStatus.image.storageDir || '-'}، writable={aiRuntimeStatus.image.storageWritable ? 'true' : 'false'}، serve={aiRuntimeStatus.image.publicServeRoute || '/api/images/serve/:taskId'}
+                </p>
+              ) : null}
+              <FieldGroup direction="row">
+                <label className="admin-select-field">
+                  <span>Model preset</span>
+                  <select
+                    value={String(siteSettings.settings['ai.image.model_preset'] ?? 'nano-banana-pro')}
+                    onChange={(e) => applyImagePreset(e.target.value)}
+                  >
+                    {imageModelPresets.map((preset) => (
+                      <option key={preset.id} value={preset.id}>{preset.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Image provider</span>
+                  <select
+                    value={String(siteSettings.settings['ai.image.provider'] ?? 'metis')}
+                    onChange={(e) => updateSiteSetting('ai.image.provider', e.target.value)}
+                  >
+                    {IMAGE_PROVIDER_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
+                <TextField
+                  label="Image base URL"
+                  value={String(siteSettings.settings['ai.image.base_url'] ?? 'https://api.metisai.ir')}
+                  onChange={(e) => updateSiteSetting('ai.image.base_url', e.target.value)}
+                />
+                <TextField
+                  label="Admin model value"
+                  value={String(siteSettings.settings['ai.image.model.admin_value'] ?? siteSettings.settings['ai.image.model'] ?? 'gemini-3-pro-image')}
+                  onChange={(e) => updateSiteSettingsPatch({ 'ai.image.model.admin_value': e.target.value, 'ai.image.model': e.target.value })}
+                />
+                <TextField
+                  label="Runtime provider name"
+                  value={String(siteSettings.settings['ai.image.model.runtime_provider_name'] ?? 'google')}
+                  onChange={(e) => updateSiteSetting('ai.image.model.runtime_provider_name', e.target.value)}
+                />
+                <TextField
+                  label="Runtime model"
+                  value={String(siteSettings.settings['ai.image.model.runtime_model'] ?? 'nano-banana-pro')}
+                  onChange={(e) => updateSiteSetting('ai.image.model.runtime_model', e.target.value)}
+                />
+                <TextField
+                  label="Operation"
+                  value={String(siteSettings.settings['ai.image.operation'] ?? 'Imagine')}
+                  onChange={(e) => updateSiteSetting('ai.image.operation', e.target.value)}
+                />
+                <label className="admin-select-field">
+                  <span>رزولوشن تصویر</span>
+                  <select
+                    value={String(siteSettings.settings['ai.image.resolution'] ?? '1K')}
+                    onChange={(e) => updateSiteSetting('ai.image.resolution', e.target.value)}
+                  >
+                    {IMAGE_RESOLUTION_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>نسبت تصویر</span>
+                  <select
+                    value={String(siteSettings.settings['ai.image.aspect_ratio'] ?? '1:1')}
+                    onChange={(e) => updateSiteSetting('ai.image.aspect_ratio', e.target.value)}
+                  >
+                    {IMAGE_ASPECT_RATIO_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>فرمت خروجی</span>
+                  <select
+                    value={String(siteSettings.settings['ai.image.output_format'] ?? 'jpg')}
+                    onChange={(e) => updateSiteSetting('ai.image.output_format', e.target.value)}
+                  >
+                    {IMAGE_OUTPUT_FORMAT_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Safety filter</span>
+                  <select
+                    value={String(siteSettings.settings['ai.image.safety_filter_level'] ?? 'block_only_high')}
+                    onChange={(e) => updateSiteSetting('ai.image.safety_filter_level', e.target.value)}
+                  >
+                    {IMAGE_SAFETY_FILTER_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
+                <TextField
+                  label="Max download MB"
+                  type="number"
+                  value={String(siteSettings.settings['ai.image.max_download_mb'] ?? 10)}
+                  onChange={(e) => updateSiteSetting('ai.image.max_download_mb', Number(e.target.value))}
+                />
+              </FieldGroup>
+
+              <FieldGroup direction="row">
+                <label className="admin-select-field">
+                  <span>Image generation</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.enabled'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.image.enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Image edit</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.edit_enabled'] ?? false))}
+                    onChange={(e) => updateSiteSetting('ai.image.edit_enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Prompt enhancer</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.prompt_enhancer_enabled'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_enhancer_enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <TextField
+                  label="Poll interval ms"
+                  type="number"
+                  value={String(siteSettings.settings['ai.image.poll_interval_ms'] ?? 2000)}
+                  onChange={(e) => updateSiteSetting('ai.image.poll_interval_ms', Number(e.target.value))}
+                />
+                <TextField
+                  label="Poll timeout ms"
+                  type="number"
+                  value={String(siteSettings.settings['ai.image.poll_timeout_ms'] ?? 120000)}
+                  onChange={(e) => updateSiteSetting('ai.image.poll_timeout_ms', Number(e.target.value))}
+                />
+              </FieldGroup>
+              <TextAreaField
+                label="Default negative prompt"
+                rows={2}
+                value={String(siteSettings.settings['ai.image.default_negative_prompt'] ?? 'no humans, no unrelated objects, no text distortion, no watermark')}
+                onChange={(e) => updateSiteSetting('ai.image.default_negative_prompt', e.target.value)}
+              />
+              <TextAreaField
+                label="Custom args JSON"
+                rows={4}
+                value={String(siteSettings.settings['ai.image.custom_args_json'] ?? '{}')}
+                onChange={(e) => updateSiteSetting('ai.image.custom_args_json', e.target.value)}
+              />
+              <FieldGroup direction="row">
+                <TextField
+                  label="Prompt تست تصویر"
+                  value={imageTestPrompt}
+                  onChange={(e) => setImageTestPrompt(e.target.value)}
+                />
+                <Button onClick={() => void runImageDryRun()} disabled={imageTestLoading}>
+                  تست ساخت تصویر Dry-run
+                </Button>
+                <Button variant="secondary" onClick={() => void runImageLiveTest()} disabled={imageTestLoading}>
+                  تست ساخت تصویر Live
+                </Button>
+              </FieldGroup>
+              {imageTestMessage ? (
+                <InlineMessage text={imageTestMessage} variant={imageTestMessage.includes('موفقیت') ? 'success' : 'error'} />
+              ) : null}
+              {imageTestResult ? (
+                <pre className="admin-json-preview">{JSON.stringify(imageTestResult, null, 2)}</pre>
+              ) : null}
 
               <h4>ورود و ثبت‌نام</h4>
               <FieldGroup direction="row">

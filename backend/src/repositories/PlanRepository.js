@@ -12,9 +12,9 @@ const BUILTIN_PLAN_SEED = [
     monthlyPrice: 0,
     dailyPrice: 0,
     dailyMessageLimit: 20,
-    dailyImageLimit: null,
-    hourlyImageLimit: null,
-    features: ['۲۰ پیام در روز'],
+    dailyImageLimit: 3,
+    hourlyImageLimit: 2,
+    features: ['۲۰ پیام در روز', '۳ تصویر در روز'],
     isActive: true,
     sortOrder: 1
   },
@@ -360,7 +360,13 @@ class PlanRepository {
   async checkImageLimits(userId) {
     const plan = await this.getPlanForUser(userId);
     if (!plan) {
-      return { allowed: true, plan: null, limits: { daily: null, hourly: null }, usage: { daily: null, hourly: null } };
+      return {
+        allowed: true,
+        gateSource: 'plan.missing',
+        plan: null,
+        limits: { daily: null, hourly: null },
+        usage: { daily: null, hourly: null }
+      };
     }
 
     const limits = {
@@ -372,6 +378,7 @@ class PlanRepository {
       return {
         allowed: false,
         reason: 'disabled',
+        gateSource: limits.daily === 0 ? 'plan.daily_image_limit' : 'plan.hourly_image_limit',
         plan,
         limits,
         limit: 0,
@@ -384,6 +391,7 @@ class PlanRepository {
       return {
         allowed: false,
         reason: 'daily',
+        gateSource: 'plan.daily_image_limit',
         plan,
         limits,
         limit: limits.daily,
@@ -397,6 +405,7 @@ class PlanRepository {
       return {
         allowed: false,
         reason: 'hourly',
+        gateSource: 'plan.hourly_image_limit',
         plan,
         limits,
         limit: limits.hourly,
@@ -407,6 +416,7 @@ class PlanRepository {
 
     return {
       allowed: true,
+      gateSource: 'plan.image_limit',
       plan,
       limits,
       limit: null,

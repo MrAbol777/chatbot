@@ -1,6 +1,10 @@
 const { SETTING_DEFINITIONS } = require('../../settings/defaults');
+const {
+  normalizeRuntimeSettings,
+  validateRuntimeSettings
+} = require('../../image-generation/image-runtime-settings');
 
-function createAdminSettingsService({ settingsRepository, appendAudit }) {
+function createAdminSettingsService({ settingsRepository, appendAudit, onSettingsUpdated }) {
   const getSettings = async () => {
     const settings = await settingsRepository.getAll();
     return {
@@ -17,8 +21,18 @@ function createAdminSettingsService({ settingsRepository, appendAudit }) {
 
     try {
       const before = await settingsRepository.getAll();
+      if (Object.keys(incoming).some((key) => key.startsWith('ai.image.'))) {
+        const runtimeSettings = normalizeRuntimeSettings({
+          settings: { ...before, ...incoming },
+          stored: incoming
+        });
+        validateRuntimeSettings(runtimeSettings);
+      }
       const result = await settingsRepository.updateMany(incoming);
       const changedKeys = Object.keys(result.updated);
+      if (typeof onSettingsUpdated === 'function') {
+        await onSettingsUpdated({ changedKeys, updated: result.updated });
+      }
 
       await appendAudit({
         adminUsername: admin?.username,

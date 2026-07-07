@@ -675,6 +675,43 @@ function createAiService({
     return 'chat';
   };
 
+  const enhanceImagePrompt = async (prompt, { requestId, intent = 'image_generation' } = {}) => {
+    const text = typeof prompt === 'string' ? prompt.trim() : '';
+    if (!text) return '';
+
+    try {
+      const result = await callOpenAI(
+        [
+          {
+            role: 'system',
+            content:
+              'You are a prompt engineer for a text-to-image model. Rewrite the user request into one concise English image prompt. Preserve the exact main subject and all requested attributes. Never replace a requested human/person with an animal, object, doll, mascot, or unrelated character. If the subject is a child, keep it age-appropriate, wholesome, fully clothed, and non-sexualized. Return only the final image prompt, no markdown, no explanation.'
+          },
+          {
+            role: 'user',
+            content: `Intent: ${intent}\nUser prompt: ${text}`
+          }
+        ],
+        { requestId }
+      );
+
+      const enhanced = String(result?.reply || '')
+        .replace(/^["'`]+|["'`]+$/g, '')
+        .replace(/^final image prompt\s*:\s*/i, '')
+        .trim();
+
+      if (!enhanced || enhanced.length < 8) return '';
+      if (enhanced.length > 1200) return enhanced.slice(0, 1200).trim();
+      return enhanced;
+    } catch (error) {
+      log('IMAGE_PROMPT', 'enhancer_failed', {
+        requestId,
+        message: error instanceof Error ? error.message : String(error || '')
+      });
+      return '';
+    }
+  };
+
   const appendUniqueMessages = (currentMessages, nextMessages) => {
     const messages = Array.isArray(currentMessages) ? [...currentMessages] : [];
     const seenIds = new Set(messages.map((item) => String(item?.id || '')).filter(Boolean));
@@ -719,8 +756,13 @@ function createAiService({
     const prompt = typeof userMessage === 'string' && userMessage.trim() ? userMessage.trim() : 'درخواست ساخت تصویر';
     const now = new Date().toISOString();
     const userMessageId = clientMessageId || makeMessageId('user-image');
-    const assistantMessageId = makeMessageId('assistant-image');
+    const assistantMessageId = taskId ? makeMessageId('assistant-image') : null;
     const loadingMessageId = taskId ? `image-task-${taskId}` : makeMessageId('image-error');
+
+    const currentMessages = await conversationsRepository.getConversationMessages(userId, normalizedConversationId);
+    if (clientMessageId && currentMessages.some((message) => String(message?.id || '') === String(clientMessageId))) {
+      return currentMessages;
+    }
 
     const messagesToAppend = [
       {
@@ -730,16 +772,19 @@ function createAiService({
         intent,
         content: prompt,
         timestamp: now
-      },
-      {
+      }
+    ];
+
+    if (taskId) {
+      messagesToAppend.push({
         id: assistantMessageId,
         role: 'assistant',
         type: 'text',
         intent,
         content: assistantText,
         timestamp: now
-      }
-    ];
+      });
+    }
 
     if (taskId) {
       messagesToAppend.push({
@@ -774,7 +819,6 @@ function createAiService({
       };
     }
 
-    const currentMessages = await conversationsRepository.getConversationMessages(userId, normalizedConversationId);
     const nextMessages = appendUniqueMessages(currentMessages, messagesToAppend);
     await conversationsRepository.saveConversationMessages(userId, normalizedConversationId, nextMessages);
     conversationStore.set(`${userId}:${normalizedConversationId}`, nextMessages);
@@ -824,6 +868,7 @@ function createAiService({
     sendChatMessage,
     callOpenAI,
     classifyIntent,
+    enhanceImagePrompt,
     persistImageChatTurn
   };
 }

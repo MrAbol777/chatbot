@@ -28,6 +28,8 @@ services:
       - DATABASE_URL=mysql://root:@mysql:3306/chatbot
       - PORT=3000
       - METIS_API_KEY=${METIS_API_KEY}
+      - METIS_CHAT_API_KEY=${METIS_CHAT_API_KEY}
+      - GEMINI_CHAT_API_KEY=${GEMINI_CHAT_API_KEY}
       - METIS_OPENAI_BASE_URL=${METIS_OPENAI_BASE_URL}
       - OPENAI_MODEL=${OPENAI_MODEL}
       - ADMIN_API_KEY=${ADMIN_API_KEY}
@@ -37,14 +39,30 @@ services:
       - OTP_EXPIRE=${OTP_EXPIRE}
       - BALE_BOT_TOKEN=${BALE_BOT_TOKEN}
       - BALE_WEBHOOK_PUBLIC_URL=${BALE_WEBHOOK_PUBLIC_URL}
+      - METIS_IMAGE_API_KEY=${METIS_IMAGE_API_KEY}
+      - GEMINI_IMAGE_API_KEY=${GEMINI_IMAGE_API_KEY}
+      - XAI_IMAGE_API_KEY=${XAI_IMAGE_API_KEY}
+      - IMAGE_PROVIDER=${IMAGE_PROVIDER}
+      - IMAGE_BASE_URL=${IMAGE_BASE_URL}
+      - IMAGE_MODEL=${IMAGE_MODEL}
+      - IMAGE_RESOLUTION=${IMAGE_RESOLUTION}
+      - IMAGE_ASPECT_RATIO=${IMAGE_ASPECT_RATIO}
+      - IMAGE_OUTPUT_FORMAT=${IMAGE_OUTPUT_FORMAT}
+      - IMAGE_SAFETY_FILTER_LEVEL=${IMAGE_SAFETY_FILTER_LEVEL}
+      - IMAGE_STORAGE_DIR=${IMAGE_STORAGE_DIR:-/var/lib/danoa/generated-images}
+      - IMAGE_PUBLIC_BASE_URL=${IMAGE_PUBLIC_BASE_URL:-/api/images/serve}
+      - IMAGE_MAX_DOWNLOAD_MB=${IMAGE_MAX_DOWNLOAD_MB:-10}
+      - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL}
       - METIS_IMAGE_MODEL=${METIS_IMAGE_MODEL}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_BASE_URL=${GEMINI_BASE_URL}
+      - DEBUG_IMAGE_PROMPTS=${DEBUG_IMAGE_PROMPTS}
     depends_on:
       mysql:
         condition: service_healthy
     volumes:
       - app-uploads:/app/backend/uploads
+      - ./data/generated-images:/var/lib/danoa/generated-images
 
 volumes:
   mysql-data:
