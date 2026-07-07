@@ -57,7 +57,7 @@ const pickApiKey = (candidates) => {
 };
 
 const resolveImageRuntimeModel = (model, provider) => {
-  const normalizedModel = String(model || 'gemini-3-pro-image').trim() || 'gemini-3-pro-image';
+  const normalizedModel = String(model || 'gemini-2.5-flash-image').trim() || 'gemini-2.5-flash-image';
   const normalizedProvider = normalizeProvider(provider, 'metis');
   if (normalizedProvider === 'metis') {
     const aliases = {
@@ -121,7 +121,7 @@ function loadRuntimeConfig(env = process.env) {
     env.IMAGE_BASE_URL || env.GEMINI_API_BASE_URL || env.GEMINI_BASE_URL,
     imageProvider === 'gemini' ? 'https://generativelanguage.googleapis.com/v1beta' : 'https://api.metisai.ir'
   );
-  const imageModel = env.IMAGE_MODEL || 'gemini-3-pro-image';
+  const imageModel = env.IMAGE_MODEL || 'gemini-2.5-flash-image';
   const imageModelSource = env.IMAGE_MODEL ? 'IMAGE_MODEL' : 'default';
   const imageLegacyModel = env.GEMINI_IMAGE_MODEL || env.METIS_IMAGE_MODEL || '';
   const imageLegacyModelSource = env.GEMINI_IMAGE_MODEL
@@ -142,6 +142,9 @@ function loadRuntimeConfig(env = process.env) {
   const imageRuntimeModel = resolveImageRuntimeModel(imageModel, imageProvider);
   const promptRefinerKey = pickApiKey([
     { source: 'METIS_PROMPT_REFINER_API_KEY', value: env.METIS_PROMPT_REFINER_API_KEY }
+  ]);
+  const visionKey = pickApiKey([
+    { source: 'METIS_VISION_API_KEY', value: env.METIS_VISION_API_KEY }
   ]);
 
   const ai = {
@@ -184,6 +187,31 @@ function loadRuntimeConfig(env = process.env) {
         apiKeySource: promptRefinerKey.apiKeySource,
         apiKeyFingerprint: promptRefinerKey.apiKeyFingerprint
       }
+    },
+    vision: {
+      enabled: env.VISION_ENABLED !== 'false',
+      provider: env.VISION_PROVIDER || 'metis-gemini',
+      baseUrl: normalizeBaseUrl(env.VISION_BASE_URL || env.METIS_VISION_BASE_URL, 'https://api.metisai.ir'),
+      defaultModel: env.VISION_DEFAULT_MODEL || env.VISION_MODEL || 'gemini-2.5-flash',
+      fastModel: env.VISION_FAST_MODEL || 'gemini-2.5-flash',
+      experimentalModel: env.VISION_EXPERIMENTAL_MODEL || 'gemini-2.5-flash-lite-preview',
+      qualityModel: env.VISION_QUALITY_MODEL || 'gemini-2.5-flash',
+      proModel: env.VISION_PRO_MODEL || 'gemini-2.5-pro',
+      mode: env.VISION_MODE || 'balanced',
+      allowProModel: env.VISION_ALLOW_PRO_MODEL === 'true',
+      timeoutMs: Number.isFinite(Number(env.VISION_TIMEOUT_MS)) ? Number(env.VISION_TIMEOUT_MS) : 30000,
+      fallbackTimeoutMs: Number.isFinite(Number(env.VISION_FALLBACK_TIMEOUT_MS)) ? Number(env.VISION_FALLBACK_TIMEOUT_MS) : 45000,
+      maxImageMb: Number.isFinite(Number(env.VISION_MAX_IMAGE_MB)) ? Number(env.VISION_MAX_IMAGE_MB) : 10,
+      transport: env.VISION_TRANSPORT || 'auto',
+      mediaResolution: env.VISION_MEDIA_RESOLUTION || 'auto',
+      temperature: Number.isFinite(Number(env.VISION_TEMPERATURE)) ? Number(env.VISION_TEMPERATURE) : 0.1,
+      maxOutputTokens: Number.isFinite(Number(env.VISION_MAX_OUTPUT_TOKENS)) ? Number(env.VISION_MAX_OUTPUT_TOKENS) : 900,
+      modelHealthEnabled: env.VISION_MODEL_HEALTH_ENABLED !== 'false',
+      modelHealthFailureThreshold: Number.isFinite(Number(env.VISION_MODEL_HEALTH_FAILURE_THRESHOLD)) ? Number(env.VISION_MODEL_HEALTH_FAILURE_THRESHOLD) : 3,
+      modelHealthCooldownMinutes: Number.isFinite(Number(env.VISION_MODEL_HEALTH_COOLDOWN_MINUTES)) ? Number(env.VISION_MODEL_HEALTH_COOLDOWN_MINUTES) : 60,
+      apiKey: visionKey.apiKey,
+      apiKeySource: visionKey.apiKeySource,
+      apiKeyFingerprint: visionKey.apiKeyFingerprint
     }
   };
 

@@ -16,7 +16,7 @@ const {
 
 const GENERATED_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
 const GUEST_COOKIE_NAME = 'danoa_guest_id';
-const DEFAULT_IMAGE_MODEL = 'gemini-3-pro-image';
+const DEFAULT_IMAGE_MODEL = 'gemini-2.5-flash-image';
 const DEFAULT_IMAGE_PROVIDER = 'metis';
 const DEFAULT_IMAGE_BASE_URL = 'https://api.metisai.ir';
 const DEFAULT_IMAGE_PUBLIC_BASE_URL = '/api/images/serve';
@@ -1141,9 +1141,42 @@ function createImageGenerationController({
     return getImageResult(req, res);
   };
 
+  const getEditableImageInput = async (req, res, taskId) => {
+    const normalizedTaskId = typeof taskId === 'string' ? taskId.trim() : '';
+    if (!normalizedTaskId) return null;
+
+    const { userId } = await resolveUserContext(req, res);
+    if (!userId) return null;
+
+    const [rows] = await db.query(
+      `SELECT id, task_id, status, local_file_path, mime_type, file_size
+       FROM image_generations
+       WHERE (id = ? OR task_id = ?) AND user_id = ?
+       LIMIT 1`,
+      [normalizedTaskId, normalizedTaskId, userId]
+    );
+    if (rows.length === 0 || rows[0].status !== 'COMPLETED') return null;
+
+    const generatedImage = await findGeneratedImage(rows[0]);
+    if (!generatedImage) return null;
+
+    const stat = await fs.stat(generatedImage.fullPath);
+    if (!stat.isFile() || stat.size <= 0 || stat.size > getImageMaxDownloadBytes()) {
+      return null;
+    }
+
+    const buffer = await fs.readFile(generatedImage.fullPath);
+    return {
+      imageId: String(rows[0].id),
+      mimeType: generatedImage.mimeType,
+      dataUrl: `data:${generatedImage.mimeType};base64,${buffer.toString('base64')}`
+    };
+  };
+
   return {
     createImageTask,
     resolveUserContext,
+    getEditableImageInput,
     generateImage,
     getImageStatus,
     getImageResult,

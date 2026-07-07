@@ -12,7 +12,7 @@ const path = require('path');
 
 const API_BASE = (process.env.METIS_OPENAI_BASE_URL || 'https://api.metisai.ir').replace(/\/openai\/v1$/, '');
 const API_KEY = process.env.METIS_API_KEY;
-const MODEL_NAME = process.env.IMAGE_MODEL || process.env.METIS_IMAGE_MODEL || 'gemini-3-pro-image';
+const MODEL_NAME = process.env.IMAGE_MODEL || process.env.METIS_IMAGE_MODEL || 'gemini-2.5-flash-image';
 
 const resolveMetisImageModel = (modelName) => {
   const normalized = String(modelName || '').trim().toLowerCase();
@@ -23,7 +23,7 @@ const resolveMetisImageModel = (modelName) => {
     'gemini-2.5-flash-image-preview': 'nano-banana',
     'nano-banana': 'nano-banana'
   };
-  return aliases[normalized] || normalized || 'nano-banana-pro';
+  return aliases[normalized] || normalized || 'nano-banana';
 };
 
 const getMetisProvider = (modelName) => {

@@ -20,7 +20,7 @@ function createImageGenerationRouter(deps) {
       httpClient: deps.httpClient || axios,
       geminiApiKey: deps.geminiApiKey,
       baseUrl: deps.geminiBaseUrl,
-      imageModel: deps.geminiImageModel || 'gemini-3-pro-image',
+      imageModel: deps.geminiImageModel || 'gemini-2.5-flash-image',
       imageConfig: deps.imageConfig
     });
   const imageRuntimeSettingsResolver =

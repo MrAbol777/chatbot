@@ -1,4 +1,10 @@
 const { DEFAULT_REFINER_SYSTEM_PROMPT } = require('../image-generation/image-prompt-refiner.service');
+const {
+  DEFAULT_DESIGN_PROMPT,
+  DEFAULT_OCR_PROMPT,
+  DEFAULT_PRODUCT_PROMPT,
+  DEFAULT_VISION_SYSTEM_PROMPT
+} = require('../image-understanding/image-understanding-settings');
 
 const SETTING_DEFINITIONS = {
   'guest.message_limit': {
@@ -99,7 +105,7 @@ const SETTING_DEFINITIONS = {
     label: 'مدل ساخت تصویر',
     type: 'string',
     category: 'ai',
-    defaultValue: 'gemini-3-pro-image',
+    defaultValue: 'gemini-2.5-flash-image',
     nullable: true,
     adminEditable: true
   },
@@ -114,7 +120,7 @@ const SETTING_DEFINITIONS = {
     label: 'Preset مدل ساخت تصویر',
     type: 'string',
     category: 'ai',
-    defaultValue: 'nano-banana-pro',
+    defaultValue: 'nano-banana',
     allowedValues: ['nano-banana-pro', 'nano-banana', 'flux-schnell', 'custom'],
     adminEditable: true
   },
@@ -122,7 +128,7 @@ const SETTING_DEFINITIONS = {
     label: 'Admin model ساخت تصویر',
     type: 'string',
     category: 'ai',
-    defaultValue: 'gemini-3-pro-image',
+    defaultValue: 'gemini-2.5-flash-image',
     adminEditable: true
   },
   'ai.image.model.runtime_provider_name': {
@@ -136,7 +142,7 @@ const SETTING_DEFINITIONS = {
     label: 'Runtime model ساخت تصویر',
     type: 'string',
     category: 'ai',
-    defaultValue: 'nano-banana-pro',
+    defaultValue: 'nano-banana',
     adminEditable: true
   },
   'ai.image.operation': {
@@ -374,6 +380,213 @@ const SETTING_DEFINITIONS = {
     type: 'boolean',
     category: 'ai',
     defaultValue: false,
+    adminEditable: true
+  },
+  'ai.vision.enabled': {
+    label: 'فعال بودن خواندن و تحلیل تصویر',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.vision.provider': {
+    label: 'Provider خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'metis-gemini',
+    allowedValues: ['metis-gemini'],
+    adminEditable: true
+  },
+  'ai.vision.model': {
+    label: 'مدل legacy خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash',
+    adminEditable: true
+  },
+  'ai.vision.default_model': {
+    label: 'مدل default خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash',
+    adminEditable: true
+  },
+  'ai.vision.fast_model': {
+    label: 'مدل fast خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash',
+    adminEditable: true
+  },
+  'ai.vision.experimental_model': {
+    label: 'مدل experimental خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash-lite-preview',
+    adminEditable: true
+  },
+  'ai.vision.quality_model': {
+    label: 'مدل quality خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash',
+    adminEditable: true
+  },
+  'ai.vision.pro_model': {
+    label: 'مدل pro خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-pro',
+    adminEditable: true
+  },
+  'ai.vision.mode': {
+    label: 'Mode خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'balanced',
+    allowedValues: ['economy', 'balanced', 'accurate', 'pro'],
+    adminEditable: true
+  },
+  'ai.vision.allow_pro_model': {
+    label: 'اجازه استفاده از مدل Pro در Vision',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: false,
+    adminEditable: true
+  },
+  'ai.vision.timeout_ms': {
+    label: 'Timeout خواندن تصویر (ms)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 30000,
+    min: 5000,
+    max: 180000,
+    adminEditable: true
+  },
+  'ai.vision.fallback_timeout_ms': {
+    label: 'Fallback timeout خواندن تصویر (ms)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 45000,
+    min: 5000,
+    max: 180000,
+    adminEditable: true
+  },
+  'ai.vision.max_image_mb': {
+    label: 'حداکثر حجم تصویر Vision (MB)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 10,
+    min: 1,
+    max: 25,
+    adminEditable: true
+  },
+  'ai.vision.transport': {
+    label: 'Transport خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'auto',
+    allowedValues: ['inline', 'metis_storage', 'auto'],
+    adminEditable: true
+  },
+  'ai.vision.media_resolution': {
+    label: 'Media resolution خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'auto',
+    allowedValues: ['auto', 'normal', 'high'],
+    adminEditable: true
+  },
+  'ai.vision.temperature': {
+    label: 'Temperature خواندن تصویر',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 0.1,
+    min: 0,
+    max: 2,
+    adminEditable: true
+  },
+  'ai.vision.max_output_tokens': {
+    label: 'Max output tokens خواندن تصویر',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 900,
+    min: 100,
+    max: 8192,
+    adminEditable: true
+  },
+  'ai.vision.system_prompt': {
+    label: 'System prompt خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: DEFAULT_VISION_SYSTEM_PROMPT,
+    adminEditable: true
+  },
+  'ai.vision.ocr_prompt': {
+    label: 'OCR prompt خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: DEFAULT_OCR_PROMPT,
+    adminEditable: true
+  },
+  'ai.vision.design_analysis_prompt': {
+    label: 'Design analysis prompt خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: DEFAULT_DESIGN_PROMPT,
+    adminEditable: true
+  },
+  'ai.vision.product_prompt': {
+    label: 'Product prompt خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: DEFAULT_PRODUCT_PROMPT,
+    adminEditable: true
+  },
+  'ai.vision.allow_chat_key_fallback': {
+    label: 'اجازه fallback خواندن تصویر به METIS_CHAT_API_KEY',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: false,
+    adminEditable: true
+  },
+  'ai.vision.store_metadata': {
+    label: 'ذخیره metadata خواندن تصویر',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.vision.base_url': {
+    label: 'Base URL خواندن تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'https://api.metisai.ir',
+    adminEditable: true
+  },
+  'ai.vision.model_health.enabled': {
+    label: 'فعال بودن health check مدل‌های Vision',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.vision.model_health.failure_threshold': {
+    label: 'آستانه fail سلامت مدل Vision',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 3,
+    min: 1,
+    max: 20,
+    adminEditable: true
+  },
+  'ai.vision.model_health.cooldown_minutes': {
+    label: 'Cooldown مدل failشده Vision (دقیقه)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 60,
+    min: 1,
+    max: 1440,
     adminEditable: true
   },
   'ai.chat.temperature': {

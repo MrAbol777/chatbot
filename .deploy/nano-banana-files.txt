@@ -1,0 +1,10 @@
+backend/src/modules/image-generation/image-runtime-settings.js
+backend/src/modules/settings/defaults.js
+backend/migrations/012_admin_managed_image_runtime_settings.sql
+backend/src/bootstrap/config.js
+backend/src/adminRoutes.js
+backend/src/modules/image-generation/image-generation.controller.js
+backend/src/modules/image-generation/image-generation.routes.js
+backend/src/modules/image-generation/image-generation.service.js
+backend/src/modules/testimage-generator/testimage.service.js
+frontend/src/AdminPanel.tsx

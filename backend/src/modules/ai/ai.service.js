@@ -662,7 +662,7 @@ function createAiService({
         {
           role: 'system',
           content:
-            'Classify the user intent for a Persian chat app. Reply with exactly one token: chat, image_generation, or image_edit. Choose image_generation only when the user wants a new image made. Choose image_edit only when they ask to modify an existing image. Otherwise choose chat.'
+            'Classify the user intent for a Persian chat app. Reply with exactly one token: chat, image_generation, image_edit, or image_understanding. Choose image_generation only when the user wants a new image made. Choose image_edit only when they ask to modify an existing image. Choose image_understanding when they ask to read, describe, OCR, review, or analyze an existing image. Otherwise choose chat.'
         },
         { role: 'user', content: text }
       ],
@@ -671,6 +671,7 @@ function createAiService({
 
     const value = String(result.reply || '').trim().toLowerCase();
     if (value.includes('image_edit')) return 'image_edit';
+    if (value.includes('image_understanding')) return 'image_understanding';
     if (value.includes('image_generation')) return 'image_generation';
     return 'chat';
   };
@@ -864,12 +865,100 @@ function createAiService({
     return messagesToAppend;
   };
 
+  const persistVisionChatTurn = async ({
+    userId,
+    profile,
+    conversationId,
+    userMessage,
+    assistantText,
+    requestId,
+    clientMessageId = null,
+    imageIds = [],
+    diagnostics = null,
+    limitStatus = null
+  }) => {
+    const normalizedConversationId =
+      typeof conversationId === 'string' && conversationId.trim().length > 0 ? conversationId.trim() : 'default';
+    const effectiveUserId = userId || await usersRepository.ensureUserExists(profile || {});
+    const prompt = typeof userMessage === 'string' && userMessage.trim() ? userMessage.trim() : '📷 عکس ارسال شد';
+    const now = new Date().toISOString();
+    const userMessageId = clientMessageId || makeMessageId('user-vision');
+    const currentMessages = await conversationsRepository.getConversationMessages(effectiveUserId, normalizedConversationId);
+    const currentHasClientMessage = clientMessageId && currentMessages.some((message) => String(message?.id || '') === String(clientMessageId));
+    const userImages = Array.isArray(imageIds)
+      ? imageIds
+          .filter((imageId) => typeof imageId === 'string' && imageId.trim())
+          .slice(0, 5)
+          .map((imageId, index) => ({
+            url: `/api/uploads/images/${encodeURIComponent(imageId.trim())}`,
+            alt: `تصویر ارسال شده ${index + 1}`
+          }))
+      : [];
+    const messagesToAppend = [
+      ...(currentHasClientMessage ? [] : [{
+        id: userMessageId,
+        role: 'user',
+        type: 'text',
+        intent: 'image_understanding',
+        content: prompt,
+        timestamp: now,
+        ...(userImages.length > 0 ? { images: userImages } : {})
+      }]),
+      {
+        id: makeMessageId('assistant-vision'),
+        role: 'assistant',
+        type: 'text',
+        intent: 'image_understanding',
+        content: assistantText,
+        timestamp: now
+      }
+    ];
+
+    const nextMessages = appendUniqueMessages(currentMessages, messagesToAppend);
+    await conversationsRepository.saveConversationMessages(effectiveUserId, normalizedConversationId, nextMessages);
+    conversationStore.set(`${effectiveUserId}:${normalizedConversationId}`, nextMessages);
+
+    if (eventsRepository && typeof eventsRepository.logEvent === 'function') {
+      await eventsRepository.logEvent(effectiveUserId, 'image_understanding_completed', 'image_understanding', {
+        messageLength: prompt.length,
+        imageCount: Array.isArray(imageIds) ? imageIds.length : 0,
+        requestId,
+        model: diagnostics?.model || null,
+        transport: diagnostics?.transport || null,
+        durationMs: diagnostics?.durationMs ?? null
+      });
+    }
+
+    if (chatMessagesRepository && typeof chatMessagesRepository.logMessage === 'function') {
+      await chatMessagesRepository.logMessage({
+        userId: effectiveUserId,
+        conversationId: normalizedConversationId,
+        role: 'user',
+        content: prompt,
+        limitStatus: limitStatus || 'image_understanding'
+      });
+      await chatMessagesRepository.logMessage({
+        userId: effectiveUserId,
+        conversationId: normalizedConversationId,
+        role: 'assistant',
+        content: assistantText,
+        limitStatus: diagnostics?.transport ? `image_understanding_${diagnostics.transport}` : 'image_understanding'
+      });
+    }
+
+    return {
+      userId: effectiveUserId,
+      messages: messagesToAppend
+    };
+  };
+
   return {
     sendChatMessage,
     callOpenAI,
     classifyIntent,
     enhanceImagePrompt,
-    persistImageChatTurn
+    persistImageChatTurn,
+    persistVisionChatTurn
   };
 }
 

@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs-extra');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 
 const { resolveImageRuntimeModel } = require('./bootstrap/config');
 const {
@@ -17,6 +18,12 @@ const {
   normalizePromptRefinerSettings,
   promptRefinerSettingKey
 } = require('./modules/image-generation/image-prompt-refiner.service');
+const {
+  normalizeVisionSettings,
+  validateVisionSettings,
+  visionSettingKey,
+  visionSettingsPayloadToSettings
+} = require('./modules/image-understanding/image-understanding-settings');
 const { createAdminAnalyticsService } = require('./modules/admin/analytics/service');
 const { createAdminAnalyticsRouter } = require('./modules/admin/analytics/routes');
 const { createAdminSystemService } = require('./modules/admin/system/service');
@@ -45,9 +52,17 @@ function createAdminModule({
   runtimeConfig = {},
   imageRuntimeSettingsResolver,
   imageGenerationService,
-  imagePromptRefinerService
+  imagePromptRefinerService,
+  imageUnderstandingService
 }) {
   const router = express.Router();
+  const adminVisionUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 25 * 1024 * 1024,
+      files: 1
+    }
+  });
   const isSystemPromptEditEnabled = () => process.env.ENABLE_SYSTEM_PROMPT_EDIT !== 'false';
   const usersRepository = repositories?.users;
   const analyticsRepository = repositories?.analytics;
@@ -203,6 +218,18 @@ function createAdminModule({
       : {}),
     refinerConfig: runtimeConfig.ai?.image?.promptRefiner || {}
   });
+
+  const getVisionRuntimeSettings = async (settingsOverride = null) => {
+    if (!settingsOverride && imageUnderstandingService && typeof imageUnderstandingService.getRuntimeSettings === 'function') {
+      return imageUnderstandingService.getRuntimeSettings({ force: true });
+    }
+    return normalizeVisionSettings({
+      settings: settingsOverride || (repositories?.settings && typeof repositories.settings.getAll === 'function'
+        ? await repositories.settings.getAll().catch(() => ({}))
+        : {}),
+      visionConfig: runtimeConfig.ai?.vision || {}
+    });
+  };
 
   router.get('/image-model-presets', requireAdminAuth, (_req, res) => {
     return res.json({ presets: IMAGE_MODEL_PRESETS });
@@ -460,6 +487,144 @@ function createAdminModule({
     }
   });
 
+  router.get('/vision-settings', requireAdminAuth, async (_req, res) => {
+    const settings = await getVisionRuntimeSettings();
+    const diagnostics = imageUnderstandingService && typeof imageUnderstandingService.getDiagnostics === 'function'
+      ? await imageUnderstandingService.getDiagnostics({ force: true }).catch(() => null)
+      : null;
+    return res.json({
+      settings,
+      diagnostics,
+      settingKeys: visionSettingKey
+    });
+  });
+
+  router.put('/vision-settings', requireAdminAuth, async (req, res) => {
+    try {
+      const incomingSettings = visionSettingsPayloadToSettings(req.body);
+      const cleanSettings = Object.fromEntries(
+        Object.entries(incomingSettings).filter(([, value]) => value !== undefined)
+      );
+      const current = repositories?.settings && typeof repositories.settings.getAll === 'function'
+        ? await repositories.settings.getAll()
+        : {};
+      const runtimeSettings = normalizeVisionSettings({
+        settings: { ...current, ...cleanSettings },
+        visionConfig: runtimeConfig.ai?.vision || {}
+      });
+      validateVisionSettings(runtimeSettings);
+      const result = await repositories.settings.updateMany(cleanSettings);
+      if (imageUnderstandingService && typeof imageUnderstandingService.invalidate === 'function') {
+        imageUnderstandingService.invalidate();
+      }
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'update_vision_settings',
+        target: 'vision_settings',
+        details: {
+          changedKeys: Object.keys(cleanSettings),
+          before: Object.fromEntries(Object.keys(cleanSettings).map((key) => [key, current[key]])),
+          after: cleanSettings
+        }
+      });
+      return res.json({
+        success: true,
+        settings: await getVisionRuntimeSettings(result.settings),
+        siteSettings: result.settings
+      });
+    } catch (error) {
+      return res.status(400).json({
+        error: error instanceof Error ? error.message : 'ذخیره تنظیمات خواندن تصویر ناموفق بود.'
+      });
+    }
+  });
+
+  router.post('/vision/test-dry-run', requireAdminAuth, async (req, res) => {
+    try {
+      if (!imageUnderstandingService || typeof imageUnderstandingService.makeDryRun !== 'function') {
+        return res.status(503).json({ error: 'سرویس خواندن تصویر در دسترس نیست.' });
+      }
+      const dryRun = await imageUnderstandingService.makeDryRun({
+        prompt: String(req.body?.prompt || '').trim(),
+        settingsOverride: req.body?.settings,
+        transport: req.body?.transport
+      });
+      return res.json({
+        success: true,
+        mode: 'vision-dry-run',
+        model: dryRun.model,
+        transport: dryRun.transport,
+        endpoint: dryRun.endpoint,
+        adapter: dryRun.adapter,
+        requestBody: dryRun.requestBody
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : 'Dry-run خواندن تصویر ناموفق بود.' });
+    }
+  });
+
+  router.post('/vision/test-live', requireAdminAuth, adminVisionUpload.single('image'), async (req, res) => {
+    try {
+      if (!imageUnderstandingService || typeof imageUnderstandingService.analyzeImages !== 'function') {
+        return res.status(503).json({ error: 'سرویس خواندن تصویر در دسترس نیست.' });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: 'برای تست واقعی، یک تصویر آپلود کن.' });
+      }
+      const prompt = String(req.body?.prompt || 'این عکس رو دقیق توضیح بده').trim();
+      const settingsOverride = req.body?.settings ? JSON.parse(req.body.settings) : null;
+      const result = await imageUnderstandingService.analyzeImages({
+        userPrompt: prompt,
+        images: [{
+          id: req.file.originalname,
+          source: 'admin_upload',
+          mimeType: req.file.mimetype,
+          buffer: req.file.buffer,
+          originalName: req.file.originalname
+        }],
+        requestId: res.locals.requestId,
+        settingsOverride,
+        transport: req.body?.transport
+      });
+      return res.json({
+        success: true,
+        mode: 'vision-live',
+        reply: result.answer,
+        model: result.model,
+        provider: result.provider,
+        requestBody: result.requestBody,
+        diagnostics: result.diagnostics
+      });
+    } catch (error) {
+      return res.status(400).json({
+        error: error instanceof Error ? error.message : 'تست واقعی خواندن تصویر ناموفق بود.'
+      });
+    }
+  });
+
+  router.post('/vision/model-probe', requireAdminAuth, async (req, res) => {
+    try {
+      if (!imageUnderstandingService || typeof imageUnderstandingService.probeModels !== 'function') {
+        return res.status(503).json({ error: 'سرویس تست مدل Vision در دسترس نیست.' });
+      }
+      const probe = await imageUnderstandingService.probeModels({
+        settingsOverride: req.body?.settings,
+        transport: req.body?.transport || 'inline'
+      });
+      return res.json({
+        success: true,
+        transport: probe.transport,
+        apiKeySource: probe.apiKeySource,
+        models: probe.models,
+        modelHealth: probe.modelHealth
+      });
+    } catch (error) {
+      return res.status(400).json({
+        error: error instanceof Error ? error.message : 'تست مدل Vision ناموفق بود.'
+      });
+    }
+  });
+
   router.get('/ai-runtime-status', requireAdminAuth, async (_req, res) => {
     const getHost = (value) => {
       try {
@@ -514,8 +679,11 @@ function createAdminModule({
     const imagePromptRefinerDiagnostics = imagePromptRefinerService && typeof imagePromptRefinerService.getDiagnostics === 'function'
       ? await imagePromptRefinerService.getDiagnostics({ force: true }).catch(() => null)
       : null;
+    const visionDiagnostics = imageUnderstandingService && typeof imageUnderstandingService.getDiagnostics === 'function'
+      ? await imageUnderstandingService.getDiagnostics({ force: true }).catch(() => null)
+      : null;
     const imageProvider = String(resolvedImageRuntime.provider || settings['ai.image.provider'] || imageRuntime.provider || 'metis').trim().toLowerCase();
-    const imageModel = String(resolvedImageRuntime.modelAdminValue || storedImageModel || imageRuntime.model || 'gemini-3-pro-image').trim();
+    const imageModel = String(resolvedImageRuntime.modelAdminValue || storedImageModel || imageRuntime.model || 'gemini-2.5-flash-image').trim();
     const imageModelSource = resolvedImageRuntime.modelSource || (storedImageModel ? 'ai.image.model' : imageRuntime.modelSource || 'default');
     const imageRuntimeModel = String(resolvedImageRuntime.runtimeModel || resolveImageRuntimeModel(imageModel, imageProvider)).trim();
     const imageBaseUrl = String(resolvedImageRuntime.baseUrl || settings['ai.image.base_url'] || imageRuntime.baseUrl || 'https://api.metisai.ir').trim();
@@ -595,6 +763,43 @@ function createAdminModule({
         fallbackEnabled: true,
         cacheEnabled: true,
         cacheTtlMinutes: 1440,
+        lastValidationStatus: 'unavailable'
+      },
+      vision: visionDiagnostics || {
+        enabled: false,
+        provider: 'metis-gemini',
+        mode: 'balanced',
+        defaultModel: 'gemini-2.5-flash',
+        fastModel: 'gemini-2.5-flash',
+        experimentalModel: 'gemini-2.5-flash-lite-preview',
+        qualityModel: 'gemini-2.5-flash',
+        proModel: 'gemini-2.5-pro',
+        allowProModel: false,
+        apiKeySource: 'missing',
+        apiKeySet: false,
+        transport: 'auto',
+        timeoutMs: 30000,
+        fallbackTimeoutMs: 45000,
+        maxImageMb: 10,
+        mediaResolution: 'auto',
+        temperature: 0.1,
+        maxOutputTokens: 900,
+        selectedModelForSimpleImage: 'gemini-2.5-flash',
+        selectedModelForOcrOrDesign: 'gemini-2.5-flash',
+        modelHealth: {
+          'gemini-2.5-flash-lite-preview': {
+            status: 'failed_or_experimental',
+            failures: 0,
+            cooldownUntil: null,
+            lastError: null
+          },
+          'gemini-2.5-flash': {
+            status: 'healthy',
+            failures: 0,
+            cooldownUntil: null,
+            lastError: null
+          }
+        },
         lastValidationStatus: 'unavailable'
       },
       imagePlan: {
@@ -952,6 +1157,13 @@ function createAdminModule({
         typeof imagePromptRefinerService.invalidate === 'function'
       ) {
         imagePromptRefinerService.invalidate();
+      }
+      if (
+        changedKeys.some((key) => String(key).startsWith('ai.vision.')) &&
+        imageUnderstandingService &&
+        typeof imageUnderstandingService.invalidate === 'function'
+      ) {
+        imageUnderstandingService.invalidate();
       }
     }
   });

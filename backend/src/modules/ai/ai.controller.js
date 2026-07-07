@@ -9,6 +9,7 @@ const {
   getSafeAlternativeMessage,
   isUnsafeImagePrompt
 } = require('./intent.service');
+const { publicVisionErrorMessage } = require('../image-understanding/image-understanding.controller');
 
 const GUEST_COOKIE_NAME = 'danoa_guest_id';
 
@@ -48,22 +49,18 @@ const toAbsoluteImageUrl = (req, value) => {
   return `${baseUrl}${raw.startsWith('/') ? raw : `/${raw}`}`;
 };
 
-const isPrivateImageProviderUrl = (value) => {
+const parseGeneratedImageTaskId = (value) => {
   const raw = String(value || '').trim();
   try {
     const url = new URL(raw, 'https://local.invalid');
-    // TODO: replace this block with a short-lived signed /api/images/input/:token URL for provider-side image edit.
-    return (
-      url.pathname.startsWith('/api/images/result/') ||
-      url.pathname.startsWith('/api/images/serve/') ||
-      url.pathname.startsWith('/api/images/status/')
-    );
+    const match = url.pathname.match(/^\/api\/images\/(?:result|serve)\/([^/?#]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
   } catch (_error) {
-    return true;
+    return '';
   }
 };
 
-const getImageInputUrls = (req, imageIds, history) => {
+const getImageInputUrls = async (req, res, imageIds, history, imageGenerationController) => {
   const urls = [];
   let hasPrivateImage = false;
   for (const imageId of Array.isArray(imageIds) ? imageIds : []) {
@@ -77,8 +74,22 @@ const getImageInputUrls = (req, imageIds, history) => {
   for (const image of Array.isArray(recentWithImages?.images) ? recentWithImages.images : []) {
     const url = typeof image?.url === 'string' ? image.url : typeof image === 'string' ? image : '';
     if (!url) continue;
-    if (isPrivateImageProviderUrl(url)) {
-      hasPrivateImage = true;
+    if (/^blob:/i.test(url)) continue;
+    if (/^data:image\//i.test(url)) {
+      urls.push(url);
+      continue;
+    }
+    const generatedTaskId = parseGeneratedImageTaskId(url);
+    if (generatedTaskId) {
+      const editableInput =
+        imageGenerationController && typeof imageGenerationController.getEditableImageInput === 'function'
+          ? await imageGenerationController.getEditableImageInput(req, res, generatedTaskId).catch(() => null)
+          : null;
+      if (editableInput?.dataUrl) {
+        urls.push(editableInput.dataUrl);
+      } else {
+        hasPrivateImage = true;
+      }
       continue;
     }
     urls.push(toAbsoluteImageUrl(req, url));
@@ -99,6 +110,7 @@ function createAiController({
   settingsRepository,
   imageGenerationController,
   imageGenerationService,
+  imageUnderstandingService,
   jwt,
   jwtSecret
 }) {
@@ -216,7 +228,9 @@ function createAiController({
         }
 
         try {
-          const imageInput = isEdit ? getImageInputUrls(req, imageIds, history) : { urls: [], hasPrivateImage: false };
+          const imageInput = isEdit
+            ? await getImageInputUrls(req, res, imageIds, history, imageGenerationController)
+            : { urls: [], hasPrivateImage: false };
           if (isEdit && imageInput.urls.length === 0) {
             const { userId } = await imageGenerationController.resolveUserContext(req, res);
             const assistantText = imageInput.hasPrivateImage
@@ -340,6 +354,74 @@ function createAiController({
           });
         }
         limitStatus = 'plan_allowed';
+      }
+
+      if (intentResult.intent === 'image_understanding') {
+        try {
+          const visionResult = await imageUnderstandingService.analyzeChatImages({
+            req,
+            res,
+            message,
+            imageIds,
+            history,
+            requestId: res.locals.requestId
+          });
+          const persisted = await aiService.persistVisionChatTurn({
+            profile: effectiveProfile,
+            conversationId,
+            userMessage: typeof message === 'string' && message.trim() ? message.trim() : 'لطفاً محتوای عکس را توضیح بده.',
+            assistantText: visionResult.answer,
+            requestId: res.locals.requestId,
+            clientMessageId,
+            imageIds,
+            diagnostics: visionResult.diagnostics,
+            limitStatus
+          });
+
+          if (guestContext) {
+            await guestsRepository.incrementCount(guestContext);
+          } else if (authenticatedUserId && plansRepository && typeof plansRepository.incrementDailyUsage === 'function') {
+            await plansRepository.incrementDailyUsage(authenticatedUserId, 'message', 1);
+          }
+
+          return res.json({
+            intent: 'image_understanding',
+            reply: visionResult.answer,
+            messages: persisted.messages,
+            diagnostics: visionResult.diagnostics
+          });
+        } catch (visionError) {
+          const assistantText = publicVisionErrorMessage(visionError);
+          const statusCode =
+            visionError?.code === 'IMAGE_NOT_FOUND' ? 404 :
+            visionError?.code === 'UNSUPPORTED_IMAGE_FORMAT' ? 400 :
+            visionError?.code === 'IMAGE_TOO_LARGE' ? 413 :
+            visionError?.code === 'VISION_TIMEOUT' ? 504 :
+            visionError?.code === 'API_KEY_MISSING' ? 500 :
+            502;
+          const persisted = await aiService.persistVisionChatTurn({
+            profile: effectiveProfile,
+            conversationId,
+            userMessage: typeof message === 'string' && message.trim() ? message.trim() : 'لطفاً محتوای عکس را توضیح بده.',
+            assistantText,
+            requestId: res.locals.requestId,
+            clientMessageId,
+            imageIds,
+            diagnostics: {
+              status: 'error',
+              errorCode: visionError?.code || 'VISION_ANALYZE_FAILED'
+            },
+            limitStatus
+          }).catch(() => ({ messages: [] }));
+          return res.json({
+            intent: 'image_understanding',
+            status: 'ERROR',
+            assistantText,
+            error: visionError?.code || 'VISION_ANALYZE_FAILED',
+            statusCode,
+            messages: persisted.messages
+          });
+        }
       }
 
       const result = await aiService.sendChatMessage({

@@ -105,7 +105,7 @@ type GuestLimitInfo = {
   remaining: number;
 };
 type ChatImageIntentResponse = {
-  intent?: 'chat' | 'image_generation' | 'image_edit';
+  intent?: 'chat' | 'image_generation' | 'image_edit' | 'image_understanding';
   status?: 'QUEUE' | 'WAITING' | 'RUNNING' | 'COMPLETED' | 'ERROR';
   assistantText?: string;
   taskId?: string;
@@ -124,6 +124,11 @@ type ImageAttachment = {
   status: AttachmentStatus;
   imageId?: string;
   error?: string;
+};
+type ImagePreviewState = {
+  src: string;
+  alt: string;
+  downloadName: string;
 };
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -159,7 +164,31 @@ const withImageRetryParam = (src: string, retry: number): string => {
   }
 };
 
-const MessageImage = ({ src, alt }: { src: string; alt: string }) => {
+const buildImageDownloadName = (src: string, index?: number): string => {
+  const suffix = typeof index === 'number' ? `-${index + 1}` : '';
+  try {
+    const url = new URL(src, window.location.origin);
+    const fileName = url.pathname.split('/').filter(Boolean).pop();
+    if (fileName && fileName.includes('.')) {
+      return fileName;
+    }
+  } catch {
+    // Keep the friendly fallback below for relative or blob URLs.
+  }
+  return `danoa-image${suffix}.jpg`;
+};
+
+const MessageImage = ({
+  src,
+  alt,
+  index,
+  onOpenPreview
+}: {
+  src: string;
+  alt: string;
+  index?: number;
+  onOpenPreview: (image: ImagePreviewState) => void;
+}) => {
   const [retryCount, setRetryCount] = useState(0);
   const [failed, setFailed] = useState(false);
   const [resolvedSrc, setResolvedSrc] = useState(src);
@@ -209,24 +238,45 @@ const MessageImage = ({ src, alt }: { src: string; alt: string }) => {
     );
   }
 
-  return (
-    <img
-      className="message-image"
-      src={resolvedSrc.startsWith('blob:') ? resolvedSrc : withImageRetryParam(resolvedSrc, retryCount)}
-      alt={alt}
-      loading="lazy"
-      decoding="async"
-      onError={() => {
-        if (retryCount >= 5) {
-          setFailed(true);
-          return;
-        }
+  const displaySrc = resolvedSrc.startsWith('blob:') ? resolvedSrc : withImageRetryParam(resolvedSrc, retryCount);
+  const downloadName = buildImageDownloadName(src, index);
 
-        window.setTimeout(() => {
-          setRetryCount((current) => current + 1);
-        }, 700 + retryCount * 500);
-      }}
-    />
+  return (
+    <figure className="generated-image-card">
+      <button
+        type="button"
+        className="generated-image-preview"
+        onClick={() => onOpenPreview({ src: displaySrc, alt, downloadName })}
+        aria-label="مشاهده تصویر"
+      >
+        <img
+          className="message-image"
+          src={displaySrc}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          onError={() => {
+            if (retryCount >= 5) {
+              setFailed(true);
+              return;
+            }
+
+            window.setTimeout(() => {
+              setRetryCount((current) => current + 1);
+            }, 700 + retryCount * 500);
+          }}
+        />
+        <span className="generated-image-hover" aria-hidden="true">
+          <span>مشاهده</span>
+        </span>
+      </button>
+      <figcaption className="generated-image-actions">
+        <span className="generated-image-label">تصویر آماده شد</span>
+        <a className="generated-image-download" href={displaySrc} download={downloadName}>
+          دانلود
+        </a>
+      </figcaption>
+    </figure>
   );
 };
 
@@ -945,6 +995,7 @@ function ChatApp() {
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
  const [imageGenError, setImageGenError] = useState<string>('');
+ const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
  const [publicSettings, setPublicSettings] = useState<PublicSettings>(PUBLIC_SETTINGS_DEFAULTS);
 
  const [editingId, setEditingId] = useState<string | null>(null);
@@ -972,6 +1023,21 @@ function ChatApp() {
   const attachmentBoxRef = useRef<HTMLDivElement | null>(null);
   const attachmentUrlsRef = useRef<Set<string>>(new Set());
   const imageTaskPollingRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!imagePreview) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setImagePreview(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [imagePreview]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1967,6 +2033,12 @@ function ChatApp() {
         try {
           uploadResponse = await safeFetch('/api/uploads/images', {
             method: 'POST',
+            credentials: 'include',
+            headers: {
+              ...(localStorage.getItem('chat_auth_token')
+                ? { Authorization: `Bearer ${localStorage.getItem('chat_auth_token')}` }
+                : {})
+            },
             body: formData
           });
           uploadData = await uploadResponse.json();
@@ -2122,7 +2194,43 @@ function ChatApp() {
         return;
       }
 
-      const replyText = data.reply?.trim() || 'الان نتوانستم پاسخ بدهم. لطفاً دوباره امتحان کن.';
+      if (data.intent === 'image_understanding') {
+        const responseMessages = Array.isArray(data.messages) ? data.messages : [];
+        if (responseMessages.length > 0) {
+          updateConversation(currentConversation.id, (item) => {
+            const optimisticIds = new Set([userMessage.id].filter(Boolean));
+            const withoutOptimistic = item.messages.filter((message) => !message.id || !optimisticIds.has(message.id));
+            const existingIds = new Set(withoutOptimistic.map((message) => message.id).filter(Boolean));
+            const canonicalMessages = responseMessages.filter((message) => !message.id || !existingIds.has(message.id));
+            return {
+              ...item,
+              messages: dedupeChatMessages([...withoutOptimistic, ...canonicalMessages]),
+              updatedAt: new Date().toISOString()
+            };
+          });
+        } else {
+          const replyText = data.reply?.trim() || data.assistantText?.trim() || 'الان نتوانستم تصویر را درست بخوانم. لطفاً دوباره امتحان کن.';
+          const botMessage: ChatMessage = {
+            id: generateMessageId('assistant-vision'),
+            role: 'assistant',
+            type: 'text',
+            intent: 'image_understanding',
+            content: replyText,
+            timestamp: new Date().toISOString()
+          };
+          updateConversation(currentConversation.id, (item) => ({
+            ...item,
+            messages: [...item.messages, botMessage],
+            updatedAt: new Date().toISOString()
+          }));
+        }
+        if (data.status === 'ERROR') {
+          pushToast(data.assistantText || 'خواندن تصویر ناموفق بود', 'warning');
+        }
+        return;
+      }
+
+      const replyText = data.reply?.trim() || data.assistantText?.trim() || 'الان نتوانستم پاسخ بدهم. لطفاً دوباره امتحان کن.';
 
       const botMessage: ChatMessage = {
         id: generateMessageId('assistant'),
@@ -2277,7 +2385,16 @@ function ChatApp() {
     try {
       const formData = new FormData();
       formData.append('images', attachment.file);
-      const response = await safeFetch('/api/uploads/images', { method: 'POST', body: formData });
+      const response = await safeFetch('/api/uploads/images', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          ...(localStorage.getItem('chat_auth_token')
+            ? { Authorization: `Bearer ${localStorage.getItem('chat_auth_token')}` }
+            : {})
+        },
+        body: formData
+      });
       const data = await response.json();
 
       if (!response.ok || !Array.isArray(data?.images) || data.images.length === 0) {
@@ -2614,43 +2731,64 @@ function ChatApp() {
 
   const renderAuthForm = ({ includeLanding = true }: { includeLanding?: boolean } = {}) => {
     const authCardClass = `register-card auth-card ${authTransition === 'back' ? 'slide-back' : 'slide-forward'}`;
+    const authActionText = isCheckingPhone
+      ? 'در حال بررسی شماره...'
+      : isSendingVerification
+        ? 'در حال ارسال کد...'
+        : 'ادامه با کد تایید';
     return (
       <>
         {includeLanding && landingStep === 'landing' ? (
-          <div className={authCardClass}>
-            <h1>
-              به دانوآ خوش آمدید <span>🌤️</span>
-            </h1>
-            <p className="subtitle">اول حرف بزن، بعد اگر خواستی گفتگوها را با کمک والد نگه دار.</p>
-            <Button
-              type="button"
-              className="start-btn landing-btn"
-              onClick={startGuestSession}
-            >
-              شروع مهمان
+          <form className={`${authCardClass} auth-card--entry`} onSubmit={handleRegisterStepOne}>
+            <div className="auth-brand">
+              <span className="auth-logo-mark" aria-hidden="true">د</span>
+              <div>
+                <p className="auth-eyebrow">ورود به دانوآ</p>
+                <h1>حساب کاربری</h1>
+              </div>
+            </div>
+            <p className="subtitle">
+              شماره موبایل را وارد کن؛ اگر قبلاً حساب داشته باشی وارد همان گفتگوها می‌شوی، و اگر تازه باشی بعد از تایید کد فقط اسم و سن را می‌پرسیم.
+            </p>
+
+            <TextField
+              label="شماره موبایل"
+              value={phone}
+              onChange={(event) => setPhone(filterLocalizedDigits(event.target.value))}
+              placeholder="09123456789"
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9۰-۹٠-٩]*"
+              maxLength={11}
+              autoComplete="tel"
+              helperText="کد تایید برای همین شماره پیامک می‌شود."
+              errorText={errors.phone}
+            />
+
+            <Button type="submit" className="start-btn auth-primary-action" disabled={isSendingVerification || isCheckingPhone}>
+              {authActionText}
             </Button>
+
+            <div className="auth-divider" aria-hidden="true">
+              <span />
+              <b>یا</b>
+              <span />
+            </div>
+
             <div className="auth-landing-actions">
               <Button
                 type="button"
-                className="landing-btn secondary"
+                className="landing-btn secondary auth-guest-btn"
                 variant="secondary"
-                onClick={() => beginAuthFlow('signup')}
+                onClick={startGuestSession}
               >
-                ذخیره گفتگوها با کمک والد
-              </Button>
-              <Button
-                type="button"
-                className="landing-link"
-                variant="ghost"
-                onClick={() => beginAuthFlow('login')}
-              >
-                قبلا حساب داشتم
+                ورود به عنوان مهمان
               </Button>
             </div>
             <p className="helper onboarding-help">
-              {hasSavedAccount ? 'حساب قبلی روی این مرورگر پیدا شد ✅' : 'برای امتحان کردن نیازی به ثبت‌نام نیست.'}
+              {hasSavedAccount ? 'روی این مرورگر قبلاً حساب ذخیره شده؛ با همان شماره وارد شو.' : 'مهمان می‌تواند شروع کند، اما برای نگه داشتن گفتگوها شماره لازم است.'}
             </p>
-          </div>
+          </form>
         ) : registrationStep === 1 ? (
           <form className={authCardClass} onSubmit={handleRegisterStepOne}>
             {includeLanding ? (
@@ -2667,14 +2805,15 @@ function ChatApp() {
                 ← بازگشت
               </button>
             ) : null}
-            <h1>
-              شماره والد <span>📱</span>
-            </h1>
-            <p className="subtitle">شماره مامان، بابا یا بزرگ‌ترت را وارد کن تا کد پیامک شود.</p>
-            <p className="helper onboarding-help">اگر حساب قبلی داشته باشی، همین شماره تو را وارد می‌کند.</p>
+            <div className="auth-step-row">
+              <span>1</span>
+              <p>شماره موبایل</p>
+            </div>
+            <h1>ورود یا ساخت حساب</h1>
+            <p className="subtitle">شماره را وارد کن تا کد تایید بفرستیم. دانوآ خودش تشخیص می‌دهد حساب قبلی داری یا نه.</p>
 
             <TextField
-              label="شماره والد"
+              label="شماره موبایل"
               value={phone}
               onChange={(event) => setPhone(filterLocalizedDigits(event.target.value))}
               placeholder="09123456789"
@@ -2688,7 +2827,7 @@ function ChatApp() {
             />
 
             <Button type="submit" className="start-btn" disabled={isSendingVerification || isCheckingPhone}>
-              {isSendingVerification ? 'در حال ارسال...' : 'فرستادن کد برای والد'}
+              {authActionText}
             </Button>
           </form>
         ) : registrationStep === 2 ? (
@@ -2704,11 +2843,13 @@ function ChatApp() {
             >
               ← بازگشت
             </button>
-            <h1>
-              کد را وارد کن <span>✅</span>
-            </h1>
-            <p className="subtitle">کدی که برای {phone || 'شماره والد'} پیامک شده را وارد کن.</p>
-            <p className="helper onboarding-help">اگر کنار والدت هستی، از او کمک بگیر.</p>
+            <div className="auth-step-row">
+              <span>2</span>
+              <p>تایید شماره</p>
+            </div>
+            <h1>کد تایید</h1>
+            <p className="subtitle">کدی که برای شماره زیر پیامک شده را وارد کن.</p>
+            <p className="auth-phone-badge" dir="ltr">{phone || '09XXXXXXXXX'}</p>
 
             <TextField
               label="کد تایید"
@@ -2751,11 +2892,13 @@ function ChatApp() {
             >
               ← بازگشت
             </button>
-            <h1>
-              پروفایل کودک <span>✨</span>
-            </h1>
-            <p className="subtitle">حساب با شماره والد ساخته می‌شود و گفتگوهای مهمان هم می‌ماند.</p>
-            <p className="helper onboarding-help">فقط اسم کوچک و سن کودک را وارد کن.</p>
+            <div className="auth-step-row">
+              <span>3</span>
+              <p>تکمیل حساب</p>
+            </div>
+            <h1>اطلاعات کودک</h1>
+            <p className="subtitle">این شماره قبلاً در دانوآ ثبت نشده بود. برای ساخت حساب، اسم و سن کودک را وارد کن.</p>
+            <p className="auth-phone-badge" dir="ltr">{phone}</p>
 
             <TextField
               label="اسم کودک"
@@ -2841,6 +2984,32 @@ function ChatApp() {
       <div className="bg-blob blob-orange" />
       <div className="bg-blob blob-yellow" />
       <div className="bg-blob blob-purple" />
+
+      {imagePreview ? (
+        <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="پیش‌نمایش تصویر" onClick={() => setImagePreview(null)}>
+          <div className="image-lightbox-panel" onClick={(event) => event.stopPropagation()}>
+            <div className="image-lightbox-toolbar">
+              <a className="image-lightbox-action" href={imagePreview.src} download={imagePreview.downloadName}>
+                دانلود
+              </a>
+              <a className="image-lightbox-icon" href={imagePreview.src} target="_blank" rel="noreferrer" aria-label="باز کردن در تب جدید" title="باز کردن">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14 4h6v6" />
+                  <path d="M10 14 20 4" />
+                  <path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
+                </svg>
+              </a>
+              <button className="image-lightbox-icon" type="button" onClick={() => setImagePreview(null)} aria-label="بستن" title="بستن">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+            <img src={imagePreview.src} alt={imagePreview.alt} />
+          </div>
+        </div>
+      ) : null}
 
       <div className="chat-card">
         {/* Warning banner for users logged in without a JWT token (pre-fix session) */}
@@ -3602,7 +3771,7 @@ function ChatApp() {
             visibleMessages.map((message, index) => (
               <div
                 key={`${message.timestamp}-${index}`}
-                className={`message-row ${message.role}`}
+                className={`message-row ${message.role} ${Array.isArray(message.images) && message.images.length > 0 ? 'has-images' : ''}`}
                 ref={(node) => {
                   if (index === visibleMessages.length - 1) {
                     lastMessageRef.current = node;
@@ -3623,6 +3792,8 @@ function ChatApp() {
                             key={`${image.url}-${imageIndex}`}
                             src={image.url}
                             alt={image.alt || 'تصویر ارسال شده'}
+                            index={imageIndex}
+                            onOpenPreview={setImagePreview}
                           />
                         ))}
                       </div>
@@ -3639,6 +3810,8 @@ function ChatApp() {
                             key={`${image.url}-${imageIndex}`}
                             src={image.url}
                             alt={image.alt || 'تصویر ارسال شده'}
+                            index={imageIndex}
+                            onOpenPreview={setImagePreview}
                           />
                         ))}
                       </div>

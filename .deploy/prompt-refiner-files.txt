@@ -1,0 +1,10 @@
+backend/migrations/013_image_prompt_refiner_settings.sql
+backend/src/adminRoutes.js
+backend/src/bootstrap/config.js
+backend/src/modules/image-generation/image-generation.controller.js
+backend/src/modules/image-generation/image-generation.routes.js
+backend/src/modules/image-generation/image-prompt-refiner.service.js
+backend/src/modules/settings/defaults.js
+backend/src/server.js
+frontend/src/AdminPanel.tsx
+frontend/src/styles.css

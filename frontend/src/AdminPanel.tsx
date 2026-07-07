@@ -151,6 +151,41 @@ type AiRuntimeStatus = {
     cacheTtlMinutes: number;
     lastValidationStatus?: string;
   };
+  vision?: {
+    enabled: boolean;
+    provider: string;
+    mode: string;
+    defaultModel: string;
+    fastModel: string;
+    experimentalModel?: string;
+    qualityModel: string;
+    proModel: string;
+    allowProModel: boolean;
+    apiKeySource: string;
+    apiKeySet: boolean;
+    apiKeyFingerprint?: string;
+    transport: string;
+    timeoutMs: number;
+    fallbackTimeoutMs: number;
+    maxImageMb: number;
+    mediaResolution: string;
+    temperature: number;
+    maxOutputTokens: number;
+    selectedModelForSimpleImage?: string;
+    selectedModelForOcrOrDesign?: string;
+    modelHealth?: Record<string, {
+      status: string;
+      failures?: number;
+      cooldownUntil?: string | null;
+      lastError?: {
+        statusCode?: number | null;
+        errorType?: string;
+        safeMessage?: string;
+        upstreamCode?: string;
+      } | null;
+    }>;
+    lastValidationStatus?: string;
+  };
 };
 
 type ImageModelPreset = {
@@ -306,6 +341,18 @@ const IMAGE_SAFETY_FILTER_OPTIONS = [
 const IMAGE_PROMPT_REFINER_DEFAULT_STYLE = 'clean, colorful, child-friendly digital illustration, soft lighting, high quality';
 const IMAGE_PROMPT_REFINER_DEFAULT_NEGATIVE = 'no watermark, no distorted text, no extra fingers, no blurry face, no unrelated objects';
 const IMAGE_PROMPT_REFINER_DEFAULT_SYSTEM_PROMPT = 'You are an image prompt refinement engine for a Persian child-friendly AI product. Return only valid JSON matching the requested schema. Preserve the main subject, keep Persian text inside the image unchanged, and enforce child-safe rules.';
+const VISION_TRANSPORT_OPTIONS = ['auto', 'inline', 'metis_storage'];
+const VISION_MODE_OPTIONS = ['economy', 'balanced', 'accurate', 'pro'];
+const VISION_MEDIA_RESOLUTION_OPTIONS = ['auto', 'normal', 'high'];
+const VISION_DEFAULT_SYSTEM_PROMPT = 'You are a professional image understanding engine for a Persian child-friendly AI product.\n\nAnalyze the provided image accurately. Do not guess beyond visible evidence. If something is uncertain, say it is uncertain.\n\nReturn the answer in Persian unless the user asks otherwise.\n\nIf the user asks to read text, prioritize OCR-like accuracy. If the image is blurry, rotated, cropped, too small, or unreadable, say so clearly. Do not hallucinate. Do not identify real people by name.';
+const VISION_DEFAULT_OCR_PROMPT = 'Read all visible text in the image exactly as written. Preserve Persian text exactly. If text is unclear, mark it as unclear instead of guessing.';
+const VISION_DEFAULT_DESIGN_PROMPT = 'Analyze this design visually. Comment on layout, colors, readability, hierarchy, spacing, and what could be improved. Be concise and practical.';
+const normalizeVisionModeForPanel = (value: unknown) => {
+  const mode = String(value || 'balanced');
+  if (mode === 'quality') return 'accurate';
+  if (mode === 'fast') return 'economy';
+  return VISION_MODE_OPTIONS.includes(mode) ? mode : 'balanced';
+};
 
 const formatDateInput = (date: Date) => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
@@ -396,6 +443,11 @@ function AdminPanel() {
   const [imageTestResult, setImageTestResult] = useState<any>(null);
   const [imageTestMessage, setImageTestMessage] = useState('');
   const [imageTestLoading, setImageTestLoading] = useState(false);
+  const [visionTestPrompt, setVisionTestPrompt] = useState('این عکس رو دقیق توضیح بده');
+  const [visionTestFile, setVisionTestFile] = useState<File | null>(null);
+  const [visionTestResult, setVisionTestResult] = useState<any>(null);
+  const [visionTestMessage, setVisionTestMessage] = useState('');
+  const [visionTestLoading, setVisionTestLoading] = useState(false);
   const [supervisedOtp, setSupervisedOtp] = useState<SupervisedOtpConfig | null>(null);
   const [supervisedOtpForm, setSupervisedOtpForm] = useState({
     enabled: false,
@@ -986,6 +1038,86 @@ function AdminPanel() {
       setImageTestMessage(error instanceof Error ? error.message : 'تست واقعی ساخت تصویر ناموفق بود.');
     } finally {
       setImageTestLoading(false);
+    }
+  };
+
+  const runVisionDryRun = async () => {
+    setVisionTestLoading(true);
+    setVisionTestMessage('');
+    setVisionTestResult(null);
+    try {
+      const response = await fetch('/api/admin/vision/test-dry-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: visionTestPrompt, settings: siteSettings?.settings || {} })
+      });
+      const result = await handleAdminResponse(response, 'Dry-run خواندن تصویر ناموفق بود.');
+      if (result.ok) {
+        setVisionTestResult(result.data);
+        setVisionTestMessage('Dry-run خواندن تصویر با موفقیت ساخته شد.');
+      }
+    } catch (error) {
+      setVisionTestMessage(error instanceof Error ? error.message : 'Dry-run خواندن تصویر ناموفق بود.');
+    } finally {
+      setVisionTestLoading(false);
+    }
+  };
+
+  const runVisionLiveTest = async () => {
+    if (!visionTestFile) {
+      setVisionTestMessage('برای تست واقعی Vision یک تصویر انتخاب کن.');
+      return;
+    }
+    if (!window.confirm('تست واقعی خواندن تصویر ممکن است اعتبار مصرف کند. ادامه می‌دهی؟')) return;
+    setVisionTestLoading(true);
+    setVisionTestMessage('');
+    setVisionTestResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('image', visionTestFile);
+      formData.append('prompt', visionTestPrompt);
+      formData.append('settings', JSON.stringify(siteSettings?.settings || {}));
+      const response = await fetch('/api/admin/vision/test-live', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      const result = await handleAdminResponse(response, 'تست واقعی خواندن تصویر ناموفق بود.');
+      if (result.ok) {
+        setVisionTestResult(result.data);
+        setVisionTestMessage('تست واقعی خواندن تصویر با موفقیت انجام شد.');
+        await loadAiRuntimeStatus();
+      }
+    } catch (error) {
+      setVisionTestMessage(error instanceof Error ? error.message : 'تست واقعی خواندن تصویر ناموفق بود.');
+    } finally {
+      setVisionTestLoading(false);
+    }
+  };
+
+  const runVisionModelProbe = async () => {
+    if (!window.confirm('Model probe واقعی ممکن است اعتبار مصرف کند و فقط تصویر تست داخلی را ارسال می‌کند. ادامه می‌دهی؟')) return;
+    setVisionTestLoading(true);
+    setVisionTestMessage('');
+    setVisionTestResult(null);
+    try {
+      const response = await fetch('/api/admin/vision/model-probe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ settings: siteSettings?.settings || {}, transport: 'inline' })
+      });
+      const result = await handleAdminResponse(response, 'Model probe خواندن تصویر ناموفق بود.');
+      if (result.ok) {
+        setVisionTestResult(result.data);
+        setVisionTestMessage('Model probe خواندن تصویر با موفقیت انجام شد.');
+        await loadAiRuntimeStatus();
+      }
+    } catch (error) {
+      setVisionTestMessage(error instanceof Error ? error.message : 'Model probe خواندن تصویر ناموفق بود.');
+    } finally {
+      setVisionTestLoading(false);
     }
   };
 
@@ -1933,7 +2065,7 @@ function AdminPanel() {
                 <label className="admin-select-field">
                   <span>Model preset</span>
                   <select
-                    value={String(siteSettings.settings['ai.image.model_preset'] ?? 'nano-banana-pro')}
+                    value={String(siteSettings.settings['ai.image.model_preset'] ?? 'nano-banana')}
                     onChange={(e) => applyImagePreset(e.target.value)}
                   >
                     {imageModelPresets.map((preset) => (
@@ -1959,7 +2091,7 @@ function AdminPanel() {
                 />
                 <TextField
                   label="Admin model value"
-                  value={String(siteSettings.settings['ai.image.model.admin_value'] ?? siteSettings.settings['ai.image.model'] ?? 'gemini-3-pro-image')}
+                  value={String(siteSettings.settings['ai.image.model.admin_value'] ?? siteSettings.settings['ai.image.model'] ?? 'gemini-2.5-flash-image')}
                   onChange={(e) => updateSiteSettingsPatch({ 'ai.image.model.admin_value': e.target.value, 'ai.image.model': e.target.value })}
                 />
                 <TextField
@@ -1969,7 +2101,7 @@ function AdminPanel() {
                 />
                 <TextField
                   label="Runtime model"
-                  value={String(siteSettings.settings['ai.image.model.runtime_model'] ?? 'nano-banana-pro')}
+                  value={String(siteSettings.settings['ai.image.model.runtime_model'] ?? 'nano-banana')}
                   onChange={(e) => updateSiteSetting('ai.image.model.runtime_model', e.target.value)}
                 />
                 <TextField
@@ -2085,6 +2217,234 @@ function AdminPanel() {
                 value={String(siteSettings.settings['ai.image.custom_args_json'] ?? '{}')}
                 onChange={(e) => updateSiteSetting('ai.image.custom_args_json', e.target.value)}
               />
+              <h4>خواندن و تحلیل تصویر</h4>
+              {aiRuntimeStatus?.vision ? (
+                <p className="admin-note">
+                  Runtime Vision: enabled={aiRuntimeStatus.vision.enabled ? 'true' : 'false'}، provider={aiRuntimeStatus.vision.provider}، mode={aiRuntimeStatus.vision.mode}، default={aiRuntimeStatus.vision.defaultModel}، fast={aiRuntimeStatus.vision.fastModel}، experimental={aiRuntimeStatus.vision.experimentalModel || '-'}، quality={aiRuntimeStatus.vision.qualityModel}، pro={aiRuntimeStatus.vision.proModel}، allowPro={aiRuntimeStatus.vision.allowProModel ? 'true' : 'false'}، key source={aiRuntimeStatus.vision.apiKeySource}، key={aiRuntimeStatus.vision.apiKeySet ? 'set' : 'missing'}، transport={aiRuntimeStatus.vision.transport}، timeout={aiRuntimeStatus.vision.timeoutMs}/{aiRuntimeStatus.vision.fallbackTimeoutMs}، maxTokens={aiRuntimeStatus.vision.maxOutputTokens}، simple={aiRuntimeStatus.vision.selectedModelForSimpleImage || '-'}، OCR/design={aiRuntimeStatus.vision.selectedModelForOcrOrDesign || '-'}، validation={aiRuntimeStatus.vision.lastValidationStatus || '-'}
+                </p>
+              ) : null}
+              <p className="admin-note">
+                production = gemini-2.5-flash، experimental/economy = gemini-2.5-flash-lite-preview فقط اگر health سالم باشد، دقیق = gemini-2.5-flash، Pro فقط با فعال‌سازی دستی.
+              </p>
+              {normalizeVisionModeForPanel(siteSettings.settings['ai.vision.mode']) === 'pro' && !Boolean(siteSettings.settings['ai.vision.allow_pro_model'] ?? false) ? (
+                <InlineMessage text="Mode روی Pro است اما allow_pro_model غیرفعال است؛ runtime به gemini-2.5-flash برمی‌گردد." variant="help" />
+              ) : null}
+              <FieldGroup direction="row">
+                <label className="admin-select-field">
+                  <span>Vision</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.vision.enabled'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.vision.enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Provider</span>
+                  <select
+                    value={String(siteSettings.settings['ai.vision.provider'] ?? 'metis-gemini')}
+                    onChange={(e) => updateSiteSetting('ai.vision.provider', e.target.value)}
+                  >
+                    <option value="metis-gemini">metis-gemini</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Mode</span>
+                  <select
+                    value={normalizeVisionModeForPanel(siteSettings.settings['ai.vision.mode'])}
+                    onChange={(e) => updateSiteSetting('ai.vision.mode', e.target.value)}
+                  >
+                    {VISION_MODE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option === 'economy' ? 'اقتصادی' : option === 'balanced' ? 'متعادل' : option === 'accurate' ? 'دقیق' : 'Pro'}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <TextField
+                  label="Default model"
+                  value={String(siteSettings.settings['ai.vision.default_model'] ?? siteSettings.settings['ai.vision.model'] ?? 'gemini-2.5-flash')}
+                  onChange={(e) => updateSiteSettingsPatch({ 'ai.vision.default_model': e.target.value, 'ai.vision.model': e.target.value })}
+                />
+                <TextField
+                  label="Fast model"
+                  value={String(siteSettings.settings['ai.vision.fast_model'] ?? 'gemini-2.5-flash')}
+                  onChange={(e) => updateSiteSetting('ai.vision.fast_model', e.target.value)}
+                />
+                <TextField
+                  label="Experimental model"
+                  value={String(siteSettings.settings['ai.vision.experimental_model'] ?? 'gemini-2.5-flash-lite-preview')}
+                  onChange={(e) => updateSiteSetting('ai.vision.experimental_model', e.target.value)}
+                />
+                <TextField
+                  label="Quality model"
+                  value={String(siteSettings.settings['ai.vision.quality_model'] ?? 'gemini-2.5-flash')}
+                  onChange={(e) => updateSiteSetting('ai.vision.quality_model', e.target.value)}
+                />
+                <TextField
+                  label="Pro model"
+                  value={String(siteSettings.settings['ai.vision.pro_model'] ?? 'gemini-2.5-pro')}
+                  onChange={(e) => updateSiteSetting('ai.vision.pro_model', e.target.value)}
+                />
+                <label className="admin-select-field">
+                  <span>Transport</span>
+                  <select
+                    value={String(siteSettings.settings['ai.vision.transport'] ?? 'auto')}
+                    onChange={(e) => updateSiteSetting('ai.vision.transport', e.target.value)}
+                  >
+                    {VISION_TRANSPORT_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Media resolution</span>
+                  <select
+                    value={String(siteSettings.settings['ai.vision.media_resolution'] ?? 'auto')}
+                    onChange={(e) => updateSiteSetting('ai.vision.media_resolution', e.target.value)}
+                  >
+                    {VISION_MEDIA_RESOLUTION_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </label>
+              </FieldGroup>
+              <FieldGroup direction="row">
+                <TextField
+                  label="Vision base URL"
+                  value={String(siteSettings.settings['ai.vision.base_url'] ?? 'https://api.metisai.ir')}
+                  onChange={(e) => updateSiteSetting('ai.vision.base_url', e.target.value)}
+                />
+                <TextField
+                  label="Timeout ms"
+                  type="number"
+                  value={String(siteSettings.settings['ai.vision.timeout_ms'] ?? 30000)}
+                  onChange={(e) => updateSiteSetting('ai.vision.timeout_ms', Number(e.target.value))}
+                />
+                <TextField
+                  label="Fallback timeout ms"
+                  type="number"
+                  value={String(siteSettings.settings['ai.vision.fallback_timeout_ms'] ?? 45000)}
+                  onChange={(e) => updateSiteSetting('ai.vision.fallback_timeout_ms', Number(e.target.value))}
+                />
+                <TextField
+                  label="Max image MB"
+                  type="number"
+                  value={String(siteSettings.settings['ai.vision.max_image_mb'] ?? 10)}
+                  onChange={(e) => updateSiteSetting('ai.vision.max_image_mb', Number(e.target.value))}
+                />
+                <TextField
+                  label="Temperature"
+                  type="number"
+                  step="0.1"
+                  value={String(siteSettings.settings['ai.vision.temperature'] ?? 0.1)}
+                  onChange={(e) => updateSiteSetting('ai.vision.temperature', Number(e.target.value))}
+                />
+                <TextField
+                  label="Max output tokens"
+                  type="number"
+                  value={String(siteSettings.settings['ai.vision.max_output_tokens'] ?? 900)}
+                  onChange={(e) => updateSiteSetting('ai.vision.max_output_tokens', Number(e.target.value))}
+                />
+                <label className="admin-select-field">
+                  <span>Allow Pro model</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.vision.allow_pro_model'] ?? false))}
+                    onChange={(e) => updateSiteSetting('ai.vision.allow_pro_model', e.target.value === 'true')}
+                  >
+                    <option value="false">غیرفعال</option>
+                    <option value="true">فعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Chat key fallback</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.vision.allow_chat_key_fallback'] ?? false))}
+                    onChange={(e) => updateSiteSetting('ai.vision.allow_chat_key_fallback', e.target.value === 'true')}
+                  >
+                    <option value="false">غیرفعال</option>
+                    <option value="true">فعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Store metadata</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.vision.store_metadata'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.vision.store_metadata', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+              </FieldGroup>
+              <FieldGroup direction="row">
+                <label className="admin-select-field">
+                  <span>Model health</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.vision.model_health.enabled'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.vision.model_health.enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <TextField
+                  label="Health failure threshold"
+                  type="number"
+                  value={String(siteSettings.settings['ai.vision.model_health.failure_threshold'] ?? 3)}
+                  onChange={(e) => updateSiteSetting('ai.vision.model_health.failure_threshold', Number(e.target.value))}
+                />
+                <TextField
+                  label="Health cooldown minutes"
+                  type="number"
+                  value={String(siteSettings.settings['ai.vision.model_health.cooldown_minutes'] ?? 60)}
+                  onChange={(e) => updateSiteSetting('ai.vision.model_health.cooldown_minutes', Number(e.target.value))}
+                />
+              </FieldGroup>
+              {aiRuntimeStatus?.vision?.modelHealth ? (
+                <pre className="admin-json-preview">{JSON.stringify(aiRuntimeStatus.vision.modelHealth, null, 2)}</pre>
+              ) : null}
+              <TextAreaField
+                label="Vision system prompt"
+                rows={7}
+                value={String(siteSettings.settings['ai.vision.system_prompt'] ?? VISION_DEFAULT_SYSTEM_PROMPT)}
+                onChange={(e) => updateSiteSetting('ai.vision.system_prompt', e.target.value)}
+              />
+              <TextAreaField
+                label="OCR prompt"
+                rows={3}
+                value={String(siteSettings.settings['ai.vision.ocr_prompt'] ?? VISION_DEFAULT_OCR_PROMPT)}
+                onChange={(e) => updateSiteSetting('ai.vision.ocr_prompt', e.target.value)}
+              />
+              <TextAreaField
+                label="Design analysis prompt"
+                rows={3}
+                value={String(siteSettings.settings['ai.vision.design_analysis_prompt'] ?? VISION_DEFAULT_DESIGN_PROMPT)}
+                onChange={(e) => updateSiteSetting('ai.vision.design_analysis_prompt', e.target.value)}
+              />
+              <FieldGroup direction="row">
+                <TextField
+                  label="Prompt تست Vision"
+                  value={visionTestPrompt}
+                  onChange={(e) => setVisionTestPrompt(e.target.value)}
+                />
+                <label className="admin-control-field">
+                  <span>تصویر تست</span>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setVisionTestFile(e.target.files?.[0] || null)} />
+                </label>
+                <Button onClick={() => void runVisionDryRun()} disabled={visionTestLoading}>
+                  تست Vision Dry-run
+                </Button>
+                <Button variant="secondary" onClick={() => void runVisionLiveTest()} disabled={visionTestLoading}>
+                  تست Vision Live
+                </Button>
+                <Button variant="secondary" onClick={() => void runVisionModelProbe()} disabled={visionTestLoading}>
+                  تست Model Probe
+                </Button>
+              </FieldGroup>
+              {visionTestMessage ? (
+                <InlineMessage text={visionTestMessage} variant={visionTestMessage.includes('موفقیت') ? 'success' : 'error'} />
+              ) : null}
+              {visionTestResult ? (
+                <pre className="admin-json-preview">{JSON.stringify(visionTestResult, null, 2)}</pre>
+              ) : null}
               <h4>بهینه‌ساز پرامپت تصویر</h4>
               {aiRuntimeStatus?.imagePromptRefiner ? (
                 <div className="runtime-card">

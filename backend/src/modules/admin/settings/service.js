@@ -3,6 +3,10 @@ const {
   normalizeRuntimeSettings,
   validateRuntimeSettings
 } = require('../../image-generation/image-runtime-settings');
+const {
+  normalizeVisionSettings,
+  validateVisionSettings
+} = require('../../image-understanding/image-understanding-settings');
 
 function createAdminSettingsService({ settingsRepository, appendAudit, onSettingsUpdated }) {
   const getSettings = async () => {
@@ -27,6 +31,12 @@ function createAdminSettingsService({ settingsRepository, appendAudit, onSetting
           stored: incoming
         });
         validateRuntimeSettings(runtimeSettings);
+      }
+      if (Object.keys(incoming).some((key) => key.startsWith('ai.vision.'))) {
+        const visionSettings = normalizeVisionSettings({
+          settings: { ...before, ...incoming }
+        });
+        validateVisionSettings(visionSettings);
       }
       const result = await settingsRepository.updateMany(incoming);
       const changedKeys = Object.keys(result.updated);

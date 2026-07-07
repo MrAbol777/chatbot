@@ -29,7 +29,7 @@ const normalizeMessage = (item, fallbackTimestamp = nowIso()) => {
     ? item.status
     : undefined;
   const id = typeof item.id === 'string' && item.id.trim() ? item.id.trim() : undefined;
-  const intent = ['chat', 'image_generation', 'image_edit'].includes(item.intent) ? item.intent : undefined;
+  const intent = ['chat', 'image_generation', 'image_edit', 'image_understanding'].includes(item.intent) ? item.intent : undefined;
   const timestamp = typeof item.timestamp === 'string' && item.timestamp.trim() ? item.timestamp.trim() : fallbackTimestamp;
   const imageUrl = typeof item.imageUrl === 'string' && item.imageUrl.trim() ? item.imageUrl.trim() : undefined;
   const resultUrl = typeof item.resultUrl === 'string' && item.resultUrl.trim() ? item.resultUrl.trim() : undefined;

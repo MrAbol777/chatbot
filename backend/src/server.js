@@ -23,6 +23,7 @@ const { createSmsRouter } = require('./modules/sms/sms.routes');
 const { createSmsService } = require('./modules/sms/sms.service');
 const { createAiRouter } = require('./modules/ai/ai.routes');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
+const { createImageUnderstandingRouter } = require('./modules/image-understanding/image-understanding.routes');
 const { createPromptService } = require('./modules/ai/prompt.service');
 const { createAuthModule } = require('./modules/auth/auth.module');
 const { createConversationsModule } = require('./modules/conversations');
@@ -394,6 +395,20 @@ const imageGenerationModule = createImageGenerationRouter({
 app.use('/api/images', imageGenerationModule.publicRouter);
 app.use('/api/images', imageGenerationModule.router);
 
+const imageUnderstandingModule = createImageUnderstandingRouter({
+  httpClient: axios,
+  settingsRepository: repositories.settings,
+  visionConfig: ai.vision,
+  chatConfig: ai.chat,
+  uploadedImagesRepository,
+  imageGenerationController: imageGenerationModule.controller,
+  db: repositories.db,
+  logger: {
+    log
+  }
+});
+app.use('/api/vision', imageUnderstandingModule.router);
+
 app.use(createAiRouter({
   apiKey: metisApiKey,
   baseUrl: metisBaseUrl,
@@ -413,6 +428,7 @@ app.use(createAiRouter({
   settingsRepository: repositories.settings,
   imageGenerationController: imageGenerationModule.controller,
   imageGenerationService: imageGenerationModule.imageGenerationService,
+  imageUnderstandingService: imageUnderstandingModule.imageUnderstandingService,
   logger: {
     log
   }
@@ -458,7 +474,8 @@ const { router: adminRouter } = createAdminRouter({
   runtimeConfig: { ai },
   imageRuntimeSettingsResolver: imageGenerationModule.imageRuntimeSettingsResolver,
   imageGenerationService: imageGenerationModule.imageGenerationService,
-  imagePromptRefinerService: imageGenerationModule.imagePromptRefinerService
+  imagePromptRefinerService: imageGenerationModule.imagePromptRefinerService,
+  imageUnderstandingService: imageUnderstandingModule.imageUnderstandingService
 });
 app.use('/api/admin', adminRouter);
 
@@ -520,5 +537,5 @@ app.use((err, req, res, _next) => {
 
   server.keepAliveTimeout = 65000;
   server.headersTimeout = 66000;
-  server.requestTimeout = 30000;
+  server.requestTimeout = Math.max(190000, Number(ai.vision?.timeoutMs || 45000) + 15000);
 })();

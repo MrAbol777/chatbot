@@ -17,7 +17,7 @@ export interface ChatMessage {
   id?: string;
   role: 'user' | 'assistant';
   type?: 'text' | 'image_loading' | 'image_result' | 'image_error';
-  intent?: 'chat' | 'image_generation' | 'image_edit';
+  intent?: 'chat' | 'image_generation' | 'image_edit' | 'image_understanding';
   content: string;
   timestamp: string;
   taskId?: string;

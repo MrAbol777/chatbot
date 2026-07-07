@@ -1,8 +1,8 @@
 const { resolveImageRuntimeModel } = require('../../bootstrap/config');
 
 const IMAGE_SETTINGS_CACHE_TTL_MS = 30000;
-const DEFAULT_IMAGE_ADMIN_MODEL = 'gemini-3-pro-image';
-const DEFAULT_IMAGE_RUNTIME_MODEL = 'nano-banana-pro';
+const DEFAULT_IMAGE_ADMIN_MODEL = 'gemini-2.5-flash-image';
+const DEFAULT_IMAGE_RUNTIME_MODEL = 'nano-banana';
 const DEFAULT_IMAGE_RUNTIME_PROVIDER_NAME = 'google';
 const DEFAULT_IMAGE_OPERATION = 'Imagine';
 const DEFAULT_NEGATIVE_PROMPT = 'no humans, no unrelated objects, no text distortion, no watermark';
@@ -71,7 +71,7 @@ const IMAGE_MODEL_PRESETS = [
 const DEFAULT_IMAGE_RUNTIME_SETTINGS = {
   enabled: true,
   provider: 'metis',
-  modelPreset: 'nano-banana-pro',
+  modelPreset: 'nano-banana',
   modelAdminValue: DEFAULT_IMAGE_ADMIN_MODEL,
   runtimeProviderName: DEFAULT_IMAGE_RUNTIME_PROVIDER_NAME,
   runtimeModel: DEFAULT_IMAGE_RUNTIME_MODEL,

@@ -14,6 +14,7 @@ function createAiRouter(deps) {
     settingsRepository: deps.settingsRepository,
     imageGenerationController: deps.imageGenerationController,
     imageGenerationService: deps.imageGenerationService,
+    imageUnderstandingService: deps.imageUnderstandingService,
     jwt: deps.jwt,
     jwtSecret: deps.jwtSecret
   });

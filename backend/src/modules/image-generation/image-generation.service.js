@@ -5,7 +5,7 @@
  * image generation itself is a single generateContent request handled by the
  * controller's background worker.
  */
-const DEFAULT_IMAGE_MODEL = 'gemini-3-pro-image';
+const DEFAULT_IMAGE_MODEL = 'gemini-2.5-flash-image';
 const UNSUPPORTED_MODEL_MESSAGE = 'مدل ساخت تصویر توسط سرویس‌دهنده پشتیبانی نمی‌شود.';
 const PAYMENT_REQUIRED_MESSAGE = 'ساخت تصویر فعلاً به‌دلیل مشکل اعتبار یا دسترسی سرویس تصویر انجام نشد. لطفاً بعداً دوباره امتحان کن.';
 const MISSING_IMAGE_API_KEY_MESSAGE = 'کلید سرویس ساخت تصویر تنظیم نشده است.';
