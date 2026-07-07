@@ -176,6 +176,7 @@ const buildFinalImagePrompt = (input, options = {}) => {
  */
 function createImageGenerationController({
   imageGenerationService,
+  imagePromptRefinerService,
   db,
   plansRepository,
   settingsRepository,
@@ -619,7 +620,7 @@ function createImageGenerationController({
     console.log('[image-generation][debug]', payload);
   };
 
-  const runGenerationTask = async ({ dbRecordId, prompt, originalPrompt, imageSettings, imageInput, userId }) => {
+  const runGenerationTask = async ({ dbRecordId, prompt, originalPrompt, imageSettings, imageInput, userId, promptRefinerMetadata = null }) => {
     const imageModel = imageSettings.imageModel;
     try {
       await db.query(`UPDATE image_generations SET status = 'RUNNING' WHERE id = ?`, [dbRecordId]);
@@ -676,6 +677,7 @@ function createImageGenerationController({
         provider: providerName,
         modelAdminValue,
         modelRuntimeValue,
+        ...(promptRefinerMetadata || {}),
         metisTaskId: image.metisTaskId || null,
         remoteImageUrlHost: remoteUrlHost || null,
         localFilePath: savedImage.localPath,
@@ -829,10 +831,12 @@ function createImageGenerationController({
       enhancedPrompt.trim().length > 0
         ? enhancedPrompt.trim()
         : normalizedPrompt;
-    const finalPrompt = buildFinalImagePrompt(promptForImageModel, {
+    const fallbackPrompt = buildFinalImagePrompt(promptForImageModel, {
       promptEnhancerEnabled: imageSettings.promptEnhancerEnabled,
       defaultNegativePrompt: imageSettings.defaultNegativePrompt
     });
+    let finalPrompt = fallbackPrompt;
+    let promptRefinerMetadata = null;
     const { userId, isGuest, guestId } = await resolveUserContext(req, res);
     if (!userId) {
       const error = new Error('Authentication required.');
@@ -860,6 +864,55 @@ function createImageGenerationController({
         diagnostics: limitDiagnostics
       };
       throw error;
+    }
+
+    if (imagePromptRefinerService && typeof imagePromptRefinerService.refine === 'function') {
+      const imageMode = Array.isArray(imageInput) && imageInput.length > 0 ? 'image-edit' : 'text-to-image';
+      const refineResult = await imagePromptRefinerService.refine({
+        userPrompt: promptForImageModel,
+        conversationContext: typeof req.body?.conversationContext === 'string' ? req.body.conversationContext : '',
+        imageMode,
+        locale: 'fa',
+        imageSettings
+      });
+      const refinerSettings = typeof imagePromptRefinerService.getSettings === 'function'
+        ? await imagePromptRefinerService.getSettings().catch(() => ({ storeMetadata: true }))
+        : { storeMetadata: true };
+      if (refineResult.ok) {
+        const mergedNegativePrompt = typeof imagePromptRefinerService.mergeNegativePrompts === 'function'
+          ? imagePromptRefinerService.mergeNegativePrompts(imageSettings.defaultNegativePrompt, refineResult.negativePrompt)
+          : [imageSettings.defaultNegativePrompt, refineResult.negativePrompt].filter(Boolean).join(', ');
+        finalPrompt = typeof imagePromptRefinerService.buildFinalPromptWithNegative === 'function'
+          ? imagePromptRefinerService.buildFinalPromptWithNegative({
+              refinedPrompt: refineResult.refinedPrompt,
+              negativePrompt: mergedNegativePrompt
+            })
+          : `${refineResult.refinedPrompt}\n\nNegative prompt: ${mergedNegativePrompt}`;
+        refineResult.negativePrompt = mergedNegativePrompt;
+      } else {
+        finalPrompt = refineResult.refinedPrompt || fallbackPrompt;
+      }
+      if (refinerSettings.storeMetadata !== false) {
+        promptRefinerMetadata = {
+          originalUserPrompt: normalizedPrompt,
+          refinedPrompt: refineResult.ok ? refineResult.refinedPrompt : finalPrompt,
+          negativePrompt: refineResult.negativePrompt || imageSettings.defaultNegativePrompt || '',
+          promptRefiner: {
+            enabled: refineResult.metadata?.enabled !== false,
+            provider: refineResult.metadata?.provider || undefined,
+            model: refineResult.metadata?.model || undefined,
+            status: refineResult.status || refineResult.metadata?.status || 'fallback',
+            durationMs: refineResult.metadata?.durationMs ?? refineResult.durationMs ?? null,
+            apiKeySource: refineResult.metadata?.apiKeySource || undefined,
+            cache: refineResult.metadata?.cache || undefined
+          },
+          detectedSubject: refineResult.detectedSubject || null,
+          hasHumanSubject: Boolean(refineResult.hasHumanSubject),
+          hasChildSubject: Boolean(refineResult.hasChildSubject),
+          containsTextInImage: Boolean(refineResult.containsTextInImage),
+          textToRender: refineResult.textToRender || null
+        };
+      }
     }
 
     const providerTaskId = `image-${uuidv4()}`;
@@ -910,7 +963,7 @@ function createImageGenerationController({
     });
 
     setImmediate(() => {
-      void runGenerationTask({ dbRecordId, prompt: finalPrompt, originalPrompt: normalizedPrompt, imageSettings, imageInput, userId });
+      void runGenerationTask({ dbRecordId, prompt: finalPrompt, originalPrompt: normalizedPrompt, imageSettings, imageInput, userId, promptRefinerMetadata });
     });
 
     return {

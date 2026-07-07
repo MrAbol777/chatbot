@@ -382,6 +382,7 @@ const imageGenerationModule = createImageGenerationRouter({
   geminiImageModel,
   geminiBaseUrl,
   imageConfig: ai.image,
+  chatConfig: ai.chat,
   db: repositories.db,
   plansRepository: repositories.plans,
   settingsRepository: repositories.settings,
@@ -456,7 +457,8 @@ const { router: adminRouter } = createAdminRouter({
   repositories,
   runtimeConfig: { ai },
   imageRuntimeSettingsResolver: imageGenerationModule.imageRuntimeSettingsResolver,
-  imageGenerationService: imageGenerationModule.imageGenerationService
+  imageGenerationService: imageGenerationModule.imageGenerationService,
+  imagePromptRefinerService: imageGenerationModule.imagePromptRefinerService
 });
 app.use('/api/admin', adminRouter);
 

@@ -140,6 +140,9 @@ function loadRuntimeConfig(env = process.env) {
   };
   const imageKey = imageKeys[imageProvider] || pickApiKey([]);
   const imageRuntimeModel = resolveImageRuntimeModel(imageModel, imageProvider);
+  const promptRefinerKey = pickApiKey([
+    { source: 'METIS_PROMPT_REFINER_API_KEY', value: env.METIS_PROMPT_REFINER_API_KEY }
+  ]);
 
   const ai = {
     chat: {
@@ -170,7 +173,17 @@ function loadRuntimeConfig(env = process.env) {
       safetyFilterLevel: env.IMAGE_SAFETY_FILTER_LEVEL || 'block_only_high',
       storageDir: normalizePathValue(env.IMAGE_STORAGE_DIR, defaultImageStorageDir),
       publicBaseUrl: String(env.IMAGE_PUBLIC_BASE_URL || '/api/images/serve').replace(/\/+$/, ''),
-      maxDownloadMb: Number.isFinite(Number(env.IMAGE_MAX_DOWNLOAD_MB)) ? Number(env.IMAGE_MAX_DOWNLOAD_MB) : 10
+      maxDownloadMb: Number.isFinite(Number(env.IMAGE_MAX_DOWNLOAD_MB)) ? Number(env.IMAGE_MAX_DOWNLOAD_MB) : 10,
+      promptRefiner: {
+        provider: env.PROMPT_REFINER_PROVIDER || 'metis',
+        model: env.PROMPT_REFINER_MODEL || 'gemini-2.5-flash',
+        timeoutMs: Number.isFinite(Number(env.PROMPT_REFINER_TIMEOUT_MS)) ? Number(env.PROMPT_REFINER_TIMEOUT_MS) : 6000,
+        temperature: Number.isFinite(Number(env.PROMPT_REFINER_TEMPERATURE)) ? Number(env.PROMPT_REFINER_TEMPERATURE) : 0.2,
+        maxTokens: Number.isFinite(Number(env.PROMPT_REFINER_MAX_TOKENS)) ? Number(env.PROMPT_REFINER_MAX_TOKENS) : 700,
+        apiKey: promptRefinerKey.apiKey,
+        apiKeySource: promptRefinerKey.apiKeySource,
+        apiKeyFingerprint: promptRefinerKey.apiKeyFingerprint
+      }
     }
   };
 

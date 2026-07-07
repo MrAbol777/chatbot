@@ -13,6 +13,10 @@ const {
   validateRuntimeSettings
 } = require('./modules/image-generation/image-runtime-settings');
 const { buildFinalImagePrompt } = require('./modules/image-generation/image-generation.controller');
+const {
+  normalizePromptRefinerSettings,
+  promptRefinerSettingKey
+} = require('./modules/image-generation/image-prompt-refiner.service');
 const { createAdminAnalyticsService } = require('./modules/admin/analytics/service');
 const { createAdminAnalyticsRouter } = require('./modules/admin/analytics/routes');
 const { createAdminSystemService } = require('./modules/admin/system/service');
@@ -40,7 +44,8 @@ function createAdminModule({
   repositories,
   runtimeConfig = {},
   imageRuntimeSettingsResolver,
-  imageGenerationService
+  imageGenerationService,
+  imagePromptRefinerService
 }) {
   const router = express.Router();
   const isSystemPromptEditEnabled = () => process.env.ENABLE_SYSTEM_PROMPT_EDIT !== 'false';
@@ -152,17 +157,52 @@ function createAdminModule({
     } else {
       runtimeSettings = await getImageRuntimeSettings({ force: true });
     }
-    const finalPrompt = buildFinalImagePrompt(prompt || 'A single blue banana, clean white background', {
+    const originalPrompt = prompt || 'A single blue banana, clean white background';
+    const fallbackPrompt = buildFinalImagePrompt(originalPrompt, {
       promptEnhancerEnabled: runtimeSettings.promptEnhancerEnabled,
       defaultNegativePrompt: runtimeSettings.defaultNegativePrompt
     });
+    const refiner = imagePromptRefinerService;
+    const promptRefinerSettings = normalizePromptRefinerSettings({
+      settings: overrideSettings && typeof overrideSettings === 'object'
+        ? { ...(repositories?.settings && typeof repositories.settings.getAll === 'function' ? await repositories.settings.getAll() : {}), ...overrideSettings }
+        : repositories?.settings && typeof repositories.settings.getAll === 'function' ? await repositories.settings.getAll().catch(() => ({})) : {},
+      refinerConfig: runtimeConfig.ai?.image?.promptRefiner || {}
+    });
+    const refineResult = refiner && typeof refiner.refine === 'function'
+      ? await refiner.refine({
+          userPrompt: originalPrompt,
+          imageMode: 'text-to-image',
+          locale: 'fa',
+          imageSettings: runtimeSettings,
+          settings: overrideSettings
+        })
+      : { ok: false, refinedPrompt: fallbackPrompt, negativePrompt: runtimeSettings.defaultNegativePrompt, status: 'disabled' };
+    const mergedNegativePrompt = refineResult.ok && typeof refiner.mergeNegativePrompts === 'function'
+      ? refiner.mergeNegativePrompts(runtimeSettings.defaultNegativePrompt, refineResult.negativePrompt)
+      : runtimeSettings.defaultNegativePrompt;
+    const finalPrompt = refineResult.ok && typeof refiner.buildFinalPromptWithNegative === 'function'
+      ? refiner.buildFinalPromptWithNegative({ refinedPrompt: refineResult.refinedPrompt, negativePrompt: mergedNegativePrompt })
+      : fallbackPrompt;
     return {
       runtimeSettings,
-      originalPrompt: prompt,
+      promptRefinerSettings,
+      promptRefiner: {
+        ...refineResult,
+        negativePrompt: refineResult.ok ? mergedNegativePrompt : refineResult.negativePrompt
+      },
+      originalPrompt,
       finalPrompt,
       requestBody: buildMetisRequestBody({ prompt: finalPrompt, runtimeSettings })
     };
   };
+
+  const getPromptRefinerSettings = async (settingsOverride = null) => normalizePromptRefinerSettings({
+    settings: settingsOverride || (repositories?.settings && typeof repositories.settings.getAll === 'function'
+      ? await repositories.settings.getAll().catch(() => ({}))
+      : {}),
+    refinerConfig: runtimeConfig.ai?.image?.promptRefiner || {}
+  });
 
   router.get('/image-model-presets', requireAdminAuth, (_req, res) => {
     return res.json({ presets: IMAGE_MODEL_PRESETS });
@@ -199,6 +239,9 @@ function createAdminModule({
       if (imageRuntimeSettingsResolver && typeof imageRuntimeSettingsResolver.invalidate === 'function') {
         imageRuntimeSettingsResolver.invalidate();
       }
+      if (imagePromptRefinerService && typeof imagePromptRefinerService.invalidate === 'function') {
+        imagePromptRefinerService.invalidate();
+      }
       await appendAudit({
         adminUsername: req.admin?.username,
         action: 'update_image_settings',
@@ -230,6 +273,7 @@ function createAdminModule({
         mode: 'dry-run',
         originalPrompt: dryRun.originalPrompt,
         finalPrompt: dryRun.finalPrompt,
+        refiner: dryRun.promptRefiner,
         runtime: {
           provider: dryRun.runtimeSettings.provider,
           modelSource: dryRun.runtimeSettings.modelSource,
@@ -246,6 +290,79 @@ function createAdminModule({
       });
     } catch (error) {
       return res.status(400).json({ error: error instanceof Error ? error.message : 'Dry-run ساخت تصویر ناموفق بود.' });
+    }
+  });
+
+  router.get('/image-prompt-refiner-settings', requireAdminAuth, async (_req, res) => {
+    return res.json({
+      settings: await getPromptRefinerSettings(),
+      settingKeys: promptRefinerSettingKey
+    });
+  });
+
+  router.put('/image-prompt-refiner-settings', requireAdminAuth, async (req, res) => {
+    try {
+      const raw = req.body?.settings && typeof req.body.settings === 'object' ? req.body.settings : req.body;
+      const cleanSettings = Object.fromEntries(
+        Object.values(promptRefinerSettingKey)
+          .filter((key) => Object.prototype.hasOwnProperty.call(raw || {}, key))
+          .map((key) => [key, raw[key]])
+      );
+      const result = await repositories.settings.updateMany(cleanSettings);
+      if (imagePromptRefinerService && typeof imagePromptRefinerService.invalidate === 'function') {
+        imagePromptRefinerService.invalidate();
+      }
+      if (imageRuntimeSettingsResolver && typeof imageRuntimeSettingsResolver.invalidate === 'function') {
+        imageRuntimeSettingsResolver.invalidate();
+      }
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'update_image_prompt_refiner_settings',
+        target: 'image_prompt_refiner',
+        details: { changedKeys: Object.keys(cleanSettings) }
+      });
+      return res.json({
+        success: true,
+        settings: await getPromptRefinerSettings(result.settings),
+        siteSettings: result.settings
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : 'ذخیره تنظیمات بهینه‌ساز پرامپت تصویر ناموفق بود.' });
+    }
+  });
+
+  router.post('/image-prompt-refiner/test-dry-run', requireAdminAuth, async (req, res) => {
+    try {
+      const dryRun = await makeImageDryRun(String(req.body?.prompt || '').trim(), req.body?.settings);
+      return res.json({
+        success: true,
+        mode: 'prompt-refiner-dry-run',
+        originalPrompt: dryRun.originalPrompt,
+        refinedPrompt: dryRun.promptRefiner?.refinedPrompt || dryRun.finalPrompt,
+        negativePrompt: dryRun.promptRefiner?.negativePrompt || '',
+        detectedSubject: dryRun.promptRefiner?.detectedSubject || null,
+        hasHumanSubject: Boolean(dryRun.promptRefiner?.hasHumanSubject),
+        hasChildSubject: Boolean(dryRun.promptRefiner?.hasChildSubject),
+        containsTextInImage: Boolean(dryRun.promptRefiner?.containsTextInImage),
+        textToRender: dryRun.promptRefiner?.textToRender || null,
+        refiner: dryRun.promptRefiner,
+        runtime: {
+          provider: dryRun.runtimeSettings.provider,
+          modelSource: dryRun.runtimeSettings.modelSource,
+          modelAdminValue: dryRun.runtimeSettings.modelAdminValue,
+          runtimeProviderName: dryRun.runtimeSettings.runtimeProviderName,
+          runtimeModel: dryRun.runtimeSettings.runtimeModel,
+          operation: dryRun.runtimeSettings.operation,
+          resolution: dryRun.runtimeSettings.resolution,
+          aspectRatio: dryRun.runtimeSettings.aspectRatio,
+          outputFormat: dryRun.runtimeSettings.outputFormat,
+          safetyFilterLevel: dryRun.runtimeSettings.safetyFilterLevel
+        },
+        finalPrompt: dryRun.finalPrompt,
+        requestBody: dryRun.requestBody
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : 'Dry-run بهینه‌ساز پرامپت تصویر ناموفق بود.' });
     }
   });
 
@@ -292,6 +409,54 @@ function createAdminModule({
       });
     } catch (error) {
       return res.status(400).json({ error: error instanceof Error ? error.message : 'تست واقعی ساخت تصویر ناموفق بود.' });
+    }
+  });
+
+  router.post('/image-prompt-refiner/test-live', requireAdminAuth, async (req, res) => {
+    try {
+      if (!imageGenerationService || typeof imageGenerationService.generateImage !== 'function') {
+        return res.status(503).json({ error: 'سرویس ساخت تصویر در دسترس نیست.' });
+      }
+      const dryRun = await makeImageDryRun(String(req.body?.prompt || '').trim(), req.body?.settings);
+      const runtimeSettings = dryRun.runtimeSettings;
+      const image = await imageGenerationService.generateImage(dryRun.finalPrompt, {
+        imageModel: runtimeSettings.modelAdminValue,
+        modelSource: runtimeSettings.modelSource,
+        runtimeProviderName: runtimeSettings.runtimeProviderName,
+        runtimeModel: runtimeSettings.runtimeModel,
+        operation: runtimeSettings.operation,
+        provider: runtimeSettings.provider,
+        baseUrl: runtimeSettings.baseUrl,
+        resolution: runtimeSettings.resolution,
+        aspectRatio: runtimeSettings.aspectRatio,
+        outputFormat: runtimeSettings.outputFormat,
+        safetyFilterLevel: runtimeSettings.safetyFilterLevel,
+        pollIntervalMs: runtimeSettings.pollIntervalMs,
+        pollTimeoutMs: runtimeSettings.pollTimeoutMs,
+        customArgs: runtimeSettings.customArgs,
+        editEnabled: runtimeSettings.editEnabled,
+        originalPrompt: dryRun.originalPrompt,
+        taskId: 'admin-prompt-refiner-live-test',
+        maxDownloadMb: runtimeSettings.maxDownloadMb
+      });
+      return res.json({
+        success: true,
+        mode: 'prompt-refiner-live',
+        originalPrompt: dryRun.originalPrompt,
+        refiner: dryRun.promptRefiner,
+        finalPrompt: dryRun.finalPrompt,
+        requestBody: dryRun.requestBody,
+        result: {
+          provider: image.provider,
+          modelAdminValue: image.modelAdminValue,
+          modelRuntimeValue: image.modelRuntimeValue,
+          mimeType: image.mimeType,
+          bytes: image.buffer?.length || 0,
+          remoteImageUrlHost: image.remoteImageUrlHost || null
+        }
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : 'تست واقعی بهینه‌ساز پرامپت تصویر ناموفق بود.' });
     }
   });
 
@@ -346,6 +511,9 @@ function createAdminModule({
     const chatRuntime = runtimeConfig.ai?.chat || {};
     const imageRuntime = runtimeConfig.ai?.image || {};
     const resolvedImageRuntime = await getImageRuntimeSettings();
+    const imagePromptRefinerDiagnostics = imagePromptRefinerService && typeof imagePromptRefinerService.getDiagnostics === 'function'
+      ? await imagePromptRefinerService.getDiagnostics({ force: true }).catch(() => null)
+      : null;
     const imageProvider = String(resolvedImageRuntime.provider || settings['ai.image.provider'] || imageRuntime.provider || 'metis').trim().toLowerCase();
     const imageModel = String(resolvedImageRuntime.modelAdminValue || storedImageModel || imageRuntime.model || 'gemini-3-pro-image').trim();
     const imageModelSource = resolvedImageRuntime.modelSource || (storedImageModel ? 'ai.image.model' : imageRuntime.modelSource || 'default');
@@ -414,6 +582,20 @@ function createAdminModule({
         storageDir: imageStorageDir,
         storageWritable,
         publicServeRoute: `${imagePublicBaseUrl}/:taskId`
+      },
+      imagePromptRefiner: imagePromptRefinerDiagnostics || {
+        enabled: false,
+        provider: 'metis',
+        model: 'gemini-2.5-flash',
+        apiKeySource: 'missing',
+        apiKeySet: false,
+        temperature: 0.2,
+        maxTokens: 700,
+        timeoutMs: 6000,
+        fallbackEnabled: true,
+        cacheEnabled: true,
+        cacheTtlMinutes: 1440,
+        lastValidationStatus: 'unavailable'
       },
       imagePlan: {
         defaultFree: describeImagePlan({
@@ -763,6 +945,13 @@ function createAdminModule({
         typeof imageRuntimeSettingsResolver.invalidate === 'function'
       ) {
         imageRuntimeSettingsResolver.invalidate();
+      }
+      if (
+        changedKeys.some((key) => String(key).startsWith('ai.image.prompt_refiner.')) &&
+        imagePromptRefinerService &&
+        typeof imagePromptRefinerService.invalidate === 'function'
+      ) {
+        imagePromptRefinerService.invalidate();
       }
     }
   });

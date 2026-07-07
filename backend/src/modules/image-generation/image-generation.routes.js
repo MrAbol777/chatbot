@@ -4,6 +4,7 @@ const { createImageGenerationController } = require('./image-generation.controll
 const { createImageGenerationService } = require('./image-generation.service');
 const { createAuthMiddleware } = require('./auth.middleware');
 const { createImageRuntimeSettingsResolver } = require('./image-runtime-settings');
+const { createImagePromptRefinerService } = require('./image-prompt-refiner.service');
 
 function createImageGenerationRouter(deps) {
   const router = express.Router();
@@ -28,9 +29,22 @@ function createImageGenerationRouter(deps) {
       settingsRepository: deps.settingsRepository,
       imageConfig: deps.imageConfig
     });
+  const imagePromptRefinerService =
+    deps.imagePromptRefinerService ||
+    createImagePromptRefinerService({
+      httpClient: deps.httpClient || axios,
+      settingsRepository: deps.settingsRepository,
+      refinerConfig: deps.imageConfig?.promptRefiner,
+      chatConfig: deps.chatConfig,
+      fallbackPromptBuilder: (prompt, options) => {
+        const { buildFinalImagePrompt } = require('./image-generation.controller');
+        return buildFinalImagePrompt(prompt, options);
+      }
+    });
 
   const controller = createImageGenerationController({
     imageGenerationService,
+    imagePromptRefinerService,
     db: deps.db,
     plansRepository: deps.plansRepository,
     settingsRepository: deps.settingsRepository,
@@ -57,7 +71,7 @@ function createImageGenerationRouter(deps) {
   // Keep an empty public router for mount compatibility; image serving is ownership-checked.
   const publicRouter = express.Router();
 
-  return { router, publicRouter, controller, imageGenerationService, imageRuntimeSettingsResolver };
+  return { router, publicRouter, controller, imageGenerationService, imageRuntimeSettingsResolver, imagePromptRefinerService };
 }
 
 module.exports = { createImageGenerationRouter };

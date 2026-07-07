@@ -1,3 +1,5 @@
+const { DEFAULT_REFINER_SYSTEM_PROMPT } = require('../image-generation/image-prompt-refiner.service');
+
 const SETTING_DEFINITIONS = {
   'guest.message_limit': {
     label: 'تعداد پیام مهمان',
@@ -244,6 +246,134 @@ const SETTING_DEFINITIONS = {
     type: 'string',
     category: 'ai',
     defaultValue: '{}',
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.enabled': {
+    label: 'فعال بودن بهینه‌ساز پرامپت تصویر',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.provider': {
+    label: 'Provider بهینه‌ساز پرامپت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'metis',
+    allowedValues: ['metis'],
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.model': {
+    label: 'مدل بهینه‌ساز پرامپت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash',
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.temperature': {
+    label: 'Temperature بهینه‌ساز پرامپت تصویر',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 0.2,
+    min: 0,
+    max: 2,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.max_tokens': {
+    label: 'Max tokens بهینه‌ساز پرامپت تصویر',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 700,
+    min: 100,
+    max: 2000,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.timeout_ms': {
+    label: 'Timeout بهینه‌ساز پرامپت تصویر (ms)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 6000,
+    min: 1000,
+    max: 30000,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.fallback_enabled': {
+    label: 'Fallback داخلی بهینه‌ساز پرامپت تصویر',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.cache_enabled': {
+    label: 'Cache بهینه‌ساز پرامپت تصویر',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.cache_ttl_minutes': {
+    label: 'TTL cache بهینه‌ساز پرامپت تصویر (minutes)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 1440,
+    min: 1,
+    max: 10080,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.preserve_persian_text': {
+    label: 'حفظ متن فارسی داخل تصویر',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.human_subject_guard': {
+    label: 'Guard سوژه انسانی',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.child_safety_guard': {
+    label: 'Guard ایمنی کودک',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.default_style': {
+    label: 'Style پیش‌فرض بهینه‌ساز پرامپت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'clean, colorful, child-friendly digital illustration, soft lighting, high quality',
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.default_negative_prompt': {
+    label: 'Negative prompt پیش‌فرض بهینه‌ساز پرامپت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'no watermark, no distorted text, no extra fingers, no blurry face, no unrelated objects',
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.system_prompt': {
+    label: 'System prompt بهینه‌ساز پرامپت تصویر',
+    type: 'string',
+    category: 'ai',
+    defaultValue: DEFAULT_REFINER_SYSTEM_PROMPT,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.store_metadata': {
+    label: 'ذخیره metadata بهینه‌ساز پرامپت تصویر',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.image.prompt_refiner.allow_chat_key_fallback': {
+    label: 'اجازه fallback به METIS_CHAT_API_KEY',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: false,
     adminEditable: true
   },
   'ai.chat.temperature': {

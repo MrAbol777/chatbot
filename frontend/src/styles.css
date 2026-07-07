@@ -720,6 +720,22 @@ textarea {
   font-size: 0.85rem;
 }
 
+.runtime-card {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 14px;
+  padding: 12px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--color-surface-muted, #f8fafc);
+}
+
+.runtime-card small {
+  direction: ltr;
+  text-align: left;
+  color: var(--color-text-muted, #64748b);
+}
+
 .supervised-otp-card {
   display: grid;
   gap: 16px;

@@ -136,6 +136,21 @@ type AiRuntimeStatus = {
     storageWritable?: boolean;
     publicServeRoute?: string;
   };
+  imagePromptRefiner?: {
+    enabled: boolean;
+    provider: string;
+    model: string;
+    apiKeySource: string;
+    apiKeySet: boolean;
+    apiKeyFingerprint?: string;
+    temperature: number;
+    maxTokens: number;
+    timeoutMs: number;
+    fallbackEnabled: boolean;
+    cacheEnabled: boolean;
+    cacheTtlMinutes: number;
+    lastValidationStatus?: string;
+  };
 };
 
 type ImageModelPreset = {
@@ -288,6 +303,9 @@ const IMAGE_SAFETY_FILTER_OPTIONS = [
   'block_low_and_above',
   'block_none'
 ];
+const IMAGE_PROMPT_REFINER_DEFAULT_STYLE = 'clean, colorful, child-friendly digital illustration, soft lighting, high quality';
+const IMAGE_PROMPT_REFINER_DEFAULT_NEGATIVE = 'no watermark, no distorted text, no extra fingers, no blurry face, no unrelated objects';
+const IMAGE_PROMPT_REFINER_DEFAULT_SYSTEM_PROMPT = 'You are an image prompt refinement engine for a Persian child-friendly AI product. Return only valid JSON matching the requested schema. Preserve the main subject, keep Persian text inside the image unchanged, and enforce child-safe rules.';
 
 const formatDateInput = (date: Date) => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
@@ -929,7 +947,7 @@ function AdminPanel() {
     setImageTestMessage('');
     setImageTestResult(null);
     try {
-      const response = await fetch('/api/admin/image-settings/test-dry-run', {
+      const response = await fetch('/api/admin/image-prompt-refiner/test-dry-run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -953,7 +971,7 @@ function AdminPanel() {
     setImageTestMessage('');
     setImageTestResult(null);
     try {
-      const response = await fetch('/api/admin/image-settings/test-live', {
+      const response = await fetch('/api/admin/image-prompt-refiner/test-live', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -2067,17 +2085,165 @@ function AdminPanel() {
                 value={String(siteSettings.settings['ai.image.custom_args_json'] ?? '{}')}
                 onChange={(e) => updateSiteSetting('ai.image.custom_args_json', e.target.value)}
               />
+              <h4>بهینه‌ساز پرامپت تصویر</h4>
+              {aiRuntimeStatus?.imagePromptRefiner ? (
+                <div className="runtime-card">
+                  <strong>Refiner API key</strong>
+                  <span>{aiRuntimeStatus.imagePromptRefiner.apiKeySet ? 'تنظیم شده' : 'تنظیم نشده'}</span>
+                  <small>{aiRuntimeStatus.imagePromptRefiner.apiKeySource}</small>
+                </div>
+              ) : null}
+              <FieldGroup direction="row">
+                <label className="admin-select-field">
+                  <span>Refiner</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.prompt_refiner.enabled'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Provider</span>
+                  <select
+                    value={String(siteSettings.settings['ai.image.prompt_refiner.provider'] ?? 'metis')}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.provider', e.target.value)}
+                  >
+                    <option value="metis">metis</option>
+                  </select>
+                </label>
+                <TextField
+                  label="Refiner model"
+                  value={String(siteSettings.settings['ai.image.prompt_refiner.model'] ?? 'gemini-2.5-flash')}
+                  onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.model', e.target.value)}
+                />
+                <TextField
+                  label="Temperature"
+                  type="number"
+                  value={String(siteSettings.settings['ai.image.prompt_refiner.temperature'] ?? 0.2)}
+                  onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.temperature', Number(e.target.value))}
+                />
+                <TextField
+                  label="Max tokens"
+                  type="number"
+                  value={String(siteSettings.settings['ai.image.prompt_refiner.max_tokens'] ?? 700)}
+                  onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.max_tokens', Number(e.target.value))}
+                />
+                <TextField
+                  label="Timeout ms"
+                  type="number"
+                  value={String(siteSettings.settings['ai.image.prompt_refiner.timeout_ms'] ?? 6000)}
+                  onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.timeout_ms', Number(e.target.value))}
+                />
+              </FieldGroup>
+              <FieldGroup direction="row">
+                <label className="admin-select-field">
+                  <span>Fallback داخلی</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.prompt_refiner.fallback_enabled'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.fallback_enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Cache</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.prompt_refiner.cache_enabled'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.cache_enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <TextField
+                  label="Cache TTL minutes"
+                  type="number"
+                  value={String(siteSettings.settings['ai.image.prompt_refiner.cache_ttl_minutes'] ?? 1440)}
+                  onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.cache_ttl_minutes', Number(e.target.value))}
+                />
+                <label className="admin-select-field">
+                  <span>حفظ متن فارسی</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.prompt_refiner.preserve_persian_text'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.preserve_persian_text', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Human guard</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.prompt_refiner.human_subject_guard'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.human_subject_guard', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Child guard</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.prompt_refiner.child_safety_guard'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.child_safety_guard', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Chat key fallback</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.prompt_refiner.allow_chat_key_fallback'] ?? false))}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.allow_chat_key_fallback', e.target.value === 'true')}
+                  >
+                    <option value="false">غیرفعال</option>
+                    <option value="true">فعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Store metadata</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.image.prompt_refiner.store_metadata'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.store_metadata', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+              </FieldGroup>
+              <TextAreaField
+                label="Default style"
+                rows={2}
+                value={String(siteSettings.settings['ai.image.prompt_refiner.default_style'] ?? IMAGE_PROMPT_REFINER_DEFAULT_STYLE)}
+                onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.default_style', e.target.value)}
+              />
+              <TextAreaField
+                label="Refiner negative prompt"
+                rows={2}
+                value={String(siteSettings.settings['ai.image.prompt_refiner.default_negative_prompt'] ?? IMAGE_PROMPT_REFINER_DEFAULT_NEGATIVE)}
+                onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.default_negative_prompt', e.target.value)}
+              />
+              <TextAreaField
+                label="Refiner system prompt"
+                rows={7}
+                value={String(siteSettings.settings['ai.image.prompt_refiner.system_prompt'] ?? IMAGE_PROMPT_REFINER_DEFAULT_SYSTEM_PROMPT)}
+                onChange={(e) => updateSiteSetting('ai.image.prompt_refiner.system_prompt', e.target.value)}
+              />
               <FieldGroup direction="row">
                 <TextField
-                  label="Prompt تست تصویر"
+                  label="Prompt تست بهینه‌ساز تصویر"
                   value={imageTestPrompt}
                   onChange={(e) => setImageTestPrompt(e.target.value)}
                 />
                 <Button onClick={() => void runImageDryRun()} disabled={imageTestLoading}>
-                  تست ساخت تصویر Dry-run
+                  تست refiner Dry-run
                 </Button>
                 <Button variant="secondary" onClick={() => void runImageLiveTest()} disabled={imageTestLoading}>
-                  تست ساخت تصویر Live
+                  تست تصویر Live
                 </Button>
               </FieldGroup>
               {imageTestMessage ? (
