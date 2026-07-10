@@ -21,11 +21,23 @@ const IMAGE_EDIT_KEYWORDS = [
   'ویرایش',
   'تغییر بده',
   'عوض کن',
+  'رنگش',
+  'رنگش رو',
+  'رنگ لباس',
+  'قرمز کن',
+  'آبی کن',
   'پس زمینه',
   'پس‌زمینه',
+  'بک گراند',
+  'بک‌گراند',
+  'زمینه رو',
+  'نورش',
   'موهاش',
   'همینو',
   'همین رو',
+  'همین تصویر',
+  'این عکس رو کارتونی',
+  'این تصویر رو کارتونی',
   'واقعی تر',
   'واقعی‌تر',
   'کارتونی',
@@ -58,6 +70,36 @@ const IMAGE_UNDERSTANDING_KEYWORDS = [
   'ocr'
 ];
 
+const VISUAL_SUBJECT_KEYWORDS = [
+  'آدم',
+  'ادم',
+  'انسان',
+  'شخص',
+  'شخصیت',
+  'کاراکتر',
+  'دختر',
+  'پسر',
+  'زن',
+  'مرد',
+  'بچه',
+  'کودک',
+  'چهره',
+  'صورت',
+  'قیافه',
+  'ظاهر',
+  'استایل',
+  'لباس',
+  'مو',
+  'چشم',
+  'پوستر',
+  'بنر',
+  'لوگو',
+  'آواتار'
+];
+
+const VISUAL_DESCRIPTOR_PATTERN =
+  /(?:این\s*طور|اینطور|اینجوری|اینجور|شبیه|مثل|با\s+(?:ظاهر|قیافه|چهره|استایل|لباس|مو|چشم|رنگ|حالت|ژست)|(?:ظاهر|قیافه|چهره|استایل|لباس|مو|چشم|رنگ|حالت|ژست)\w*)/i;
+
 const EXPLANATION_PATTERNS = [
   /(?:عکس|تصویر)\s+(?:یعنی|چیه|چیست|یعنی چی|چه معنی)/i,
   /(?:فرق|تفاوت)\s+(?:عکس|تصویر)/i,
@@ -89,6 +131,34 @@ const isUnsafeImagePrompt = (message) => {
 const getSafeAlternativeMessage = () =>
   'این نسخه را نمی‌سازم، اما می‌تونم یک نسخه امن و غیرآسیب‌زننده از ایده‌ات بسازم. مثلا یک کاراکتر مرموز و سینمایی بدون خشونت یا محتوای نامناسب.';
 
+const normalizeClassifiedIntent = (value) => {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '';
+  if (raw === 'image_generation' || raw.includes('"intent":"image_generation"') || raw.includes('image_generation')) {
+    return 'image_generation';
+  }
+  if (raw === 'image_edit' || raw.includes('"intent":"image_edit"') || raw.includes('image_edit')) {
+    return 'image_edit';
+  }
+  if (
+    raw === 'image_understanding' ||
+    raw.includes('"intent":"image_understanding"') ||
+    raw.includes('image_understanding')
+  ) {
+    return 'image_understanding';
+  }
+  if (raw === 'chat' || raw.includes('"intent":"chat"') || raw.includes('chat')) {
+    return 'chat';
+  }
+  return '';
+};
+
+const classifyIntentSafely = async (text, classify) => {
+  if (typeof classify !== 'function') return '';
+  const classified = await classify(text);
+  return normalizeClassifiedIntent(classified);
+};
+
 async function detectChatIntent({ message, hasAttachedImages = false, hasRecentImage = false, classify }) {
   const text = normalize(message);
   const lower = text.toLowerCase();
@@ -100,6 +170,18 @@ async function detectChatIntent({ message, hasAttachedImages = false, hasRecentI
 
   if (/^\/imagine\s+.+/i.test(text)) {
     return { intent: 'image_generation', confidence: 'high', source: 'command' };
+  }
+
+  const wantsEdit =
+    includesAny(lower, IMAGE_EDIT_KEYWORDS) ||
+    /(?:رنگ|پس\s*زمینه|پس‌زمینه|بک\s*گراند|بک‌گراند|زمینه|نور|لباس|مو|چشم|صورت).*(?:کن|بده|عوض|تغییر|بهتر)/i.test(text) ||
+    /(?:قرمز|آبی|سبز|زرد|مشکی|سفید|واقعی(?:‌|\s)?تر|کارتونی).*(?:کن|بده)/i.test(text);
+  if (wantsEdit) {
+    return {
+      intent: 'image_edit',
+      confidence: hasImageContext ? 'high' : 'medium',
+      source: hasImageContext ? 'edit_keyword' : 'edit_without_image_context'
+    };
   }
 
   const wantsUnderstanding =
@@ -115,25 +197,47 @@ async function detectChatIntent({ message, hasAttachedImages = false, hasRecentI
     return { intent: 'chat', confidence: 'high', source: 'negative_keyword' };
   }
 
-  const wantsEdit = includesAny(lower, IMAGE_EDIT_KEYWORDS);
-  if (wantsEdit && (hasAttachedImages || hasRecentImage)) {
-    return { intent: 'image_edit', confidence: 'high', source: 'edit_keyword' };
-  }
-
   const hasImageWord = /عکس|تصویر|image|photo|picture/i.test(text);
   const hasCreationWord = /بساز|بکش|طراحی کن|نقاشی کن|درست کن|خلق کن|generate|create|draw|paint|imagine/i.test(text);
+  const hasVisualSubject = includesAny(lower, VISUAL_SUBJECT_KEYWORDS);
+  const hasVisualDescriptor = VISUAL_DESCRIPTOR_PATTERN.test(text);
+  const asksForVisualSubject =
+    /(?:یه|یک|يک)\s+(?:آدم|ادم|انسان|شخص|شخصیت|کاراکتر|دختر|پسر|زن|مرد|بچه|کودک)\s+(?:می\s*خوام|میخوام|میخام|می\s*خواهم)/i.test(text) &&
+    hasVisualDescriptor;
   if (hasImageWord && hasCreationWord) {
     return { intent: 'image_generation', confidence: 'high', source: 'generation_keyword' };
   }
 
-  if (hasCreationWord && /کاراکتر|شخصیت|لوگو|پوستر|آواتار|wallpaper|poster|avatar|logo|character/i.test(text)) {
+  if (
+    hasCreationWord &&
+    /کاراکتر|شخصیت|لوگو|پوستر|آواتار|گربه|سگ|خرگوش|پرنده|اسب|ماهی|ربات|ماشین|قلعه|خانه|شهر|wallpaper|poster|avatar|logo|character|cat|dog|rabbit|bird|horse|fish|robot|car|castle|house|city/i.test(text)
+  ) {
     return { intent: 'image_generation', confidence: 'medium', source: 'creative_keyword' };
+  }
+
+  if (asksForVisualSubject && typeof classify === 'function') {
+    try {
+      const classified = await classifyIntentSafely(text, classify);
+      if (classified === 'image_generation' || classified === 'image_edit') {
+        return { intent: classified, confidence: 'medium', source: 'visual_subject_classifier' };
+      }
+      if (classified === 'image_understanding' && hasImageContext) {
+        return { intent: classified, confidence: 'medium', source: 'visual_subject_classifier' };
+      }
+    } catch (_error) {
+      return { intent: 'chat', confidence: 'low', source: 'visual_subject_classifier_failed' };
+    }
+  }
+
+  if (asksForVisualSubject) {
+    return { intent: 'image_generation', confidence: 'medium', source: 'visual_subject_keyword' };
   }
 
   const ambiguous =
     hasImageWord ||
     hasCreationWord ||
     wantsEdit ||
+    (hasVisualSubject && hasVisualDescriptor) ||
     includesAny(lower, IMAGE_GENERATION_KEYWORDS) ||
     includesAny(lower, IMAGE_EDIT_KEYWORDS);
 
@@ -142,7 +246,7 @@ async function detectChatIntent({ message, hasAttachedImages = false, hasRecentI
   }
 
   try {
-    const classified = await classify(text);
+    const classified = await classifyIntentSafely(text, classify);
     if (classified === 'image_generation' || classified === 'image_edit' || classified === 'image_understanding' || classified === 'chat') {
       return { intent: classified, confidence: 'low', source: 'classifier' };
     }

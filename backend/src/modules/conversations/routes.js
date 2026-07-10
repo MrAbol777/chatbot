@@ -5,6 +5,7 @@ function createConversationsRouter({ conversationsService }) {
   const router = express.Router();
   const controller = createConversationsController({ conversationsService });
 
+  router.post('/', controller.create);
   router.post('/load', controller.load);
   router.post('/sync', controller.sync);
 

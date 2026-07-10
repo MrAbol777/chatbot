@@ -29,6 +29,8 @@ services:
       - PORT=3000
       - METIS_API_KEY=${METIS_API_KEY}
       - METIS_CHAT_API_KEY=${METIS_CHAT_API_KEY}
+      - METIS_INTENT_ROUTER_API_KEY=${METIS_INTENT_ROUTER_API_KEY}
+      - METIS_CONVERSATION_MEMORY_API_KEY=${METIS_CONVERSATION_MEMORY_API_KEY}
       - GEMINI_CHAT_API_KEY=${GEMINI_CHAT_API_KEY}
       - METIS_OPENAI_BASE_URL=${METIS_OPENAI_BASE_URL}
       - OPENAI_MODEL=${OPENAI_MODEL}
@@ -52,6 +54,7 @@ services:
       - IMAGE_STORAGE_DIR=${IMAGE_STORAGE_DIR:-/var/lib/danoa/generated-images}
       - IMAGE_PUBLIC_BASE_URL=${IMAGE_PUBLIC_BASE_URL:-/api/images/serve}
       - IMAGE_MAX_DOWNLOAD_MB=${IMAGE_MAX_DOWNLOAD_MB:-10}
+      - CONVERSATION_MEMORY_STORAGE_DIR=${CONVERSATION_MEMORY_STORAGE_DIR:-/var/lib/danoa/conversation-memory}
       - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL}
       - METIS_IMAGE_MODEL=${METIS_IMAGE_MODEL}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -63,6 +66,7 @@ services:
     volumes:
       - app-uploads:/app/backend/uploads
       - ./data/generated-images:/var/lib/danoa/generated-images
+      - ./data/conversation-memory:/var/lib/danoa/conversation-memory
 
 volumes:
   mysql-data:

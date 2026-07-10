@@ -295,6 +295,8 @@ function createImageGenerationService({
       aspectRatio: imageOptions.aspect_ratio,
       outputFormat: imageOptions.output_format,
       promptLength: prompt.length,
+      hasImageInput: imageInput.length > 0,
+      imageInputCount: imageInput.length,
       apiKeySource: runtime.apiKeySource,
       hasApiKey: Boolean(runtime.apiKey)
     });

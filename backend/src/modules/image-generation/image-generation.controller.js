@@ -167,6 +167,20 @@ const buildFinalImagePrompt = (input, options = {}) => {
   ].filter(Boolean).join(' ');
 };
 
+const buildFinalImageEditPrompt = (input, options = {}) => {
+  const original = normalizeWhitespace(input);
+  const editInstruction = original || 'Apply the requested edit to the input image.';
+  const negativePrompt = normalizeWhitespace(options.defaultNegativePrompt || '');
+  return [
+    'Use the input image as base.',
+    'Preserve the same main subject, identity, pose, composition, camera angle, lighting, and style unless the user explicitly asks to change them.',
+    `Change only the requested part: ${editInstruction}.`,
+    'Do not replace the subject with another person, animal, object, mascot, or unrelated character.',
+    'Keep the result child-friendly, natural, coherent, and high quality.',
+    negativePrompt ? `Avoid: ${negativePrompt}.` : ''
+  ].filter(Boolean).join(' ');
+};
+
 /**
  * Image generation controller — handles generate / status / serve routes.
  *
@@ -831,10 +845,15 @@ function createImageGenerationController({
       enhancedPrompt.trim().length > 0
         ? enhancedPrompt.trim()
         : normalizedPrompt;
-    const fallbackPrompt = buildFinalImagePrompt(promptForImageModel, {
-      promptEnhancerEnabled: imageSettings.promptEnhancerEnabled,
-      defaultNegativePrompt: imageSettings.defaultNegativePrompt
-    });
+    const hasImageInput = Array.isArray(imageInput) && imageInput.length > 0;
+    const fallbackPrompt = hasImageInput
+      ? buildFinalImageEditPrompt(promptForImageModel, {
+          defaultNegativePrompt: imageSettings.defaultNegativePrompt
+        })
+      : buildFinalImagePrompt(promptForImageModel, {
+          promptEnhancerEnabled: imageSettings.promptEnhancerEnabled,
+          defaultNegativePrompt: imageSettings.defaultNegativePrompt
+        });
     let finalPrompt = fallbackPrompt;
     let promptRefinerMetadata = null;
     const { userId, isGuest, guestId } = await resolveUserContext(req, res);
@@ -867,7 +886,7 @@ function createImageGenerationController({
     }
 
     if (imagePromptRefinerService && typeof imagePromptRefinerService.refine === 'function') {
-      const imageMode = Array.isArray(imageInput) && imageInput.length > 0 ? 'image-edit' : 'text-to-image';
+      const imageMode = hasImageInput ? 'image-edit' : 'text-to-image';
       const refineResult = await imagePromptRefinerService.refine({
         userPrompt: promptForImageModel,
         conversationContext: typeof req.body?.conversationContext === 'string' ? req.body.conversationContext : '',

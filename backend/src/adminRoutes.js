@@ -24,6 +24,8 @@ const {
   visionSettingKey,
   visionSettingsPayloadToSettings
 } = require('./modules/image-understanding/image-understanding-settings');
+const { createIntentRouterAdminRouter } = require('./modules/intent-router/intent-router.routes');
+const { createConversationMemoryAdminRouter } = require('./modules/conversation-memory/conversation-memory.routes');
 const { createAdminAnalyticsService } = require('./modules/admin/analytics/service');
 const { createAdminAnalyticsRouter } = require('./modules/admin/analytics/routes');
 const { createAdminSystemService } = require('./modules/admin/system/service');
@@ -43,6 +45,17 @@ const {
   appendAudit
 } = require('./modules/admin/common/storage');
 
+const ADMIN_IMAGE_MIME_FALLBACK = 'image/jpeg';
+const isSafeRedirectImageUrl = (value) => {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+};
+
 function createAdminModule({
   jwtSecret,
   cookieName = 'admin_token',
@@ -53,7 +66,10 @@ function createAdminModule({
   imageRuntimeSettingsResolver,
   imageGenerationService,
   imagePromptRefinerService,
-  imageUnderstandingService
+  imageUnderstandingService,
+  intentRouterService,
+  conversationMemoryService,
+  conversationMemoryWriterService
 }) {
   const router = express.Router();
   const adminVisionUpload = multer({
@@ -682,6 +698,12 @@ function createAdminModule({
     const visionDiagnostics = imageUnderstandingService && typeof imageUnderstandingService.getDiagnostics === 'function'
       ? await imageUnderstandingService.getDiagnostics({ force: true }).catch(() => null)
       : null;
+    const intentRouterDiagnostics = intentRouterService && typeof intentRouterService.getDiagnostics === 'function'
+      ? await intentRouterService.getDiagnostics({ force: true }).catch(() => null)
+      : null;
+    const conversationMemoryDiagnostics = conversationMemoryWriterService && typeof conversationMemoryWriterService.getDiagnostics === 'function'
+      ? await conversationMemoryWriterService.getDiagnostics({ force: true }).catch(() => null)
+      : null;
     const imageProvider = String(resolvedImageRuntime.provider || settings['ai.image.provider'] || imageRuntime.provider || 'metis').trim().toLowerCase();
     const imageModel = String(resolvedImageRuntime.modelAdminValue || storedImageModel || imageRuntime.model || 'gemini-2.5-flash-image').trim();
     const imageModelSource = resolvedImageRuntime.modelSource || (storedImageModel ? 'ai.image.model' : imageRuntime.modelSource || 'default');
@@ -765,6 +787,47 @@ function createAdminModule({
         cacheTtlMinutes: 1440,
         lastValidationStatus: 'unavailable'
       },
+      intentRouter: intentRouterDiagnostics || {
+        enabled: false,
+        provider: 'metis',
+        model: 'gemini-2.5-flash-lite-preview',
+        fallbackModel: 'gemini-2.5-flash',
+        experimentalModel: 'gemini-2.5-flash-lite-preview',
+        apiKeySource: 'missing',
+        apiKeySet: false,
+        temperature: 0,
+        maxOutputTokens: 120,
+        timeoutMs: 2500,
+        confidenceThreshold: 0.65,
+        fallbackToHeuristic: true,
+        allowModelFallback: true,
+        allowChatKeyFallback: false,
+        storeMetadata: true,
+        health: {
+          enabled: true,
+          failureThreshold: 3,
+          cooldownMinutes: 60,
+          models: {}
+        },
+        lastValidationStatus: 'unavailable'
+      },
+      conversationMemory: conversationMemoryDiagnostics || {
+        enabled: false,
+        provider: 'metis',
+        model: 'gemini-2.5-flash-lite-preview',
+        fallbackModel: 'gemini-2.5-flash',
+        apiKeySource: 'missing',
+        apiKeySet: false,
+        temperature: 0,
+        maxOutputTokens: 3000,
+        timeoutMs: 8000,
+        allowModelFallback: true,
+        allowChatKeyFallback: false,
+        maxDocumentChars: 20000,
+        storeMetadata: true,
+        queueSize: 0,
+        lastValidationStatus: 'unavailable'
+      },
       vision: visionDiagnostics || {
         enabled: false,
         provider: 'metis-gemini',
@@ -844,6 +907,50 @@ function createAdminModule({
       return res.json(profile);
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت کاربر' });
+    }
+  });
+
+  router.get('/users/:id/images/:taskId', requireAdminAuth, async (req, res) => {
+    try {
+      const userId = String(req.params.id || '').trim();
+      const taskId = String(req.params.taskId || '').trim();
+      if (!userId || !taskId) {
+        return res.status(400).json({ error: 'شناسه کاربر و تصویر الزامی است.' });
+      }
+
+      const [rows] = await repositories.db.query(
+        `SELECT id, task_id, status, image_url, local_file_path, mime_type
+         FROM image_generations
+         WHERE (id = ? OR task_id = ?) AND user_id = ?
+         LIMIT 1`,
+        [taskId, taskId, userId]
+      );
+      const record = rows[0];
+      if (!record) {
+        return res.status(404).json({ error: 'تصویر پیدا نشد.' });
+      }
+      if (record.status !== 'COMPLETED') {
+        return res.status(409).json({ error: 'تصویر هنوز آماده نیست.' });
+      }
+
+      const localPath = typeof record.local_file_path === 'string' ? record.local_file_path.trim() : '';
+      if (localPath && await fs.pathExists(localPath)) {
+        const stat = await fs.stat(localPath);
+        if (!stat.isFile() || stat.size <= 0) {
+          return res.status(404).json({ error: 'فایل تصویر پیدا نشد.' });
+        }
+        res.type(record.mime_type || ADMIN_IMAGE_MIME_FALLBACK);
+        res.setHeader('Cache-Control', 'private, max-age=300');
+        return fs.createReadStream(localPath).pipe(res);
+      }
+
+      if (isSafeRedirectImageUrl(record.image_url)) {
+        return res.redirect(record.image_url);
+      }
+
+      return res.status(404).json({ error: 'فایل تصویر پیدا نشد.' });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت تصویر' });
     }
   });
 
@@ -1165,15 +1272,43 @@ function createAdminModule({
       ) {
         imageUnderstandingService.invalidate();
       }
+      if (
+        changedKeys.some((key) => String(key).startsWith('ai.intent_router.')) &&
+        intentRouterService &&
+        typeof intentRouterService.invalidate === 'function'
+      ) {
+        intentRouterService.invalidate();
+      }
+      if (
+        changedKeys.some((key) => String(key).startsWith('ai.conversation_memory.')) &&
+        conversationMemoryWriterService &&
+        typeof conversationMemoryWriterService.invalidate === 'function'
+      ) {
+        conversationMemoryWriterService.invalidate();
+      }
     }
   });
   const settingsRouter = createAdminSettingsRouter({
     settingsService,
     requireAdminAuth
   });
+  const intentRouterAdminRouter = createIntentRouterAdminRouter({
+    intentRouterService,
+    settingsRepository: repositories.settings,
+    requireAdminAuth,
+    appendAudit
+  });
+  const conversationMemoryAdminRouter = createConversationMemoryAdminRouter({
+    requireAdminAuth,
+    conversationMemoryService,
+    conversationsRepository: repositories.conversations,
+    chatMessagesRepository: repositories.chatMessages
+  });
 
   router.use(analyticsRouter);
   router.use(systemRouter);
+  router.use(conversationMemoryAdminRouter);
+  router.use(intentRouterAdminRouter);
   router.use(settingsRouter);
   router.use(logsRouter);
 

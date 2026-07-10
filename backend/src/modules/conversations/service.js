@@ -1,4 +1,42 @@
-function createConversationsService({ usersRepository, conversationsRepository, errorsRepository, now = () => new Date().toISOString() }) {
+function createConversationsService({
+  usersRepository,
+  conversationsRepository,
+  errorsRepository,
+  conversationMemoryService = null,
+  now = () => new Date().toISOString()
+}) {
+  const createConversation = async ({ profile }) => {
+    const safeProfile = profile || {};
+    const userId = await usersRepository.ensureUserExists(safeProfile);
+    const conversationId =
+      conversationMemoryService && typeof conversationMemoryService.generateConversationId === 'function'
+        ? conversationMemoryService.generateConversationId()
+        : `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    await conversationsRepository.ensureConversation(userId, conversationId, {
+      title: '',
+      messages: []
+    });
+
+    if (conversationMemoryService && typeof conversationMemoryService.createInitialForConversation === 'function') {
+      await conversationMemoryService.createInitialForConversation(conversationId, { userId });
+    }
+
+    return {
+      success: true,
+      userId,
+      conversationId,
+      item: {
+        conversation_id: conversationId,
+        title: null,
+        pinned: false,
+        created_at: now(),
+        updated_at: now(),
+        messages: []
+      }
+    };
+  };
+
   const loadConversations = async ({ profile }) => {
     const safeProfile = profile || {};
     const userId = await usersRepository.ensureUserExists(safeProfile);
@@ -68,6 +106,7 @@ function createConversationsService({ usersRepository, conversationsRepository, 
   };
 
   return {
+    createConversation,
     loadConversations,
     syncConversations,
     logLoadError,

@@ -245,6 +245,9 @@ function createAiService({
   conversationsRepository,
   eventsRepository,
   chatMessagesRepository,
+  conversationContextBuilder = null,
+  conversationMemoryService = null,
+  conversationMemoryWriterService = null,
   uploadedImagesRepository = null,
   logger = console
 }) {
@@ -570,9 +573,24 @@ function createAiService({
     const userId = await usersRepository.ensureUserExists(profile || {});
     const messageForHistory = trimmedMessage || '📷 عکس ارسال شد';
     const category = detectCategory(messageForHistory);
-    const normalizedConversationId =
-      typeof conversationId === 'string' && conversationId.trim().length > 0 ? conversationId.trim() : 'default';
+    let normalizedConversationId =
+      typeof conversationId === 'string' && conversationId.trim().length > 0
+        ? conversationId.trim()
+        : conversationMemoryService && typeof conversationMemoryService.generateConversationId === 'function'
+          ? conversationMemoryService.generateConversationId()
+          : 'default';
+    if (
+      conversationMemoryService &&
+      typeof conversationMemoryService.isValidConversationId === 'function' &&
+      !conversationMemoryService.isValidConversationId(normalizedConversationId)
+    ) {
+      normalizedConversationId = conversationMemoryService.generateConversationId();
+    }
     const memoryKey = `${userId}:${normalizedConversationId}`;
+
+    if (conversationsRepository && typeof conversationsRepository.ensureConversation === 'function') {
+      await conversationsRepository.ensureConversation(userId, normalizedConversationId);
+    }
 
     await eventsRepository.logEvent(userId, 'message_sent', category, {
       messageLength: messageForHistory.length,
@@ -580,19 +598,14 @@ function createAiService({
       requestId
     });
 
-    const normalizedHistory = normalizeHistory(history, messageForHistory);
-    const storedHistory = conversationStore.get(memoryKey);
+    const executeTurn = async () => {
     const dbHistory = await conversationsRepository.getConversationMessages(userId, normalizedConversationId);
-    let effectiveHistory =
-      Array.isArray(storedHistory) && storedHistory.length > normalizedHistory.length ? [...storedHistory] : normalizedHistory;
-    if (dbHistory.length > effectiveHistory.length) {
-      effectiveHistory = [...dbHistory];
-    }
+    const effectiveHistory = [...dbHistory];
     const lastItem = effectiveHistory[effectiveHistory.length - 1];
     if (!lastItem || lastItem.role !== 'user' || lastItem.content !== messageForHistory) {
       effectiveHistory.push({ role: 'user', content: messageForHistory });
     }
-    if (normalizedHistory.length > 50) {
+    if (dbHistory.length > 50) {
       log('CHAT', 'long_conversation_warning', {
         requestId,
         historyCount: effectiveHistory.length,
@@ -601,26 +614,41 @@ function createAiService({
     }
 
     const systemPrompt = await promptService.getSystemPrompt();
-    const modelHistory = [...effectiveHistory];
-    if (resolvedImages.length > 0) {
-      const lastUserIndex = modelHistory.findLastIndex((item) => item.role === 'user');
-      if (lastUserIndex >= 0) {
-        modelHistory[lastUserIndex] = {
-          ...modelHistory[lastUserIndex],
-          content: buildImageContentParts(trimmedMessage, resolvedImages)
-        };
-      }
-    }
-
-    const messages = [
+    const previousDocument =
+      conversationMemoryService && typeof conversationMemoryService.readForConversation === 'function'
+        ? await conversationMemoryService.readForConversation(normalizedConversationId, { userId }, { createIfMissing: true })
+        : null;
+    let messages = [
       {
         role: 'system',
         content: systemPrompt
       },
-      ...modelHistory
+      {
+        role: 'user',
+        content: messageForHistory
+      }
     ];
+    if (conversationContextBuilder && typeof conversationContextBuilder.buildChatMessages === 'function') {
+      if (resolvedImages.length > 0 && typeof conversationContextBuilder.buildImageChatMessages === 'function') {
+        const imageParts = buildImageContentParts(trimmedMessage, resolvedImages).filter((part) => part.type === 'image_url');
+        ({ messages } = await conversationContextBuilder.buildImageChatMessages({
+          conversationId: normalizedConversationId,
+          userMessage: messageForHistory,
+          systemPrompt,
+          owner: { userId },
+          imageParts
+        }));
+      } else {
+        ({ messages } = await conversationContextBuilder.buildChatMessages({
+          conversationId: normalizedConversationId,
+          userMessage: messageForHistory,
+          systemPrompt,
+          owner: { userId }
+        }));
+      }
+    }
 
-    const isFirstMessage = normalizedHistory.length === 1;
+    const isFirstMessage = dbHistory.filter((item) => item.role === 'user').length === 0;
     const responseStart = Date.now();
     const aiResult = await callOpenAI(messages, { requestId });
     const responseTimeMs = Date.now() - responseStart;
@@ -630,8 +658,9 @@ function createAiService({
     conversationStore.set(memoryKey, nextConversationMessages);
     await conversationsRepository.saveConversationMessages(userId, normalizedConversationId, nextConversationMessages);
 
+    let loggedTurn = null;
     if (chatMessagesRepository && typeof chatMessagesRepository.logSuccessfulTurn === 'function') {
-      await chatMessagesRepository.logSuccessfulTurn({
+      loggedTurn = await chatMessagesRepository.logSuccessfulTurn({
         userId,
         conversationId: normalizedConversationId,
         userMessage: messageForHistory,
@@ -645,12 +674,30 @@ function createAiService({
       });
     }
 
+    if (conversationMemoryWriterService && typeof conversationMemoryWriterService.updateAfterTurn === 'function') {
+      await conversationMemoryWriterService.updateAfterTurn({
+        conversationId: normalizedConversationId,
+        owner: { userId },
+        previousDocument,
+        userMessage: messageForHistory,
+        assistantResponse: reply,
+        sourceUserMessageId: loggedTurn?.userMessageId || null,
+        sourceAssistantMessageId: loggedTurn?.assistantMessageId || null
+      });
+    }
+
     await eventsRepository.logEvent(userId, 'message_received', category, {
       responseLength: reply.length,
       requestId
     });
 
-    return { reply };
+    return { reply, conversationId: normalizedConversationId };
+    };
+
+    if (conversationMemoryWriterService && typeof conversationMemoryWriterService.runExclusive === 'function') {
+      return conversationMemoryWriterService.runExclusive(normalizedConversationId, executeTurn);
+    }
+    return executeTurn();
   };
 
   const classifyIntent = async (message, { requestId } = {}) => {
@@ -681,12 +728,14 @@ function createAiService({
     if (!text) return '';
 
     try {
+      const isEdit = intent === 'image_edit';
       const result = await callOpenAI(
         [
           {
             role: 'system',
-            content:
-              'You are a prompt engineer for a text-to-image model. Rewrite the user request into one concise English image prompt. Preserve the exact main subject and all requested attributes. Never replace a requested human/person with an animal, object, doll, mascot, or unrelated character. If the subject is a child, keep it age-appropriate, wholesome, fully clothed, and non-sexualized. Return only the final image prompt, no markdown, no explanation.'
+            content: isEdit
+              ? 'You are a prompt engineer for an image-to-image editing model. Rewrite the user request into one concise English edit instruction. The model will receive an input image. The prompt must say to use the input image as the base, preserve subject identity, pose, composition, lighting, and style unless explicitly changed, and change only the requested part. Keep it child-friendly. Return only the final edit prompt, no markdown, no explanation.'
+              : 'You are a prompt engineer for a text-to-image model. Rewrite the user request into one concise English image prompt. Preserve the exact main subject and all requested attributes. Never replace a requested human/person with an animal, object, doll, mascot, or unrelated character. If the subject is a child, keep it age-appropriate, wholesome, fully clothed, and non-sexualized. Return only the final image prompt, no markdown, no explanation.'
           },
           {
             role: 'user',
@@ -844,21 +893,41 @@ function createAiService({
       });
     }
 
+    let sourceUserMessageId = null;
+    let sourceAssistantMessageId = null;
     if (chatMessagesRepository && typeof chatMessagesRepository.logMessage === 'function') {
-      await chatMessagesRepository.logMessage({
+      sourceUserMessageId = await chatMessagesRepository.logMessage({
         userId,
         conversationId: normalizedConversationId,
         role: 'user',
         content: prompt,
         limitStatus: intent
       });
-      await chatMessagesRepository.logMessage({
+      sourceAssistantMessageId = await chatMessagesRepository.logMessage({
         userId,
         conversationId: normalizedConversationId,
         role: 'assistant',
         content: taskId ? `${assistantText}\nTASK:${taskId}` : assistantText,
         errorCode,
         limitStatus: taskId ? `${intent}_queued` : `${intent}_not_started`
+      });
+    }
+
+    if (
+      conversationMemoryService &&
+      conversationMemoryService.isValidConversationId?.(normalizedConversationId) &&
+      conversationMemoryWriterService &&
+      typeof conversationMemoryWriterService.enqueueUpdateAfterTurn === 'function'
+    ) {
+      await conversationMemoryWriterService.enqueueUpdateAfterTurn({
+        conversationId: normalizedConversationId,
+        owner: { userId },
+        userMessage: prompt,
+        assistantResponse: taskId
+          ? `${assistantText}\nImage task reference: ${taskId}`
+          : assistantText,
+        sourceUserMessageId,
+        sourceAssistantMessageId
       });
     }
 
@@ -929,20 +998,38 @@ function createAiService({
       });
     }
 
+    let sourceUserMessageId = null;
+    let sourceAssistantMessageId = null;
     if (chatMessagesRepository && typeof chatMessagesRepository.logMessage === 'function') {
-      await chatMessagesRepository.logMessage({
+      sourceUserMessageId = await chatMessagesRepository.logMessage({
         userId: effectiveUserId,
         conversationId: normalizedConversationId,
         role: 'user',
         content: prompt,
         limitStatus: limitStatus || 'image_understanding'
       });
-      await chatMessagesRepository.logMessage({
+      sourceAssistantMessageId = await chatMessagesRepository.logMessage({
         userId: effectiveUserId,
         conversationId: normalizedConversationId,
         role: 'assistant',
         content: assistantText,
         limitStatus: diagnostics?.transport ? `image_understanding_${diagnostics.transport}` : 'image_understanding'
+      });
+    }
+
+    if (
+      conversationMemoryService &&
+      conversationMemoryService.isValidConversationId?.(normalizedConversationId) &&
+      conversationMemoryWriterService &&
+      typeof conversationMemoryWriterService.enqueueUpdateAfterTurn === 'function'
+    ) {
+      await conversationMemoryWriterService.enqueueUpdateAfterTurn({
+        conversationId: normalizedConversationId,
+        owner: { userId: effectiveUserId },
+        userMessage: prompt,
+        assistantResponse: assistantText,
+        sourceUserMessageId,
+        sourceAssistantMessageId
       });
     }
 

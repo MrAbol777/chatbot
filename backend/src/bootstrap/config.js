@@ -146,6 +146,16 @@ function loadRuntimeConfig(env = process.env) {
   const visionKey = pickApiKey([
     { source: 'METIS_VISION_API_KEY', value: env.METIS_VISION_API_KEY }
   ]);
+  const intentRouterKey = pickApiKey([
+    { source: 'METIS_INTENT_ROUTER_API_KEY', value: env.METIS_INTENT_ROUTER_API_KEY }
+  ]);
+  const conversationMemoryKey = pickApiKey([
+    { source: 'METIS_CONVERSATION_MEMORY_API_KEY', value: env.METIS_CONVERSATION_MEMORY_API_KEY }
+  ]);
+  const defaultConversationMemoryStorageDir =
+    env.NODE_ENV === 'production'
+      ? '/var/lib/danoa/conversation-memory'
+      : path.join(__dirname, '../../storage/conversation-memory');
 
   const ai = {
     chat: {
@@ -212,6 +222,44 @@ function loadRuntimeConfig(env = process.env) {
       apiKey: visionKey.apiKey,
       apiKeySource: visionKey.apiKeySource,
       apiKeyFingerprint: visionKey.apiKeyFingerprint
+    },
+    intentRouter: {
+      enabled: env.INTENT_ROUTER_ENABLED !== 'false',
+      provider: env.INTENT_ROUTER_PROVIDER || 'metis',
+      model: env.INTENT_ROUTER_MODEL || 'gemini-2.5-flash-lite-preview',
+      fallbackModel: env.INTENT_ROUTER_FALLBACK_MODEL || 'gemini-2.5-flash',
+      experimentalModel: env.INTENT_ROUTER_EXPERIMENTAL_MODEL || 'gemini-2.5-flash-lite-preview',
+      temperature: Number.isFinite(Number(env.INTENT_ROUTER_TEMPERATURE)) ? Number(env.INTENT_ROUTER_TEMPERATURE) : 0,
+      maxOutputTokens: Number.isFinite(Number(env.INTENT_ROUTER_MAX_OUTPUT_TOKENS)) ? Number(env.INTENT_ROUTER_MAX_OUTPUT_TOKENS) : 120,
+      timeoutMs: Number.isFinite(Number(env.INTENT_ROUTER_TIMEOUT_MS)) ? Number(env.INTENT_ROUTER_TIMEOUT_MS) : 2500,
+      confidenceThreshold: Number.isFinite(Number(env.INTENT_ROUTER_CONFIDENCE_THRESHOLD)) ? Number(env.INTENT_ROUTER_CONFIDENCE_THRESHOLD) : 0.65,
+      fallbackToHeuristic: env.INTENT_ROUTER_FALLBACK_TO_HEURISTIC !== 'false',
+      allowModelFallback: env.INTENT_ROUTER_ALLOW_MODEL_FALLBACK !== 'false',
+      allowChatKeyFallback: env.INTENT_ROUTER_ALLOW_CHAT_KEY_FALLBACK === 'true',
+      storeMetadata: env.INTENT_ROUTER_STORE_METADATA !== 'false',
+      modelHealthEnabled: env.INTENT_ROUTER_MODEL_HEALTH_ENABLED !== 'false',
+      modelHealthFailureThreshold: Number.isFinite(Number(env.INTENT_ROUTER_MODEL_HEALTH_FAILURE_THRESHOLD)) ? Number(env.INTENT_ROUTER_MODEL_HEALTH_FAILURE_THRESHOLD) : 3,
+      modelHealthCooldownMinutes: Number.isFinite(Number(env.INTENT_ROUTER_MODEL_HEALTH_COOLDOWN_MINUTES)) ? Number(env.INTENT_ROUTER_MODEL_HEALTH_COOLDOWN_MINUTES) : 60,
+      apiKey: intentRouterKey.apiKey,
+      apiKeySource: intentRouterKey.apiKeySource,
+      apiKeyFingerprint: intentRouterKey.apiKeyFingerprint
+    },
+    conversationMemory: {
+      enabled: env.CONVERSATION_MEMORY_ENABLED !== 'false',
+      provider: env.CONVERSATION_MEMORY_PROVIDER || 'metis',
+      model: env.CONVERSATION_MEMORY_MODEL || 'gemini-2.5-flash-lite-preview',
+      fallbackModel: env.CONVERSATION_MEMORY_FALLBACK_MODEL || 'gemini-2.5-flash',
+      temperature: Number.isFinite(Number(env.CONVERSATION_MEMORY_TEMPERATURE)) ? Number(env.CONVERSATION_MEMORY_TEMPERATURE) : 0,
+      maxOutputTokens: Number.isFinite(Number(env.CONVERSATION_MEMORY_MAX_OUTPUT_TOKENS)) ? Number(env.CONVERSATION_MEMORY_MAX_OUTPUT_TOKENS) : 3000,
+      timeoutMs: Number.isFinite(Number(env.CONVERSATION_MEMORY_TIMEOUT_MS)) ? Number(env.CONVERSATION_MEMORY_TIMEOUT_MS) : 8000,
+      allowModelFallback: env.CONVERSATION_MEMORY_ALLOW_MODEL_FALLBACK !== 'false',
+      allowChatKeyFallback: env.CONVERSATION_MEMORY_ALLOW_CHAT_KEY_FALLBACK === 'true',
+      maxDocumentChars: Number.isFinite(Number(env.CONVERSATION_MEMORY_MAX_DOCUMENT_CHARS)) ? Number(env.CONVERSATION_MEMORY_MAX_DOCUMENT_CHARS) : 20000,
+      storeMetadata: env.CONVERSATION_MEMORY_STORE_METADATA !== 'false',
+      storageDir: normalizePathValue(env.CONVERSATION_MEMORY_STORAGE_DIR, defaultConversationMemoryStorageDir),
+      apiKey: conversationMemoryKey.apiKey,
+      apiKeySource: conversationMemoryKey.apiKeySource,
+      apiKeyFingerprint: conversationMemoryKey.apiKeyFingerprint
     }
   };
 

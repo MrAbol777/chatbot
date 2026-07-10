@@ -72,7 +72,7 @@ class ChatMessageRepository {
     assistantCreatedAt
   }) {
     const common = { userId, conversationId, model, errorCode: null, limitStatus };
-    await this.logMessage({
+    const userMessageId = await this.logMessage({
       ...common,
       role: 'user',
       content: userMessage,
@@ -81,7 +81,7 @@ class ChatMessageRepository {
       createdAt: userCreatedAt || new Date()
     });
 
-    await this.logMessage({
+    const assistantMessageId = await this.logMessage({
       ...common,
       role: 'assistant',
       content: assistantResponse,
@@ -89,6 +89,38 @@ class ChatMessageRepository {
       tokenUsage,
       createdAt: assistantCreatedAt || new Date()
     });
+
+    return { userMessageId, assistantMessageId };
+  }
+
+  async listConversationMessages({ conversationId, userId = null, limit = 200 }) {
+    await this.db.init();
+    const normalizedConversationId = normalizeNullableString(conversationId) || 'default';
+    const safeLimit = Math.min(500, Math.max(1, Number.parseInt(String(limit), 10) || 200));
+    const params = userId
+      ? [normalizedConversationId, normalizeNullableString(userId), safeLimit]
+      : [normalizedConversationId, safeLimit];
+    const sql = userId
+      ? `SELECT message_id, role, content, created_at
+         FROM app_chat_messages
+         WHERE conversation_id = ? AND (user_id = ? OR guest_id = ?)
+         ORDER BY created_at ASC, message_id ASC
+         LIMIT ?`
+      : `SELECT message_id, role, content, created_at
+         FROM app_chat_messages
+         WHERE conversation_id = ?
+         ORDER BY created_at ASC, message_id ASC
+         LIMIT ?`;
+    const actualParams = userId
+      ? [normalizedConversationId, normalizeNullableString(userId), normalizeNullableString(userId), safeLimit]
+      : params;
+    const [rows] = await this.db.query(sql, actualParams);
+    return rows.map((row) => ({
+      id: row.message_id,
+      role: row.role,
+      content: row.content,
+      timestamp: row.created_at
+    }));
   }
 }
 

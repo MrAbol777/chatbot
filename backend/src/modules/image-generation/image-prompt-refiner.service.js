@@ -18,6 +18,7 @@ Rules:
 8. Keep the prompt specific: subject, style, lighting, background, camera/composition, quality.
 9. Avoid unsafe, sexual, violent, hateful, or age-inappropriate content.
 10. If needed, soften unsafe requests into a safe child-friendly alternative.
+11. If imageMode is "image-edit", write an image-to-image edit prompt: start from the input image, preserve the same subject identity, pose, composition, lighting, camera angle, and style unless explicitly changed, and change only the requested part. Do not describe a brand-new image from scratch.
 
 Return this JSON schema exactly:
 {

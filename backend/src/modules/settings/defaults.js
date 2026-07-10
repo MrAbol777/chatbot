@@ -5,6 +5,8 @@ const {
   DEFAULT_PRODUCT_PROMPT,
   DEFAULT_VISION_SYSTEM_PROMPT
 } = require('../image-understanding/image-understanding-settings');
+const { INTENT_ROUTER_SYSTEM_PROMPT } = require('../intent-router/intent-router.prompt');
+const { MEMORY_WRITER_SYSTEM_PROMPT } = require('../conversation-memory/conversation-memory.prompt');
 
 const SETTING_DEFINITIONS = {
   'guest.message_limit': {
@@ -605,6 +607,236 @@ const SETTING_DEFINITIONS = {
     defaultValue: 30000,
     min: 1000,
     max: 300000,
+    adminEditable: true
+  },
+  'ai.intent_router.enabled': {
+    label: 'فعال بودن مسیریاب هوشمند',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.intent_router.provider': {
+    label: 'Provider مسیریاب هوشمند',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'metis',
+    allowedValues: ['metis'],
+    adminEditable: true
+  },
+  'ai.intent_router.model': {
+    label: 'مدل اصلی مسیریاب هوشمند',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash-lite-preview',
+    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    adminEditable: true
+  },
+  'ai.intent_router.fallback_model': {
+    label: 'مدل fallback مسیریاب هوشمند',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash',
+    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    adminEditable: true
+  },
+  'ai.intent_router.experimental_model': {
+    label: 'مدل experimental مسیریاب هوشمند',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash-lite-preview',
+    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    adminEditable: true
+  },
+  'ai.intent_router.temperature': {
+    label: 'Temperature مسیریاب هوشمند',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 0,
+    min: 0,
+    max: 1,
+    adminEditable: true
+  },
+  'ai.intent_router.max_output_tokens': {
+    label: 'Max output tokens مسیریاب هوشمند',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 120,
+    min: 50,
+    max: 500,
+    adminEditable: true
+  },
+  'ai.intent_router.timeout_ms': {
+    label: 'Timeout مسیریاب هوشمند (ms)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 2500,
+    min: 500,
+    max: 30000,
+    adminEditable: true
+  },
+  'ai.intent_router.confidence_threshold': {
+    label: 'Confidence threshold مسیریاب هوشمند',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 0.65,
+    min: 0,
+    max: 1,
+    adminEditable: true
+  },
+  'ai.intent_router.fallback_to_heuristic': {
+    label: 'Fallback به heuristic قدیمی',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.intent_router.allow_model_fallback': {
+    label: 'اجازه fallback مدل مسیریاب',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.intent_router.allow_chat_key_fallback': {
+    label: 'اجازه fallback به کلید چت',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: false,
+    adminEditable: true
+  },
+  'ai.intent_router.store_metadata': {
+    label: 'ذخیره metadata مسیریاب',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.intent_router.system_prompt': {
+    label: 'System prompt مسیریاب هوشمند',
+    type: 'string',
+    category: 'ai',
+    defaultValue: INTENT_ROUTER_SYSTEM_PROMPT,
+    adminEditable: true
+  },
+  'ai.intent_router.model_health.enabled': {
+    label: 'فعال بودن health مدل مسیریاب',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.intent_router.model_health.failure_threshold': {
+    label: 'آستانه fail مدل مسیریاب',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 3,
+    min: 1,
+    max: 20,
+    adminEditable: true
+  },
+  'ai.intent_router.model_health.cooldown_minutes': {
+    label: 'Cooldown مدل مسیریاب (دقیقه)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 60,
+    min: 1,
+    max: 1440,
+    adminEditable: true
+  },
+  'ai.conversation_memory.enabled': {
+    label: 'فعال بودن حافظه مکالمه',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.conversation_memory.provider': {
+    label: 'Provider حافظه مکالمه',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'metis',
+    allowedValues: ['metis'],
+    adminEditable: true
+  },
+  'ai.conversation_memory.model': {
+    label: 'مدل اصلی حافظه مکالمه',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash-lite-preview',
+    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    adminEditable: true
+  },
+  'ai.conversation_memory.fallback_model': {
+    label: 'مدل fallback حافظه مکالمه',
+    type: 'string',
+    category: 'ai',
+    defaultValue: 'gemini-2.5-flash',
+    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    adminEditable: true
+  },
+  'ai.conversation_memory.temperature': {
+    label: 'Temperature حافظه مکالمه',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 0,
+    min: 0,
+    max: 1,
+    adminEditable: true
+  },
+  'ai.conversation_memory.max_output_tokens': {
+    label: 'Max output tokens حافظه مکالمه',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 3000,
+    min: 500,
+    max: 8192,
+    adminEditable: true
+  },
+  'ai.conversation_memory.timeout_ms': {
+    label: 'Timeout حافظه مکالمه (ms)',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 8000,
+    min: 1000,
+    max: 60000,
+    adminEditable: true
+  },
+  'ai.conversation_memory.allow_model_fallback': {
+    label: 'اجازه fallback مدل حافظه',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.conversation_memory.allow_chat_key_fallback': {
+    label: 'اجازه fallback حافظه به کلید چت',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: false,
+    adminEditable: true
+  },
+  'ai.conversation_memory.max_document_chars': {
+    label: 'حداکثر کاراکتر Document حافظه',
+    type: 'number',
+    category: 'ai',
+    defaultValue: 20000,
+    min: 2000,
+    max: 100000,
+    adminEditable: true
+  },
+  'ai.conversation_memory.store_metadata': {
+    label: 'ذخیره metadata حافظه مکالمه',
+    type: 'boolean',
+    category: 'ai',
+    defaultValue: true,
+    adminEditable: true
+  },
+  'ai.conversation_memory.system_prompt': {
+    label: 'System prompt حافظه مکالمه',
+    type: 'string',
+    category: 'ai',
+    defaultValue: MEMORY_WRITER_SYSTEM_PROMPT,
     adminEditable: true
   },
   'auth.otp.expire_seconds': {

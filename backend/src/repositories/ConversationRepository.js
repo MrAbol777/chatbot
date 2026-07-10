@@ -163,6 +163,37 @@ class ConversationRepository {
     this.db = db;
   }
 
+  async ensureConversation(userId, conversationId, options = {}) {
+    await this.db.init();
+    const normalizedUserId = typeof userId === 'string' || typeof userId === 'number' ? String(userId).trim() : '';
+    const normalizedConversationId = normalizeConversationId(conversationId);
+    if (!normalizedUserId || !normalizedConversationId) return null;
+
+    const guestId = getGuestIdFromUserId(normalizedUserId) || null;
+    const ts = new Date();
+    await this.db.query(
+      `INSERT INTO app_conversations (user_id, guest_id, conversation_id, title, pinned, messages, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE guest_id = VALUES(guest_id), updated_at = updated_at`,
+      [
+        normalizedUserId,
+        guestId,
+        normalizedConversationId,
+        typeof options.title === 'string' ? options.title.trim() : '',
+        JSON.stringify(Array.isArray(options.messages) ? options.messages : []),
+        ts,
+        ts
+      ]
+    );
+
+    return {
+      user_id: normalizedUserId,
+      conversation_id: normalizedConversationId,
+      created_at: ts,
+      updated_at: ts
+    };
+  }
+
   async getConversationMessages(userId, conversationId) {
     await this.db.init();
     const normalizedUserId = typeof userId === 'string' || typeof userId === 'number' ? String(userId) : '';
@@ -218,6 +249,20 @@ class ConversationRepository {
         messages: dedupeConversationMessages(safeJsonArray(messages).map((msg) => normalizeMessage(msg)).filter(Boolean))
       };
     });
+  }
+
+  async getAnyConversationMessages(conversationId) {
+    await this.db.init();
+    const normalizedConversationId = normalizeConversationId(conversationId);
+    const [rows] = await this.db.query(
+      'SELECT messages FROM app_conversations WHERE conversation_id = ? ORDER BY updated_at DESC LIMIT 1',
+      [normalizedConversationId]
+    );
+    const raw = rows[0]?.messages;
+    const parsed = typeof raw === 'string' ? JSON.parse(raw || '[]') : raw;
+    return safeJsonArray(parsed)
+      .map((item) => normalizeMessage(item))
+      .filter(Boolean);
   }
 
   async replaceUserConversations(userId, conversations) {

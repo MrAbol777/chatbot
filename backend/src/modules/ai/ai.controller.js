@@ -49,6 +49,13 @@ const toAbsoluteImageUrl = (req, value) => {
   return `${baseUrl}${raw.startsWith('/') ? raw : `/${raw}`}`;
 };
 
+const toDataImageUrl = (image) => {
+  const mimeType = typeof image?.mimeType === 'string' ? image.mimeType.trim() : '';
+  const base64 = typeof image?.base64 === 'string' ? image.base64.trim() : '';
+  if (!mimeType || !base64 || !/^image\/(?:jpeg|jpg|png|webp)$/i.test(mimeType)) return '';
+  return `data:${mimeType};base64,${base64}`;
+};
+
 const parseGeneratedImageTaskId = (value) => {
   const raw = String(value || '').trim();
   try {
@@ -60,44 +67,111 @@ const parseGeneratedImageTaskId = (value) => {
   }
 };
 
-const getImageInputUrls = async (req, res, imageIds, history, imageGenerationController) => {
+const parseUploadedImageId = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw, 'https://local.invalid');
+    const match = url.pathname.match(/^\/api\/uploads\/images\/([^/?#]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  } catch (_error) {
+    return '';
+  }
+};
+
+const getUploadedImageInputs = async (imageIds, uploadedImagesRepository) => {
+  if (!uploadedImagesRepository || typeof uploadedImagesRepository.getByIds !== 'function') return [];
+  const uniqueIds = [...new Set((Array.isArray(imageIds) ? imageIds : [])
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean))].slice(0, 5);
+  if (uniqueIds.length === 0) return [];
+  const images = await uploadedImagesRepository.getByIds(uniqueIds);
+  return (Array.isArray(images) ? images : []).map(toDataImageUrl).filter(Boolean);
+};
+
+const getImageInputUrls = async (req, res, imageIds, history, imageGenerationController, uploadedImagesRepository) => {
   const urls = [];
   let hasPrivateImage = false;
-  for (const imageId of Array.isArray(imageIds) ? imageIds : []) {
-    const normalized = typeof imageId === 'string' ? imageId.trim() : '';
-    if (normalized) urls.push(toAbsoluteImageUrl(req, `/api/uploads/images/${encodeURIComponent(normalized)}`));
-  }
 
-  const recentWithImages = Array.isArray(history)
-    ? [...history].reverse().find((item) => Array.isArray(item?.images) && item.images.length > 0)
-    : null;
-  for (const image of Array.isArray(recentWithImages?.images) ? recentWithImages.images : []) {
-    const url = typeof image?.url === 'string' ? image.url : typeof image === 'string' ? image : '';
-    if (!url) continue;
-    if (/^blob:/i.test(url)) continue;
-    if (/^data:image\//i.test(url)) {
-      urls.push(url);
-      continue;
-    }
-    const generatedTaskId = parseGeneratedImageTaskId(url);
-    if (generatedTaskId) {
-      const editableInput =
-        imageGenerationController && typeof imageGenerationController.getEditableImageInput === 'function'
-          ? await imageGenerationController.getEditableImageInput(req, res, generatedTaskId).catch(() => null)
-          : null;
-      if (editableInput?.dataUrl) {
-        urls.push(editableInput.dataUrl);
-      } else {
-        hasPrivateImage = true;
+  urls.push(...(await getUploadedImageInputs(imageIds, uploadedImagesRepository)));
+
+  const recentImageMessages = Array.isArray(history)
+    ? [...history].reverse().filter((item) => Array.isArray(item?.images) && item.images.length > 0)
+    : [];
+  for (const recentWithImages of recentImageMessages) {
+    if (urls.length > 0) break;
+    for (const image of Array.isArray(recentWithImages?.images) ? recentWithImages.images : []) {
+      if (urls.length > 0) break;
+      const url = typeof image?.url === 'string' ? image.url : typeof image === 'string' ? image : '';
+      if (!url) continue;
+      if (/^blob:/i.test(url)) continue;
+      if (/^data:image\//i.test(url)) {
+        urls.push(url);
+        continue;
       }
-      continue;
+      const uploadedImageId = parseUploadedImageId(url);
+      if (uploadedImageId) {
+        const uploadedInputs = await getUploadedImageInputs([uploadedImageId], uploadedImagesRepository);
+        if (uploadedInputs.length > 0) {
+          urls.push(...uploadedInputs);
+        } else {
+          hasPrivateImage = true;
+        }
+        continue;
+      }
+      const generatedTaskId = parseGeneratedImageTaskId(url);
+      if (generatedTaskId) {
+        const editableInput =
+          imageGenerationController && typeof imageGenerationController.getEditableImageInput === 'function'
+            ? await imageGenerationController.getEditableImageInput(req, res, generatedTaskId).catch(() => null)
+            : null;
+        if (editableInput?.dataUrl) {
+          urls.push(editableInput.dataUrl);
+        } else {
+          hasPrivateImage = true;
+        }
+        continue;
+      }
+      urls.push(toAbsoluteImageUrl(req, url));
     }
-    urls.push(toAbsoluteImageUrl(req, url));
   }
 
   return {
     urls: [...new Set(urls.filter(Boolean))].slice(0, 14),
     hasPrivateImage
+  };
+};
+
+const getImageContextForRouting = (imageIds, history) => {
+  const hasCurrentImageAttachment = Array.isArray(imageIds) && imageIds.some((item) => typeof item === 'string' && item.trim());
+  let hasPreviousUploadedImage = false;
+  let hasPreviousGeneratedImage = false;
+  let lastImageKind = 'none';
+
+  const recentImageMessages = Array.isArray(history)
+    ? [...history].reverse().filter((item) => Array.isArray(item?.images) && item.images.length > 0)
+    : [];
+  for (const message of recentImageMessages) {
+    for (const image of Array.isArray(message?.images) ? message.images : []) {
+      const url = typeof image?.url === 'string' ? image.url : typeof image === 'string' ? image : '';
+      if (!url) continue;
+      if (parseGeneratedImageTaskId(url)) {
+        hasPreviousGeneratedImage = true;
+        if (lastImageKind === 'none') lastImageKind = 'generated';
+      } else if (parseUploadedImageId(url) || /^data:image\//i.test(url)) {
+        hasPreviousUploadedImage = true;
+        if (lastImageKind === 'none') lastImageKind = 'uploaded';
+      }
+    }
+    if (lastImageKind !== 'none') break;
+  }
+
+  return {
+    hasCurrentImageAttachment,
+    hasPreviousUploadedImage,
+    hasPreviousGeneratedImage,
+    lastImageKind: hasCurrentImageAttachment ? 'uploaded' : lastImageKind,
+    locale: 'fa'
   };
 };
 
@@ -108,9 +182,13 @@ function createAiController({
   usersRepository,
   plansRepository,
   settingsRepository,
+  intentRouterService,
   imageGenerationController,
   imageGenerationService,
   imageUnderstandingService,
+  uploadedImagesRepository,
+  conversationMemoryService,
+  conversationContextBuilder,
   jwt,
   jwtSecret
 }) {
@@ -150,6 +228,7 @@ function createAiController({
 
   const postChat = async (req, res) => {
     let guestContext = null;
+    let releaseTurnLock = null;
 
     try {
       const { message, profile, history, conversationId, imageIds, clientMessageId } = req.body || {};
@@ -173,15 +252,90 @@ function createAiController({
         };
       }
 
-      const intentResult = await detectChatIntent({
-        message,
-        hasAttachedImages: Array.isArray(imageIds) && imageIds.length > 0,
-        hasRecentImage: Array.isArray(history) && history.some((item) => Array.isArray(item?.images) && item.images.length > 0),
-        classify:
-          aiService && typeof aiService.classifyIntent === 'function'
-            ? (text) => aiService.classifyIntent(text, { requestId: res.locals.requestId })
-            : null
-      });
+      if (
+        conversationId &&
+        conversationMemoryService &&
+        conversationMemoryService.isValidConversationId?.(conversationId) &&
+        conversationMemoryWriterService &&
+        typeof conversationMemoryWriterService.acquireTurnLock === 'function'
+      ) {
+        releaseTurnLock = await conversationMemoryWriterService.acquireTurnLock(String(conversationId).trim());
+      }
+
+      const routeContext = getImageContextForRouting(imageIds, history);
+      if (
+        authenticatedUserId &&
+        conversationMemoryService &&
+        conversationMemoryService.isValidConversationId?.(conversationId) &&
+        conversationContextBuilder &&
+        typeof conversationContextBuilder.buildRouterContext === 'function'
+      ) {
+        const memoryDocument = await conversationMemoryService
+          .readForConversation(conversationId, { userId: authenticatedUserId }, { createIfMissing: true })
+          .catch(() => null);
+        if (memoryDocument?.content) {
+          const documentRouteContext = conversationContextBuilder.buildRouterContext(memoryDocument.content);
+          routeContext.currentTopic = documentRouteContext.currentTopic;
+          routeContext.activeReferences = documentRouteContext.activeReferences;
+          routeContext.hasPreviousUploadedImage =
+            routeContext.hasPreviousUploadedImage || documentRouteContext.hasPreviousUploadedImage;
+          routeContext.hasPreviousGeneratedImage =
+            routeContext.hasPreviousGeneratedImage || documentRouteContext.hasPreviousGeneratedImage;
+          routeContext.lastImageKind = routeContext.hasCurrentImageAttachment
+            ? 'uploaded'
+            : documentRouteContext.hasPreviousGeneratedImage
+              ? 'generated'
+              : documentRouteContext.hasPreviousUploadedImage
+                ? 'uploaded'
+                : routeContext.lastImageKind;
+        }
+      }
+      let intentResult = null;
+      let routeResult = null;
+      if (intentRouterService && typeof intentRouterService.route === 'function') {
+        routeResult = await intentRouterService.route({
+          userMessage: message,
+          ...routeContext
+        }).catch((error) => ({
+          ok: false,
+          status: 'router_exception',
+          metadata: {
+            source: 'heuristic_fallback',
+            status: 'router_exception',
+            errorType: error?.code || 'router_exception'
+          },
+          settings: { fallbackToHeuristic: true }
+        }));
+      }
+
+      if (routeResult?.ok && routeResult.route) {
+        intentResult = {
+          intent: routeResult.route.intent,
+          confidence: 'high',
+          source: 'intent_router',
+          route: routeResult.route,
+          metadata: routeResult.metadata || null
+        };
+      } else if (!routeResult || routeResult.settings?.fallbackToHeuristic !== false || routeResult.metadata?.fallbackToHeuristic !== false) {
+        const fallbackIntent = await detectChatIntent({
+          message,
+          hasAttachedImages: routeContext.hasCurrentImageAttachment,
+          hasRecentImage: routeContext.hasPreviousUploadedImage || routeContext.hasPreviousGeneratedImage,
+          classify: null
+        });
+        intentResult = {
+          ...fallbackIntent,
+          source: 'heuristic_fallback',
+          metadata: routeResult?.metadata || null
+        };
+      } else {
+        intentResult = {
+          intent: 'chat',
+          confidence: 'low',
+          source: 'intent_router_failed_no_fallback',
+          metadata: routeResult?.metadata || null
+        };
+      }
 
       if (intentResult.intent === 'image_generation' || intentResult.intent === 'image_edit') {
         const trimmedMessage = typeof message === 'string' ? message.trim() : '';
@@ -210,7 +364,8 @@ function createAiController({
             status: 'ERROR',
             unsupported: true,
             assistantText,
-            messages
+            messages,
+            intentRouter: intentResult.metadata || null
           });
         }
 
@@ -223,19 +378,18 @@ function createAiController({
             status: 'ERROR',
             blocked: true,
             assistantText,
-            messages
+            messages,
+            intentRouter: intentResult.metadata || null
           });
         }
 
         try {
           const imageInput = isEdit
-            ? await getImageInputUrls(req, res, imageIds, history, imageGenerationController)
+            ? await getImageInputUrls(req, res, imageIds, history, imageGenerationController, uploadedImagesRepository)
             : { urls: [], hasPrivateImage: false };
           if (isEdit && imageInput.urls.length === 0) {
             const { userId } = await imageGenerationController.resolveUserContext(req, res);
-            const assistantText = imageInput.hasPrivateImage
-              ? 'برای ویرایش تصویر، فایل باید به صورت قابل دسترسی برای سرویس تصویر آماده شود.'
-              : 'برای ویرایش تصویر، اول یک تصویر مرجع بفرست یا روی تصویری که قبلاً ساخته شده ادامه بده.';
+            const assistantText = 'برای ویرایش، اول یک تصویر بفرست یا یک تصویر بساز تا روی همان تغییر بدهم.';
             const messages = await persistFailure({
               userId,
               assistantText,
@@ -245,7 +399,8 @@ function createAiController({
               intent: intentResult.intent,
               status: 'ERROR',
               assistantText,
-              messages
+              messages,
+              intentRouter: intentResult.metadata || null
             });
           }
           const enhancedPrompt =
@@ -278,7 +433,8 @@ function createAiController({
             status: task.status,
             assistantText,
             taskId: task.taskId,
-            messages
+            messages,
+            intentRouter: intentResult.metadata || null
           });
         } catch (imageError) {
           const payload = imageError?.publicPayload || {};
@@ -302,7 +458,8 @@ function createAiController({
             assistantText,
             error: payload.error || 'IMAGE_TASK_FAILED',
             reason: payload.reason || null,
-            messages
+            messages,
+            intentRouter: intentResult.metadata || null
           });
         }
       }
@@ -388,7 +545,8 @@ function createAiController({
             intent: 'image_understanding',
             reply: visionResult.answer,
             messages: persisted.messages,
-            diagnostics: visionResult.diagnostics
+            diagnostics: visionResult.diagnostics,
+            intentRouter: intentResult.metadata || null
           });
         } catch (visionError) {
           const assistantText = publicVisionErrorMessage(visionError);
@@ -419,7 +577,8 @@ function createAiController({
             assistantText,
             error: visionError?.code || 'VISION_ANALYZE_FAILED',
             statusCode,
-            messages: persisted.messages
+            messages: persisted.messages,
+            intentRouter: intentResult.metadata || null
           });
         }
       }
@@ -440,7 +599,10 @@ function createAiController({
         await plansRepository.incrementDailyUsage(authenticatedUserId, 'message', 1);
       }
 
-      return res.json(result);
+      return res.json({
+        ...result,
+        intentRouter: intentResult.metadata || null
+      });
     } catch (error) {
       if (error && typeof error === 'object' && error.code === 'API_KEY_MISSING') {
         await errorsRepository.logError('api_key_missing', '/api/chat', 500, 'METIS_API_KEY is missing');
@@ -493,6 +655,10 @@ function createAiController({
         error: 'مشکلی در سرور پیش آمد.',
         details: error instanceof Error ? error.message : 'unknown_error'
       });
+    } finally {
+      if (typeof releaseTurnLock === 'function') {
+        releaseTurnLock();
+      }
     }
   };
 

@@ -24,6 +24,10 @@ const { createSmsService } = require('./modules/sms/sms.service');
 const { createAiRouter } = require('./modules/ai/ai.routes');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createImageUnderstandingRouter } = require('./modules/image-understanding/image-understanding.routes');
+const { createIntentRouterService } = require('./modules/intent-router/intent-router.service');
+const { createConversationMemoryService } = require('./modules/conversation-memory/conversation-memory.service');
+const { createConversationMemoryWriterService } = require('./modules/conversation-memory/conversation-memory-writer.service');
+const { createConversationContextBuilder } = require('./modules/conversation-memory/conversation-context-builder.service');
 const { createPromptService } = require('./modules/ai/prompt.service');
 const { createAuthModule } = require('./modules/auth/auth.module');
 const { createConversationsModule } = require('./modules/conversations');
@@ -175,6 +179,14 @@ try {
 } catch (error) {
   console.warn('[image-generation] storage directory is not writable at boot', {
     storageDir: ai.image.storageDir,
+    message: error instanceof Error ? error.message : String(error)
+  });
+}
+try {
+  fs.ensureDirSync(ai.conversationMemory.storageDir);
+} catch (error) {
+  console.warn('[conversation-memory] storage directory is not writable at boot', {
+    storageDir: ai.conversationMemory.storageDir,
     message: error instanceof Error ? error.message : String(error)
   });
 }
@@ -409,6 +421,32 @@ const imageUnderstandingModule = createImageUnderstandingRouter({
 });
 app.use('/api/vision', imageUnderstandingModule.router);
 
+const intentRouterService = createIntentRouterService({
+  httpClient: axios,
+  settingsRepository: repositories.settings,
+  routerConfig: ai.intentRouter,
+  chatConfig: ai.chat,
+  logger: console
+});
+
+const conversationMemoryService = createConversationMemoryService({
+  db: repositories.db,
+  fileStore: fs,
+  storageRoot: ai.conversationMemory.storageDir,
+  logger: console
+});
+const conversationContextBuilder = createConversationContextBuilder({
+  conversationMemoryService
+});
+const conversationMemoryWriterService = createConversationMemoryWriterService({
+  httpClient: axios,
+  settingsRepository: repositories.settings,
+  memoryConfig: ai.conversationMemory,
+  chatConfig: ai.chat,
+  conversationMemoryService,
+  logger: console
+});
+
 app.use(createAiRouter({
   apiKey: metisApiKey,
   baseUrl: metisBaseUrl,
@@ -426,6 +464,10 @@ app.use(createAiRouter({
   errorsRepository: repositories.errors,
   uploadedImagesRepository,
   settingsRepository: repositories.settings,
+  intentRouterService,
+  conversationMemoryService,
+  conversationContextBuilder,
+  conversationMemoryWriterService,
   imageGenerationController: imageGenerationModule.controller,
   imageGenerationService: imageGenerationModule.imageGenerationService,
   imageUnderstandingService: imageUnderstandingModule.imageUnderstandingService,
@@ -441,8 +483,10 @@ const { router: conversationRouter } = createConversationsModule({
   },
   conversationsRepository: {
     getUserConversations: (...args) => repositories.conversations.getUserConversations(...args),
-    replaceUserConversations: (...args) => repositories.conversations.replaceUserConversations(...args)
+    replaceUserConversations: (...args) => repositories.conversations.replaceUserConversations(...args),
+    ensureConversation: (...args) => repositories.conversations.ensureConversation(...args)
   },
+  conversationMemoryService,
   errorsRepository: {
     logError: (...args) => repositories.errors.logError(...args)
   },
@@ -475,7 +519,10 @@ const { router: adminRouter } = createAdminRouter({
   imageRuntimeSettingsResolver: imageGenerationModule.imageRuntimeSettingsResolver,
   imageGenerationService: imageGenerationModule.imageGenerationService,
   imagePromptRefinerService: imageGenerationModule.imagePromptRefinerService,
-  imageUnderstandingService: imageUnderstandingModule.imageUnderstandingService
+  imageUnderstandingService: imageUnderstandingModule.imageUnderstandingService,
+  intentRouterService,
+  conversationMemoryService,
+  conversationMemoryWriterService
 });
 app.use('/api/admin', adminRouter);
 
@@ -519,6 +566,8 @@ app.use((err, req, res, _next) => {
 (async () => {
   try {
     await repositories.db.init();
+    await conversationMemoryService.ensureMetadataTables();
+    await conversationMemoryService.ensureStorageRoot();
     console.log('[BOOT] Database initialized');
   } catch (err) {
     console.error('[BOOT] Database initialization failed:', err.message);

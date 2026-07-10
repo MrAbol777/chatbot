@@ -23,6 +23,7 @@ const ACTIVE_CONVERSATION_KEY = 'chat_active_conversation_id';
 const THEME_KEY = 'danoa_theme';
 const DEFAULT_TITLE = 'گفتگوی جدید';
 const GUEST_PROFILE_KEY = 'chat_guest_profile';
+const CONVERSATION_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const WAITING_MESSAGES = [
   'در حال یافتن پاسخ',
   'در حال بررسی سوال شما',
@@ -115,6 +116,7 @@ type ChatImageIntentResponse = {
   unsupported?: boolean;
   messages?: ChatMessage[];
   reply?: string;
+  conversationId?: string;
 };
 type AttachmentStatus = 'pending' | 'uploading' | 'uploaded' | 'error';
 type ImageAttachment = {
@@ -373,7 +375,6 @@ const postChatWithRetry = async (payload: {
   imageIds?: string[];
   profile: UserProfile;
   personality: PersonalityProfile;
-  history: Array<{ role: 'user' | 'assistant'; content: string; images?: Array<{ url: string; alt?: string }> }>;
   conversationId?: string;
   clientMessageId?: string;
 }) => {
@@ -578,7 +579,6 @@ const registerProfile = async (profile: {
   id?: number | string;
   mode: AuthMode;
   signupToken?: string;
-  guardianConsent?: boolean;
 }): Promise<{ userId: string; profile: { name: string; age: number; phone: string }; token?: string } & AuthFamilyPayload> => {
   const response = await safeFetch('/api/register-profile', {
     method: 'POST',
@@ -636,10 +636,47 @@ const syncRemoteConversations = async (profile: UserProfile & { id?: string | nu
   }
 };
 
+const createRemoteConversation = async (profile: UserProfile & { id?: string | number }) => {
+  const response = await safeFetch('/api/conversations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ profile })
+  });
+  if (!response.ok) {
+    throw new Error('ساخت گفتگوی جدید انجام نشد.');
+  }
+  const payload = await response.json() as {
+    conversationId: string;
+    item?: {
+      conversation_id: string;
+      title?: string | null;
+      pinned?: boolean;
+      created_at?: string;
+      updated_at?: string;
+      messages?: ChatMessage[];
+    };
+  };
+  if (payload.item) {
+    return normalizeConversationFromServer(payload.item);
+  }
+  const now = new Date().toISOString();
+  return {
+    id: payload.conversationId,
+    title: DEFAULT_TITLE,
+    messages: [],
+    pinned: false,
+    createdAt: now,
+    updatedAt: now
+  } as Conversation;
+};
+
 const createConversation = (): Conversation => {
   const now = new Date().toISOString();
   return {
-    id: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    id: typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
     title: DEFAULT_TITLE,
     messages: [],
     pinned: false,
@@ -959,11 +996,10 @@ function ChatApp() {
   const [phone, setPhone] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [signupToken, setSignupToken] = useState('');
-  const [guardianConsent, setGuardianConsent] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; age?: string; phone?: string; code?: string; guardianConsent?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; age?: string; phone?: string; code?: string }>({});
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string>('');
@@ -1018,7 +1054,7 @@ function ChatApp() {
   const prevIsSendingRef = useRef(false);
   const messagesContainerRef = useRef<HTMLElement | null>(null);
   const inputAreaRef = useRef<HTMLElement | null>(null);
-  const messageInputRef = useRef<HTMLInputElement | null>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentBoxRef = useRef<HTMLDivElement | null>(null);
   const attachmentUrlsRef = useRef<Set<string>>(new Set());
@@ -1202,7 +1238,6 @@ function ChatApp() {
     setErrors({});
     setVerificationCode('');
     setSignupToken('');
-    setGuardianConsent(false);
   };
 
   const resetAuthFlow = (mode: AuthMode) => {
@@ -1215,7 +1250,6 @@ function ChatApp() {
     setAge('');
     setVerificationCode('');
     setSignupToken('');
-    setGuardianConsent(false);
   };
 
   const handleOpenSettings = () => {
@@ -1647,6 +1681,25 @@ function ChatApp() {
     return created;
   };
 
+  const ensureConversationFromBackend = async (): Promise<Conversation> => {
+    if (activeConversation && CONVERSATION_UUID_PATTERN.test(activeConversation.id)) {
+      return activeConversation;
+    }
+    if (!profile) {
+      return ensureConversation();
+    }
+    try {
+      const created = await createRemoteConversation(profile);
+      setConversations((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
+      setActiveConversationId(created.id);
+      localStorage.setItem(ACTIVE_CONVERSATION_KEY, created.id);
+      return created;
+    } catch (error) {
+      pushToast(error instanceof Error ? error.message : 'ساخت گفتگوی جدید انجام نشد.', 'warning');
+      return ensureConversation();
+    }
+  };
+
   const updateImageTaskMessage = (
     conversationId: string,
     taskId: string,
@@ -1888,7 +1941,6 @@ function ChatApp() {
       setSignupToken(verificationResult.signupToken || '');
       setName('');
       setAge('');
-      setGuardianConsent(false);
       setErrors({});
       setRegistrationStep(3);
     } catch (error) {
@@ -1912,7 +1964,7 @@ function ChatApp() {
 
     const normalizedPhone = normalizePhoneInput(phone);
     const numericAge = parseAgeInput(age);
-    const nextErrors: { name?: string; age?: string; guardianConsent?: string } = {};
+    const nextErrors: { name?: string; age?: string } = {};
 
     if (!name.trim()) {
       nextErrors.name = 'اسم کودک را بنویس تا با هم آشنا شویم.';
@@ -1920,10 +1972,6 @@ function ChatApp() {
 
     if (!age || Number.isNaN(numericAge) || numericAge < ageMin) {
       nextErrors.age = `سن باید حداقل ${ageMin} سال باشد.`;
-    }
-
-    if (!guardianConsent) {
-      nextErrors.guardianConsent = 'برای ساخت حساب کودک، تایید والد یا قیم لازم است.';
     }
 
     setErrors(nextErrors);
@@ -1938,8 +1986,7 @@ function ChatApp() {
         age: normalizeLocalizedDigits(age.trim()),
         phone: normalizedPhone,
         mode: 'signup',
-        signupToken,
-        guardianConsent
+        signupToken
       });
 
       saveAuthenticatedProfile(
@@ -1984,7 +2031,7 @@ function ChatApp() {
     setProfile(nextProfile);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
 
-    const currentConversation = ensureConversation();
+    const currentConversation = await ensureConversationFromBackend();
     const previewImages = attachmentsAtSend.map((attachment, index) => ({
       url: attachment.previewUrl,
       alt: attachment.file.name || `تصویر ارسال شده ${index + 1}`
@@ -2113,18 +2160,11 @@ function ChatApp() {
         });
       }
 
-      const history = updatedMessages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-        images: msg.images
-      }));
-
       const response = await postChatWithRetry({
         message: content,
         imageIds: uploadedImageIds,
         profile: nextProfile,
         personality: nextPersonality,
-        history,
         conversationId: currentConversation.id,
         clientMessageId: userMessage.id
       });
@@ -2428,8 +2468,20 @@ function ChatApp() {
     };
   }, []);
 
-  const handleCreateConversation = () => {
-    setActiveConversationId('');
+  const handleCreateConversation = async () => {
+    if (profile) {
+      try {
+        const created = await createRemoteConversation(profile);
+        setConversations((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
+        setActiveConversationId(created.id);
+        localStorage.setItem(ACTIVE_CONVERSATION_KEY, created.id);
+      } catch (error) {
+        pushToast(error instanceof Error ? error.message : 'ساخت گفتگوی جدید انجام نشد.', 'warning');
+        setActiveConversationId('');
+      }
+    } else {
+      setActiveConversationId('');
+    }
     setSidebarOpen(false);
     setInputValue('');
     navigateToView('chat');
@@ -2631,7 +2683,7 @@ function ChatApp() {
    navigateToView('chat');
 
    try {
-     const currentConversation = ensureConversation();
+     const currentConversation = await ensureConversationFromBackend();
      const userMessage: ChatMessage = {
        id: generateMessageId('user-image-prompt'),
        role: 'user',
@@ -2667,7 +2719,7 @@ function ChatApp() {
    } catch (error) {
      const message = error instanceof Error ? error.message : 'مشکلی در ساخت عکس پیش آمد.';
      setImageGenError(message);
-     const currentConversation = ensureConversation();
+     const currentConversation = await ensureConversationFromBackend();
      updateConversation(currentConversation.id, (item) => ({
        ...item,
        messages: dedupeChatMessages([
@@ -2922,18 +2974,6 @@ function ChatApp() {
               errorText={errors.age}
             />
 
-            <label className={`guardian-consent ${errors.guardianConsent ? 'has-error' : ''}`}>
-              <input
-                type="checkbox"
-                checked={guardianConsent}
-                onChange={(event) => setGuardianConsent(event.target.checked)}
-              />
-              <span>
-                من والد یا قیم کودک هستم و اجازه می‌دهم حساب کودک با این شماره ساخته شود.
-              </span>
-            </label>
-            {errors.guardianConsent ? <p className="error guardian-consent-error">{errors.guardianConsent}</p> : null}
-
             <div className="ds-auth-actions">
               <Button
                 type="button"
@@ -3066,7 +3106,7 @@ function ChatApp() {
             <div className="top-title">
               <div className="top-copy">
                 <div className="top-copy-row chat-title-pill">
-                  <span className="chat-title-icon" aria-hidden="true">📖</span>
+                  <span className="chat-title-icon" aria-hidden="true">د</span>
                   <span className="chat-title-text">
                     <strong>{activeConversation?.title || DEFAULT_TITLE}</strong>
                     <small>دانوآ همراهته</small>
@@ -3822,7 +3862,10 @@ function ChatApp() {
               </div>
             ))
           ) : (
-            <div className="empty-state">هر چی دوست داری بنویس تا با هم شروع کنیم 🌟</div>
+            <div className="empty-state chat-empty-state">
+              <strong>سلام، من دانوآم</strong>
+              <span>می‌تونی سؤال بپرسی، عکس بفرستی یا تصویر بسازی.</span>
+            </div>
           )}
 
           {isSending ? (
@@ -3875,10 +3918,10 @@ function ChatApp() {
               <div className={`composer-card ${isRecording ? 'recording' : ''} ${canSendMessage ? 'ready' : ''}`}>
                 <div className="composer-main">
                   <div className="message-field">
-                    <input
+                    <textarea
                       ref={messageInputRef}
-                      type="text"
                       dir="auto"
+                      rows={Math.min(4, Math.max(1, inputValue.split('\n').length))}
                       value={inputValue}
                       disabled={isRecording}
                       onChange={(event) => setInputValue(event.target.value)}

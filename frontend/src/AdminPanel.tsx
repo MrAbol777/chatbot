@@ -34,13 +34,31 @@ type UsersPayload = {
   pageSize: number;
 };
 
+type ChatImage = {
+  url: string;
+  alt?: string;
+};
+
+type ProfileMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  type?: string;
+  timestamp?: string;
+  status?: string;
+  taskId?: string;
+  imageTaskId?: string;
+  imageUrl?: string;
+  resultUrl?: string;
+  images?: ChatImage[];
+};
+
 type UserProfile = User & {
   conversations: Array<{
     conversation_id: string;
     title: string;
     message_count: number;
     last_message_at?: string;
-    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    messages: ProfileMessage[];
   }>;
 };
 
@@ -101,6 +119,22 @@ type SiteSettingsPayload = {
   definitions?: Record<string, { label: string; type: string; category: string; allowedValues?: string[] }>;
 };
 
+type ConversationMemoryPayload = {
+  conversationId: string;
+  metadata?: {
+    version?: number;
+    status?: string;
+    last_writer_status?: string;
+    last_writer_model?: string;
+    last_writer_duration_ms?: number;
+    last_error_code?: string | null;
+    updated_at?: string;
+  };
+  storageKey?: string;
+  sizeBytes?: number;
+  content: string;
+};
+
 type AiRuntimeStatus = {
   chat: {
     provider: string;
@@ -149,6 +183,41 @@ type AiRuntimeStatus = {
     fallbackEnabled: boolean;
     cacheEnabled: boolean;
     cacheTtlMinutes: number;
+    lastValidationStatus?: string;
+  };
+  intentRouter?: {
+    enabled: boolean;
+    provider: string;
+    model: string;
+    fallbackModel: string;
+    experimentalModel: string;
+    apiKeySource: string;
+    apiKeySet: boolean;
+    apiKeyFingerprint?: string;
+    allowModelFallback: boolean;
+    allowChatKeyFallback: boolean;
+    fallbackToHeuristic: boolean;
+    confidenceThreshold: number;
+    timeoutMs: number;
+    maxOutputTokens: number;
+    temperature: number;
+    storeMetadata: boolean;
+    health: {
+      enabled: boolean;
+      failureThreshold: number;
+      cooldownMinutes: number;
+      models: Record<string, {
+        status: string;
+        failures?: number;
+        cooldownUntil?: string | null;
+        lastError?: {
+          statusCode?: number | null;
+          errorType?: string;
+          safeMessage?: string;
+          upstreamCode?: string;
+        } | null;
+      }>;
+    };
     lastValidationStatus?: string;
   };
   vision?: {
@@ -341,6 +410,8 @@ const IMAGE_SAFETY_FILTER_OPTIONS = [
 const IMAGE_PROMPT_REFINER_DEFAULT_STYLE = 'clean, colorful, child-friendly digital illustration, soft lighting, high quality';
 const IMAGE_PROMPT_REFINER_DEFAULT_NEGATIVE = 'no watermark, no distorted text, no extra fingers, no blurry face, no unrelated objects';
 const IMAGE_PROMPT_REFINER_DEFAULT_SYSTEM_PROMPT = 'You are an image prompt refinement engine for a Persian child-friendly AI product. Return only valid JSON matching the requested schema. Preserve the main subject, keep Persian text inside the image unchanged, and enforce child-safe rules.';
+const INTENT_ROUTER_MODEL_OPTIONS = ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'];
+const INTENT_ROUTER_DEFAULT_SYSTEM_PROMPT = 'You are an internal intent router. Classify the user request into chat, image_generation, image_edit, or image_understanding. Return only valid JSON.';
 const VISION_TRANSPORT_OPTIONS = ['auto', 'inline', 'metis_storage'];
 const VISION_MODE_OPTIONS = ['economy', 'balanced', 'accurate', 'pro'];
 const VISION_MEDIA_RESOLUTION_OPTIONS = ['auto', 'normal', 'high'];
@@ -383,6 +454,58 @@ const handleAdminResponse = async (response: Response, fallback: string): Promis
   }
   const data = await response.json();
   return { ok: true, data };
+};
+
+const toAdminProfileImageUrl = (url: string, userId: string) => {
+  const raw = typeof url === 'string' ? url.trim() : '';
+  if (!raw) return '';
+  const userPath = encodeURIComponent(userId);
+
+  try {
+    const parsed = new URL(raw, window.location.origin);
+    const generatedMatch = parsed.pathname.match(/^\/api\/images\/(?:serve|result)\/([^/?#]+)/);
+    if (generatedMatch) {
+      return `/api/admin/users/${userPath}/images/${encodeURIComponent(decodeURIComponent(generatedMatch[1]))}`;
+    }
+    if (parsed.origin === window.location.origin) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+    return raw;
+  } catch {
+    const generatedMatch = raw.match(/^\/api\/images\/(?:serve|result)\/([^/?#]+)/);
+    if (generatedMatch) {
+      return `/api/admin/users/${userPath}/images/${encodeURIComponent(decodeURIComponent(generatedMatch[1]))}`;
+    }
+    return raw;
+  }
+};
+
+const getProfileMessageImages = (message: ProfileMessage, userId: string): ChatImage[] => {
+  const candidates: ChatImage[] = [];
+  if (Array.isArray(message.images)) {
+    message.images.forEach((image) => {
+      if (image?.url) candidates.push(image);
+    });
+  }
+  if (message.imageUrl) candidates.push({ url: message.imageUrl, alt: message.content || 'تصویر گفتگو' });
+  if (message.resultUrl) candidates.push({ url: message.resultUrl, alt: message.content || 'تصویر گفتگو' });
+
+  const taskId = message.taskId || message.imageTaskId;
+  if (taskId && (message.type === 'image_result' || message.status === 'COMPLETED')) {
+    candidates.push({ url: `/api/admin/users/${encodeURIComponent(userId)}/images/${encodeURIComponent(taskId)}`, alt: message.content || 'تصویر ساخته‌شده' });
+  }
+
+  const seen = new Set<string>();
+  return candidates
+    .map((image) => ({
+      url: toAdminProfileImageUrl(image.url, userId),
+      alt: image.alt || message.content || 'تصویر گفتگو'
+    }))
+    .filter((image) => {
+      if (!image.url || seen.has(image.url)) return false;
+      seen.add(image.url);
+      return true;
+    });
 };
 
 function AdminPanel() {
@@ -448,6 +571,10 @@ function AdminPanel() {
   const [visionTestResult, setVisionTestResult] = useState<any>(null);
   const [visionTestMessage, setVisionTestMessage] = useState('');
   const [visionTestLoading, setVisionTestLoading] = useState(false);
+  const [intentRouterTestPrompt, setIntentRouterTestPrompt] = useState('گربه‌ی توی عکس رو قرمز کن');
+  const [intentRouterTestResult, setIntentRouterTestResult] = useState<any>(null);
+  const [intentRouterTestMessage, setIntentRouterTestMessage] = useState('');
+  const [intentRouterTestLoading, setIntentRouterTestLoading] = useState(false);
   const [supervisedOtp, setSupervisedOtp] = useState<SupervisedOtpConfig | null>(null);
   const [supervisedOtpForm, setSupervisedOtpForm] = useState({
     enabled: false,
@@ -457,6 +584,9 @@ function AdminPanel() {
   });
   const [supervisedOtpSaving, setSupervisedOtpSaving] = useState(false);
   const [supervisedOtpMessage, setSupervisedOtpMessage] = useState('');
+  const [conversationMemory, setConversationMemory] = useState<Record<string, ConversationMemoryPayload>>({});
+  const [conversationMemoryLoading, setConversationMemoryLoading] = useState<Record<string, boolean>>({});
+  const [conversationMemoryMessage, setConversationMemoryMessage] = useState<Record<string, string>>({});
 
   const loadUsers = async (page = usersPage) => {
     setLoadError('');
@@ -569,6 +699,51 @@ function AdminPanel() {
       }
     } catch {
       setSubscriptionMessage('اتصال به سرور برای دریافت اشتراک‌ها برقرار نشد.');
+    }
+  };
+
+  const loadConversationMemory = async (conversationId: string) => {
+    setConversationMemoryLoading((prev) => ({ ...prev, [conversationId]: true }));
+    setConversationMemoryMessage((prev) => ({ ...prev, [conversationId]: '' }));
+    try {
+      const response = await fetch(`/api/admin/conversations/${encodeURIComponent(conversationId)}/memory`, { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'خواندن حافظه مکالمه ناموفق بود.');
+      if (result.ok) {
+        setConversationMemory((prev) => ({ ...prev, [conversationId]: result.data as ConversationMemoryPayload }));
+      }
+    } catch (error) {
+      setConversationMemoryMessage((prev) => ({
+        ...prev,
+        [conversationId]: error instanceof Error ? error.message : 'اتصال به سرور برقرار نشد.'
+      }));
+    } finally {
+      setConversationMemoryLoading((prev) => ({ ...prev, [conversationId]: false }));
+    }
+  };
+
+  const runConversationMemoryAction = async (conversationId: string, action: 'reset' | 'rebuild') => {
+    setConversationMemoryLoading((prev) => ({ ...prev, [conversationId]: true }));
+    setConversationMemoryMessage((prev) => ({ ...prev, [conversationId]: '' }));
+    try {
+      const response = await fetch(`/api/admin/conversations/${encodeURIComponent(conversationId)}/memory/${action}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const result = await handleAdminResponse(response, action === 'reset' ? 'ریست حافظه ناموفق بود.' : 'بازسازی حافظه ناموفق بود.');
+      if (result.ok) {
+        setConversationMemoryMessage((prev) => ({
+          ...prev,
+          [conversationId]: action === 'reset' ? 'حافظه ریست شد.' : 'حافظه بازسازی شد.'
+        }));
+        await loadConversationMemory(conversationId);
+      }
+    } catch (error) {
+      setConversationMemoryMessage((prev) => ({
+        ...prev,
+        [conversationId]: error instanceof Error ? error.message : 'اتصال به سرور برقرار نشد.'
+      }));
+    } finally {
+      setConversationMemoryLoading((prev) => ({ ...prev, [conversationId]: false }));
     }
   };
 
@@ -1121,6 +1296,64 @@ function AdminPanel() {
     }
   };
 
+  const runIntentRouterDryRun = async () => {
+    setIntentRouterTestLoading(true);
+    setIntentRouterTestMessage('');
+    setIntentRouterTestResult(null);
+    try {
+      const response = await fetch('/api/admin/intent-router/test-dry-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          userMessage: intentRouterTestPrompt,
+          context: {
+            hasCurrentImageAttachment: false,
+            hasPreviousUploadedImage: false,
+            hasPreviousGeneratedImage: true,
+            lastImageKind: 'generated',
+            locale: 'fa'
+          },
+          settings: siteSettings?.settings || {}
+        })
+      });
+      const result = await handleAdminResponse(response, 'Dry-run intent-router ناموفق بود.');
+      if (result.ok) {
+        setIntentRouterTestResult(result.data);
+        setIntentRouterTestMessage('Dry-run intent-router با موفقیت انجام شد.');
+      }
+    } catch (error) {
+      setIntentRouterTestMessage(error instanceof Error ? error.message : 'Dry-run intent-router ناموفق بود.');
+    } finally {
+      setIntentRouterTestLoading(false);
+    }
+  };
+
+  const runIntentRouterModelProbe = async () => {
+    if (!window.confirm('Model probe واقعی intent-router ممکن است اعتبار مصرف کند. ادامه می‌دهی؟')) return;
+    setIntentRouterTestLoading(true);
+    setIntentRouterTestMessage('');
+    setIntentRouterTestResult(null);
+    try {
+      const response = await fetch('/api/admin/intent-router/model-probe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ settings: siteSettings?.settings || {} })
+      });
+      const result = await handleAdminResponse(response, 'Model probe intent-router ناموفق بود.');
+      if (result.ok) {
+        setIntentRouterTestResult(result.data);
+        setIntentRouterTestMessage('Model probe intent-router با موفقیت انجام شد.');
+        await loadAiRuntimeStatus();
+      }
+    } catch (error) {
+      setIntentRouterTestMessage(error instanceof Error ? error.message : 'Model probe intent-router ناموفق بود.');
+    } finally {
+      setIntentRouterTestLoading(false);
+    }
+  };
+
   const saveSiteSettings = async () => {
     if (!siteSettings) return;
     setSiteSettingsSaving(true);
@@ -1579,9 +1812,95 @@ function AdminPanel() {
               {selectedUser.conversations.map((conv) => (
                 <details key={conv.conversation_id} className="profile-conversation">
                   <summary>{conv.title} - {conv.message_count} پیام</summary>
-                  <pre className="profile-messages">
-                    {conv.messages.map((msg) => `[${msg.role}] ${msg.content}`).join('\n')}
-                  </pre>
+                  <div className="conversation-memory-panel">
+                    <div className="admin-section-header">
+                      <div>
+                        <h4>حافظه مکالمه</h4>
+                        <p className="admin-note">{conv.conversation_id}</p>
+                      </div>
+                      <FieldGroup direction="row" className="config-actions">
+                        <Button
+                          variant="secondary"
+                          disabled={Boolean(conversationMemoryLoading[conv.conversation_id])}
+                          onClick={() => void loadConversationMemory(conv.conversation_id)}
+                        >
+                          Refresh
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          disabled={Boolean(conversationMemoryLoading[conv.conversation_id])}
+                          onClick={() => void runConversationMemoryAction(conv.conversation_id, 'reset')}
+                        >
+                          Reset
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          disabled={Boolean(conversationMemoryLoading[conv.conversation_id])}
+                          onClick={() => void runConversationMemoryAction(conv.conversation_id, 'rebuild')}
+                        >
+                          Rebuild
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            window.location.href = `/api/admin/conversations/${encodeURIComponent(conv.conversation_id)}/memory/download`;
+                          }}
+                        >
+                          Download
+                        </Button>
+                      </FieldGroup>
+                    </div>
+                    {conversationMemoryMessage[conv.conversation_id] ? (
+                      <InlineMessage
+                        text={conversationMemoryMessage[conv.conversation_id]}
+                        variant={conversationMemoryMessage[conv.conversation_id].includes('شد') ? 'success' : 'error'}
+                      />
+                    ) : null}
+                    {conversationMemory[conv.conversation_id] ? (
+                      <div className="memory-document-box">
+                        <p className="admin-note">
+                          status: {conversationMemory[conv.conversation_id].metadata?.status || '-'} | version:{' '}
+                          {conversationMemory[conv.conversation_id].metadata?.version ?? 0} | writer:{' '}
+                          {conversationMemory[conv.conversation_id].metadata?.last_writer_status || '-'} | model:{' '}
+                          {conversationMemory[conv.conversation_id].metadata?.last_writer_model || '-'} | duration:{' '}
+                          {conversationMemory[conv.conversation_id].metadata?.last_writer_duration_ms ?? '-'}ms | size:{' '}
+                          {conversationMemory[conv.conversation_id].sizeBytes ?? '-'} bytes
+                        </p>
+                        <textarea
+                          className="system-prompt-textarea"
+                          readOnly
+                          rows={16}
+                          value={conversationMemory[conv.conversation_id].content}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="profile-messages">
+                    {conv.messages.map((msg, index) => {
+                      const images = getProfileMessageImages(msg, selectedUser.user_id);
+                      return (
+                        <article className={`profile-message profile-message--${msg.role}`} key={`${conv.conversation_id}-${index}`}>
+                          <div className="profile-message__meta">
+                            <strong>{msg.role === 'user' ? 'کاربر' : 'دانوآ'}</strong>
+                            {msg.timestamp ? <span>{msg.timestamp}</span> : null}
+                            {msg.type && msg.type !== 'text' ? <span>{msg.type}</span> : null}
+                            {msg.status ? <span>{msg.status}</span> : null}
+                          </div>
+                          {msg.content ? <p>{msg.content}</p> : null}
+                          {images.length > 0 ? (
+                            <div className="profile-message-images">
+                              {images.map((image) => (
+                                <a key={image.url} href={image.url} target="_blank" rel="noreferrer">
+                                  <img src={image.url} alt={image.alt || 'تصویر گفتگو'} loading="lazy" />
+                                </a>
+                              ))}
+                            </div>
+                          ) : null}
+                        </article>
+                      );
+                    })}
+                    {conv.messages.length === 0 ? <p className="admin-note">پیامی در این گفتگو نیست.</p> : null}
+                  </div>
                 </details>
               ))}
             </div>
@@ -2051,6 +2370,183 @@ function AdminPanel() {
                 <p className="admin-note">
                   Runtime چت: provider={aiRuntimeStatus.chat.provider}، model={aiRuntimeStatus.chat.model || '-'}، host={aiRuntimeStatus.chat.baseUrlHost || '-'}، key source={aiRuntimeStatus.chat.apiKeySource}، fingerprint={aiRuntimeStatus.chat.apiKeyFingerprint || '-'}
                 </p>
+              ) : null}
+
+              <h4>Intent Router</h4>
+              {aiRuntimeStatus?.intentRouter ? (
+                <p className="admin-note">
+                  Runtime intent-router: enabled={aiRuntimeStatus.intentRouter.enabled ? 'true' : 'false'}، provider={aiRuntimeStatus.intentRouter.provider}، model={aiRuntimeStatus.intentRouter.model}، fallback={aiRuntimeStatus.intentRouter.fallbackModel}، experimental={aiRuntimeStatus.intentRouter.experimentalModel}، key source={aiRuntimeStatus.intentRouter.apiKeySource}، key={aiRuntimeStatus.intentRouter.apiKeySet ? 'set' : 'missing'}، fingerprint={aiRuntimeStatus.intentRouter.apiKeyFingerprint || '-'}، threshold={aiRuntimeStatus.intentRouter.confidenceThreshold}، timeout={aiRuntimeStatus.intentRouter.timeoutMs}، heuristic fallback={aiRuntimeStatus.intentRouter.fallbackToHeuristic ? 'true' : 'false'}، validation={aiRuntimeStatus.intentRouter.lastValidationStatus || '-'}
+                </p>
+              ) : null}
+              <FieldGroup direction="row">
+                <label className="admin-select-field">
+                  <span>Intent router</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.intent_router.enabled'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Provider</span>
+                  <select
+                    value={String(siteSettings.settings['ai.intent_router.provider'] ?? 'metis')}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.provider', e.target.value)}
+                  >
+                    <option value="metis">metis</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Primary model</span>
+                  <select
+                    value={String(siteSettings.settings['ai.intent_router.model'] ?? 'gemini-2.5-flash-lite-preview')}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.model', e.target.value)}
+                  >
+                    {INTENT_ROUTER_MODEL_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Fallback model</span>
+                  <select
+                    value={String(siteSettings.settings['ai.intent_router.fallback_model'] ?? 'gemini-2.5-flash')}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.fallback_model', e.target.value)}
+                  >
+                    {INTENT_ROUTER_MODEL_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Experimental model</span>
+                  <select
+                    value={String(siteSettings.settings['ai.intent_router.experimental_model'] ?? 'gemini-2.5-flash-lite-preview')}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.experimental_model', e.target.value)}
+                  >
+                    {INTENT_ROUTER_MODEL_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </label>
+              </FieldGroup>
+              <FieldGroup direction="row">
+                <TextField
+                  label="Temperature"
+                  type="number"
+                  step="0.1"
+                  value={String(siteSettings.settings['ai.intent_router.temperature'] ?? 0)}
+                  onChange={(e) => updateSiteSetting('ai.intent_router.temperature', Number(e.target.value))}
+                />
+                <TextField
+                  label="Max output tokens"
+                  type="number"
+                  value={String(siteSettings.settings['ai.intent_router.max_output_tokens'] ?? 120)}
+                  onChange={(e) => updateSiteSetting('ai.intent_router.max_output_tokens', Number(e.target.value))}
+                />
+                <TextField
+                  label="Timeout ms"
+                  type="number"
+                  value={String(siteSettings.settings['ai.intent_router.timeout_ms'] ?? 2500)}
+                  onChange={(e) => updateSiteSetting('ai.intent_router.timeout_ms', Number(e.target.value))}
+                />
+                <TextField
+                  label="Confidence threshold"
+                  type="number"
+                  step="0.01"
+                  value={String(siteSettings.settings['ai.intent_router.confidence_threshold'] ?? 0.65)}
+                  onChange={(e) => updateSiteSetting('ai.intent_router.confidence_threshold', Number(e.target.value))}
+                />
+              </FieldGroup>
+              <FieldGroup direction="row">
+                <label className="admin-select-field">
+                  <span>Heuristic fallback</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.intent_router.fallback_to_heuristic'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.fallback_to_heuristic', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Model fallback</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.intent_router.allow_model_fallback'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.allow_model_fallback', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Chat key fallback</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.intent_router.allow_chat_key_fallback'] ?? false))}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.allow_chat_key_fallback', e.target.value === 'true')}
+                  >
+                    <option value="false">غیرفعال</option>
+                    <option value="true">فعال</option>
+                  </select>
+                </label>
+                <label className="admin-select-field">
+                  <span>Store metadata</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.intent_router.store_metadata'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.store_metadata', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+              </FieldGroup>
+              <FieldGroup direction="row">
+                <label className="admin-select-field">
+                  <span>Model health</span>
+                  <select
+                    value={String(Boolean(siteSettings.settings['ai.intent_router.model_health.enabled'] ?? true))}
+                    onChange={(e) => updateSiteSetting('ai.intent_router.model_health.enabled', e.target.value === 'true')}
+                  >
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                  </select>
+                </label>
+                <TextField
+                  label="Health failure threshold"
+                  type="number"
+                  value={String(siteSettings.settings['ai.intent_router.model_health.failure_threshold'] ?? 3)}
+                  onChange={(e) => updateSiteSetting('ai.intent_router.model_health.failure_threshold', Number(e.target.value))}
+                />
+                <TextField
+                  label="Health cooldown minutes"
+                  type="number"
+                  value={String(siteSettings.settings['ai.intent_router.model_health.cooldown_minutes'] ?? 60)}
+                  onChange={(e) => updateSiteSetting('ai.intent_router.model_health.cooldown_minutes', Number(e.target.value))}
+                />
+              </FieldGroup>
+              {aiRuntimeStatus?.intentRouter?.health?.models ? (
+                <pre className="admin-json-preview">{JSON.stringify(aiRuntimeStatus.intentRouter.health.models, null, 2)}</pre>
+              ) : null}
+              <TextAreaField
+                label="Intent router system prompt"
+                rows={7}
+                value={String(siteSettings.settings['ai.intent_router.system_prompt'] ?? INTENT_ROUTER_DEFAULT_SYSTEM_PROMPT)}
+                onChange={(e) => updateSiteSetting('ai.intent_router.system_prompt', e.target.value)}
+              />
+              <FieldGroup direction="row">
+                <TextField
+                  label="Prompt تست intent-router"
+                  value={intentRouterTestPrompt}
+                  onChange={(e) => setIntentRouterTestPrompt(e.target.value)}
+                />
+                <Button onClick={() => void runIntentRouterDryRun()} disabled={intentRouterTestLoading}>
+                  تست intent-router Dry-run
+                </Button>
+                <Button variant="secondary" onClick={() => void runIntentRouterModelProbe()} disabled={intentRouterTestLoading}>
+                  تست Model Probe
+                </Button>
+              </FieldGroup>
+              {intentRouterTestMessage ? (
+                <InlineMessage text={intentRouterTestMessage} variant={intentRouterTestMessage.includes('موفقیت') ? 'success' : 'error'} />
+              ) : null}
+              {intentRouterTestResult ? (
+                <pre className="admin-json-preview">{JSON.stringify(intentRouterTestResult, null, 2)}</pre>
               ) : null}
 
               <h4>تنظیمات ساخت تصویر</h4>

@@ -1,4 +1,16 @@
 function createConversationsController({ conversationsService }) {
+  const create = async (req, res) => {
+    try {
+      const result = await conversationsService.createConversation({
+        profile: req.body?.profile
+      });
+      return res.status(201).json(result);
+    } catch (error) {
+      await conversationsService.logSyncError(error);
+      return res.status(500).json({ error: 'ساخت گفتگوی جدید با خطا مواجه شد.' });
+    }
+  };
+
   const load = async (req, res) => {
     try {
       const result = await conversationsService.loadConversations({
@@ -25,6 +37,7 @@ function createConversationsController({ conversationsService }) {
   };
 
   return {
+    create,
     load,
     sync
   };

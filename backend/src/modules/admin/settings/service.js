@@ -7,6 +7,10 @@ const {
   normalizeVisionSettings,
   validateVisionSettings
 } = require('../../image-understanding/image-understanding-settings');
+const {
+  normalizeIntentRouterSettings,
+  validateIntentRouterSettings
+} = require('../../intent-router/intent-router.settings');
 
 function createAdminSettingsService({ settingsRepository, appendAudit, onSettingsUpdated }) {
   const getSettings = async () => {
@@ -37,6 +41,12 @@ function createAdminSettingsService({ settingsRepository, appendAudit, onSetting
           settings: { ...before, ...incoming }
         });
         validateVisionSettings(visionSettings);
+      }
+      if (Object.keys(incoming).some((key) => key.startsWith('ai.intent_router.'))) {
+        const intentRouterSettings = normalizeIntentRouterSettings({
+          settings: { ...before, ...incoming }
+        });
+        validateIntentRouterSettings(intentRouterSettings);
       }
       const result = await settingsRepository.updateMany(incoming);
       const changedKeys = Object.keys(result.updated);
