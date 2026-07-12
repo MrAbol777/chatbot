@@ -29,6 +29,10 @@ const parseJsonObject = (value) => {
   }
 };
 
+// Image creation and editing are handled exclusively by Image Studio, so the
+// chat router only needs to distinguish normal chat from image understanding.
+const detectDeterministicRoute = () => null;
+
 const normalizeRoute = (value) => {
   const intent = String(value?.intent || '').trim();
   const targetModule = String(value?.targetModule || intent).trim();
@@ -52,6 +56,11 @@ const normalizeRoute = (value) => {
 
 const buildRouterInput = (input = {}) => ({
   userMessage: String(input.userMessage || input.message || '').trim(),
+  previousUserMessage: String(input.previousUserMessage || '').trim().slice(0, 1000),
+  currentTopic: String(input.currentTopic || '').trim().slice(0, 500),
+  activeReferences: Array.isArray(input.activeReferences)
+    ? input.activeReferences.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 10)
+    : [],
   hasCurrentImageAttachment: Boolean(input.hasCurrentImageAttachment),
   hasPreviousUploadedImage: Boolean(input.hasPreviousUploadedImage),
   hasPreviousGeneratedImage: Boolean(input.hasPreviousGeneratedImage),
@@ -229,6 +238,31 @@ function createIntentRouterService({
     const settings = await getSettings({ overrideSettings: options.settings });
     const apiKeyInfo = resolveApiKey(settings);
     const startedAt = Date.now();
+    const deterministicRoute = detectDeterministicRoute(input);
+
+    if (settings.enabled && deterministicRoute) {
+      return {
+        ok: true,
+        status: 'success',
+        route: deterministicRoute,
+        input,
+        metadata: {
+          enabled: Boolean(settings.enabled),
+          provider: 'deterministic',
+          model: null,
+          fallbackModel: settings.fallbackModel,
+          status: 'success',
+          intent: deterministicRoute.intent,
+          targetModule: deterministicRoute.targetModule,
+          confidence: deterministicRoute.confidence,
+          reasonCode: deterministicRoute.reasonCode,
+          source: deterministicRoute.source,
+          durationMs: Date.now() - startedAt,
+          fallbackUsed: false
+        },
+        settings
+      };
+    }
 
     if (!settings.enabled) {
       return {
@@ -435,5 +469,6 @@ function createIntentRouterService({
 module.exports = {
   buildRouterInput,
   createIntentRouterService,
+  detectDeterministicRoute,
   normalizeRoute
 };

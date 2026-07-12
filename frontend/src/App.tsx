@@ -7,6 +7,7 @@ import AdminPanel from './AdminPanel';
 import DanuaLanding from './DanuaLanding';
 import PlansPage from './PlansPage';
 import PaymentSuccessPage from './PaymentSuccessPage';
+import ImageStudio from './ImageStudio';
 import defaultBotAvatar from './image.png';
 import {
   fetchProtectedImageBlobUrl,
@@ -36,14 +37,12 @@ const IMAGE_PROMPT_EXAMPLES = [
   'پوستر کودکانه درباره مراقبت از زمین، رنگ‌های روشن و فضای امیدبخش'
 ];
 const IMAGE_PROMPT_MAX_LENGTH = 700;
-const CHAT_REQUEST_TIMEOUT_MS = 35000;
-const CHAT_MAX_RETRIES = 1;
 const BOT_AVATAR_FALLBACK_URL = '/image.png';
 
 type AppProfile = UserProfile & { id?: number | string };
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
 type LandingStep = 'landing' | 'login' | 'signup' | 'chat';
-type AppView = 'home' | 'chat' | 'generate' | 'profile';
+type AppView = 'home' | 'chat' | 'images' | 'profile';
 type PersonalityProfile = {
   interests: string[];
   preferredStyle: 'formal' | 'casual' | 'playful';
@@ -93,10 +92,14 @@ type PhoneStatusResult = {
 };
 
 const getAppViewFromPath = (pathname: string): AppView => {
-  if (pathname === '/chat') return 'chat';
-  if (pathname === '/generate' || pathname === '/photos') return 'generate';
+  if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
+  if (pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
   return 'home';
+};
+const getConversationIdFromPath = (pathname: string) => {
+  const match = pathname.match(/^\/c\/([^/]+)$/);
+  return match ? decodeURIComponent(match[1]) : '';
 };
 type ApiError = Error & { redirectTo?: AuthMode | null };
 type ChatRequestError = Error & { status?: number; payload?: ApiErrorData };
@@ -117,6 +120,32 @@ type ChatImageIntentResponse = {
   messages?: ChatMessage[];
   reply?: string;
   conversationId?: string;
+  imageStudioRedirect?: boolean;
+};
+type ChatStreamEvent = {
+  type: 'meta' | 'delta' | 'done' | 'error' | 'cancelled';
+  status?: 'streaming' | 'completed' | 'cancelled' | 'failed';
+  turnId: string;
+  attemptId: string;
+  intent?: 'chat' | 'image_understanding';
+  delta?: string;
+  reply?: string;
+  conversationId?: string;
+  error?: string;
+  message?: string;
+  retryable?: boolean;
+  imageStudioRedirect?: boolean;
+};
+type ChatStreamPayload = {
+  message: string;
+  imageIds?: string[];
+  history?: ChatMessage[];
+  profile: UserProfile;
+  personality: PersonalityProfile;
+  conversationId?: string;
+  clientMessageId?: string;
+  turnId: string;
+  attemptId: string;
 };
 type AttachmentStatus = 'pending' | 'uploading' | 'uploaded' | 'error';
 type ImageAttachment = {
@@ -134,7 +163,6 @@ type ImagePreviewState = {
 };
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-const RETRYABLE_API_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 
 /**
  * Wrap fetch with network-level error handling.
@@ -370,50 +398,120 @@ const updatePersonalityFromMessage = (current: PersonalityProfile, message: stri
   return next;
 };
 
-const postChatWithRetry = async (payload: {
-  message: string;
-  imageIds?: string[];
-  profile: UserProfile;
-  personality: PersonalityProfile;
-  conversationId?: string;
-  clientMessageId?: string;
-}) => {
-  for (let attempt = 0; attempt <= CHAT_MAX_RETRIES; attempt += 1) {
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), CHAT_REQUEST_TIMEOUT_MS);
-
-    try {
-      const response = await safeFetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(localStorage.getItem('chat_auth_token')
-            ? { Authorization: `Bearer ${localStorage.getItem('chat_auth_token')}` }
-            : {})
-        },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-
-      if (response.ok || !RETRYABLE_API_STATUSES.has(response.status) || attempt >= CHAT_MAX_RETRIES) {
-        return response;
-      }
-
-      const backoffDelay = Math.min(400 * 2 ** attempt, 1200);
-      await wait(backoffDelay);
-    } catch (error) {
-      if (attempt >= CHAT_MAX_RETRIES) {
-        throw error;
-      }
-      const backoffDelay = Math.min(400 * 2 ** attempt, 1200);
-      await wait(backoffDelay);
-    } finally {
-      window.clearTimeout(timeoutId);
+const postChatStream = async (
+  payload: ChatStreamPayload,
+  signal: AbortSignal,
+  onEvent: (event: ChatStreamEvent) => void | Promise<void>
+): Promise<{ kind: 'json'; response: Response; data: ChatImageIntentResponse } | { kind: 'stream'; done: ChatStreamEvent }> => {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/x-ndjson',
+      ...(localStorage.getItem('chat_auth_token')
+        ? { Authorization: `Bearer ${localStorage.getItem('chat_auth_token')}` }
+        : {})
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+    signal
+  });
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  if (!contentType.includes('application/x-ndjson')) {
+    let data: ChatImageIntentResponse & ApiErrorData = {};
+    try { data = await response.json(); } catch { /* handled below */ }
+    if (!response.ok) {
+      throw createChatRequestError(data.error || data.message || 'پاسخ سرور دریافت نشد.', response.status, data);
     }
+    return { kind: 'json', response, data };
+  }
+  if (!response.ok || !response.body) {
+    throw createChatRequestError('استریم پاسخ شروع نشد.', response.status, {});
   }
 
-  throw new Error('chat_request_failed');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  let doneEvent: ChatStreamEvent | null = null;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const event = JSON.parse(line) as ChatStreamEvent;
+        await onEvent(event);
+        if (event.type === 'done') doneEvent = event;
+        if (event.type === 'error') throw createChatRequestError(event.message || 'دریافت پاسخ ناموفق بود.', 502, { error: event.error });
+      }
+      if (done) break;
+    }
+    if (buffer.trim()) {
+      const event = JSON.parse(buffer) as ChatStreamEvent;
+      await onEvent(event);
+      if (event.type === 'done') doneEvent = event;
+      if (event.type === 'error') throw createChatRequestError(event.message || 'دریافت پاسخ ناموفق بود.', 502, { error: event.error });
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  if (!doneEvent) throw createChatRequestError('ارتباط قبل از کامل شدن پاسخ قطع شد.', 502, { error: 'STREAM_INTERRUPTED' });
+  return { kind: 'stream', done: doneEvent };
+};
+
+const createSmoothStreamAnimator = (onChange: (text: string) => void) => {
+  let rendered = '';
+  let pending = '';
+  let timer: number | null = null;
+  let finishing = false;
+  let resolveFinish: (() => void) | null = null;
+  const tick = () => {
+    if (!pending) {
+      if (finishing && resolveFinish) {
+        const resolve = resolveFinish;
+        resolveFinish = null;
+        resolve();
+      }
+      if (!finishing && timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+      return;
+    }
+    const amount = Math.min(pending.length, finishing ? 24 : Math.max(1, Math.ceil(pending.length / 10)));
+    rendered += pending.slice(0, amount);
+    pending = pending.slice(amount);
+    onChange(rendered);
+  };
+  const ensureTimer = () => {
+    if (timer === null) timer = window.setInterval(tick, 24);
+  };
+  return {
+    push: (text: string) => {
+      pending += text;
+      ensureTimer();
+    },
+    finish: () => {
+      finishing = true;
+      ensureTimer();
+      return new Promise<void>((resolve) => {
+        resolveFinish = () => {
+          if (timer !== null) window.clearInterval(timer);
+          timer = null;
+          resolve();
+        };
+        tick();
+      });
+    },
+    cancel: () => {
+      if (timer !== null) window.clearInterval(timer);
+      timer = null;
+      pending = '';
+      return rendered;
+    }
+  };
 };
 
 const parseApiError = async (response: Response): Promise<ApiErrorData> => {
@@ -1049,6 +1147,13 @@ function ChatApp() {
   const keepRecordingRef = useRef(false);
   const sendMessageRef = useRef<(value?: string) => Promise<void>>(async () => {});
   const sendInFlightRef = useRef(false);
+  const activeStreamRef = useRef<{
+    controller: AbortController;
+    conversationId: string;
+    messageId: string;
+    animator: ReturnType<typeof createSmoothStreamAnimator>;
+    stoppedByUser: boolean;
+  } | null>(null);
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const botMessageRef = useRef<HTMLDivElement | null>(null);
   const prevIsSendingRef = useRef(false);
@@ -1168,7 +1273,7 @@ function ChatApp() {
   };
 
   const navigateToView = (view: AppView, mode: 'push' | 'replace' = 'push') => {
-    const nextPath = view === 'home' ? '/home' : view === 'generate' ? '/generate' : view === 'profile' ? '/profile' : '/chat';
+    const nextPath = view === 'home' ? '/home' : view === 'images' ? '/images' : view === 'profile' ? '/profile' : '/';
     if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
       if (mode === 'replace') {
         window.history.replaceState({}, '', nextPath);
@@ -1178,6 +1283,14 @@ function ChatApp() {
     }
     setCurrentView(view);
     setSidebarOpen(view === 'home');
+  };
+
+  const navigateToConversation = (conversationId: string, mode: 'push' | 'replace' = 'push') => {
+    const nextPath = conversationId ? `/c/${encodeURIComponent(conversationId)}` : '/';
+    mode === 'replace' ? window.history.replaceState({}, '', nextPath) : window.history.pushState({}, '', nextPath);
+    setCurrentView('chat');
+    setActiveConversationId(conversationId);
+    setSidebarOpen(false);
   };
 
   const handleBackToHome = () => {
@@ -1306,7 +1419,7 @@ function ChatApp() {
       const requestedAuthMode: AuthMode | null = authParam === 'login' || authParam === 'signup' ? authParam : null;
       const rawProfiles = localStorage.getItem(PROFILES_KEY);
       const rawConversations = localStorage.getItem(CONVERSATIONS_KEY);
-      const savedActiveConversationId = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
+      const routeConversationId = getConversationIdFromPath(window.location.pathname);
 
       if (rawProfiles) {
         const parsedProfiles = JSON.parse(rawProfiles) as AppProfile[];
@@ -1342,7 +1455,8 @@ function ChatApp() {
         setRegistrationStep(1);
         setLandingStep('signup');
       } else if (
-        window.location.pathname === '/chat' ||
+        window.location.pathname === '/' || window.location.pathname === '/chat' || /^\/c\/[^/]+$/.test(window.location.pathname) ||
+        window.location.pathname === '/images' ||
         window.location.pathname === '/generate' ||
         window.location.pathname === '/photos' ||
         window.location.pathname === '/profile' ||
@@ -1373,11 +1487,7 @@ function ChatApp() {
             }))
           );
           setConversations(sorted);
-          const validActiveConversation =
-            savedActiveConversationId && sorted.some((item) => item.id === savedActiveConversationId)
-              ? savedActiveConversationId
-              : sorted[0].id;
-          setActiveConversationId(validActiveConversation);
+          setActiveConversationId(routeConversationId && sorted.some((item) => item.id === routeConversationId) ? routeConversationId : '');
           return;
         }
       }
@@ -1395,9 +1505,10 @@ function ChatApp() {
   useEffect(() => {
     const handlePopState = () => {
       const pathname = window.location.pathname;
-      if (pathname === '/home' || pathname === '/chat' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings') {
+      if (pathname === '/' || pathname === '/home' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname) || pathname === '/images' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings') {
         const nextView = getAppViewFromPath(pathname);
         setCurrentView(nextView);
+        setActiveConversationId(getConversationIdFromPath(pathname));
         setSidebarOpen(nextView === 'home');
         if (!loadProfile() && !new URLSearchParams(window.location.search).get('auth')) {
           window.location.replace('/');
@@ -1431,10 +1542,9 @@ function ChatApp() {
 
         const sorted = sortConversations(remote);
         setConversations(sorted);
-        const nextActiveId = sorted[0].id;
-        setActiveConversationId(nextActiveId);
+        const routeConversationId = getConversationIdFromPath(window.location.pathname);
+        setActiveConversationId(routeConversationId && sorted.some((item) => item.id === routeConversationId) ? routeConversationId : '');
         localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(sorted));
-        localStorage.setItem(ACTIVE_CONVERSATION_KEY, nextActiveId);
         setHasHydratedRemoteConversations(true);
       } catch (error) {
         // Keep local data if remote load fails.
@@ -1693,6 +1803,7 @@ function ChatApp() {
       setConversations((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
       setActiveConversationId(created.id);
       localStorage.setItem(ACTIVE_CONVERSATION_KEY, created.id);
+      navigateToConversation(created.id, 'replace');
       return created;
     } catch (error) {
       pushToast(error instanceof Error ? error.message : 'ساخت گفتگوی جدید انجام نشد.', 'warning');
@@ -2008,6 +2119,128 @@ function ChatApp() {
     }
   };
 
+  const executeStreamingChat = async ({
+    payload,
+    retryPayload
+  }: {
+    payload: ChatStreamPayload;
+    retryPayload: NonNullable<ChatMessage['retryPayload']>;
+  }) => {
+    const controller = new AbortController();
+    const assistantMessageId = `${payload.turnId}-assistant`;
+    const patchAssistant = (patch: Partial<ChatMessage>) => {
+      updateConversation(retryPayload.conversationId, (item) => ({
+        ...item,
+        messages: item.messages.map((entry) => entry.id === assistantMessageId ? { ...entry, ...patch } : entry),
+        updatedAt: new Date().toISOString()
+      }));
+    };
+    const animator = createSmoothStreamAnimator((text) => patchAssistant({ content: text }));
+    activeStreamRef.current = {
+      controller,
+      conversationId: retryPayload.conversationId,
+      messageId: assistantMessageId,
+      animator,
+      stoppedByUser: false
+    };
+
+    try {
+      return await postChatStream(payload, controller.signal, async (event) => {
+        if (event.type === 'meta') {
+          updateConversation(retryPayload.conversationId, (item) => {
+            const existing = item.messages.some((entry) => entry.id === assistantMessageId);
+            const streamMessage: ChatMessage = {
+              id: assistantMessageId,
+              role: 'assistant',
+              type: 'text',
+              intent: event.intent || 'chat',
+              content: '',
+              timestamp: new Date().toISOString(),
+              streamStatus: 'streaming',
+              imageStudioRedirect: Boolean(event.imageStudioRedirect),
+              turnId: payload.turnId,
+              attemptId: payload.attemptId,
+              retryPayload
+            };
+            return {
+              ...item,
+              messages: existing
+                ? item.messages.map((entry) => entry.id === assistantMessageId ? { ...entry, ...streamMessage } : entry)
+                : [...item.messages, streamMessage],
+              updatedAt: new Date().toISOString()
+            };
+          });
+        } else if (event.type === 'delta' && event.delta) {
+          animator.push(event.delta);
+        } else if (event.type === 'done') {
+          await animator.finish();
+          patchAssistant({
+            content: event.reply || undefined,
+            streamStatus: 'completed',
+            attemptId: event.attemptId,
+            imageStudioRedirect: Boolean(event.imageStudioRedirect),
+            streamError: undefined
+          });
+        } else if (event.type === 'error') {
+          animator.cancel();
+          patchAssistant({ streamStatus: 'failed', streamError: event.message || 'دریافت پاسخ ناموفق بود.' });
+        }
+      });
+    } catch (error) {
+      const active = activeStreamRef.current;
+      if ((error instanceof DOMException && error.name === 'AbortError') || controller.signal.aborted) {
+        const content = animator.cancel();
+        patchAssistant({
+          ...(content ? { content } : {}),
+          streamStatus: active?.stoppedByUser ? 'cancelled' : 'failed',
+          streamError: active?.stoppedByUser ? 'پاسخ با درخواست شما متوقف شد.' : 'ارتباط هنگام دریافت پاسخ قطع شد.'
+        });
+        if (active?.stoppedByUser) return { kind: 'cancelled' as const };
+      } else {
+        animator.cancel();
+        patchAssistant({ streamStatus: 'failed', streamError: error instanceof Error ? error.message : 'دریافت پاسخ ناموفق بود.' });
+      }
+      if (error instanceof Error) (error as Error & { streamHandled?: boolean }).streamHandled = true;
+      throw error;
+    } finally {
+      if (activeStreamRef.current?.controller === controller) activeStreamRef.current = null;
+    }
+  };
+
+  const handleStopResponse = () => {
+    const active = activeStreamRef.current;
+    if (!active) return;
+    active.stoppedByUser = true;
+    active.controller.abort();
+  };
+
+  const handleRetryStreamMessage = async (failedMessage: ChatMessage) => {
+    const retryPayload = failedMessage.retryPayload;
+    if (!profile || !failedMessage.turnId || !retryPayload || isSending || sendInFlightRef.current) return;
+    sendInFlightRef.current = true;
+    setIsSending(true);
+    const attemptId = `attempt-${crypto.randomUUID()}`;
+    try {
+      await executeStreamingChat({
+        payload: {
+          ...retryPayload,
+          profile,
+          personality: normalizePersonality(profile.personality),
+          turnId: failedMessage.turnId,
+          attemptId
+        },
+        retryPayload
+      });
+    } catch (error) {
+      if (!(error instanceof Error && (error as Error & { streamHandled?: boolean }).streamHandled)) {
+        pushToast(error instanceof Error ? error.message : 'تلاش مجدد ناموفق بود.', 'warning');
+      }
+    } finally {
+      sendInFlightRef.current = false;
+      setIsSending(false);
+    }
+  };
+
   const handleSendMessage = async (value?: string) => {
     if (!profile || isSending || sendInFlightRef.current) {
       return;
@@ -2160,27 +2393,37 @@ function ChatApp() {
         });
       }
 
-      const response = await postChatWithRetry({
+      const turnId = `turn-${crypto.randomUUID()}`;
+      const attemptId = `attempt-${crypto.randomUUID()}`;
+      const retryPayload: NonNullable<ChatMessage['retryPayload']> = {
         message: content,
         imageIds: uploadedImageIds,
-        profile: nextProfile,
-        personality: nextPersonality,
+        history: currentConversation.messages.slice(-30).map((item) => ({
+          id: item.id,
+          role: item.role,
+          type: item.type,
+          intent: item.intent,
+          content: item.content,
+          timestamp: item.timestamp,
+          taskId: item.taskId,
+          status: item.status,
+          images: item.images
+        })),
         conversationId: currentConversation.id,
-        clientMessageId: userMessage.id
+        clientMessageId: userMessage.id || generateMessageId('user')
+      };
+      const chatResult = await executeStreamingChat({
+        payload: {
+          ...retryPayload,
+          profile: nextProfile,
+          personality: nextPersonality,
+          turnId,
+          attemptId
+        },
+        retryPayload
       });
-
-      if (!response.ok) {
-        const payload = await parseApiError(response);
-        const message =
-          payload.error?.trim() ||
-          payload.message?.trim() ||
-          (response.status === 401 || response.status === 403
-            ? 'احراز هویت API نامعتبر است. لطفاً کلید API را در بک اند بررسی کن.'
-            : 'پاسخ سرور دریافت نشد.');
-        throw createChatRequestError(message, response.status, payload);
-      }
-
-      const data = (await response.json()) as ChatImageIntentResponse;
+      if (chatResult.kind === 'cancelled' || chatResult.kind === 'stream') return;
+      const { data } = chatResult;
       if (
         data.intent === 'image_generation' ||
         data.intent === 'image_edit'
@@ -2277,6 +2520,7 @@ function ChatApp() {
         role: 'assistant',
         type: 'text',
         content: replyText,
+        imageStudioRedirect: Boolean(data.imageStudioRedirect),
         timestamp: new Date().toISOString()
       };
 
@@ -2286,6 +2530,10 @@ function ChatApp() {
         updatedAt: new Date().toISOString()
       }));
     } catch (error) {
+      if (error instanceof Error && (error as Error & { streamHandled?: boolean }).streamHandled) {
+        pushToast('پاسخ کامل نشد؛ برای تلاش دوباره روی آیکون کنار پیام بزن.', 'warning');
+        return;
+      }
       if (
         error instanceof Error &&
         (error as ChatRequestError).payload?.error === 'GUEST_LIMIT_REACHED'
@@ -2469,22 +2717,11 @@ function ChatApp() {
   }, []);
 
   const handleCreateConversation = async () => {
-    if (profile) {
-      try {
-        const created = await createRemoteConversation(profile);
-        setConversations((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
-        setActiveConversationId(created.id);
-        localStorage.setItem(ACTIVE_CONVERSATION_KEY, created.id);
-      } catch (error) {
-        pushToast(error instanceof Error ? error.message : 'ساخت گفتگوی جدید انجام نشد.', 'warning');
-        setActiveConversationId('');
-      }
-    } else {
-      setActiveConversationId('');
-    }
+    setActiveConversationId('');
+    localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
     setSidebarOpen(false);
     setInputValue('');
-    navigateToView('chat');
+    navigateToConversation('');
   };
 
   const handleDeleteConversation = (conversationId: string) => {
@@ -2656,7 +2893,7 @@ function ChatApp() {
    setAttachmentMenuOpen(false);
    setImageGenError('');
    setImageGenStatus('');
-   navigateToView('generate');
+   navigateToView('images');
  };
 
  const handleCloseImageGenerator = () => {
@@ -2680,7 +2917,6 @@ function ChatApp() {
    setImageGenStatus('در حال ثبت درخواست ساخت تصویر...');
    setImageGenError('');
    setShowImageGenModal(false);
-   navigateToView('chat');
 
    try {
      const currentConversation = await ensureConversationFromBackend();
@@ -3175,7 +3411,7 @@ function ChatApp() {
                   onClick={() => {
                     setActiveConversationId(conversation.id);
                     setSidebarOpen(false);
-                    navigateToView('chat');
+                    navigateToConversation(conversation.id);
                   }}
                 >
                   <div className={`conversation-card-icon conversation-card-icon--${visual.tone}`} aria-hidden="true">
@@ -3300,7 +3536,8 @@ function ChatApp() {
           </nav>
         </aside>
         ) : null}
-        {currentView === 'generate' ? (
+        {currentView === 'images' ? <ImageStudio onBack={handleBackToHome} /> : null}
+        {false ? (
           <main className="generate-page">
             <header className="generate-page-header">
               <button
@@ -3811,7 +4048,7 @@ function ChatApp() {
             visibleMessages.map((message, index) => (
               <div
                 key={`${message.timestamp}-${index}`}
-                className={`message-row ${message.role} ${Array.isArray(message.images) && message.images.length > 0 ? 'has-images' : ''}`}
+                className={`message-row ${message.role} ${message.streamStatus ? `stream-${message.streamStatus}` : ''} ${Array.isArray(message.images) && message.images.length > 0 ? 'has-images' : ''}`}
                 ref={(node) => {
                   if (index === visibleMessages.length - 1) {
                     lastMessageRef.current = node;
@@ -3823,8 +4060,38 @@ function ChatApp() {
               >
                 {message.role === 'assistant' ? renderBotAvatar() : null}
                 {message.role === 'assistant' ? (
-                  <div className="bubble markdown-body">
+                  <div className={`bubble markdown-body ${message.streamStatus === 'streaming' ? 'streaming-bubble' : ''}`}>
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    {message.streamStatus === 'streaming' ? <span className="stream-cursor" aria-label="در حال نوشتن" /> : null}
+                    {message.streamStatus === 'failed' ? (
+                      <div className="stream-state stream-state-error" role="alert">
+                        <span>{message.streamError || 'پاسخ کامل نشد. دوباره تلاش کنیم؟'}</span>
+                        <button
+                          type="button"
+                          className="stream-retry-btn"
+                          onClick={() => void handleRetryStreamMessage(message)}
+                          disabled={isSending}
+                          aria-label="تلاش مجدد برای دریافت پاسخ"
+                          title="تلاش مجدد"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M20 11a8 8 0 1 0-2.35 5.65M20 5v6h-6" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : null}
+                    {message.streamStatus === 'cancelled' ? (
+                      <div className="stream-state stream-state-cancelled">پاسخ با درخواست شما متوقف شد.</div>
+                    ) : null}
+                    {message.imageStudioRedirect ? (
+                      <button
+                        type="button"
+                        className="image-studio-redirect-btn"
+                        onClick={() => navigateToView('images')}
+                      >
+                        رفتن به استودیوی تصویر
+                      </button>
+                    ) : null}
                     {Array.isArray(message.images) && message.images.length > 0 ? (
                       <div className="message-image-grid">
                         {message.images.map((image, imageIndex) => (
@@ -3864,11 +4131,11 @@ function ChatApp() {
           ) : (
             <div className="empty-state chat-empty-state">
               <strong>سلام، من دانوآم</strong>
-              <span>می‌تونی سؤال بپرسی، عکس بفرستی یا تصویر بسازی.</span>
+              <span>می‌تونی سؤال بپرسی یا عکس بفرستی تا درباره‌اش با هم گفتگو کنیم.</span>
             </div>
           )}
 
-          {isSending ? (
+          {isSending && !visibleMessages.some((message) => message.streamStatus === 'streaming') ? (
             <div className="message-row assistant" ref={lastMessageRef}>
               {renderBotAvatar()}
               <div className="bubble">
@@ -3996,19 +4263,23 @@ function ChatApp() {
                   </>
                 ) : (
                   <button
-                    className={`send-btn action-toggle-btn ${shouldShowSendAction ? 'show-send' : 'show-mic'}`}
+                    className={`send-btn action-toggle-btn ${isSending ? 'show-stop' : shouldShowSendAction ? 'show-send' : 'show-mic'}`}
                     type="button"
-                    onClick={shouldShowSendAction ? () => void handleSendMessage() : handleStartRecording}
-                    aria-label={shouldShowSendAction ? 'ارسال پیام' : 'شروع ضبط صدا'}
-                    title={shouldShowSendAction ? 'ارسال پیام' : 'شروع ضبط صدا'}
-                    disabled={isSending || (shouldShowSendAction && !canSendMessage)}
+                    onClick={isSending ? handleStopResponse : shouldShowSendAction ? () => void handleSendMessage() : handleStartRecording}
+                    aria-label={isSending ? 'توقف پاسخ' : shouldShowSendAction ? 'ارسال پیام' : 'شروع ضبط صدا'}
+                    title={isSending ? 'توقف پاسخ' : shouldShowSendAction ? 'ارسال پیام' : 'شروع ضبط صدا'}
+                    disabled={!isSending && shouldShowSendAction && !canSendMessage}
                   >
                     <span
-                      key={shouldShowSendAction ? 'send' : 'mic'}
-                      className={`action-icon ${shouldShowSendAction ? 'action-icon-send' : 'action-icon-mic'}`}
+                      key={isSending ? 'stop' : shouldShowSendAction ? 'send' : 'mic'}
+                      className={`action-icon ${isSending ? 'action-icon-stop' : shouldShowSendAction ? 'action-icon-send' : 'action-icon-mic'}`}
                       aria-hidden="true"
                     >
-                      {shouldShowSendAction ? (
+                      {isSending ? (
+                        <svg viewBox="0 0 24 24">
+                          <rect x="7" y="7" width="10" height="10" rx="2" />
+                        </svg>
+                      ) : shouldShowSendAction ? (
                         <svg viewBox="0 0 24 24">
                           <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
                         </svg>
@@ -4055,7 +4326,7 @@ function App() {
   }
 
   if (pathname === '/') {
-    return <DanuaLanding />;
+    return <ToastProvider><ChatApp /></ToastProvider>;
   }
 
   if (pathname === '/plans') {
@@ -4067,7 +4338,7 @@ function App() {
   }
 
   if (
-    pathname !== '/chat' &&
+    pathname !== '/' && pathname !== '/chat' && !/^\/c\/[^/]+$/.test(pathname) && pathname !== '/images' &&
     pathname !== '/home' &&
     pathname !== '/generate' &&
     pathname !== '/photos' &&

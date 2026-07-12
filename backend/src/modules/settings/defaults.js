@@ -246,7 +246,7 @@ const SETTING_DEFINITIONS = {
     label: 'فعال بودن image edit',
     type: 'boolean',
     category: 'ai',
-    defaultValue: false,
+    defaultValue: true,
     adminEditable: true
   },
   'ai.image.custom_args_json': {

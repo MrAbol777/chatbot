@@ -2,6 +2,7 @@ const path = require('path');
 const FormData = require('form-data');
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
+const { streamGeminiContent } = require('../ai/provider-stream');
 const {
   DEFAULT_VISION_SETTINGS,
   createVisionSettingsResolver
@@ -108,6 +109,18 @@ const buildUserPrompt = (userPrompt, settings) => {
   if (kind === 'design') return `${settings.designAnalysisPrompt}\n\nUser request: ${prompt}`;
   if (kind === 'product') return `${settings.productPrompt}\n\nUser request: ${prompt}`;
   return prompt;
+};
+
+const buildChatVisionExtractionPrompt = (userPrompt) => {
+  const prompt = normalizeText(userPrompt) || 'محتوای این تصویر چیست؟';
+  return [
+    'نقش تو در این مرحله فقط مشاهده و استخراج اطلاعات واقعی از تصویر است؛ پاسخ نهایی گفتگو را ننویس.',
+    'تصویر را با توجه به درخواست کاربر بررسی کن و شواهد لازم برای پاسخ‌گویی را دقیق و فشرده گزارش بده.',
+    'متن‌های قابل‌خواندن، اشیا، افراد، روابط، رنگ‌ها و جزئیات مرتبط را ذکر کن.',
+    'بین مشاهدهٔ قطعی و برداشت احتمالی تفاوت بگذار و چیزی را که در تصویر دیده نمی‌شود نساز.',
+    '',
+    `درخواست اصلی کاربر: ${prompt}`
+  ].join('\n');
 };
 
 const normalizeMimeType = (value, fallback = '') => {
@@ -390,7 +403,7 @@ function createImageUnderstandingService({
     return image.size <= inlineMaxBytes ? 'inline' : 'metis_storage';
   };
 
-  const uploadToMetisStorage = async ({ image, settings, apiKey, requestId }) => {
+  const uploadToMetisStorage = async ({ image, settings, apiKey, requestId, signal = null }) => {
     const form = new FormData();
     form.append('files', image.buffer, {
       filename: image.originalName || getFileNameFromMime(image.mimeType),
@@ -404,7 +417,8 @@ function createImageUnderstandingService({
         Authorization: `Bearer ${apiKey}`
       },
       maxBodyLength: Infinity,
-      timeout: Math.min(settings.timeoutMs, 30000)
+      timeout: Math.min(settings.timeoutMs, 30000),
+      signal
     });
 
     const file = Array.isArray(response?.data?.files) ? response.data.files[0] : null;
@@ -422,7 +436,7 @@ function createImageUnderstandingService({
     return file;
   };
 
-  const buildParts = async ({ prompt, images, settings, apiKey, requestId, transportOverride }) => {
+  const buildParts = async ({ prompt, images, settings, apiKey, requestId, transportOverride, signal = null }) => {
     const parts = [{ text: prompt }];
     const transportDetails = [];
     for (const image of images) {
@@ -449,7 +463,7 @@ function createImageUnderstandingService({
         continue;
       }
 
-      const storedFile = await uploadToMetisStorage({ image, settings, apiKey, requestId });
+      const storedFile = await uploadToMetisStorage({ image, settings, apiKey, requestId, signal });
       parts.push({
         file_data: {
           mime_type: storedFile.contentType || image.mimeType,
@@ -831,9 +845,66 @@ function createImageUnderstandingService({
     return images;
   };
 
+  const streamAnalyzeChatImages = async ({ req, res, message, imageIds, history, requestId, signal, onDelta }) => {
+    const startedAt = Date.now();
+    const settings = await settingsResolver.getRuntimeSettings();
+    settingsResolver.validateVisionSettings(settings);
+    if (!settings.enabled) throw Object.assign(new Error('VISION_DISABLED'), { code: 'VISION_DISABLED' });
+    const key = getApiKey(settings);
+    if (!key.apiKey) throw Object.assign(new Error('METIS_VISION_API_KEY is missing'), { code: 'API_KEY_MISSING' });
+    const images = (await resolveImagesForChat({ req, res, imageIds, history })).map(sanitizeImageInput);
+    if (images.length === 0) throw Object.assign(new Error('IMAGE_NOT_FOUND'), { code: 'IMAGE_NOT_FOUND' });
+    const tooLarge = images.find((image) => image.size > settings.maxImageMb * 1024 * 1024);
+    if (tooLarge) throw Object.assign(new Error('IMAGE_TOO_LARGE'), { code: 'IMAGE_TOO_LARGE' });
+
+    const selected = selectVisionModel({ prompt: message, settings });
+    const visionPrompt = buildUserPrompt(message, settings);
+    const { parts, transportDetails } = await buildParts({
+      prompt: visionPrompt,
+      images,
+      settings,
+      apiKey: key.apiKey,
+      requestId,
+      transportOverride: '',
+      signal
+    });
+    const payload = buildRequestBody({ prompt: visionPrompt, parts, settings });
+    let answer = '';
+    const result = await streamGeminiContent({
+      endpoint: `${settings.baseUrl}/v1beta/models/${encodeURIComponent(selected.model)}:streamGenerateContent`,
+      apiKey: key.apiKey,
+      payload,
+      signal,
+      onDelta: async (delta) => {
+        answer += delta;
+        await onDelta(delta);
+      }
+    });
+    answer = answer.trim();
+    if (!answer) throw Object.assign(new Error('EMPTY_VISION_REPLY'), { code: 'EMPTY_VISION_REPLY' });
+    recordModelSuccess(selected.model, settings);
+    return {
+      answer,
+      model: selected.model,
+      tokenUsage: result.tokenUsage,
+      diagnostics: {
+        model: selected.model,
+        selectedModelReason: selected.reason,
+        transport: transportDetails[0]?.transport || 'inline',
+        transportDetails,
+        durationMs: Date.now() - startedAt,
+        status: 'success'
+      }
+    };
+  };
+
   const analyzeChatImages = async ({ req, res, message, imageIds, history, requestId }) => {
     const images = await resolveImagesForChat({ req, res, imageIds, history });
-    return analyzeImages({ userPrompt: message, images, requestId });
+    return analyzeImages({
+      userPrompt: buildChatVisionExtractionPrompt(message),
+      images,
+      requestId
+    });
   };
 
   const probeModels = async ({ settingsOverride = null, transport = 'inline' } = {}) => {
@@ -979,6 +1050,7 @@ function createImageUnderstandingService({
   return {
     analyzeImages,
     analyzeChatImages,
+    streamAnalyzeChatImages,
     buildUserPrompt,
     getApiKey,
     getDiagnostics,
@@ -997,6 +1069,7 @@ function createImageUnderstandingService({
 module.exports = {
   INLINE_TRANSPORT_MAX_MB,
   SUPPORTED_IMAGE_MIME_TYPES,
+  buildChatVisionExtractionPrompt,
   createImageUnderstandingService,
   parseDataImageUrl
 };

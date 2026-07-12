@@ -1,3 +1,5 @@
+const { streamOpenAIChat, streamGeminiContent } = require('./provider-stream');
+
 const normalizeHistory = (history, currentMessage) => {
   const clean = Array.isArray(history)
     ? history
@@ -518,6 +520,43 @@ function createAiService({
     }
   };
 
+  const callOpenAIStream = async (messages, { requestId = 'unknown', signal, onDelta } = {}) => {
+    if (!apiKey) throw Object.assign(new Error('METIS_API_KEY is missing'), { code: 'API_KEY_MISSING' });
+    const runtimeConfig = await getChatSettings();
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), Math.max(5000, runtimeConfig.timeoutMs));
+    const abortFromParent = () => timeoutController.abort();
+    signal?.addEventListener('abort', abortFromParent, { once: true });
+    try {
+      if (isGeminiModel(runtimeConfig.model)) {
+        const result = await streamGeminiContent({
+          endpoint: `https://api.metisai.ir/v1beta/models/${encodeURIComponent(runtimeConfig.model)}:streamGenerateContent`,
+          apiKey,
+          payload: buildGeminiPayload(messages),
+          signal: timeoutController.signal,
+          onDelta
+        });
+        return { model: runtimeConfig.model, tokenUsage: result.tokenUsage };
+      }
+      const result = await streamOpenAIChat({
+        endpoint: `${baseUrl}/chat/completions`,
+        apiKey,
+        payload: { model: runtimeConfig.model, messages: buildChatMessages(messages), temperature: runtimeConfig.temperature },
+        signal: timeoutController.signal,
+        onDelta
+      });
+      return { model: runtimeConfig.model, tokenUsage: result.tokenUsage };
+    } catch (error) {
+      if (timeoutController.signal.aborted && !signal?.aborted) {
+        throw Object.assign(new Error('UPSTREAM_TIMEOUT'), { code: 'UPSTREAM_TIMEOUT' });
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', abortFromParent);
+    }
+  };
+
   const sendChatMessage = async ({ message, profile, history, conversationId, imageIds, requestId, limitStatus = null }) => {
     const trimmedMessage = typeof message === 'string' ? message.trim() : '';
     const userMessageCreatedAt = new Date();
@@ -698,6 +737,110 @@ function createAiService({
       return conversationMemoryWriterService.runExclusive(normalizedConversationId, executeTurn);
     }
     return executeTurn();
+  };
+
+  const streamChatMessage = async ({ message, profile, conversationId, imageIds, requestId, limitStatus = null, turnId, signal, onDelta }) => {
+    const trimmedMessage = typeof message === 'string' ? message.trim() : '';
+    const normalizedImageIds = normalizeImageIds(imageIds);
+    if (!trimmedMessage && normalizedImageIds.length === 0) {
+      throw Object.assign(new Error('INVALID_MESSAGE'), { code: 'INVALID_MESSAGE' });
+    }
+    const resolvedImages = normalizedImageIds.length > 0 ? await uploadedImagesRepository.getByIds(normalizedImageIds) : [];
+    if (resolvedImages.length !== normalizedImageIds.length) {
+      throw Object.assign(new Error('IMAGE_NOT_FOUND'), { code: 'IMAGE_NOT_FOUND' });
+    }
+    const userId = await usersRepository.ensureUserExists(profile || {});
+    const normalizedConversationId = typeof conversationId === 'string' && conversationId.trim() ? conversationId.trim() : 'default';
+    const messageForHistory = trimmedMessage || '📷 عکس ارسال شد';
+    const category = detectCategory(messageForHistory);
+    await conversationsRepository.ensureConversation(userId, normalizedConversationId);
+
+    const executeTurn = async () => {
+      const dbHistory = await conversationsRepository.getConversationMessages(userId, normalizedConversationId);
+      const systemPrompt = await promptService.getSystemPrompt();
+      const previousDocument = conversationMemoryService?.readForConversation
+        ? await conversationMemoryService.readForConversation(normalizedConversationId, { userId }, { createIfMissing: true })
+        : null;
+      let messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: messageForHistory }];
+      if (conversationContextBuilder?.buildChatMessages) {
+        if (resolvedImages.length > 0 && conversationContextBuilder.buildImageChatMessages) {
+          const imageParts = buildImageContentParts(trimmedMessage, resolvedImages).filter((part) => part.type === 'image_url');
+          ({ messages } = await conversationContextBuilder.buildImageChatMessages({
+            conversationId: normalizedConversationId,
+            userMessage: messageForHistory,
+            systemPrompt,
+            owner: { userId },
+            imageParts
+          }));
+        } else {
+          ({ messages } = await conversationContextBuilder.buildChatMessages({
+            conversationId: normalizedConversationId,
+            userMessage: messageForHistory,
+            systemPrompt,
+            owner: { userId }
+          }));
+        }
+      }
+
+      let reply = '';
+      const responseStart = Date.now();
+      const aiResult = await callOpenAIStream(messages, {
+        requestId,
+        signal,
+        onDelta: async (delta) => {
+          reply += delta;
+          await onDelta(delta);
+        }
+      });
+      reply = reply.trim();
+      if (!reply) throw Object.assign(new Error('EMPTY_UPSTREAM_REPLY'), { code: 'EMPTY_UPSTREAM_REPLY' });
+
+      const nextMessages = [
+        ...dbHistory,
+        { id: `${turnId}-user`, role: 'user', content: messageForHistory },
+        { id: `${turnId}-assistant`, role: 'assistant', content: reply }
+      ];
+      await conversationsRepository.saveConversationMessages(userId, normalizedConversationId, nextMessages);
+      let loggedTurn = null;
+      if (chatMessagesRepository?.logSuccessfulTurn) {
+        loggedTurn = await chatMessagesRepository.logSuccessfulTurn({
+          userId,
+          conversationId: normalizedConversationId,
+          turnId,
+          userMessage: messageForHistory,
+          assistantResponse: reply,
+          model: aiResult.model,
+          responseTimeMs: Date.now() - responseStart,
+          tokenUsage: aiResult.tokenUsage,
+          limitStatus,
+          userCreatedAt: new Date(responseStart),
+          assistantCreatedAt: new Date()
+        });
+      }
+      if (conversationMemoryWriterService?.updateAfterTurn) {
+        await conversationMemoryWriterService.updateAfterTurn({
+          conversationId: normalizedConversationId,
+          owner: { userId },
+          previousDocument,
+          userMessage: messageForHistory,
+          assistantResponse: reply,
+          sourceUserMessageId: loggedTurn?.userMessageId || null,
+          sourceAssistantMessageId: loggedTurn?.assistantMessageId || null
+        }).catch((error) => {
+          log('CHAT', 'stream_memory_update_failed', {
+            requestId,
+            turnId,
+            message: error instanceof Error ? error.message : String(error || '')
+          });
+        });
+      }
+      await eventsRepository.logEvent(userId, 'message_received', category, { responseLength: reply.length, requestId, turnId });
+      return { reply, conversationId: normalizedConversationId, model: aiResult.model, tokenUsage: aiResult.tokenUsage };
+    };
+
+    return conversationMemoryWriterService?.runExclusive
+      ? conversationMemoryWriterService.runExclusive(normalizedConversationId, executeTurn)
+      : executeTurn();
   };
 
   const classifyIntent = async (message, { requestId } = {}) => {
@@ -944,14 +1087,15 @@ function createAiService({
     clientMessageId = null,
     imageIds = [],
     diagnostics = null,
-    limitStatus = null
+    limitStatus = null,
+    turnId = null
   }) => {
     const normalizedConversationId =
       typeof conversationId === 'string' && conversationId.trim().length > 0 ? conversationId.trim() : 'default';
     const effectiveUserId = userId || await usersRepository.ensureUserExists(profile || {});
     const prompt = typeof userMessage === 'string' && userMessage.trim() ? userMessage.trim() : '📷 عکس ارسال شد';
     const now = new Date().toISOString();
-    const userMessageId = clientMessageId || makeMessageId('user-vision');
+    const userMessageId = clientMessageId || (turnId ? `${turnId}-user` : makeMessageId('user-vision'));
     const currentMessages = await conversationsRepository.getConversationMessages(effectiveUserId, normalizedConversationId);
     const currentHasClientMessage = clientMessageId && currentMessages.some((message) => String(message?.id || '') === String(clientMessageId));
     const userImages = Array.isArray(imageIds)
@@ -974,7 +1118,7 @@ function createAiService({
         ...(userImages.length > 0 ? { images: userImages } : {})
       }]),
       {
-        id: makeMessageId('assistant-vision'),
+        id: turnId ? `${turnId}-assistant` : makeMessageId('assistant-vision'),
         role: 'assistant',
         type: 'text',
         intent: 'image_understanding',
@@ -1004,6 +1148,7 @@ function createAiService({
       sourceUserMessageId = await chatMessagesRepository.logMessage({
         userId: effectiveUserId,
         conversationId: normalizedConversationId,
+        turnId,
         role: 'user',
         content: prompt,
         limitStatus: limitStatus || 'image_understanding'
@@ -1011,6 +1156,7 @@ function createAiService({
       sourceAssistantMessageId = await chatMessagesRepository.logMessage({
         userId: effectiveUserId,
         conversationId: normalizedConversationId,
+        turnId,
         role: 'assistant',
         content: assistantText,
         limitStatus: diagnostics?.transport ? `image_understanding_${diagnostics.transport}` : 'image_understanding'
@@ -1039,13 +1185,93 @@ function createAiService({
     };
   };
 
+  const composeVisionChatReply = async ({
+    userId,
+    profile,
+    conversationId,
+    userMessage,
+    visionAnalysis,
+    requestId
+  }) => {
+    const prompt = typeof userMessage === 'string' && userMessage.trim()
+      ? userMessage.trim()
+      : 'محتوای این تصویر را برایم توضیح بده.';
+    const groundedVision = typeof visionAnalysis === 'string' ? visionAnalysis.trim() : '';
+    if (!groundedVision) {
+      const error = new Error('EMPTY_VISION_REPLY');
+      error.code = 'EMPTY_VISION_REPLY';
+      throw error;
+    }
+
+    const effectiveUserId = userId || await usersRepository.ensureUserExists(profile || {});
+    const normalizedConversationId =
+      typeof conversationId === 'string' && conversationId.trim().length > 0 ? conversationId.trim() : 'default';
+    const baseSystemPrompt = await promptService.getSystemPrompt();
+    const visionGroundingInstruction = [
+      'برای این نوبت، یک سامانهٔ بینایی محتوای تصویر پیوست‌شده را بررسی کرده است.',
+      'مشاهدات بینایی زیر را مانند اطلاعاتی که خودت مستقیماً از تصویر دیده‌ای به کار ببر.',
+      'به درخواست اصلی کاربر پاسخ بده؛ دربارهٔ ماژول بینایی، زنجیرهٔ پردازش، متن واسط یا محدودیت دسترسی به تصویر صحبت نکن.',
+      'اگر مشاهدات قطعی نیستند، با زبان طبیعی و کوتاه عدم قطعیت را بیان کن و چیزی خارج از مشاهدات نساز.',
+      'لحن، ایمنی، زبان و شخصیت تعریف‌شده در دستورهای اصلی چت را حفظ کن.'
+    ].join('\n');
+    const groundedUserMessage = [
+      'درخواست اصلی کاربر:',
+      prompt,
+      '',
+      'مشاهدات استخراج‌شده از تصویر:',
+      groundedVision,
+      '',
+      'اکنون مستقیماً و طبیعی به درخواست اصلی کاربر پاسخ بده.'
+    ].join('\n');
+
+    let messages = [
+      { role: 'system', content: `${baseSystemPrompt}\n\n${visionGroundingInstruction}`.trim() },
+      { role: 'user', content: groundedUserMessage }
+    ];
+    if (conversationContextBuilder && typeof conversationContextBuilder.buildChatMessages === 'function') {
+      ({ messages } = await conversationContextBuilder.buildChatMessages({
+        conversationId: normalizedConversationId,
+        userMessage: groundedUserMessage,
+        systemPrompt: `${baseSystemPrompt}\n\n${visionGroundingInstruction}`.trim(),
+        owner: { userId: effectiveUserId }
+      }));
+    }
+
+    const responseStart = Date.now();
+    const aiResult = await callOpenAI(messages, { requestId });
+    const reply = typeof aiResult?.reply === 'string' ? aiResult.reply.trim() : '';
+    if (!reply) {
+      const error = new Error('EMPTY_UPSTREAM_REPLY');
+      error.code = 'EMPTY_UPSTREAM_REPLY';
+      throw error;
+    }
+
+    log('VISION_CHAT', 'response_composed', {
+      requestId,
+      conversationId: normalizedConversationId,
+      visionAnalysisLength: groundedVision.length,
+      replyLength: reply.length,
+      model: aiResult.model
+    });
+
+    return {
+      reply,
+      model: aiResult.model,
+      tokenUsage: aiResult.tokenUsage,
+      responseTimeMs: Date.now() - responseStart
+    };
+  };
+
   return {
     sendChatMessage,
+    streamChatMessage,
     callOpenAI,
+    callOpenAIStream,
     classifyIntent,
     enhanceImagePrompt,
     persistImageChatTurn,
-    persistVisionChatTurn
+    persistVisionChatTurn,
+    composeVisionChatReply
   };
 }
 

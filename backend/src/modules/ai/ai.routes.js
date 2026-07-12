@@ -11,6 +11,7 @@ function createAiRouter(deps) {
     guestsRepository: deps.guestsRepository,
     usersRepository: deps.usersRepository,
     plansRepository: deps.plansRepository,
+    chatTurnsRepository: deps.chatTurnsRepository,
     settingsRepository: deps.settingsRepository,
     uploadedImagesRepository: deps.uploadedImagesRepository,
     intentRouterService: deps.intentRouterService,

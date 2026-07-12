@@ -375,7 +375,7 @@ function createAuthService({
     return completeVerifiedPhone({ phone, mode, guestId, verifiedBy: 'sms_otp' });
   };
 
-  const registerProfile = async ({ name, age, phone: rawPhone, id, mode, guestId, signupToken, guardianConsent }) => {
+  const registerProfile = async ({ name, age, phone: rawPhone, id, mode, guestId, signupToken }) => {
     const inputName = typeof name === 'string' ? name.trim() : '';
     const rawName = inputName || 'کاربر';
     const phone = normalizeIranMobileToLocal(rawPhone);
@@ -411,12 +411,6 @@ function createAuthService({
     }
 
     if (mode !== 'login') {
-      if (guardianConsent !== true) {
-        return {
-          statusCode: 400,
-          body: { error: 'برای ساخت حساب کودک، تایید والد یا قیم لازم است.' }
-        };
-      }
       if (!Number.isFinite(rawAge)) {
         return { statusCode: 400, body: { error: 'سن معتبر نیست.' } };
       }
@@ -440,9 +434,7 @@ function createAuthService({
         : {
             name: rawName,
             age: rawAge,
-            phone,
-            guardianConsent: true,
-            guardianConsentVersion: '2026-07-02'
+            phone
           };
 
     const userId = await authRepository.createUser(payloadProfile);

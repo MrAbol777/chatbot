@@ -6,6 +6,7 @@ const DEFAULT_IMAGE_RUNTIME_MODEL = 'nano-banana';
 const DEFAULT_IMAGE_RUNTIME_PROVIDER_NAME = 'google';
 const DEFAULT_IMAGE_OPERATION = 'Imagine';
 const DEFAULT_NEGATIVE_PROMPT = 'no humans, no unrelated objects, no text distortion, no watermark';
+const MAX_IMAGE_EDIT_INPUTS = 4;
 
 const ALLOWED_PROVIDERS = ['metis', 'gemini', 'xai'];
 const ALLOWED_RESOLUTIONS = ['1K', '2K'];
@@ -247,22 +248,34 @@ const normalizeRuntimeSettings = ({ settings = {}, stored = {}, imageConfig = {}
   };
 };
 
-const buildMetisRequestBody = ({ prompt, runtimeSettings, imageInput = [] }) => ({
-  model: {
-    name: runtimeSettings.runtimeProviderName,
-    model: runtimeSettings.runtimeModel
-  },
-  operation: runtimeSettings.operation,
-  args: {
-    prompt,
-    aspect_ratio: runtimeSettings.aspectRatio,
-    resolution: runtimeSettings.resolution,
-    output_format: runtimeSettings.outputFormat,
-    safety_filter_level: runtimeSettings.safetyFilterLevel,
-    ...runtimeSettings.customArgs,
-    ...(Array.isArray(imageInput) && imageInput.length > 0 && runtimeSettings.editEnabled ? { image_input: imageInput } : {})
+const buildMetisRequestBody = ({ prompt, runtimeSettings, imageInput = [] }) => {
+  const normalizedImageInput = [...new Set(
+    (Array.isArray(imageInput) ? imageInput : [])
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)
+  )];
+  if (normalizedImageInput.length > MAX_IMAGE_EDIT_INPUTS) {
+    throw new Error(`image_input supports at most ${MAX_IMAGE_EDIT_INPUTS} reference images.`);
   }
-});
+  return {
+    model: {
+      name: runtimeSettings.runtimeProviderName,
+      model: runtimeSettings.runtimeModel
+    },
+    operation: runtimeSettings.operation,
+    args: {
+      prompt,
+      aspect_ratio: runtimeSettings.aspectRatio,
+      resolution: runtimeSettings.resolution,
+      output_format: runtimeSettings.outputFormat,
+      safety_filter_level: runtimeSettings.safetyFilterLevel,
+      ...runtimeSettings.customArgs,
+      ...(normalizedImageInput.length > 0 && runtimeSettings.editEnabled
+        ? { image_input: normalizedImageInput.length === 1 ? normalizedImageInput[0] : normalizedImageInput }
+        : {})
+    }
+  };
+};
 
 function createImageRuntimeSettingsResolver({ settingsRepository, imageConfig = {}, ttlMs = IMAGE_SETTINGS_CACHE_TTL_MS } = {}) {
   let cached = null;
@@ -361,6 +374,7 @@ module.exports = {
   DEFAULT_IMAGE_RUNTIME_SETTINGS,
   IMAGE_MODEL_PRESETS,
   IMAGE_SETTINGS_CACHE_TTL_MS,
+  MAX_IMAGE_EDIT_INPUTS,
   buildMetisRequestBody,
   createImageRuntimeSettingsResolver,
   imageSettingsPayloadToSettings,

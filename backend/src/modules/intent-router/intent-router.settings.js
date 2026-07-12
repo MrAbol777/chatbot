@@ -1,7 +1,7 @@
 const { fingerprintApiKey } = require('../../bootstrap/config');
 const { INTENT_ROUTER_SYSTEM_PROMPT } = require('./intent-router.prompt');
 
-const INTENT_ROUTER_ALLOWED_INTENTS = ['chat', 'image_generation', 'image_edit', 'image_understanding'];
+const INTENT_ROUTER_ALLOWED_INTENTS = ['chat', 'image_understanding'];
 const INTENT_ROUTER_ALLOWED_PROVIDERS = ['metis'];
 const INTENT_ROUTER_ALLOWED_MODELS = ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'];
 

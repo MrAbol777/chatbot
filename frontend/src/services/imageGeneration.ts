@@ -41,9 +41,10 @@ interface ImageStatusResponse {
   imageUrl?: string | null; error?: string | null;
 }
 
-export async function startImageGeneration(prompt: string): Promise<{ taskId: string }> {
+export async function startImageGeneration(prompt: string, options: { aspectRatio?: string; idempotencyKey?: string; conversationId?: string } = {}): Promise<{ taskId: string }> {
   const res = await safeFetch(apiUrl('/api/images/generate'), {
-    method: 'POST', headers: authHeaders(), body: JSON.stringify({ prompt })
+    method: 'POST', headers: { ...authHeaders(), ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}) },
+    credentials: 'include', body: JSON.stringify({ prompt, aspectRatio: options.aspectRatio, conversationId: options.conversationId })
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
@@ -52,6 +53,31 @@ export async function startImageGeneration(prompt: string): Promise<{ taskId: st
   const d = await res.json() as GenerateImageResponse;
   if (!d.success || !d.taskId) throw new Error(d.error || 'شناسه تسک دریافت نشد.');
   return { taskId: d.taskId };
+}
+
+export type GalleryImage = {
+  id: string; taskId: string; originalPrompt: string; refinedPrompt: string;
+  model?: string | null; aspectRatio: '1:1' | '9:16' | '16:9'; operation: 'generate' | 'edit';
+  conversationId?: string | null; parentImageId?: string | null; status: ImageTaskStatus;
+  imageUrl?: string | null; error?: string | null; createdAt: string; updatedAt: string;
+};
+
+export async function listGalleryImages(cursor = 0) {
+  const res = await safeFetch(`/api/images?limit=24&cursor=${cursor}`, { headers: authHeaders(), credentials: 'include' });
+  if (!res.ok) throw new Error('دریافت تصاویر انجام نشد.');
+  return res.json() as Promise<{ items: GalleryImage[]; nextCursor: number | null }>;
+}
+
+export async function deleteGalleryImage(id: string) {
+  const res = await safeFetch(`/api/images/${encodeURIComponent(id)}`, { method: 'DELETE', headers: authHeaders(), credentials: 'include' });
+  if (!res.ok) throw new Error('حذف تصویر انجام نشد.');
+}
+
+export async function startImageEdit(sourceImageId: string, prompt: string, aspectRatio: string, idempotencyKey: string) {
+  const res = await safeFetch('/api/images/edit', { method: 'POST', headers: { ...authHeaders(), 'Idempotency-Key': idempotencyKey }, credentials: 'include', body: JSON.stringify({ sourceImageId, prompt, aspectRatio }) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.taskId) throw new Error(data.message || data.error || 'ویرایش تصویر انجام نشد.');
+  return { taskId: String(data.taskId) };
 }
 
 export async function getImageGenerationStatus(taskId: string): Promise<{

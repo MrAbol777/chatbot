@@ -21,6 +21,7 @@ const DEFAULT_IMAGE_PROVIDER = 'metis';
 const DEFAULT_IMAGE_BASE_URL = 'https://api.metisai.ir';
 const DEFAULT_IMAGE_PUBLIC_BASE_URL = '/api/images/serve';
 const DEFAULT_MAX_DOWNLOAD_MB = 10;
+const MAX_IMAGE_EDIT_INPUTS = 4;
 const DEBUG_IMAGE_PROMPTS = () => String(process.env.DEBUG_IMAGE_PROMPTS || '').toLowerCase() === 'true';
 const PAYMENT_REQUIRED_MESSAGE = 'ساخت تصویر فعلاً به‌دلیل مشکل اعتبار یا دسترسی سرویس تصویر انجام نشد. لطفاً بعداً دوباره امتحان کن.';
 const UNSUPPORTED_MODEL_MESSAGE = 'مدل ساخت تصویر توسط سرویس‌دهنده پشتیبانی نمی‌شود.';
@@ -171,11 +172,18 @@ const buildFinalImageEditPrompt = (input, options = {}) => {
   const original = normalizeWhitespace(input);
   const editInstruction = original || 'Apply the requested edit to the input image.';
   const negativePrompt = normalizeWhitespace(options.defaultNegativePrompt || '');
+  const referenceCount = Math.min(MAX_IMAGE_EDIT_INPUTS, Math.max(1, Number(options.referenceCount) || 1));
   return [
-    'Use the input image as base.',
-    'Preserve the same main subject, identity, pose, composition, camera angle, lighting, and style unless the user explicitly asks to change them.',
+    'This is an image editing request, not a new text-to-image request.',
+    'Use input image 1 as the primary base image and identity source.',
+    referenceCount > 1
+      ? `Input images 2 through ${referenceCount} are secondary visual references. Keep every referenced person distinct; never blend, swap, or average their faces.`
+      : '',
+    'Preserve the primary subject identity, facial features, age, skin tone, body characteristics, and recognizable details.',
+    'Preserve pose, composition, camera angle, lighting, clothing, and style unless the user explicitly asks to change them.',
     `Change only the requested part: ${editInstruction}.`,
-    'Do not replace the subject with another person, animal, object, mascot, or unrelated character.',
+    'When the user asks to add another person or object, add it while keeping the original subject clearly recognizable.',
+    'Do not replace the primary subject with another person, animal, object, mascot, or unrelated character.',
     'Keep the result child-friendly, natural, coherent, and high quality.',
     negativePrompt ? `Avoid: ${negativePrompt}.` : ''
   ].filter(Boolean).join(' ');
@@ -688,6 +696,8 @@ function createImageGenerationController({
       const remoteUrlHost = image.remoteImageUrlHost || getUrlHost(image.remoteImageUrl);
       const metadata = {
         taskId: String(dbRecordId),
+        operation: Array.isArray(imageInput) && imageInput.length > 0 ? 'edit' : 'generate',
+        referenceImageCount: Array.isArray(imageInput) ? imageInput.length : 0,
         provider: providerName,
         modelAdminValue,
         modelRuntimeValue,
@@ -808,12 +818,28 @@ function createImageGenerationController({
     }
   };
 
-  const createImageTask = async (req, res, { prompt, enhancedPrompt = '', imageInput = [] }) => {
+  const createImageTask = async (req, res, { prompt, enhancedPrompt = '', imageInput = [], conversationId = null, parentImageId = null }) => {
     const normalizedPrompt = typeof prompt === 'string' ? prompt.trim() : '';
     if (!normalizedPrompt) {
       const error = new Error('Prompt is required.');
       error.statusCode = 400;
       error.publicPayload = { success: false, error: 'Prompt is required.' };
+      throw error;
+    }
+
+    const rawImageInput = Array.isArray(imageInput)
+      ? imageInput.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    const normalizedImageInput = [...new Set(rawImageInput)];
+    if (normalizedImageInput.length > MAX_IMAGE_EDIT_INPUTS) {
+      const error = new Error(`A maximum of ${MAX_IMAGE_EDIT_INPUTS} reference images is supported.`);
+      error.statusCode = 400;
+      error.publicPayload = {
+        success: false,
+        error: 'IMAGE_EDIT_TOO_MANY_INPUTS',
+        maxImages: MAX_IMAGE_EDIT_INPUTS,
+        message: `برای هر ویرایش حداکثر ${MAX_IMAGE_EDIT_INPUTS} تصویر مرجع بفرست.`
+      };
       throw error;
     }
 
@@ -828,7 +854,7 @@ function createImageGenerationController({
       };
       throw error;
     }
-    if (Array.isArray(imageInput) && imageInput.length > 0 && !imageSettings.editEnabled) {
+    if (normalizedImageInput.length > 0 && !imageSettings.editEnabled) {
       const error = new Error('ویرایش تصویر در حال حاضر غیرفعال است.');
       error.statusCode = 400;
       error.publicPayload = {
@@ -845,10 +871,11 @@ function createImageGenerationController({
       enhancedPrompt.trim().length > 0
         ? enhancedPrompt.trim()
         : normalizedPrompt;
-    const hasImageInput = Array.isArray(imageInput) && imageInput.length > 0;
+    const hasImageInput = normalizedImageInput.length > 0;
     const fallbackPrompt = hasImageInput
       ? buildFinalImageEditPrompt(promptForImageModel, {
-          defaultNegativePrompt: imageSettings.defaultNegativePrompt
+          defaultNegativePrompt: imageSettings.defaultNegativePrompt,
+          referenceCount: normalizedImageInput.length
         })
       : buildFinalImagePrompt(promptForImageModel, {
           promptEnhancerEnabled: imageSettings.promptEnhancerEnabled,
@@ -862,6 +889,23 @@ function createImageGenerationController({
       error.statusCode = 401;
       error.publicPayload = { success: false, error: 'Authentication required.' };
       throw error;
+    }
+
+    const requestedAspectRatio = typeof req.body?.aspectRatio === 'string' ? req.body.aspectRatio.trim() : '';
+    const aspectRatio = ['1:1', '9:16', '16:9'].includes(requestedAspectRatio) ? requestedAspectRatio : imageSettings.aspectRatio;
+    imageSettings.aspectRatio = aspectRatio;
+    const idempotencyKey = typeof req.headers['idempotency-key'] === 'string'
+      ? req.headers['idempotency-key'].trim().slice(0, 191)
+      : '';
+    if (idempotencyKey) {
+      const [existing] = await db.query(
+        `SELECT id, task_id, status FROM image_generations
+         WHERE user_id = ? AND idempotency_key = ? AND deleted_at IS NULL LIMIT 1`,
+        [userId, idempotencyKey]
+      );
+      if (existing[0]) {
+        return { userId, isGuest, guestId, taskId: String(existing[0].id), providerTaskId: existing[0].task_id, status: existing[0].status, imageUrl: null, reused: true };
+      }
     }
 
     const limitState = await resolveImageLimitState({ userId, isGuest });
@@ -901,12 +945,17 @@ function createImageGenerationController({
         const mergedNegativePrompt = typeof imagePromptRefinerService.mergeNegativePrompts === 'function'
           ? imagePromptRefinerService.mergeNegativePrompts(imageSettings.defaultNegativePrompt, refineResult.negativePrompt)
           : [imageSettings.defaultNegativePrompt, refineResult.negativePrompt].filter(Boolean).join(', ');
-        finalPrompt = typeof imagePromptRefinerService.buildFinalPromptWithNegative === 'function'
-          ? imagePromptRefinerService.buildFinalPromptWithNegative({
-              refinedPrompt: refineResult.refinedPrompt,
-              negativePrompt: mergedNegativePrompt
+        finalPrompt = hasImageInput
+          ? buildFinalImageEditPrompt(refineResult.refinedPrompt, {
+              defaultNegativePrompt: mergedNegativePrompt,
+              referenceCount: normalizedImageInput.length
             })
-          : `${refineResult.refinedPrompt}\n\nNegative prompt: ${mergedNegativePrompt}`;
+          : typeof imagePromptRefinerService.buildFinalPromptWithNegative === 'function'
+            ? imagePromptRefinerService.buildFinalPromptWithNegative({
+                refinedPrompt: refineResult.refinedPrompt,
+                negativePrompt: mergedNegativePrompt
+              })
+            : `${refineResult.refinedPrompt}\n\nNegative prompt: ${mergedNegativePrompt}`;
         refineResult.negativePrompt = mergedNegativePrompt;
       } else {
         finalPrompt = refineResult.refinedPrompt || fallbackPrompt;
@@ -936,9 +985,12 @@ function createImageGenerationController({
 
     const providerTaskId = `image-${uuidv4()}`;
     const [insertResult] = await db.query(
-      `INSERT INTO image_generations (user_id, task_id, prompt, status)
-       VALUES (?, ?, ?, 'QUEUE')`,
-      [userId, providerTaskId, finalPrompt]
+      `INSERT INTO image_generations
+       (user_id, task_id, prompt, original_prompt, refined_prompt, aspect_ratio, operation,
+        conversation_id, parent_image_id, idempotency_key, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'QUEUE')`,
+      [userId, providerTaskId, finalPrompt, normalizedPrompt, finalPrompt, aspectRatio,
+       hasImageInput ? 'edit' : 'generate', conversationId, parentImageId, idempotencyKey || null]
     );
     const dbRecordId = insertResult.insertId;
     const taskId = String(dbRecordId);
@@ -962,7 +1014,8 @@ function createImageGenerationController({
       resolution: imageSettings.resolution,
       aspectRatio: imageSettings.aspectRatio,
       promptLength: finalPrompt.length,
-      promptEnhanced: promptForImageModel !== normalizedPrompt
+      promptEnhanced: promptForImageModel !== normalizedPrompt,
+      referenceImageCount: normalizedImageInput.length
     });
     debugLog({
       taskId,
@@ -982,7 +1035,7 @@ function createImageGenerationController({
     });
 
     setImmediate(() => {
-      void runGenerationTask({ dbRecordId, prompt: finalPrompt, originalPrompt: normalizedPrompt, imageSettings, imageInput, userId, promptRefinerMetadata });
+      void runGenerationTask({ dbRecordId, prompt: finalPrompt, originalPrompt: normalizedPrompt, imageSettings, imageInput: normalizedImageInput, userId, promptRefinerMetadata });
     });
 
     return {
@@ -1002,7 +1055,7 @@ function createImageGenerationController({
   const generateImage = async (req, res) => {
     try {
       const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
-      const task = await createImageTask(req, res, { prompt });
+      const task = await createImageTask(req, res, { prompt, conversationId: req.body?.conversationId || null });
 
       return res.status(202).json({
         success: true,
@@ -1013,8 +1066,65 @@ function createImageGenerationController({
       console.error('[image-generation] generateImage failed:', error instanceof Error ? error.message : String(error));
       return res.status(error?.statusCode || 500).json(error?.publicPayload || {
         success: false,
-        error: error instanceof Error ? error.message : 'Image generation failed.'
+        error: 'IMAGE_GENERATION_FAILED',
+        message: 'ساخت تصویر انجام نشد. لطفاً دوباره تلاش کن.'
       });
+    }
+  };
+
+  const serializeImage = (record) => ({
+    id: String(record.id),
+    taskId: String(record.id),
+    originalPrompt: record.original_prompt || record.prompt || '',
+    refinedPrompt: record.refined_prompt || record.prompt || '',
+    model: record.model_runtime_value || record.model_admin_value || null,
+    aspectRatio: record.aspect_ratio || '1:1',
+    operation: record.operation || 'generate',
+    conversationId: record.conversation_id || null,
+    parentImageId: record.parent_image_id ? String(record.parent_image_id) : null,
+    status: record.status,
+    imageUrl: record.status === 'COMPLETED' ? getLocalPublicUrl(record.id) : null,
+    error: record.status === 'ERROR' ? publicImageErrorMessage(record.error) : null,
+    createdAt: record.created_at,
+    updatedAt: record.updated_at
+  });
+
+  const listImages = async (req, res) => {
+    try {
+      const { userId } = await resolveUserContext(req, res);
+      const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 24));
+      const cursor = Math.max(0, Number(req.query.cursor) || 0);
+      const [rows] = await db.query(
+        `SELECT * FROM image_generations WHERE user_id = ? AND deleted_at IS NULL
+         ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, [userId, limit + 1, cursor]
+      );
+      return res.json({ success: true, items: rows.slice(0, limit).map(serializeImage), nextCursor: rows.length > limit ? cursor + limit : null });
+    } catch (error) {
+      console.error('[image-generation] list failed:', error instanceof Error ? error.message : String(error));
+      return res.status(500).json({ success: false, error: 'دریافت تصاویر انجام نشد.' });
+    }
+  };
+
+  const getImageDetails = async (req, res) => {
+    const { userId } = await resolveUserContext(req, res);
+    const [rows] = await db.query(`SELECT * FROM image_generations WHERE (id = ? OR task_id = ?) AND user_id = ? AND deleted_at IS NULL LIMIT 1`, [req.params.taskId, req.params.taskId, userId]);
+    return rows[0] ? res.json({ success: true, item: serializeImage(rows[0]) }) : res.status(404).json({ success: false, error: 'تصویر پیدا نشد.' });
+  };
+
+  const deleteImage = async (req, res) => {
+    const { userId } = await resolveUserContext(req, res);
+    const [result] = await db.query(`UPDATE image_generations SET deleted_at = NOW() WHERE (id = ? OR task_id = ?) AND user_id = ? AND deleted_at IS NULL`, [req.params.taskId, req.params.taskId, userId]);
+    return result.affectedRows ? res.status(204).end() : res.status(404).json({ success: false, error: 'تصویر پیدا نشد.' });
+  };
+
+  const editImage = async (req, res) => {
+    try {
+      const source = await getEditableImageInput(req, res, String(req.body?.sourceImageId || ''));
+      if (!source) return res.status(404).json({ success: false, error: 'تصویر مبدا پیدا نشد.' });
+      const task = await createImageTask(req, res, { prompt: req.body?.prompt, imageInput: [source.dataUrl], parentImageId: Number(source.imageId) });
+      return res.status(202).json({ success: true, taskId: task.taskId, status: task.status });
+    } catch (error) {
+      return res.status(error?.statusCode || 500).json(error?.publicPayload || { success: false, error: 'ویرایش تصویر انجام نشد.' });
     }
   };
 
@@ -1197,10 +1307,14 @@ function createImageGenerationController({
     resolveUserContext,
     getEditableImageInput,
     generateImage,
+    editImage,
+    listImages,
+    getImageDetails,
+    deleteImage,
     getImageStatus,
     getImageResult,
     serveImage
   };
 }
 
-module.exports = { createImageGenerationController, buildFinalImagePrompt };
+module.exports = { createImageGenerationController, buildFinalImageEditPrompt, buildFinalImagePrompt };

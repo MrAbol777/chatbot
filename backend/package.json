@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "nodemon --config nodemon.json src/server.js",
     "start": "node src/server.js",
+    "test:stream": "node --test src/modules/ai/provider-stream.test.js src/modules/image-understanding/image-understanding.streaming.test.js src/repositories/ChatTurnRepository.test.js src/modules/conversation-memory/conversation-turn-lock.test.js src/modules/intent-router/intent-router.service.test.js",
     "db:migrate-json": "node scripts/migrate-json-to-mysql.js",
-    "db:migrate-user-ids": "node scripts/migrate-user-ids.js"
+    "db:migrate-user-ids": "node scripts/migrate-user-ids.js",
+    "db:migrate-image-studio": "node scripts/apply-image-studio-migration.js"
   },
   "dependencies": {
     "axios": "^1.17.0",

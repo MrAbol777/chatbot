@@ -120,6 +120,7 @@ const mergeImageMessages = (current, next) => {
 
 const dedupeConversationMessages = (messages) => {
   const deduped = [];
+  const messageIdIndexes = new Map();
   const taskIndexes = new Map();
   const imageUrlIndexes = new Map();
 
@@ -130,6 +131,11 @@ const dedupeConversationMessages = (messages) => {
   };
 
   for (const message of Array.isArray(messages) ? messages : []) {
+    const messageId = typeof message?.id === 'string' ? message.id.trim() : '';
+    if (messageId && messageIdIndexes.has(messageId)) {
+      deduped[messageIdIndexes.get(messageId)] = message;
+      continue;
+    }
     const isImageMessage =
       message?.role === 'assistant' &&
       (message.type === 'image_loading' ||
@@ -152,6 +158,7 @@ const dedupeConversationMessages = (messages) => {
     }
 
     deduped.push(message);
+    if (messageId) messageIdIndexes.set(messageId, deduped.length - 1);
     remember(message, deduped.length - 1);
   }
 

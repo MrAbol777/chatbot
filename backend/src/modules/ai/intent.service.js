@@ -94,8 +94,25 @@ const VISUAL_SUBJECT_KEYWORDS = [
   'پوستر',
   'بنر',
   'لوگو',
-  'آواتار'
+  'آواتار',
+  'فضایی',
+  'سیاره',
+  'سیاره‌ها',
+  'ستاره',
+  'کهکشان',
+  'سفینه',
+  'فضا',
+  'میوه',
+  'منظره',
+  'شهر',
+  'خانه',
+  'قلعه',
+  'ربات',
+  'ماشین'
 ];
+
+const IMAGE_CONTINUATION_PATTERN =
+  /(?:(?:یکی|یه|یک)\s+(?:دیگه|دیگر)\s+(?:هم\s+)?(?:بساز|بکش|درست\s*کن|خلق\s*کن)|(?:دوباره|بازم|باز\s+هم)\s+(?:بساز|بکش|درست\s*کن|خلق\s*کن)|(?:مثل|شبیه)\s+(?:قبلی|همونی|همون)\s+(?:بساز|بکش|درست\s*کن))/i;
 
 const VISUAL_DESCRIPTOR_PATTERN =
   /(?:این\s*طور|اینطور|اینجوری|اینجور|شبیه|مثل|با\s+(?:ظاهر|قیافه|چهره|استایل|لباس|مو|چشم|رنگ|حالت|ژست)|(?:ظاهر|قیافه|چهره|استایل|لباس|مو|چشم|رنگ|حالت|ژست)\w*)/i;
@@ -208,9 +225,16 @@ async function detectChatIntent({ message, hasAttachedImages = false, hasRecentI
     return { intent: 'image_generation', confidence: 'high', source: 'generation_keyword' };
   }
 
+  if (hasCreationWord && hasImageContext && IMAGE_CONTINUATION_PATTERN.test(text)) {
+    return { intent: 'image_generation', confidence: 'high', source: 'image_generation_continuation' };
+  }
+
   if (
     hasCreationWord &&
-    /کاراکتر|شخصیت|لوگو|پوستر|آواتار|گربه|سگ|خرگوش|پرنده|اسب|ماهی|ربات|ماشین|قلعه|خانه|شهر|wallpaper|poster|avatar|logo|character|cat|dog|rabbit|bird|horse|fish|robot|car|castle|house|city/i.test(text)
+    (
+      hasVisualSubject ||
+      /کاراکتر|شخصیت|لوگو|پوستر|آواتار|گربه|سگ|خرگوش|پرنده|اسب|ماهی|ربات|ماشین|قلعه|خانه|شهر|فضا|فضایی|سیاره|ستاره|کهکشان|سفینه|میوه|منظره|wallpaper|poster|avatar|logo|character|cat|dog|rabbit|bird|horse|fish|robot|car|castle|house|city|space|alien|planet|star|galaxy|spaceship|fruit|landscape/i.test(text)
+    )
   ) {
     return { intent: 'image_generation', confidence: 'medium', source: 'creative_keyword' };
   }

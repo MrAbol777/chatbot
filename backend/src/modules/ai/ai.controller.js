@@ -12,6 +12,54 @@ const {
 const { publicVisionErrorMessage } = require('../image-understanding/image-understanding.controller');
 
 const GUEST_COOKIE_NAME = 'danoa_guest_id';
+const STREAM_CONTENT_TYPE = 'application/x-ndjson';
+const STREAM_ID_PATTERN = /^[0-9a-zA-Z][0-9a-zA-Z._:-]{7,63}$/;
+
+// The chat surface can only answer in text or analyze supplied images. Image
+// creation and editing are intentionally available only through Image Studio.
+const normalizeIntentForChat = (intent) => (
+  intent === 'image_understanding' ? 'image_understanding' : 'chat'
+);
+const IMAGE_NOUN_PATTERN = /(?:عکس|تصویر|نقاشی|پوستر|بنر|والپیپر|image|photo|picture|poster)/i;
+const IMAGE_CREATE_PATTERN = /(?:بساز(?:ی|ید)?|بکش(?:ی|ید)?|بزن(?:ی|ید)?|طراحی\s*(?:کن|کنید)|تولید\s*(?:کن|کنم|کنید)|درست\s*(?:کن|کنید)|خلق\s*(?:کن|کنید)|make|generate|create|draw|render|paint)/i;
+const IMAGE_EDIT_PATTERN = /(?:ادیت|ویرایش|تغییر|عوض|جایگزین|حذف|پاک|اضافه|بذار|بزار|قرار\s*(?:بده|ده)|ترمیم|بهبود|واضح|کارتونی|پس\s*زمینه|رنگ(?:ش)?|موهاش|لباسش|نورش|قرمز|آبی|سبز|زرد|مشکی|سفید|بلندتر|کوتاهتر|background|edit|change|replace|remove|add|enhance|restore|recolor|transform|stylize)/i;
+
+const isImageStudioRequest = (message, imageContext = {}) => {
+  const text = String(message || '').trim();
+  if (!text) return false;
+  if (/^\/imagine\s+\S/i.test(text)) return true;
+
+  const hasImageNoun = IMAGE_NOUN_PATTERN.test(text);
+  const hasAttachedOrPreviousImage = Boolean(
+    imageContext.hasCurrentImageAttachment ||
+    imageContext.hasPreviousUploadedImage ||
+    imageContext.hasPreviousGeneratedImage
+  );
+  return (
+    (hasImageNoun && IMAGE_CREATE_PATTERN.test(text)) ||
+    (IMAGE_EDIT_PATTERN.test(text) && (hasImageNoun || hasAttachedOrPreviousImage))
+  );
+};
+const MAX_IMAGE_EDIT_INPUTS = 4;
+
+const wantsStreamingResponse = (req) =>
+  String(req.headers?.accept || '').toLowerCase().includes(STREAM_CONTENT_TYPE);
+
+const writeStreamEvent = (res, event) => {
+  if (res.destroyed || res.writableEnded) return false;
+  res.write(`${JSON.stringify(event)}\n`);
+  if (typeof res.flush === 'function') res.flush();
+  return true;
+};
+
+const openStreamResponse = (res) => {
+  res.status(200);
+  res.setHeader('Content-Type', `${STREAM_CONTENT_TYPE}; charset=utf-8`);
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+};
 
 const getRequestIp = (req) => {
   const forwarded = typeof req.headers?.['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'] : '';
@@ -83,7 +131,7 @@ const getUploadedImageInputs = async (imageIds, uploadedImagesRepository) => {
   if (!uploadedImagesRepository || typeof uploadedImagesRepository.getByIds !== 'function') return [];
   const uniqueIds = [...new Set((Array.isArray(imageIds) ? imageIds : [])
     .map((item) => (typeof item === 'string' ? item.trim() : ''))
-    .filter(Boolean))].slice(0, 5);
+    .filter(Boolean))].slice(0, MAX_IMAGE_EDIT_INPUTS);
   if (uniqueIds.length === 0) return [];
   const images = await uploadedImagesRepository.getByIds(uniqueIds);
   return (Array.isArray(images) ? images : []).map(toDataImageUrl).filter(Boolean);
@@ -95,13 +143,12 @@ const getImageInputUrls = async (req, res, imageIds, history, imageGenerationCon
 
   urls.push(...(await getUploadedImageInputs(imageIds, uploadedImagesRepository)));
 
-  const recentImageMessages = Array.isArray(history)
-    ? [...history].reverse().filter((item) => Array.isArray(item?.images) && item.images.length > 0)
-    : [];
-  for (const recentWithImages of recentImageMessages) {
-    if (urls.length > 0) break;
-    for (const image of Array.isArray(recentWithImages?.images) ? recentWithImages.images : []) {
-      if (urls.length > 0) break;
+  const recentWithImages = urls.length === 0 && Array.isArray(history)
+    ? [...history].reverse().find((item) => Array.isArray(item?.images) && item.images.length > 0)
+    : null;
+  if (recentWithImages) {
+    for (const image of Array.isArray(recentWithImages.images) ? recentWithImages.images : []) {
+      if (urls.length >= MAX_IMAGE_EDIT_INPUTS) break;
       const url = typeof image?.url === 'string' ? image.url : typeof image === 'string' ? image : '';
       if (!url) continue;
       if (/^blob:/i.test(url)) continue;
@@ -137,13 +184,20 @@ const getImageInputUrls = async (req, res, imageIds, history, imageGenerationCon
   }
 
   return {
-    urls: [...new Set(urls.filter(Boolean))].slice(0, 14),
+    urls: [...new Set(urls.filter(Boolean))].slice(0, MAX_IMAGE_EDIT_INPUTS),
     hasPrivateImage
   };
 };
 
 const getImageContextForRouting = (imageIds, history) => {
   const hasCurrentImageAttachment = Array.isArray(imageIds) && imageIds.some((item) => typeof item === 'string' && item.trim());
+  const previousUserMessage = Array.isArray(history)
+    ? [...history].reverse().map((item) => {
+        const role = String(item?.role || item?.sender || '').toLowerCase();
+        if (role !== 'user') return '';
+        return String(item?.content || item?.text || item?.message || '').trim();
+      }).find(Boolean) || ''
+    : '';
   let hasPreviousUploadedImage = false;
   let hasPreviousGeneratedImage = false;
   let lastImageKind = 'none';
@@ -167,6 +221,7 @@ const getImageContextForRouting = (imageIds, history) => {
   }
 
   return {
+    previousUserMessage: previousUserMessage.slice(0, 1000),
     hasCurrentImageAttachment,
     hasPreviousUploadedImage,
     hasPreviousGeneratedImage,
@@ -181,6 +236,7 @@ function createAiController({
   guestsRepository,
   usersRepository,
   plansRepository,
+  chatTurnsRepository,
   settingsRepository,
   intentRouterService,
   imageGenerationController,
@@ -189,6 +245,7 @@ function createAiController({
   uploadedImagesRepository,
   conversationMemoryService,
   conversationContextBuilder,
+  conversationMemoryWriterService,
   jwt,
   jwtSecret
 }) {
@@ -231,7 +288,10 @@ function createAiController({
     let releaseTurnLock = null;
 
     try {
-      const { message, profile, history, conversationId, imageIds, clientMessageId } = req.body || {};
+      const { message, profile, history, conversationId, imageIds, clientMessageId, turnId, attemptId } = req.body || {};
+      const wantsStream = wantsStreamingResponse(req);
+      let guestLimitPayload = null;
+      let planLimitPayload = null;
       const authContext = await getAuthenticatedUserId(req);
       if (authContext.invalid) {
         return res.status(401).json({ error: 'Invalid or expired token.' });
@@ -292,7 +352,8 @@ function createAiController({
       }
       let intentResult = null;
       let routeResult = null;
-      if (intentRouterService && typeof intentRouterService.route === 'function') {
+      const shouldRedirectToImageStudio = isImageStudioRequest(message, routeContext);
+      if (!shouldRedirectToImageStudio && intentRouterService && typeof intentRouterService.route === 'function') {
         routeResult = await intentRouterService.route({
           userMessage: message,
           ...routeContext
@@ -308,7 +369,14 @@ function createAiController({
         }));
       }
 
-      if (routeResult?.ok && routeResult.route) {
+      if (shouldRedirectToImageStudio) {
+        intentResult = {
+          intent: 'chat',
+          confidence: 'high',
+          source: 'image_studio_redirect',
+          metadata: { source: 'image_studio_redirect' }
+        };
+      } else if (routeResult?.ok && routeResult.route) {
         intentResult = {
           intent: routeResult.route.intent,
           confidence: 'high',
@@ -337,10 +405,20 @@ function createAiController({
         };
       }
 
+      intentResult = {
+        ...intentResult,
+        intent: normalizeIntentForChat(intentResult.intent)
+      };
+
       if (intentResult.intent === 'image_generation' || intentResult.intent === 'image_edit') {
         const trimmedMessage = typeof message === 'string' ? message.trim() : '';
         const prompt = trimmedMessage.replace(/^\/imagine\s+/i, '').trim();
         const isEdit = intentResult.intent === 'image_edit';
+        const requestedImageCount = new Set(
+          (Array.isArray(imageIds) ? imageIds : [])
+            .map((item) => (typeof item === 'string' ? item.trim() : ''))
+            .filter(Boolean)
+        ).size;
         const persistFailure = async ({ userId, assistantText, errorCode }) => {
           if (!userId || !aiService || typeof aiService.persistImageChatTurn !== 'function') return [];
           return aiService.persistImageChatTurn({
@@ -363,6 +441,21 @@ function createAiController({
             intent: 'image_edit',
             status: 'ERROR',
             unsupported: true,
+            assistantText,
+            messages,
+            intentRouter: intentResult.metadata || null
+          });
+        }
+
+        if (isEdit && requestedImageCount > MAX_IMAGE_EDIT_INPUTS) {
+          const { userId } = await imageGenerationController.resolveUserContext(req, res);
+          const assistantText = `برای هر ویرایش حداکثر ${MAX_IMAGE_EDIT_INPUTS} تصویر مرجع بفرست. تصویر اول، سوژه اصلی محسوب می‌شود.`;
+          const messages = await persistFailure({ userId, assistantText, errorCode: 'IMAGE_EDIT_TOO_MANY_INPUTS' });
+          return res.status(400).json({
+            intent: 'image_edit',
+            status: 'ERROR',
+            error: 'IMAGE_EDIT_TOO_MANY_INPUTS',
+            maxImages: MAX_IMAGE_EDIT_INPUTS,
             assistantText,
             messages,
             intentRouter: intentResult.metadata || null
@@ -413,7 +506,8 @@ function createAiController({
           const task = await imageGenerationController.createImageTask(req, res, {
             prompt,
             enhancedPrompt,
-            imageInput: imageInput.urls
+            imageInput: imageInput.urls,
+            conversationId
           });
           const assistantText = 'باشه، دارم تصویرت رو می‌سازم...';
           const messages = await aiService.persistImageChatTurn({
@@ -478,7 +572,7 @@ function createAiController({
         const ipAddress = getRequestIp(req);
         const guestMessageLimit = await getGuestMessageLimit();
         const currentCount = await guestsRepository.getCurrentCount({ guestId, ipAddress });
-        if (currentCount >= guestMessageLimit) {
+        if (currentCount >= guestMessageLimit && !wantsStream) {
           return res.status(403).json({
             error: 'GUEST_LIMIT_REACHED',
             message: 'برای ادامه گفتگو، لطفاً با کمک والد گفتگوها را ذخیره کنید.',
@@ -487,6 +581,16 @@ function createAiController({
             remaining: 0,
             nextAction: 'guardian_signup'
           });
+        }
+        if (currentCount >= guestMessageLimit) {
+          guestLimitPayload = {
+            error: 'GUEST_LIMIT_REACHED',
+            message: 'برای ادامه گفتگو، لطفاً با کمک والد گفتگوها را ذخیره کنید.',
+            limit: guestMessageLimit,
+            usage: currentCount,
+            remaining: 0,
+            nextAction: 'guardian_signup'
+          };
         }
 
         const guestUserId = await guestsRepository.ensureGuestUser(guestId);
@@ -501,7 +605,7 @@ function createAiController({
         guestContext = { guestId, ipAddress };
       } else if (plansRepository && typeof plansRepository.checkLimit === 'function') {
         const limitState = await plansRepository.checkLimit(authenticatedUserId, 'message');
-        if (!limitState.allowed) {
+        if (!limitState.allowed && !wantsStream) {
           return res.status(402).json({
             error: 'MESSAGE_LIMIT_REACHED',
             message: 'سقف پیام روزانه پلن شما تمام شده است.',
@@ -510,7 +614,202 @@ function createAiController({
             usage: limitState.usage
           });
         }
+        if (!limitState.allowed) {
+          planLimitPayload = {
+            error: 'MESSAGE_LIMIT_REACHED',
+            message: 'سقف پیام روزانه پلن شما تمام شده است.',
+            plan: limitState.plan?.id || null,
+            limit: limitState.limit,
+            usage: limitState.usage
+          };
+        }
         limitStatus = 'plan_allowed';
+      }
+
+      if (wantsStream) {
+        if (!chatTurnsRepository) return res.status(500).json({ error: 'CHAT_STREAM_NOT_CONFIGURED' });
+        if (!STREAM_ID_PATTERN.test(String(turnId || '')) || !STREAM_ID_PATTERN.test(String(attemptId || ''))) {
+          return res.status(400).json({ error: 'INVALID_STREAM_IDS', message: 'turnId و attemptId معتبر نیستند.' });
+        }
+        const ownerId = String(authenticatedUserId || effectiveProfile?.id || '').trim();
+        const existingTurn = await chatTurnsRepository.getTurn(turnId);
+        if (existingTurn && String(existingTurn.user_id) !== ownerId) {
+          return res.status(409).json({ error: 'TURN_ID_CONFLICT' });
+        }
+        if (!existingTurn && guestLimitPayload) return res.status(403).json(guestLimitPayload);
+        if (!existingTurn && planLimitPayload) return res.status(402).json(planLimitPayload);
+        if (existingTurn?.status === 'streaming') {
+          return res.status(409).json({ error: 'TURN_IN_PROGRESS', message: 'این پاسخ هنوز در حال تولید است.' });
+        }
+
+        const normalizedUserMessage = typeof message === 'string' && message.trim()
+          ? message.trim()
+          : intentResult.intent === 'image_understanding'
+            ? 'لطفاً محتوای عکس را توضیح بده.'
+            : '📷 عکس ارسال شد';
+        const { turn } = await chatTurnsRepository.beginTurn({
+          turnId,
+          userId: ownerId,
+          conversationId,
+          clientMessageId,
+          userMessage: normalizedUserMessage,
+          intent: intentResult.intent
+        });
+        await chatTurnsRepository.beginAttempt({ attemptId, turnId });
+        openStreamResponse(res);
+
+        if (turn.status === 'completed') {
+          writeStreamEvent(res, {
+            type: 'meta',
+            status: 'streaming',
+            turnId,
+            attemptId,
+            intent: turn.intent,
+            imageStudioRedirect: shouldRedirectToImageStudio,
+            replay: true
+          });
+          writeStreamEvent(res, { type: 'delta', turnId, attemptId, delta: String(turn.reply || '') });
+          await chatTurnsRepository.finishAttempt({ attemptId, status: 'completed' });
+          writeStreamEvent(res, {
+            type: 'done',
+            status: 'completed',
+            turnId,
+            attemptId,
+            intent: turn.intent,
+            reply: String(turn.reply || ''),
+            conversationId: turn.conversation_id,
+            imageStudioRedirect: shouldRedirectToImageStudio,
+            replay: true
+          });
+          return res.end();
+        }
+
+        const providerAbort = new AbortController();
+        const abortOnDisconnect = () => {
+          if (!res.writableEnded) providerAbort.abort();
+        };
+        res.once('close', abortOnDisconnect);
+        if (res.destroyed) providerAbort.abort();
+        writeStreamEvent(res, {
+          type: 'meta',
+          status: 'streaming',
+          turnId,
+          attemptId,
+          intent: intentResult.intent,
+          imageStudioRedirect: shouldRedirectToImageStudio
+        });
+
+        try {
+          let streamResult;
+          if (intentResult.intent === 'image_understanding') {
+            streamResult = await imageUnderstandingService.streamAnalyzeChatImages({
+              req,
+              res,
+              message: normalizedUserMessage,
+              imageIds,
+              history,
+              requestId: res.locals.requestId,
+              signal: providerAbort.signal,
+              onDelta: async (delta) => {
+                if (!writeStreamEvent(res, { type: 'delta', turnId, attemptId, delta })) providerAbort.abort();
+              }
+            });
+            await aiService.persistVisionChatTurn({
+              profile: effectiveProfile,
+              conversationId,
+              userMessage: normalizedUserMessage,
+              assistantText: streamResult.answer,
+              requestId: res.locals.requestId,
+              clientMessageId,
+              imageIds,
+              diagnostics: streamResult.diagnostics,
+              limitStatus,
+              turnId
+            });
+            streamResult = { ...streamResult, reply: streamResult.answer };
+          } else {
+            streamResult = await aiService.streamChatMessage({
+              message,
+              profile: effectiveProfile,
+              history,
+              conversationId,
+              imageIds,
+              requestId: res.locals.requestId,
+              limitStatus,
+              turnId,
+              signal: providerAbort.signal,
+              onDelta: async (delta) => {
+                if (!writeStreamEvent(res, { type: 'delta', turnId, attemptId, delta })) providerAbort.abort();
+              }
+            });
+          }
+
+          await chatTurnsRepository.markTurn({
+            turnId,
+            status: 'completed',
+            reply: streamResult.reply,
+            model: streamResult.model,
+            tokenUsage: streamResult.tokenUsage
+          });
+          await chatTurnsRepository.finishAttempt({ attemptId, status: 'completed' });
+          if (await chatTurnsRepository.claimQuota(turnId)) {
+            try {
+              if (guestContext) await guestsRepository.incrementCount(guestContext);
+              else if (authenticatedUserId && plansRepository?.incrementDailyUsage) {
+                await plansRepository.incrementDailyUsage(authenticatedUserId, 'message', 1);
+              }
+            } catch (quotaError) {
+              await errorsRepository.logError('stream_quota_increment_failed', '/api/chat', null, String(quotaError?.message || quotaError));
+            }
+          }
+          writeStreamEvent(res, {
+            type: 'done',
+            status: 'completed',
+            turnId,
+            attemptId,
+            intent: intentResult.intent,
+            reply: streamResult.reply,
+            conversationId: streamResult.conversationId || conversationId,
+            imageStudioRedirect: shouldRedirectToImageStudio
+          });
+          return res.end();
+        } catch (streamError) {
+          const cancelled = providerAbort.signal.aborted || streamError?.name === 'AbortError' || streamError?.code === 'PROVIDER_REQUEST_ABORTED';
+          const status = cancelled ? 'cancelled' : 'failed';
+          const errorCode = cancelled ? 'CANCELLED' : String(streamError?.code || 'STREAM_FAILED');
+          if (!cancelled) {
+            await errorsRepository.logError(
+              'chat_stream_failed',
+              '/api/chat',
+              Number(streamError?.details?.status) || null,
+              JSON.stringify({
+                turnId,
+                attemptId,
+                code: errorCode,
+                name: streamError?.name || null,
+                message: streamError instanceof Error ? streamError.message : String(streamError || ''),
+                details: streamError?.details || null
+              })
+            ).catch(() => undefined);
+          }
+          await chatTurnsRepository.finishAttempt({ attemptId, status, errorCode }).catch(() => undefined);
+          await chatTurnsRepository.markTurn({ turnId, status, errorCode }).catch(() => undefined);
+          if (!res.destroyed && !res.writableEnded) {
+            writeStreamEvent(res, {
+              type: status === 'cancelled' ? 'cancelled' : 'error',
+              status,
+              turnId,
+              attemptId,
+              error: errorCode,
+              message: cancelled ? 'پاسخ متوقف شد.' : 'ارتباط با مدل قطع شد. برای تلاش مجدد روی دکمه بزن.',
+              retryable: !cancelled
+            });
+            res.end();
+          }
+          return undefined;
+        } finally {
+          res.removeListener('close', abortOnDisconnect);
+        }
       }
 
       if (intentResult.intent === 'image_understanding') {
@@ -523,15 +822,30 @@ function createAiController({
             history,
             requestId: res.locals.requestId
           });
+          const userVisionPrompt =
+            typeof message === 'string' && message.trim() ? message.trim() : 'لطفاً محتوای عکس را توضیح بده.';
+          const composedResult = await aiService.composeVisionChatReply({
+            profile: effectiveProfile,
+            conversationId,
+            userMessage: userVisionPrompt,
+            visionAnalysis: visionResult.answer,
+            requestId: res.locals.requestId
+          });
+          const finalAssistantText = composedResult.reply;
           const persisted = await aiService.persistVisionChatTurn({
             profile: effectiveProfile,
             conversationId,
-            userMessage: typeof message === 'string' && message.trim() ? message.trim() : 'لطفاً محتوای عکس را توضیح بده.',
-            assistantText: visionResult.answer,
+            userMessage: userVisionPrompt,
+            assistantText: finalAssistantText,
             requestId: res.locals.requestId,
             clientMessageId,
             imageIds,
-            diagnostics: visionResult.diagnostics,
+            diagnostics: {
+              ...visionResult.diagnostics,
+              visionModel: visionResult.model || visionResult.diagnostics?.model || null,
+              chatModel: composedResult.model || null,
+              chatResponseTimeMs: composedResult.responseTimeMs
+            },
             limitStatus
           });
 
@@ -543,9 +857,13 @@ function createAiController({
 
           return res.json({
             intent: 'image_understanding',
-            reply: visionResult.answer,
+            reply: finalAssistantText,
             messages: persisted.messages,
-            diagnostics: visionResult.diagnostics,
+            diagnostics: {
+              ...visionResult.diagnostics,
+              finalResponseModel: composedResult.model || null,
+              pipeline: 'vision_then_chat'
+            },
             intentRouter: intentResult.metadata || null
           });
         } catch (visionError) {
@@ -601,6 +919,7 @@ function createAiController({
 
       return res.json({
         ...result,
+        imageStudioRedirect: shouldRedirectToImageStudio,
         intentRouter: intentResult.metadata || null
       });
     } catch (error) {
@@ -667,4 +986,4 @@ function createAiController({
   };
 }
 
-module.exports = { createAiController };
+module.exports = { createAiController, isImageStudioRequest, normalizeIntentForChat };

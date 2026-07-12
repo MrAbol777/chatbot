@@ -14,6 +14,7 @@ class ChatMessageRepository {
   async logMessage({
     userId,
     conversationId,
+    turnId = null,
     role,
     content,
     model = null,
@@ -38,13 +39,15 @@ class ChatMessageRepository {
 
     const [result] = await this.db.query(
       `INSERT INTO app_chat_messages
-       (user_id, guest_id, user_type, conversation_id, role, content, model, response_time_ms, token_usage, error_code, limit_status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (user_id, guest_id, user_type, conversation_id, turn_id, role, content, model, response_time_ms, token_usage, error_code, limit_status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE message_id = LAST_INSERT_ID(message_id)`,
       [
         storedUserId,
         guestId,
         userType,
         normalizeNullableString(conversationId) || 'default',
+        normalizeNullableString(turnId),
         storedRole,
         storedContent,
         normalizeNullableString(model),
@@ -69,9 +72,10 @@ class ChatMessageRepository {
     tokenUsage,
     limitStatus,
     userCreatedAt,
-    assistantCreatedAt
+    assistantCreatedAt,
+    turnId = null
   }) {
-    const common = { userId, conversationId, model, errorCode: null, limitStatus };
+    const common = { userId, conversationId, turnId, model, errorCode: null, limitStatus };
     const userMessageId = await this.logMessage({
       ...common,
       role: 'user',

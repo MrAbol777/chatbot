@@ -165,6 +165,46 @@ class DatabaseClient {
           INDEX idx_chat_messages_role (role)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
+      await this.ensureColumn('app_chat_messages', 'turn_id', 'VARCHAR(64) NULL AFTER conversation_id');
+      await this.ensureCompositeIndex('app_chat_messages', 'uq_chat_messages_turn_role', '`turn_id`, `role`', true);
+
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS app_chat_turns (
+          turn_id VARCHAR(64) PRIMARY KEY,
+          user_id VARCHAR(191) NOT NULL,
+          conversation_id VARCHAR(191) NOT NULL,
+          client_message_id VARCHAR(191) NULL,
+          user_message MEDIUMTEXT NOT NULL,
+          intent VARCHAR(32) NOT NULL,
+          status ENUM('streaming', 'completed', 'cancelled', 'failed') NOT NULL DEFAULT 'streaming',
+          reply MEDIUMTEXT NULL,
+          model VARCHAR(191) NULL,
+          token_usage JSON NULL,
+          error_code VARCHAR(100) NULL,
+          quota_charged TINYINT(1) NOT NULL DEFAULT 0,
+          created_at DATETIME NOT NULL,
+          updated_at DATETIME NOT NULL,
+          completed_at DATETIME NULL,
+          INDEX idx_chat_turns_user_conversation (user_id, conversation_id),
+          INDEX idx_chat_turns_status (status),
+          INDEX idx_chat_turns_updated_at (updated_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS app_chat_attempts (
+          attempt_id VARCHAR(64) PRIMARY KEY,
+          turn_id VARCHAR(64) NOT NULL,
+          status ENUM('streaming', 'completed', 'cancelled', 'failed') NOT NULL DEFAULT 'streaming',
+          error_code VARCHAR(100) NULL,
+          started_at DATETIME NOT NULL,
+          finished_at DATETIME NULL,
+          updated_at DATETIME NOT NULL,
+          INDEX idx_chat_attempts_turn_id (turn_id),
+          INDEX idx_chat_attempts_status (status),
+          CONSTRAINT fk_chat_attempts_turn FOREIGN KEY (turn_id) REFERENCES app_chat_turns(turn_id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
 
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS conversation_documents (
@@ -207,6 +247,13 @@ class DatabaseClient {
           user_id VARCHAR(191) NOT NULL,
           task_id VARCHAR(255) NOT NULL UNIQUE,
           prompt TEXT NOT NULL,
+          original_prompt TEXT NULL,
+          refined_prompt TEXT NULL,
+          aspect_ratio VARCHAR(16) NOT NULL DEFAULT '1:1',
+          operation ENUM('generate', 'edit') NOT NULL DEFAULT 'generate',
+          conversation_id VARCHAR(191) NULL,
+          parent_image_id BIGINT NULL,
+          idempotency_key VARCHAR(191) NULL,
           status ENUM('QUEUE', 'WAITING', 'RUNNING', 'COMPLETED', 'ERROR', 'CANCELLED') NOT NULL DEFAULT 'QUEUE',
           image_url TEXT NULL,
           local_file_path TEXT NULL,
@@ -220,8 +267,12 @@ class DatabaseClient {
           error TEXT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at DATETIME NULL,
           INDEX idx_image_generations_task_id (task_id),
           INDEX idx_image_generations_user_status (user_id, status),
+          INDEX idx_image_generations_owner_created (user_id, created_at),
+          INDEX idx_image_generations_owner_deleted_status (user_id, deleted_at, status),
+          UNIQUE INDEX uq_image_generations_owner_idempotency (user_id, idempotency_key),
           CONSTRAINT fk_image_generations_user
             FOREIGN KEY (user_id)
             REFERENCES app_users(user_id)
@@ -236,6 +287,17 @@ class DatabaseClient {
       await this.ensureColumn('image_generations', 'model_runtime_value', 'VARCHAR(191) NULL AFTER model_admin_value');
       await this.ensureColumn('image_generations', 'remote_url_host', 'VARCHAR(255) NULL AFTER model_runtime_value');
       await this.ensureColumn('image_generations', 'metadata', 'JSON NULL AFTER remote_url_host');
+      await this.ensureColumn('image_generations', 'original_prompt', 'TEXT NULL AFTER prompt');
+      await this.ensureColumn('image_generations', 'refined_prompt', 'TEXT NULL AFTER original_prompt');
+      await this.ensureColumn('image_generations', 'aspect_ratio', "VARCHAR(16) NOT NULL DEFAULT '1:1' AFTER refined_prompt");
+      await this.ensureColumn('image_generations', 'operation', "ENUM('generate', 'edit') NOT NULL DEFAULT 'generate' AFTER aspect_ratio");
+      await this.ensureColumn('image_generations', 'conversation_id', 'VARCHAR(191) NULL AFTER operation');
+      await this.ensureColumn('image_generations', 'parent_image_id', 'BIGINT NULL AFTER conversation_id');
+      await this.ensureColumn('image_generations', 'idempotency_key', 'VARCHAR(191) NULL AFTER parent_image_id');
+      await this.ensureColumn('image_generations', 'deleted_at', 'DATETIME NULL AFTER updated_at');
+      await this.ensureCompositeIndex('image_generations', 'idx_image_generations_owner_created', '`user_id`, `created_at`');
+      await this.ensureCompositeIndex('image_generations', 'idx_image_generations_owner_deleted_status', '`user_id`, `deleted_at`, `status`');
+      await this.ensureCompositeIndex('image_generations', 'uq_image_generations_owner_idempotency', '`user_id`, `idempotency_key`', true);
 
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS app_settings (
@@ -341,6 +403,14 @@ class DatabaseClient {
     const [rows] = await this.pool.query(`SHOW INDEX FROM \`${tableName}\` WHERE Key_name = ?`, [indexName]);
     if (rows.length > 0) return;
     await this.pool.query(`ALTER TABLE \`${tableName}\` ADD INDEX \`${indexName}\` (\`${columnName}\`)`);
+  }
+
+  async ensureCompositeIndex(tableName, indexName, columnsSql, unique = false) {
+    const [rows] = await this.pool.query(`SHOW INDEX FROM \`${tableName}\` WHERE Key_name = ?`, [indexName]);
+    if (rows.length > 0) return;
+    await this.pool.query(
+      `ALTER TABLE \`${tableName}\` ADD ${unique ? 'UNIQUE ' : ''}INDEX \`${indexName}\` (${columnsSql})`
+    );
   }
 }
 

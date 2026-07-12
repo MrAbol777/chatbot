@@ -23,6 +23,18 @@ export interface ChatMessage {
   taskId?: string;
   imageTaskId?: string;
   status?: 'QUEUE' | 'WAITING' | 'RUNNING' | 'COMPLETED' | 'ERROR' | 'CANCELLED';
+  streamStatus?: 'streaming' | 'completed' | 'cancelled' | 'failed';
+  turnId?: string;
+  attemptId?: string;
+  streamError?: string;
+  imageStudioRedirect?: boolean;
+  retryPayload?: {
+    message: string;
+    imageIds: string[];
+    history: ChatMessage[];
+    conversationId: string;
+    clientMessageId: string;
+  };
   imageUrl?: string;
   resultUrl?: string;
   images?: Array<{

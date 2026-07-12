@@ -12,7 +12,9 @@ const MISSING_IMAGE_API_KEY_MESSAGE = 'کلید سرویس ساخت تصویر �
 const IMAGE_PROVIDER_EMPTY_RESULT_MESSAGE = 'تصویر ساخته نشد. لطفاً دوباره امتحان کن.';
 const IMAGE_STORAGE_FAILED_MESSAGE = 'تصویر ساخته شد، اما ذخیره‌سازی آن با مشکل روبه‌رو شد. لطفاً دوباره امتحان کن.';
 const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MAX_IMAGE_EDIT_INPUTS = 4;
 const { buildMetisRequestBody } = require('./image-runtime-settings');
+const FormData = require('form-data');
 
 const IMAGE_MODEL_ALIASES = {
   'nano-banana-pro': {
@@ -132,6 +134,20 @@ function createImageGenerationService({
 
   const normalizeMimeType = (value) => String(value || '').split(';')[0].trim().toLowerCase();
 
+  const normalizeImageInputs = (value) => {
+    const normalized = [...new Set(
+      (Array.isArray(value) ? value : [])
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+    )];
+    if (normalized.length > MAX_IMAGE_EDIT_INPUTS) {
+      const error = new Error(`A maximum of ${MAX_IMAGE_EDIT_INPUTS} reference images is supported.`);
+      error.code = 'IMAGE_EDIT_TOO_MANY_INPUTS';
+      throw error;
+    }
+    return normalized;
+  };
+
   const getMaxDownloadBytes = (options = {}) => {
     const explicitBytes = Number(options.maxDownloadBytes);
     if (Number.isFinite(explicitBytes) && explicitBytes > 0) return explicitBytes;
@@ -239,9 +255,9 @@ function createImageGenerationService({
   });
 
   const getPollingOptions = (options = {}) => {
-    const pollIntervalMs = Number(options.pollIntervalMs || options.poll_interval_ms || 2500);
+    const pollIntervalMs = Number(options.pollIntervalMs || options.poll_interval_ms || 5000);
     const pollTimeoutMs = Number(options.pollTimeoutMs || options.poll_timeout_ms || 90000);
-    const safeInterval = Number.isFinite(pollIntervalMs) && pollIntervalMs >= 500 ? pollIntervalMs : 2500;
+    const safeInterval = Number.isFinite(pollIntervalMs) && pollIntervalMs >= 5000 ? pollIntervalMs : 5000;
     const safeTimeout = Number.isFinite(pollTimeoutMs) && pollTimeoutMs >= 10000 ? pollTimeoutMs : 90000;
     return {
       pollIntervalMs: safeInterval,
@@ -262,9 +278,7 @@ function createImageGenerationService({
       throw new Error(UNSUPPORTED_MODEL_MESSAGE);
     }
     const imageOptions = normalizeImageOptions(options);
-    const imageInput = Array.isArray(options.imageInput)
-      ? options.imageInput.map((item) => String(item || '').trim()).filter(Boolean)
-      : [];
+    const rawImageInput = normalizeImageInputs(options.imageInput);
     const createUrl = `${runtime.baseUrl}/api/v2/generate`;
     const headers = {
       Authorization: `Bearer ${runtime.apiKey}`,
@@ -281,6 +295,31 @@ function createImageGenerationService({
       customArgs: options.customArgs && typeof options.customArgs === 'object' ? options.customArgs : {},
       editEnabled: Boolean(options.editEnabled)
     };
+    const uploadDataUrl = async (dataUrl, index) => {
+      const match = dataUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+      if (!match) return dataUrl;
+      const buffer = Buffer.from(match[2], 'base64');
+      const mimeType = match[1];
+      if (!buffer.length || buffer.length > getMaxDownloadBytes(options)) {
+        throw new Error(IMAGE_STORAGE_FAILED_MESSAGE);
+      }
+      const extension = mimeType === 'image/jpeg' ? 'jpg' : mimeType.split('/')[1];
+      const form = new FormData();
+      form.append('files', buffer, { filename: `danoa-edit-${index + 1}.${extension}`, contentType: mimeType });
+      const response = await httpClient.post(`${runtime.baseUrl}/api/v1/storage`, form, {
+        headers: { Authorization: `Bearer ${runtime.apiKey}`, ...form.getHeaders() },
+        timeout: 120000,
+        maxContentLength: getMaxDownloadBytes(options) + 1024 * 1024,
+        maxBodyLength: getMaxDownloadBytes(options) + 1024 * 1024
+      });
+      const uploadedUrl = response?.data?.files?.[0]?.url;
+      if (!uploadedUrl) throw new Error('Image provider upload did not return a file URL.');
+      return String(uploadedUrl);
+    };
+    const imageInput = [];
+    for (let index = 0; index < rawImageInput.length; index += 1) {
+      imageInput.push(await uploadDataUrl(rawImageInput[index], index));
+    }
     const body = buildMetisRequestBody({ prompt, runtimeSettings, imageInput });
 
     console.log('[image-generation] Metis request started', {
@@ -447,11 +486,35 @@ function createImageGenerationService({
     }
 
     const url = `${runtime.baseUrl}/models/${encodeURIComponent(model)}:generateContent`;
+    const imageInputs = normalizeImageInputs(options.imageInput);
+    const imageParts = [];
+    for (const input of imageInputs) {
+      const dataMatch = input.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+      if (dataMatch) {
+        imageParts.push({ inlineData: { mimeType: dataMatch[1], data: dataMatch[2] } });
+        continue;
+      }
+      if (/^https?:\/\//i.test(input)) {
+        const maxDownloadBytes = getMaxDownloadBytes(options);
+        const response = await httpClient.get(input, {
+          responseType: 'arraybuffer',
+          timeout: 120000,
+          maxContentLength: maxDownloadBytes,
+          maxBodyLength: maxDownloadBytes
+        });
+        const mimeType = normalizeMimeType(response?.headers?.['content-type']);
+        const buffer = Buffer.from(response?.data || []);
+        if (!ALLOWED_IMAGE_MIME_TYPES.has(mimeType) || !buffer.length || buffer.length > maxDownloadBytes) {
+          throw new Error(IMAGE_STORAGE_FAILED_MESSAGE);
+        }
+        imageParts.push({ inlineData: { mimeType, data: buffer.toString('base64') } });
+      }
+    }
     const body = {
       contents: [
         {
           role: 'user',
-          parts: [{ text: prompt }]
+          parts: [...imageParts, { text: prompt }]
         }
       ],
       generationConfig: {
@@ -464,6 +527,7 @@ function createImageGenerationService({
       modelSource: runtime.modelSource,
       modelAdminValue: runtime.modelAdminValue,
       promptLength: prompt.length,
+      imageInputCount: imageInputs.length,
       apiKeySource: runtime.apiKeySource,
       hasApiKey: Boolean(runtime.apiKey)
     });
@@ -555,7 +619,11 @@ function createImageGenerationService({
 
   return {
     generateImage,
-    supportsImageEdit: () => true
+    supportsImageEdit: (options = {}) => {
+      const model = String(options.runtimeModel || options.imageModel || '').trim().toLowerCase();
+      if (!model) return true;
+      return ['nano-banana', 'nano-banana-pro', 'nano-banana-2', 'gemini-2.5-flash-image', 'gemini-3-pro-image'].includes(model);
+    }
   };
 }
 

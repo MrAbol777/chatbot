@@ -233,7 +233,12 @@ app.use(
     }
   })
 );
-app.use(compression());
+app.use(compression({
+  filter: (req, res) => {
+    if (String(req.headers?.accept || '').toLowerCase().includes('application/x-ndjson')) return false;
+    return compression.filter(req, res);
+  }
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use((req, res, next) => {
@@ -456,6 +461,7 @@ app.use(createAiRouter({
   usersRepository: repositories.users,
   conversationsRepository: repositories.conversations,
   chatMessagesRepository: repositories.chatMessages,
+  chatTurnsRepository: repositories.chatTurns,
   guestsRepository: repositories.guests,
   plansRepository: repositories.plans,
   jwt,

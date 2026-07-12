@@ -64,6 +64,10 @@ function createImageGenerationRouter(deps) {
   // Protected routes (generate, status, same-origin image serving)
   router.use(authMiddleware);
   router.post('/generate', controller.generateImage);
+  router.post('/edit', controller.editImage);
+  router.get('/', controller.listImages);
+  router.get('/:taskId/details', controller.getImageDetails);
+  router.delete('/:taskId', controller.deleteImage);
   router.get('/status/:taskId', controller.getImageStatus);
   router.get('/result/:taskId', controller.getImageResult);
   router.get('/serve/:taskId', controller.serveImage);
