@@ -8,6 +8,7 @@ import DanuaLanding from './DanuaLanding';
 import PlansPage from './PlansPage';
 import PaymentSuccessPage from './PaymentSuccessPage';
 import ImageStudio from './ImageStudio';
+import ChatStudioSwitcher from './ChatStudioSwitcher';
 import defaultBotAvatar from './image.png';
 import {
   fetchProtectedImageBlobUrl,
@@ -38,6 +39,28 @@ const IMAGE_PROMPT_EXAMPLES = [
 ];
 const IMAGE_PROMPT_MAX_LENGTH = 700;
 const BOT_AVATAR_FALLBACK_URL = '/image.png';
+const CHAT_DRAFT_NEW_KEY = 'danoa:chat-draft:new';
+const LAST_STUDIO_CHAT_PATH_KEY = 'danoa:studio-return-chat-path';
+
+const getChatDraftKey = (conversationId: string) =>
+  conversationId ? `danoa:chat-draft:${conversationId}` : CHAT_DRAFT_NEW_KEY;
+
+const readSessionValue = (key: string) => {
+  try {
+    return sessionStorage.getItem(key) || '';
+  } catch {
+    return '';
+  }
+};
+
+const writeSessionValue = (key: string, value: string) => {
+  try {
+    if (value) sessionStorage.setItem(key, value);
+    else sessionStorage.removeItem(key);
+  } catch {
+    // Session storage is an optional convenience; the chat must work without it.
+  }
+};
 
 type AppProfile = UserProfile & { id?: number | string };
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
@@ -1114,7 +1137,10 @@ function ChatApp() {
   const [theme, setTheme] = useState<'energy' | 'calm'>('energy');
   const { pushToast } = useToast();
 
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return readSessionValue(getChatDraftKey(getConversationIdFromPath(window.location.pathname)));
+  });
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
  const [isSending, setIsSending] = useState(false);
@@ -1145,7 +1171,6 @@ function ChatApp() {
   const recordingActionRef = useRef<RecordingAction>('idle');
   const transcriptRef = useRef('');
   const keepRecordingRef = useRef(false);
-  const sendMessageRef = useRef<(value?: string) => Promise<void>>(async () => {});
   const sendInFlightRef = useRef(false);
   const activeStreamRef = useRef<{
     controller: AbortController;
@@ -1164,6 +1189,34 @@ function ChatApp() {
   const attachmentBoxRef = useRef<HTMLDivElement | null>(null);
   const attachmentUrlsRef = useRef<Set<string>>(new Set());
   const imageTaskPollingRef = useRef<Set<string>>(new Set());
+  const preserveDraftDuringSendRef = useRef(false);
+
+  useEffect(() => {
+    if (currentView !== 'chat' || preserveDraftDuringSendRef.current) {
+      return;
+    }
+    setInputValue(readSessionValue(getChatDraftKey(activeConversationId)));
+  }, [activeConversationId, currentView]);
+
+  useEffect(() => {
+    if (currentView !== 'chat' || (preserveDraftDuringSendRef.current && !inputValue)) {
+      return;
+    }
+    writeSessionValue(getChatDraftKey(activeConversationId), inputValue);
+  }, [activeConversationId, currentView, inputValue]);
+
+  // Resize from the rendered content rather than newline count. This keeps a
+  // wrapped mobile message fully visible while preserving a compact single row
+  // when the same text fits on desktop.
+  useLayoutEffect(() => {
+    const textarea = messageInputRef.current;
+    if (currentView !== 'chat' || !textarea) return;
+
+    textarea.style.height = 'auto';
+    const maxHeight = 132;
+    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [currentView, inputValue]);
 
   useEffect(() => {
     if (!imagePreview) {
@@ -1291,6 +1344,30 @@ function ChatApp() {
     setCurrentView('chat');
     setActiveConversationId(conversationId);
     setSidebarOpen(false);
+  };
+
+  const openStudioFromChat = () => {
+    const pathname = window.location.pathname;
+    const routeConversationId = getConversationIdFromPath(pathname);
+    const chatPath = pathname === '/' || routeConversationId ? pathname : '/';
+    const draftConversationId = routeConversationId || activeConversationId;
+    writeSessionValue(getChatDraftKey(draftConversationId), inputValue);
+    writeSessionValue(LAST_STUDIO_CHAT_PATH_KEY, chatPath);
+
+    const previousState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
+    window.history.pushState({ ...previousState, danaoStudioReturnPath: chatPath }, '', '/images');
+    setCurrentView('images');
+    setSidebarOpen(false);
+  };
+
+  const returnToChatFromStudio = () => {
+    const statePath = window.history.state?.danaoStudioReturnPath;
+    const isChatPath = (path: unknown): path is string =>
+      typeof path === 'string' && (path === '/' || /^\/c\/[^/]+$/.test(path));
+    const returnPath = isChatPath(statePath) ? statePath : '/';
+
+    writeSessionValue(LAST_STUDIO_CHAT_PATH_KEY, '');
+    navigateToConversation(getConversationIdFromPath(returnPath), 'replace');
   };
 
   const handleBackToHome = () => {
@@ -1746,7 +1823,9 @@ function ChatApp() {
 
       if (action === 'confirm' && transcript) {
         setInputValue(transcript);
-        void sendMessageRef.current(transcript);
+        // Keep the recognised text as a draft so the user can review or edit it
+        // before explicitly sending it from the message composer.
+        window.requestAnimationFrame(() => messageInputRef.current?.focus());
       }
 
       if (action === 'cancel') {
@@ -2291,6 +2370,8 @@ function ChatApp() {
       updatedAt: new Date().toISOString()
     }));
 
+    preserveDraftDuringSendRef.current = true;
+    let sentSuccessfully = false;
     setInputValue('');
     if (sentAttachmentIds.size > 0) {
       setAttachments((prev) => prev.filter((item) => !sentAttachmentIds.has(item.id)));
@@ -2422,6 +2503,7 @@ function ChatApp() {
         },
         retryPayload
       });
+      sentSuccessfully = true;
       if (chatResult.kind === 'cancelled' || chatResult.kind === 'stream') return;
       const { data } = chatResult;
       if (
@@ -2597,6 +2679,13 @@ function ChatApp() {
         updatedAt: new Date().toISOString()
       }));
     } finally {
+      if (sentSuccessfully) {
+        writeSessionValue(CHAT_DRAFT_NEW_KEY, '');
+        writeSessionValue(getChatDraftKey(currentConversation.id), '');
+      } else {
+        setInputValue((currentValue) => currentValue || content);
+      }
+      preserveDraftDuringSendRef.current = false;
       sendInFlightRef.current = false;
       setIsSending(false);
       setAttachmentMenuOpen(false);
@@ -2704,10 +2793,6 @@ function ChatApp() {
       pushToast('آپلود تصویر ناموفق. لطفاً دوباره تلاش کنید.', 'danger');
     }
   };
-
-  useEffect(() => {
-    sendMessageRef.current = handleSendMessage;
-  }, [handleSendMessage]);
 
   useEffect(() => {
     return () => {
@@ -2889,12 +2974,12 @@ function ChatApp() {
    releaseMicStream();
  };
 
- const handleGenerateImageClick = () => {
-   setAttachmentMenuOpen(false);
-   setImageGenError('');
-   setImageGenStatus('');
-   navigateToView('images');
- };
+  const handleGenerateImageClick = () => {
+    setAttachmentMenuOpen(false);
+    setImageGenError('');
+    setImageGenStatus('');
+    openStudioFromChat();
+  };
 
  const handleCloseImageGenerator = () => {
    setShowImageGenModal(false);
@@ -3253,6 +3338,23 @@ function ChatApp() {
   const shouldShowGuestAuthCta = isGuestProfile(profile);
   const imagePromptLength = imageGenPrompt.trim().length;
   const canSubmitImagePrompt = imagePromptLength > 0 && !isGeneratingImage;
+  const currentPathname = window.location.pathname;
+  const shouldShowChatStudioSwitcher = currentPathname === '/' || currentPathname === '/chat' || /^\/c\/[^/]+$/.test(currentPathname) || currentPathname === '/images';
+  const activeChatStudioView = currentPathname === '/images' ? 'studio' : 'chat';
+  const chatStudioSwitcher = shouldShowChatStudioSwitcher ? (
+    <ChatStudioSwitcher
+      active={activeChatStudioView}
+      onChat={() => {
+        if (activeChatStudioView !== 'chat') returnToChatFromStudio();
+      }}
+      onNewChat={() => {
+        void handleCreateConversation();
+      }}
+      onStudio={() => {
+        if (activeChatStudioView !== 'studio') openStudioFromChat();
+      }}
+    />
+  ) : null;
 
   return (
     <div className={`app-shell chat-shell view-${currentView} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
@@ -3327,53 +3429,22 @@ function ChatApp() {
         {currentView === 'chat' ? (
         <header className="top-bar">
           <div className="top-bar-main">
-            <button
-              className="menu-btn chat-back-btn"
-              onClick={handleBackToHome}
-              type="button"
-              aria-label="برگشت به گفتگوها"
-              title="برگشت به گفتگوها"
-            >
-              <svg className="chat-header-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M15 18 9 12l6-6" />
-              </svg>
+            <button className="menu-btn chat-back-btn" onClick={handleBackToHome} type="button" aria-label="برگشت به گفتگوها" title="برگشت به گفتگوها">
+              <svg className="chat-header-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg>
             </button>
-
             <div className="top-title">
               <div className="top-copy">
                 <div className="top-copy-row chat-title-pill">
                   <span className="chat-title-icon" aria-hidden="true">د</span>
-                  <span className="chat-title-text">
-                    <strong>{activeConversation?.title || DEFAULT_TITLE}</strong>
-                    <small>دانوآ همراهته</small>
-                  </span>
+                  <span className="chat-title-text"><strong>{activeConversation?.title || DEFAULT_TITLE}</strong><small>دانوآ همراهته</small></span>
                 </div>
               </div>
             </div>
           </div>
-
           <div className="top-bar-actions">
-            {shouldShowGuestAuthCta ? (
-              <button
-                className="header-auth-cta"
-                type="button"
-                onClick={handleOpenGuestAuth}
-              >
-                ورود / ثبت‌نام
-              </button>
-            ) : null}
-            <button
-              className="header-action-btn header-action-btn-secondary chat-share-btn"
-              type="button"
-              onClick={handleDownloadActiveConversation}
-              aria-label="اشتراک‌گذاری گفتگو"
-              title="اشتراک‌گذاری گفتگو"
-            >
-              <svg className="header-action-icon chat-header-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 16V4" />
-                <path d="m7 9 5-5 5 5" />
-                <path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
-              </svg>
+            {shouldShowGuestAuthCta ? <button className="header-auth-cta" type="button" onClick={handleOpenGuestAuth}>ورود / ثبت‌نام</button> : null}
+            <button className="header-action-btn header-action-btn-secondary chat-share-btn" type="button" onClick={handleDownloadActiveConversation} aria-label="اشتراک‌گذاری گفتگو" title="اشتراک‌گذاری گفتگو">
+              <svg className="header-action-icon chat-header-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
             </button>
           </div>
         </header>
@@ -3384,15 +3455,8 @@ function ChatApp() {
           <header className="conversation-home-header">
             <h3>گفتگوهای من</h3>
             <div className="conversation-home-tools">
-              <button
-                type="button"
-                className="conversation-home-icon-btn conversation-home-icon-btn--search"
-                aria-label="جستجو"
-                title="جستجو"
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24">
-                  <path d="M21 21l-5.2-5.2m1.7-4.55a6.25 6.25 0 11-12.5 0 6.25 6.25 0 0112.5 0z" />
-                </svg>
+              <button type="button" className="conversation-home-icon-btn conversation-home-icon-btn--search" aria-label="جستجو" title="جستجو">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 21l-5.2-5.2m1.7-4.55a6.25 6.25 0 11-12.5 0 6.25 6.25 0 0112.5 0z" /></svg>
               </button>
             </div>
           </header>
@@ -3536,7 +3600,7 @@ function ChatApp() {
           </nav>
         </aside>
         ) : null}
-        {currentView === 'images' ? <ImageStudio onBack={handleBackToHome} /> : null}
+        {currentView === 'images' ? <ImageStudio onBack={returnToChatFromStudio} chatStudioSwitcher={chatStudioSwitcher} /> : null}
         {false ? (
           <main className="generate-page">
             <header className="generate-page-header">
@@ -4087,7 +4151,7 @@ function ChatApp() {
                       <button
                         type="button"
                         className="image-studio-redirect-btn"
-                        onClick={() => navigateToView('images')}
+                        onClick={openStudioFromChat}
                       >
                         رفتن به استودیوی تصویر
                       </button>
@@ -4151,7 +4215,7 @@ function ChatApp() {
         </main>
        ) : null}
 
-       {currentView === 'chat' ? (
+        {currentView === 'chat' ? (
         <footer className="input-area" ref={inputAreaRef}>
           <div className="input-shell">
             {attachments.length > 0 ? (
@@ -4188,7 +4252,7 @@ function ChatApp() {
                     <textarea
                       ref={messageInputRef}
                       dir="auto"
-                      rows={Math.min(4, Math.max(1, inputValue.split('\n').length))}
+                      rows={1}
                       value={inputValue}
                       disabled={isRecording}
                       onChange={(event) => setInputValue(event.target.value)}
@@ -4295,8 +4359,9 @@ function ChatApp() {
               </div>
             </div>
           </div>
+          {chatStudioSwitcher}
         </footer>
-       ) : null}
+        ) : null}
       </div>
     </div>
   );

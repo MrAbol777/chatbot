@@ -1,0 +1,15 @@
+.vscode/settings.json
+backend/migrations/021_image_studio_gallery.sql
+backend/migrations/022_enable_supported_image_edit.sql
+backend/migrations/023_chat_streaming_turns.sql
+backend/scripts/apply-image-studio-migration.js
+backend/src/modules/ai/ai.image-edit-routing.test.js
+backend/src/modules/ai/ai.vision-pipeline.test.js
+backend/src/modules/ai/provider-stream.js
+backend/src/modules/ai/provider-stream.test.js
+backend/src/modules/image-generation/image-edit.pipeline.test.js
+backend/src/modules/image-understanding/image-understanding.streaming.test.js
+backend/src/repositories/ChatTurnRepository.js
+backend/src/repositories/ChatTurnRepository.test.js
+frontend/src/ImageStudio.css
+frontend/src/ImageStudio.tsx

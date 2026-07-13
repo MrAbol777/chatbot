@@ -150,7 +150,9 @@ function loadRuntimeConfig(env = process.env) {
     { source: 'METIS_INTENT_ROUTER_API_KEY', value: env.METIS_INTENT_ROUTER_API_KEY }
   ]);
   const conversationMemoryKey = pickApiKey([
-    { source: 'METIS_CONVERSATION_MEMORY_API_KEY', value: env.METIS_CONVERSATION_MEMORY_API_KEY }
+    { source: 'METIS_CONVERSATION_MEMORY_API_KEY', value: env.METIS_CONVERSATION_MEMORY_API_KEY },
+    { source: 'legacy METIS_CHAT_API_KEY', value: env.METIS_CHAT_API_KEY },
+    { source: 'legacy METIS_API_KEY', value: env.METIS_API_KEY }
   ]);
   const defaultConversationMemoryStorageDir =
     env.NODE_ENV === 'production'

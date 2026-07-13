@@ -86,7 +86,9 @@ class AnalyticsRepository {
     await this.db.init();
     return (
       await this.db.query(
-        "SELECT COUNT(DISTINCT user_id) AS c FROM app_events WHERE event_type='message_sent' AND created_at >= ?",
+        `SELECT COUNT(DISTINCT COALESCE(NULLIF(user_id, ''), CONCAT('guest:', guest_id))) AS c
+         FROM app_chat_messages
+         WHERE role = 'user' AND created_at >= ?`,
         [new Date(Date.now() - DAY_MS)]
       )
     )[0][0].c;
@@ -96,7 +98,7 @@ class AnalyticsRepository {
     await this.db.init();
     return (
       await this.db.query(
-        "SELECT COUNT(*) AS c FROM app_events WHERE event_type='message_sent' AND created_at >= ?",
+        "SELECT COUNT(*) AS c FROM app_chat_messages WHERE role = 'user' AND created_at >= ?",
         [new Date(getStartOfToday())]
       )
     )[0][0].c;
@@ -121,7 +123,7 @@ class AnalyticsRepository {
 
   async getApiUsage(days = 7) {
     await this.db.init();
-    const [rows] = await this.db.query("SELECT created_at FROM app_events WHERE event_type='message_sent'");
+    const [rows] = await this.db.query("SELECT created_at FROM app_chat_messages WHERE role = 'user'");
     const series = buildDailySeries(days);
     for (const row of rows) {
       const ts = new Date(row.created_at || 0).getTime();

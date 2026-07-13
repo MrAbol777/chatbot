@@ -910,6 +910,81 @@ function createAdminModule({
     }
   });
 
+  // All generated images are served through this admin-only list.  Keep the
+  // original user prompt separate from the final prompt sent to the provider.
+  router.get('/image-generations', requireAdminAuth, async (req, res) => {
+    try {
+      const query = String(req.query?.q || '').trim().slice(0, 191);
+      const status = String(req.query?.status || '').trim().toUpperCase();
+      const page = Math.max(1, Number.parseInt(String(req.query?.page || '1'), 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, Number.parseInt(String(req.query?.pageSize || '20'), 10) || 20));
+      const offset = (page - 1) * pageSize;
+      const allowedStatuses = new Set(['QUEUE', 'WAITING', 'RUNNING', 'COMPLETED', 'ERROR', 'CANCELLED']);
+      const filters = ['g.deleted_at IS NULL'];
+      const values = [];
+
+      if (status && allowedStatuses.has(status)) {
+        filters.push('g.status = ?');
+        values.push(status);
+      }
+      if (query) {
+        filters.push('(u.name LIKE ? OR u.phone LIKE ? OR g.original_prompt LIKE ? OR g.prompt LIKE ?)');
+        const search = `%${query}%`;
+        values.push(search, search, search, search);
+      }
+
+      const where = filters.join(' AND ');
+      const [countResult, itemsResult] = await Promise.all([
+        repositories.db.query(
+          `SELECT COUNT(*) AS total
+           FROM image_generations g
+           INNER JOIN app_users u ON u.user_id = g.user_id
+           WHERE ${where}`,
+          values
+        ),
+        repositories.db.query(
+          `SELECT g.id, g.task_id, g.user_id, g.original_prompt, g.refined_prompt, g.prompt,
+                  g.status, g.operation, g.created_at, g.provider, g.model_admin_value,
+                  u.name AS user_name, u.phone AS user_phone, u.age AS user_age
+           FROM image_generations g
+           INNER JOIN app_users u ON u.user_id = g.user_id
+           WHERE ${where}
+           ORDER BY g.created_at DESC, g.id DESC
+           LIMIT ? OFFSET ?`,
+          [...values, pageSize, offset]
+        )
+      ]);
+      const [countRows] = countResult;
+      const [items] = itemsResult;
+      const totalRow = countRows[0];
+
+      const rows = items.map((item) => ({
+        id: String(item.id),
+        taskId: item.task_id,
+        userId: item.user_id,
+        user: {
+          name: item.user_name || 'کاربر مهمان',
+          phone: item.user_phone || null,
+          age: item.user_age ?? null
+        },
+        originalPrompt: item.original_prompt || item.prompt || '',
+        apiPrompt: item.refined_prompt || item.prompt || '',
+        status: item.status,
+        operation: item.operation || 'generate',
+        createdAt: item.created_at,
+        provider: item.provider || null,
+        model: item.model_admin_value || null,
+        imageUrl: item.status === 'COMPLETED'
+          ? `/api/admin/users/${encodeURIComponent(String(item.user_id))}/images/${encodeURIComponent(String(item.id))}`
+          : null
+      }));
+
+      return res.json({ items: rows, total: Number(totalRow?.total || 0), page, pageSize });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت تصاویر ساخته‌شده' });
+    }
+  });
+
   router.get('/users/:id/images/:taskId', requireAdminAuth, async (req, res) => {
     try {
       const userId = String(req.params.id || '').trim();

@@ -631,6 +631,22 @@ function createAiController({
         if (!STREAM_ID_PATTERN.test(String(turnId || '')) || !STREAM_ID_PATTERN.test(String(attemptId || ''))) {
           return res.status(400).json({ error: 'INVALID_STREAM_IDS', message: 'turnId و attemptId معتبر نیستند.' });
         }
+        const providerAbort = new AbortController();
+        const abortOnDisconnect = () => {
+          if (!res.writableEnded) providerAbort.abort();
+        };
+        req.once('aborted', abortOnDisconnect);
+        req.once('close', () => {
+          if (req.aborted) abortOnDisconnect();
+        });
+        res.once('error', abortOnDisconnect);
+        res.once('close', abortOnDisconnect);
+        const streamSocket = req.socket || res.socket;
+        if (streamSocket) {
+          streamSocket.once('close', abortOnDisconnect);
+          streamSocket.once('error', abortOnDisconnect);
+          if (streamSocket.destroyed) providerAbort.abort();
+        }
         const ownerId = String(authenticatedUserId || effectiveProfile?.id || '').trim();
         const existingTurn = await chatTurnsRepository.getTurn(turnId);
         if (existingTurn && String(existingTurn.user_id) !== ownerId) {
@@ -684,20 +700,15 @@ function createAiController({
           return res.end();
         }
 
-        const providerAbort = new AbortController();
-        const abortOnDisconnect = () => {
-          if (!res.writableEnded) providerAbort.abort();
-        };
-        res.once('close', abortOnDisconnect);
-        if (res.destroyed) providerAbort.abort();
-        writeStreamEvent(res, {
+        if (req.aborted || res.destroyed) providerAbort.abort();
+        if (!writeStreamEvent(res, {
           type: 'meta',
           status: 'streaming',
           turnId,
           attemptId,
           intent: intentResult.intent,
           imageStudioRedirect: shouldRedirectToImageStudio
-        });
+        })) providerAbort.abort();
 
         try {
           let streamResult;
@@ -742,6 +753,12 @@ function createAiController({
                 if (!writeStreamEvent(res, { type: 'delta', turnId, attemptId, delta })) providerAbort.abort();
               }
             });
+          }
+
+          if (providerAbort.signal.aborted || req.aborted || res.destroyed) {
+            const abortError = new Error('PROVIDER_REQUEST_ABORTED');
+            abortError.code = 'PROVIDER_REQUEST_ABORTED';
+            throw abortError;
           }
 
           await chatTurnsRepository.markTurn({

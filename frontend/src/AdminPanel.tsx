@@ -34,6 +34,28 @@ type UsersPayload = {
   pageSize: number;
 };
 
+type ImageGeneration = {
+  id: string;
+  taskId: string;
+  userId: string;
+  user: { name: string; phone?: string | null; age?: number | null };
+  originalPrompt: string;
+  apiPrompt: string;
+  status: string;
+  operation: string;
+  createdAt?: string;
+  provider?: string | null;
+  model?: string | null;
+  imageUrl?: string | null;
+};
+
+type ImageGenerationsPayload = {
+  items: ImageGeneration[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
 type ChatImage = {
   url: string;
   alt?: string;
@@ -279,7 +301,7 @@ type SupervisedOtpConfig = {
 };
 
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
-type AdminTab = 'dashboard' | 'users' | 'subscriptions' | 'limits' | 'errors' | 'siteSettings' | 'supervisedOtp' | 'config' | 'audit';
+type AdminTab = 'dashboard' | 'users' | 'imageGenerations' | 'subscriptions' | 'limits' | 'errors' | 'siteSettings' | 'supervisedOtp' | 'config' | 'audit';
 type ReportUserScope = 'all' | 'selected';
 type ReportFormat = 'csv' | 'txt';
 type ReportSection =
@@ -294,6 +316,7 @@ type ReportSection =
   | 'supervised_otp_usage';
 type ReportRangePreset = 'today' | '7d' | '30d' | 'custom';
 const USERS_PAGE_SIZE = 10;
+const IMAGE_GENERATIONS_PAGE_SIZE = 12;
 const parseNullableNumberInput = (value: string): number | null => (
   value.trim() === '' ? null : Number(value)
 );
@@ -319,6 +342,7 @@ const LIMIT_PRESETS = [
 const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'داشبورد',
   users: 'کاربران',
+  imageGenerations: 'تصاویر استودیو',
   subscriptions: 'اشتراک‌ها',
   limits: 'لیمیت‌ها',
   errors: 'خطاها',
@@ -331,6 +355,7 @@ const TAB_LABELS: Record<AdminTab, string> = {
 const TAB_ICONS: Record<keyof typeof TAB_LABELS, string> = {
   dashboard: '▦',
   users: '◎',
+  imageGenerations: '▧',
   subscriptions: '◈',
   limits: '⏱',
   errors: '!',
@@ -515,6 +540,13 @@ function AdminPanel() {
   const [usersPage, setUsersPage] = useState(1);
   const [query, setQuery] = useState('');
   const [banFilter, setBanFilter] = useState('all');
+  const [imageGenerations, setImageGenerations] = useState<ImageGeneration[]>([]);
+  const [imageGenerationsTotal, setImageGenerationsTotal] = useState(0);
+  const [imageGenerationsPage, setImageGenerationsPage] = useState(1);
+  const [imageGenerationsQuery, setImageGenerationsQuery] = useState('');
+  const [imageGenerationsStatus, setImageGenerationsStatus] = useState('all');
+  const [imageGenerationsLoading, setImageGenerationsLoading] = useState(false);
+  const [imageGenerationsError, setImageGenerationsError] = useState('');
   const [selectedReportUserIds, setSelectedReportUserIds] = useState<string[]>([]);
   const [reportUserScope, setReportUserScope] = useState<ReportUserScope>('all');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -682,6 +714,27 @@ function AdminPanel() {
     }
   };
 
+  const loadImageGenerations = async (page = imageGenerationsPage) => {
+    setImageGenerationsLoading(true);
+    setImageGenerationsError('');
+    const params = new URLSearchParams({ page: String(page), pageSize: String(IMAGE_GENERATIONS_PAGE_SIZE) });
+    if (imageGenerationsQuery.trim()) params.set('q', imageGenerationsQuery.trim());
+    if (imageGenerationsStatus !== 'all') params.set('status', imageGenerationsStatus);
+    try {
+      const response = await fetch(`/api/admin/image-generations?${params.toString()}`, { credentials: 'include' });
+      const result = await handleAdminResponse(response, 'بارگذاری تصاویر استودیو ناموفق بود.');
+      if (!result.ok) return;
+      const payload = (result.data || {}) as ImageGenerationsPayload;
+      setImageGenerations(payload.items || []);
+      setImageGenerationsTotal(Number(payload.total || 0));
+      setImageGenerationsPage(Number(payload.page || page));
+    } catch (error) {
+      setImageGenerationsError(error instanceof Error ? error.message : 'اتصال به سرور برقرار نشد.');
+    } finally {
+      setImageGenerationsLoading(false);
+    }
+  };
+
   const loadSubscriptions = async () => {
     setSubscriptionMessage('');
     try {
@@ -802,6 +855,7 @@ function AdminPanel() {
   useEffect(() => {
     void loadDashboard();
     void loadUsers();
+    void loadImageGenerations();
     void loadErrors();
     void loadConfig();
     void loadSystemPrompt();
@@ -825,6 +879,7 @@ function AdminPanel() {
     siteSettings?.settings?.['guest.image_limit_hourly']
   );
   const usersTotalPages = Math.max(1, Math.ceil(usersTotal / USERS_PAGE_SIZE));
+  const imageGenerationsTotalPages = Math.max(1, Math.ceil(imageGenerationsTotal / IMAGE_GENERATIONS_PAGE_SIZE));
   const selectedReportUsersOnPage = visibleUsers.filter((user) => selectedReportUserIds.includes(user.user_id));
   const isEveryVisibleUserSelected = visibleUsers.length > 0 && selectedReportUsersOnPage.length === visibleUsers.length;
 
@@ -835,6 +890,11 @@ function AdminPanel() {
   const handleUsersPageChange = (nextPage: number) => {
     const safePage = Math.min(usersTotalPages, Math.max(1, nextPage));
     void loadUsers(safePage);
+  };
+
+  const handleImageGenerationsPageChange = (nextPage: number) => {
+    const safePage = Math.min(imageGenerationsTotalPages, Math.max(1, nextPage));
+    void loadImageGenerations(safePage);
   };
 
   const toggleReportUser = (userId: string) => {
@@ -1905,6 +1965,80 @@ function AdminPanel() {
               ))}
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {tab === 'imageGenerations' ? (
+        <div className="admin-section">
+          <div className="admin-section-header">
+            <div>
+              <h3>تصاویر ساخته‌شده در استودیو دانوآ</h3>
+              <p className="admin-note">پرامپت کاربر، پرامپت نهایی ارسال‌شده به API و خروجی هر درخواست در این فهرست ثبت است.</p>
+            </div>
+            <Button className="admin-action-btn" disabled={imageGenerationsLoading} onClick={() => void loadImageGenerations(imageGenerationsPage)}>
+              بروزرسانی
+            </Button>
+          </div>
+          <div className="admin-controls">
+            <TextField
+              className="admin-control-field"
+              value={imageGenerationsQuery}
+              onChange={(e) => setImageGenerationsQuery(e.target.value)}
+              placeholder="نام، شماره یا پرامپت"
+              aria-label="جستجوی تصاویر استودیو"
+              fullWidth={false}
+            />
+            <select value={imageGenerationsStatus} onChange={(e) => setImageGenerationsStatus(e.target.value)} aria-label="وضعیت ساخت تصویر">
+              <option value="all">همه وضعیت‌ها</option>
+              <option value="COMPLETED">تکمیل‌شده</option>
+              <option value="RUNNING">در حال ساخت</option>
+              <option value="QUEUE">در صف</option>
+              <option value="ERROR">ناموفق</option>
+              <option value="CANCELLED">لغوشده</option>
+            </select>
+            <Button className="admin-action-btn" onClick={() => void loadImageGenerations(1)}>اعمال فیلتر</Button>
+          </div>
+          <div className="admin-users-summary">
+            <span>نمایش صفحه {imageGenerationsPage} از {imageGenerationsTotalPages}، مجموع {imageGenerationsTotal} درخواست</span>
+          </div>
+          {imageGenerationsError ? <InlineMessage text={imageGenerationsError} variant="error" /> : null}
+          <div className="studio-generation-grid">
+            {imageGenerations.map((generation) => (
+              <article className="studio-generation-card" key={generation.id}>
+                <div className="studio-generation-card__image">
+                  {generation.imageUrl ? (
+                    <a href={generation.imageUrl} target="_blank" rel="noreferrer" title="باز کردن تصویر در اندازه کامل">
+                      <img src={generation.imageUrl} alt={`خروجی تصویر برای ${generation.user.name}`} loading="lazy" />
+                    </a>
+                  ) : (
+                    <span>{generation.status === 'ERROR' ? 'ساخت تصویر ناموفق بود' : 'خروجی تصویر هنوز آماده نیست'}</span>
+                  )}
+                </div>
+                <div className="studio-generation-card__meta">
+                  <strong>{generation.user.name || 'کاربر مهمان'}</strong>
+                  <span>{generation.user.phone || 'مهمان بدون شماره'}{generation.createdAt ? ` · ${generation.createdAt}` : ''}</span>
+                </div>
+                <div className="studio-generation-card__prompt">
+                  <span>پرامپت کاربر</span>
+                  <p>{generation.originalPrompt || '-'}</p>
+                </div>
+                <div className="studio-generation-card__prompt">
+                  <span>پرامپت ارسال‌شده به API</span>
+                  <p>{generation.apiPrompt || '-'}</p>
+                </div>
+                <div className="studio-generation-card__footer">
+                  <span>{generation.operation === 'edit' ? 'ویرایش تصویر' : 'ساخت تصویر'} · {generation.status}</span>
+                  {generation.model ? <span>{generation.model}</span> : null}
+                </div>
+              </article>
+            ))}
+          </div>
+          {!imageGenerationsLoading && imageGenerations.length === 0 ? <p className="admin-note">هنوز تصویری با این فیلتر ثبت نشده است.</p> : null}
+          <div className="admin-pagination">
+            <Button variant="secondary" size="sm" disabled={imageGenerationsLoading || imageGenerationsPage <= 1} onClick={() => handleImageGenerationsPageChange(imageGenerationsPage - 1)}>قبلی</Button>
+            <span>صفحه {imageGenerationsPage} / {imageGenerationsTotalPages}</span>
+            <Button variant="secondary" size="sm" disabled={imageGenerationsLoading || imageGenerationsPage >= imageGenerationsTotalPages} onClick={() => handleImageGenerationsPageChange(imageGenerationsPage + 1)}>بعدی</Button>
+          </div>
         </div>
       ) : null}
 
