@@ -4360,11 +4360,10 @@ function ChatApp() {
               </div>
             </div>
           </div>
-          {chatStudioSwitcher}
         </footer>
         ) : null}
       </div>
-      {currentView === 'images' && chatStudioSwitcher}
+      {(currentView === 'images' || currentView === 'chat') && chatStudioSwitcher}
     </div>
   );
 }
