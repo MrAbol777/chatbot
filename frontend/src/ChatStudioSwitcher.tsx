@@ -44,7 +44,7 @@ export default function ChatStudioSwitcher({
             <path d="m13 11 5.85-5.85a1.9 1.9 0 0 1 2.7 2.7L15.7 13.7 12 14.5z" />
             <path d="m17.5 6.35 2.15 2.15" />
           </svg>
-          <small>جدید</small>
+          <small>چت جدید</small>
         </button>
         <button
           type="button"

@@ -5,6 +5,7 @@ import './design-system/tokens/tokens.css';
 import './design-system/styles/base.css';
 import './design-system/styles/components.css';
 import './styles.css';
+import './ChatExperience.css';
 
 // Global unhandled error/rejection listeners (production-safe)
 window.addEventListener('unhandledrejection', (event) => {

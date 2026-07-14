@@ -3427,7 +3427,7 @@ function ChatApp() {
           </div>
         )}
         {currentView === 'chat' ? (
-        <header className="top-bar">
+        <header className={`top-bar${shouldShowGuestAuthCta ? ' has-auth-cta' : ''}`}>
           <div className="top-bar-main">
             <button className="menu-btn chat-back-btn" onClick={handleBackToHome} type="button" aria-label="برگشت به گفتگوها" title="برگشت به گفتگوها">
               <svg className="chat-header-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg>
@@ -3600,7 +3600,7 @@ function ChatApp() {
           </nav>
         </aside>
         ) : null}
-        {currentView === 'images' ? <ImageStudio onBack={returnToChatFromStudio} chatStudioSwitcher={chatStudioSwitcher} /> : null}
+        {currentView === 'images' ? <ImageStudio onBack={returnToChatFromStudio} /> : null}
         {false ? (
           <main className="generate-page">
             <header className="generate-page-header">
@@ -4194,8 +4194,9 @@ function ChatApp() {
             ))
           ) : (
             <div className="empty-state chat-empty-state">
+              <span className="chat-empty-state__eyebrow">شروع یک گفت‌وگوی تازه</span>
               <strong>سلام، من دانوآم</strong>
-              <span>می‌تونی سؤال بپرسی یا عکس بفرستی تا درباره‌اش با هم گفتگو کنیم.</span>
+              <p>سؤال بپرس، عکس بفرست یا با هم یک ایده را پیدا کنیم.</p>
             </div>
           )}
 
@@ -4363,6 +4364,7 @@ function ChatApp() {
         </footer>
         ) : null}
       </div>
+      {currentView === 'images' && chatStudioSwitcher}
     </div>
   );
 }

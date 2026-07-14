@@ -239,6 +239,7 @@ function createAiController({
   chatTurnsRepository,
   settingsRepository,
   intentRouterService,
+  inputOptimizerService,
   imageGenerationController,
   imageGenerationService,
   imageUnderstandingService,
@@ -350,12 +351,48 @@ function createAiController({
                 : routeContext.lastImageKind;
         }
       }
+      const rawMessage = typeof message === 'string' ? message.trim() : '';
+      let optimizedInput = {
+        originalText: rawMessage,
+        optimizedTextEn: rawMessage,
+        needsClarification: false,
+        clarificationQuestionFa: null,
+        status: 'skipped',
+        fallbackUsed: false
+      };
+      if (rawMessage && inputOptimizerService && typeof inputOptimizerService.optimizeInput === 'function') {
+        optimizedInput = await inputOptimizerService.optimizeInput({
+          text: rawMessage,
+          operationId: String(turnId || clientMessageId || res.locals.requestId),
+          operationType: 'chat',
+          conversationId,
+          turnId,
+          attemptId,
+          userId: authenticatedUserId || null,
+          signal: null,
+          hasImages: routeContext.hasCurrentImageAttachment
+        });
+      }
+      if (optimizedInput.needsClarification) {
+        const payload = {
+          intent: 'clarification', status: 'CLARIFICATION_REQUIRED', needsClarification: true,
+          assistantText: optimizedInput.clarificationQuestionFa, clarificationQuestionFa: optimizedInput.clarificationQuestionFa
+        };
+        if (wantsStream) {
+          openStreamResponse(res);
+          writeStreamEvent(res, { type: 'meta', status: 'clarification_required', turnId: turnId || null, attemptId: attemptId || null, intent: 'clarification' });
+          writeStreamEvent(res, { type: 'done', status: 'clarification_required', turnId: turnId || null, attemptId: attemptId || null, intent: 'clarification', reply: optimizedInput.clarificationQuestionFa });
+          return res.end();
+        }
+        return res.json(payload);
+      }
+      const optimizedMessage = optimizedInput.optimizedTextEn || rawMessage;
       let intentResult = null;
       let routeResult = null;
       const shouldRedirectToImageStudio = isImageStudioRequest(message, routeContext);
       if (!shouldRedirectToImageStudio && intentRouterService && typeof intentRouterService.route === 'function') {
         routeResult = await intentRouterService.route({
-          userMessage: message,
+          userMessage: optimizedMessage,
           ...routeContext
         }).catch((error) => ({
           ok: false,
@@ -386,7 +423,7 @@ function createAiController({
         };
       } else if (!routeResult || routeResult.settings?.fallbackToHeuristic !== false || routeResult.metadata?.fallbackToHeuristic !== false) {
         const fallbackIntent = await detectChatIntent({
-          message,
+          message: rawMessage,
           hasAttachedImages: routeContext.hasCurrentImageAttachment,
           hasRecentImage: routeContext.hasPreviousUploadedImage || routeContext.hasPreviousGeneratedImage,
           classify: null
@@ -412,7 +449,7 @@ function createAiController({
 
       if (intentResult.intent === 'image_generation' || intentResult.intent === 'image_edit') {
         const trimmedMessage = typeof message === 'string' ? message.trim() : '';
-        const prompt = trimmedMessage.replace(/^\/imagine\s+/i, '').trim();
+        const prompt = optimizedMessage.replace(/^\/imagine\s+/i, '').trim();
         const isEdit = intentResult.intent === 'image_edit';
         const requestedImageCount = new Set(
           (Array.isArray(imageIds) ? imageIds : [])
@@ -505,6 +542,8 @@ function createAiController({
               : '';
           const task = await imageGenerationController.createImageTask(req, res, {
             prompt,
+            originalPrompt: trimmedMessage || rawMessage,
+            optimizerResult: optimizedInput,
             enhancedPrompt,
             imageInput: imageInput.urls,
             conversationId
@@ -716,7 +755,7 @@ function createAiController({
             streamResult = await imageUnderstandingService.streamAnalyzeChatImages({
               req,
               res,
-              message: normalizedUserMessage,
+              message: optimizedMessage || normalizedUserMessage,
               imageIds,
               history,
               requestId: res.locals.requestId,
@@ -728,7 +767,7 @@ function createAiController({
             await aiService.persistVisionChatTurn({
               profile: effectiveProfile,
               conversationId,
-              userMessage: normalizedUserMessage,
+              userMessage: rawMessage || normalizedUserMessage,
               assistantText: streamResult.answer,
               requestId: res.locals.requestId,
               clientMessageId,
@@ -740,7 +779,8 @@ function createAiController({
             streamResult = { ...streamResult, reply: streamResult.answer };
           } else {
             streamResult = await aiService.streamChatMessage({
-              message,
+              message: optimizedMessage || normalizedUserMessage,
+              originalMessage: rawMessage || normalizedUserMessage,
               profile: effectiveProfile,
               history,
               conversationId,
@@ -834,7 +874,7 @@ function createAiController({
           const visionResult = await imageUnderstandingService.analyzeChatImages({
             req,
             res,
-            message,
+            message: optimizedMessage || rawMessage,
             imageIds,
             history,
             requestId: res.locals.requestId
@@ -844,7 +884,7 @@ function createAiController({
           const composedResult = await aiService.composeVisionChatReply({
             profile: effectiveProfile,
             conversationId,
-            userMessage: userVisionPrompt,
+            userMessage: optimizedMessage || userVisionPrompt,
             visionAnalysis: visionResult.answer,
             requestId: res.locals.requestId
           });
@@ -852,7 +892,7 @@ function createAiController({
           const persisted = await aiService.persistVisionChatTurn({
             profile: effectiveProfile,
             conversationId,
-            userMessage: userVisionPrompt,
+            userMessage: rawMessage || userVisionPrompt,
             assistantText: finalAssistantText,
             requestId: res.locals.requestId,
             clientMessageId,
@@ -919,7 +959,8 @@ function createAiController({
       }
 
       const result = await aiService.sendChatMessage({
-        message,
+        message: optimizedMessage || rawMessage,
+        originalMessage: rawMessage,
         profile: effectiveProfile,
         history,
         conversationId,

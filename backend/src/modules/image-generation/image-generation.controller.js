@@ -199,6 +199,7 @@ const buildFinalImageEditPrompt = (input, options = {}) => {
 function createImageGenerationController({
   imageGenerationService,
   imagePromptRefinerService,
+  inputOptimizerService,
   db,
   plansRepository,
   settingsRepository,
@@ -818,8 +819,9 @@ function createImageGenerationController({
     }
   };
 
-  const createImageTask = async (req, res, { prompt, enhancedPrompt = '', imageInput = [], conversationId = null, parentImageId = null }) => {
-    const normalizedPrompt = typeof prompt === 'string' ? prompt.trim() : '';
+  const createImageTask = async (req, res, { prompt, originalPrompt = '', optimizerResult = null, enhancedPrompt = '', imageInput = [], conversationId = null, parentImageId = null }) => {
+    let normalizedPrompt = typeof prompt === 'string' ? prompt.trim() : '';
+    const originalUserPrompt = typeof originalPrompt === 'string' && originalPrompt.trim() ? originalPrompt.trim() : normalizedPrompt;
     if (!normalizedPrompt) {
       const error = new Error('Prompt is required.');
       error.statusCode = 400;
@@ -908,6 +910,31 @@ function createImageGenerationController({
       }
     }
 
+    let appliedOptimizerResult = optimizerResult;
+    if (!appliedOptimizerResult && inputOptimizerService && typeof inputOptimizerService.optimizeInput === 'function') {
+      appliedOptimizerResult = await inputOptimizerService.optimizeInput({
+        text: originalUserPrompt,
+        operationId: idempotencyKey || `image:${userId}:${Date.now()}`,
+        operationType: normalizedImageInput.length > 0 ? 'image_edit' : 'image_generation',
+        conversationId,
+        userId,
+        guestId,
+        hasImages: normalizedImageInput.length > 0
+      });
+      if (appliedOptimizerResult.needsClarification) {
+        const error = new Error('INPUT_CLARIFICATION_REQUIRED');
+        error.statusCode = 409;
+        error.publicPayload = {
+          success: false,
+          error: 'INPUT_CLARIFICATION_REQUIRED',
+          needsClarification: true,
+          message: appliedOptimizerResult.clarificationQuestionFa
+        };
+        throw error;
+      }
+      normalizedPrompt = appliedOptimizerResult.optimizedTextEn || normalizedPrompt;
+    }
+
     const limitState = await resolveImageLimitState({ userId, isGuest });
     const limitDiagnostics = getImageLimitDiagnostics({ userId, isGuest, guestId, limitState });
     logImageLimitDiagnostics(limitDiagnostics);
@@ -962,7 +989,12 @@ function createImageGenerationController({
       }
       if (refinerSettings.storeMetadata !== false) {
         promptRefinerMetadata = {
-          originalUserPrompt: normalizedPrompt,
+          originalUserPrompt,
+          inputOptimizer: appliedOptimizerResult ? {
+            status: appliedOptimizerResult.status,
+            fallbackUsed: Boolean(appliedOptimizerResult.fallbackUsed),
+            ambiguityLevel: appliedOptimizerResult.ambiguityLevel || 'none'
+          } : null,
           refinedPrompt: refineResult.ok ? refineResult.refinedPrompt : finalPrompt,
           negativePrompt: refineResult.negativePrompt || imageSettings.defaultNegativePrompt || '',
           promptRefiner: {
@@ -989,7 +1021,7 @@ function createImageGenerationController({
        (user_id, task_id, prompt, original_prompt, refined_prompt, aspect_ratio, operation,
         conversation_id, parent_image_id, idempotency_key, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'QUEUE')`,
-      [userId, providerTaskId, finalPrompt, normalizedPrompt, finalPrompt, aspectRatio,
+      [userId, providerTaskId, finalPrompt, originalUserPrompt, finalPrompt, aspectRatio,
        hasImageInput ? 'edit' : 'generate', conversationId, parentImageId, idempotencyKey || null]
     );
     const dbRecordId = insertResult.insertId;

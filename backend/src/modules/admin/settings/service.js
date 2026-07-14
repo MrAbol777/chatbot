@@ -11,6 +11,7 @@ const {
   normalizeIntentRouterSettings,
   validateIntentRouterSettings
 } = require('../../intent-router/intent-router.settings');
+const { normalizeInputOptimizerSettings } = require('../../input-optimizer/input-optimizer.service');
 
 function createAdminSettingsService({ settingsRepository, appendAudit, onSettingsUpdated }) {
   const getSettings = async () => {
@@ -47,6 +48,10 @@ function createAdminSettingsService({ settingsRepository, appendAudit, onSetting
           settings: { ...before, ...incoming }
         });
         validateIntentRouterSettings(intentRouterSettings);
+      }
+      if (Object.keys(incoming).some((key) => key.startsWith('input_optimizer.'))) {
+        const optimizerSettings = normalizeInputOptimizerSettings({ settings: { ...before, ...incoming } });
+        if (!optimizerSettings.model || optimizerSettings.maxRetries > 1) throw new Error('تنظیمات Input Optimizer معتبر نیست.');
       }
       const result = await settingsRepository.updateMany(incoming);
       const changedKeys = Object.keys(result.updated);

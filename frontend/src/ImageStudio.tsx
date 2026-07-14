@@ -1,8 +1,12 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteGalleryImage, fetchProtectedImageBlobUrl, GalleryImage, getImageGenerationStatus, listGalleryImages, startImageEdit, startImageGeneration } from './services/imageGeneration';
 import './ImageStudio.css';
 
-const ratios = [{ value: '1:1', label: 'مربع' }, { value: '9:16', label: 'عمودی' }, { value: '16:9', label: 'افقی' }] as const;
+const ratios = [
+  { value: '1:1', label: 'مربع', description: 'برای پست و آواتار' },
+  { value: '9:16', label: 'عمودی', description: 'برای استوری و موبایل' },
+  { value: '16:9', label: 'افقی', description: 'برای بنر و نمایشگر' }
+] as const;
 const promptIdeas = ['شهر خیالی در غروب', 'کاراکتر سه‌بعدی بامزه', 'پوستر رنگی و مینیمال'];
 const editIdeas = ['پس‌زمینه را سینمایی کن', 'نور را طبیعی‌تر کن', 'متن تصویر را تغییر بده'];
 const pendingText = ['دارم ایده‌ات رو آماده می‌کنم...', 'جزئیات تصویر در حال ساخته‌شدنه...', 'تقریباً آماده است...'];
@@ -54,13 +58,16 @@ function ProtectedImage({ src, alt }: { src: string; alt: string }) {
   return blobUrl ? <img src={blobUrl} alt={alt} loading="lazy" /> : <span className="shimmer" aria-label="در حال بارگذاری تصویر" />;
 }
 
-export default function ImageStudio({ onBack, chatStudioSwitcher }: { onBack: () => void; chatStudioSwitcher?: ReactNode }) {
+type SortOrder = 'newest' | 'oldest';
+
+const completeCount = (list: GalleryImage[]) => list.filter((x) => x.status === 'COMPLETED').length;
+
+export default function ImageStudio({ onBack }: { onBack: () => void }) {
   const [savedSession] = useState(readStudioSession);
   const [tab, setTab] = useState<'create' | 'gallery'>(savedSession.tab);
   const [items, setItems] = useState<GalleryImage[]>([]);
   const [prompt, setPrompt] = useState(savedSession.prompt);
   const [ratio, setRatio] = useState<'1:1' | '9:16' | '16:9'>(savedSession.ratio);
-  const [ratioPickerOpen, setRatioPickerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
@@ -68,7 +75,10 @@ export default function ImageStudio({ onBack, chatStudioSwitcher }: { onBack: ()
   const [editSource, setEditSource] = useState<GalleryImage | null>(null);
   const [error, setError] = useState('');
   const [galleryError, setGalleryError] = useState('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+  const [sortOpen, setSortOpen] = useState(false);
   const inFlight = useRef(false);
+  const promptInputRef = useRef<HTMLTextAreaElement | null>(null);
   const editSourceToRestoreRef = useRef(savedSession.editSourceId);
 
   useEffect(() => {
@@ -78,10 +88,15 @@ export default function ImageStudio({ onBack, chatStudioSwitcher }: { onBack: ()
         STUDIO_SESSION_KEY,
         JSON.stringify({ tab, prompt, ratio, editSourceId: editSource?.id || null } satisfies StudioSessionState)
       );
-    } catch {
-      // Keeping this state is helpful but never required to use the studio.
-    }
+    } catch { /* best-effort */ }
   }, [tab, prompt, ratio, editSource?.id]);
+
+  useEffect(() => {
+    const input = promptInputRef.current;
+    if (!input) return;
+    input.style.height = 'auto';
+    input.style.height = `${Math.min(Math.max(input.scrollHeight, 164), 300)}px`;
+  }, [prompt]);
 
   const load = async (cursor = 0) => {
     try {
@@ -125,8 +140,13 @@ export default function ImageStudio({ onBack, chatStudioSwitcher }: { onBack: ()
   useEffect(() => {
     if (!selected) return;
     const close = (e: KeyboardEvent) => e.key === 'Escape' && setSelected(null);
-    document.body.style.overflow = 'hidden'; document.addEventListener('keydown', close);
-    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', close); };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', close);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', close);
+    };
   }, [selected]);
 
   const submit = async (event: FormEvent) => {
@@ -145,6 +165,25 @@ export default function ImageStudio({ onBack, chatStudioSwitcher }: { onBack: ()
   const remove = async (item: GalleryImage) => { if (!confirm('این تصویر از گالری حذف شود؟')) return; try { await deleteGalleryImage(item.id); setItems((old) => old.filter((x) => x.id !== item.id)); setSelected(null); } catch (e) { setError(e instanceof Error ? e.message : 'حذف انجام نشد.'); } };
   const download = async (item: GalleryImage) => { if (!item.imageUrl) return; const url = await fetchProtectedImageBlobUrl(item.imageUrl); const a = document.createElement('a'); a.href = url; a.download = `danoa-${item.id}.jpg`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 0); };
 
+  const sortedItems = useMemo(() => {
+    const list = [...items];
+    list.sort((a, b) => {
+      const da = new Date(a.createdAt).getTime();
+      const db = new Date(b.createdAt).getTime();
+      return sortOrder === 'newest' ? db - da : da - db;
+    });
+    return list;
+  }, [items, sortOrder]);
+
+  const handleCardAction = useCallback((e: React.MouseEvent, item: GalleryImage, action: string) => {
+    e.stopPropagation();
+    if (action === 'view') setSelected(item);
+    else if (action === 'download') void download(item);
+    else if (action === 'edit') reuse(item, true);
+    else if (action === 'similar') reuse(item);
+    else if (action === 'delete') void remove(item);
+  }, [download, reuse, remove]);
+
   return <main className="studio" dir="rtl">
     <div className="studio-shell">
     <header className="studio-header">
@@ -154,7 +193,7 @@ export default function ImageStudio({ onBack, chatStudioSwitcher }: { onBack: ()
         </span>
         <span className="studio-brand-copy">
           <strong>استودیوی تصویر</strong>
-          <small>خلق تصویر با ایده‌های تو</small>
+          <small>ایده‌ات را به تصویر تبدیل کن</small>
         </span>
       </div>
       <button className="studio-header-back" type="button" onClick={onBack} aria-label="بازگشت به چت" title="بازگشت به چت">
@@ -170,54 +209,84 @@ export default function ImageStudio({ onBack, chatStudioSwitcher }: { onBack: ()
         <div className="studio-source-copy"><small>ویرایش تصویر</small><strong>یک نسخه‌ی تازه می‌سازیم</strong><p>تصویر اصلی بدون تغییر در گالری می‌ماند.</p></div>
         <button type="button" onClick={() => { setEditSource(null); setPrompt(''); setTab('gallery'); }}>تغییر تصویر</button>
       </section>}
-      <section className="studio-prompt-block">
-        <label htmlFor="studio-prompt"><span>{editSource ? 'چه تغییری می‌خواهی؟' : 'چی توی ذهنت داری؟'}</span><small>{prompt.length}/۷۰۰</small></label>
-        <div className="studio-textarea-wrap"><span className="studio-input-spark" aria-hidden="true">✦</span><textarea id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, 700)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} /></div>
-        {!prompt && <div className="studio-ideas" aria-label="ایده‌های پیشنهادی">{(editSource ? editIdeas : promptIdeas).map((idea) => <button type="button" key={idea} onClick={() => setPrompt(idea)}>{idea}</button>)}</div>}
-      </section>
-      <fieldset className="ratio-field">
-        <div className="studio-field-heading"><legend>قاب تصویر</legend><span>اندازهٔ خروجی</span></div>
-        <div className={`ratio-picker${ratioPickerOpen ? ' is-open' : ''}`}>
-          <button
-            className="ratio-picker-trigger"
-            type="button"
-            aria-expanded={ratioPickerOpen}
-            aria-controls="ratio-picker-options"
-            onClick={() => setRatioPickerOpen((open) => !open)}
-          >
-            <i className={`ratio-shape ratio-${ratio.replace(':', '-')}`} aria-hidden="true" />
-            <span>{ratios.find((item) => item.value === ratio)?.label}</span>
-            <small>{ratio}</small>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
-          </button>
-          {ratioPickerOpen ? (
-            <div className="ratio-picker-options" id="ratio-picker-options" role="listbox" aria-label="انتخاب قاب تصویر">
-              {ratios.map((option) => (
-                <button
-                  type="button"
-                  key={option.value}
-                  className={ratio === option.value ? 'active' : ''}
-                  role="option"
-                  aria-selected={ratio === option.value}
-                  onClick={() => { setRatio(option.value); setRatioPickerOpen(false); }}
-                >
-                  <i className={`ratio-shape ratio-${option.value.replace(':', '-')}`} aria-hidden="true" />
-                  <span>{option.label}</span>
-                  <small>{option.value}</small>
-                  {ratio === option.value ? <b aria-hidden="true">✓</b> : null}
-                </button>
-              ))}
+      <div className="studio-create-grid">
+        <section className="studio-prompt-card">
+          <div className="studio-prompt-block">
+            <label htmlFor="studio-prompt"><span>{editSource ? 'چه تغییری می‌خواهی؟' : 'چی توی ذهنت داری؟'}</span><small>{prompt.length}/۷۰۰</small></label>
+            <p className="studio-field-help">سوژه، سبک، نور و حس تصویر را با چند کلمه توضیح بده.</p>
+            <div className="studio-textarea-wrap"><span className="studio-input-spark" aria-hidden="true">✦</span><textarea ref={promptInputRef} id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, 700)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} maxLength={700} /></div>
+            <div className="studio-idea-section">
+              <span>برای شروع، یکی را انتخاب کن</span>
+              <div className="studio-ideas" aria-label="ایده‌های پیشنهادی">{(editSource ? editIdeas : promptIdeas).map((idea) => <button type="button" key={idea} onClick={() => setPrompt(idea)} disabled={busy}>{idea}</button>)}</div>
             </div>
-          ) : null}
-        </div>
-      </fieldset>
-      <button className="studio-submit" disabled={busy || prompt.trim().length < 8}><span className="studio-submit-icon" aria-hidden="true">✦</span><span>{busy ? 'دارم آماده می‌کنم...' : editSource ? 'ویرایش تصویر' : 'ساخت تصویر'}</span>{busy && <i aria-hidden="true" />}</button>
-      {chatStudioSwitcher ? <div className="studio-submit-switcher">{chatStudioSwitcher}</div> : null}
+          </div>
+          <div className="studio-submit-dock">
+            <button className="studio-submit" disabled={busy || prompt.trim().length < 8}><span className="studio-submit-icon" aria-hidden="true">✦</span><span>{busy ? 'در حال ساخت تصویر...' : editSource ? 'ویرایش تصویر' : 'ساخت تصویر'}</span>{busy && <i aria-hidden="true" />}</button>
+            <small>{editSource ? 'تصویر اصلی شما بدون تغییر باقی می‌ماند.' : 'ساخت تصویر ممکن است چند لحظه زمان ببرد.'}</small>
+          </div>
+        </section>
+        <aside className="studio-settings-card" aria-label="تنظیمات تصویر">
+          <div className="studio-settings-heading"><span className="studio-settings-icon" aria-hidden="true">✦</span><div><h2>تنظیمات تصویر</h2><p>قاب مناسب خروجی را انتخاب کن</p></div></div>
+          <fieldset className="ratio-field">
+            <legend>نسبت تصویر</legend>
+            <div className="ratio-options" role="group" aria-label="انتخاب نسبت تصویر">
+              {ratios.map((option) => <button type="button" key={option.value} className={ratio === option.value ? 'active' : ''} aria-pressed={ratio === option.value} onClick={() => setRatio(option.value)} disabled={busy}>
+                <i className={`ratio-shape ratio-${option.value.replace(':', '-')}`} aria-hidden="true" />
+                <span>{option.label}</span><small>{option.value}</small>{ratio === option.value ? <b aria-hidden="true">✓</b> : null}
+              </button>)}
+            </div>
+          </fieldset>
+          <section className="studio-output-summary" aria-label="خلاصه خروجی">
+            <span>خروجی انتخاب‌شده</span>
+            <strong>{ratios.find((item) => item.value === ratio)?.label} <em>{ratio}</em></strong>
+            <p>{ratios.find((item) => item.value === ratio)?.description}</p>
+          </section>
+        </aside>
+      </div>
     </form> : <section className="studio-gallery">
-      {loading ? <div className="gallery-grid">{Array.from({ length: 8 }).map((_, i) => <div className="image-card skeleton" key={i} />)}</div> : items.length === 0 ? <div className="studio-empty"><strong>هنوز تصویری نساختی</strong><button type="button" onClick={() => setTab('create')}>اولین تصویر را بساز</button></div> : <div className="gallery-grid">{items.map((item, index) => <button type="button" className={`image-card ${item.status.toLowerCase()}`} style={{ aspectRatio: item.aspectRatio.replace(':', '/') }} key={item.id} onClick={() => item.status === 'COMPLETED' && setSelected(item)}>{item.status === 'COMPLETED' && item.imageUrl ? <ProtectedImage src={item.imageUrl} alt={item.originalPrompt} /> : <><span className="shimmer" /><strong>{item.status === 'ERROR' ? 'ساخت تصویر ناموفق بود' : pendingText[index % pendingText.length]}</strong>{item.status === 'ERROR' && <span onClick={(e) => { e.stopPropagation(); reuse(item); }}>تلاش دوباره</span>}</>}</button>)}</div>}
-      {nextCursor !== null && <button className="load-more" type="button" onClick={() => void load(nextCursor)}>نمایش بیشتر</button>}
+      <div className="gallery-panel">
+        {loading ? <div className="gallery-grid">{Array.from({ length: 8 }).map((_, i) => <div className="image-card skeleton" key={i} />)}</div> : items.length === 0 ? <div className="studio-empty"><strong>هنوز تصویری نساختی</strong><button type="button" onClick={() => setTab('create')}>اولین تصویر را بساز</button></div> : <>
+          <div className="gallery-header">
+            <div className="gallery-header-info">
+              <h2>تصاویر من</h2>
+              <span className="gallery-count">{completeCount(items)} تصویر</span>
+            </div>
+            <div className={`gallery-sort${sortOpen ? ' open' : ''}`}>
+              <button
+                className="gallery-sort-trigger"
+                type="button"
+                onClick={() => setSortOpen((o) => !o)}
+                aria-haspopup="listbox"
+                aria-expanded={sortOpen}
+              >
+                <span>{sortOrder === 'newest' ? 'جدیدترین' : 'قدیمی‌ترین'}</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+              </button>
+              {sortOpen && (
+                <div className="gallery-sort-dropdown" role="listbox" aria-label="مرتب‌سازی">
+                  <button type="button" className={sortOrder === 'newest' ? 'active' : ''} role="option" aria-selected={sortOrder === 'newest'} onClick={() => { setSortOrder('newest'); setSortOpen(false); }}>جدیدترین</button>
+                  <button type="button" className={sortOrder === 'oldest' ? 'active' : ''} role="option" aria-selected={sortOrder === 'oldest'} onClick={() => { setSortOrder('oldest'); setSortOpen(false); }}>قدیمی‌ترین</button>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="gallery-grid">{sortedItems.map((item) => <button type="button" className={`image-card ${item.status.toLowerCase()}`} style={{ aspectRatio: item.aspectRatio.replace(':', '/') }} key={item.id} onClick={() => item.status === 'COMPLETED' && setSelected(item)}>{item.status === 'COMPLETED' && item.imageUrl ? <>
+            <ProtectedImage src={item.imageUrl} alt={item.originalPrompt} />
+            <div className="card-overlay" aria-hidden="true">
+              <div className="card-overlay-actions">
+                <button type="button" onClick={(e) => handleCardAction(e, item, 'view')} aria-label="مشاهده تصویر">مشاهده</button>
+                <button type="button" onClick={(e) => handleCardAction(e, item, 'download')} aria-label="دانلود تصویر">دانلود</button>
+                <button type="button" onClick={(e) => handleCardAction(e, item, 'edit')} aria-label="ویرایش تصویر">ویرایش</button>
+                <button type="button" onClick={(e) => handleCardAction(e, item, 'similar')} aria-label="ساخت مشابه">مشابه</button>
+                <button type="button" onClick={(e) => handleCardAction(e, item, 'delete')} aria-label="حذف تصویر">حذف</button>
+              </div>
+            </div>
+          </> : <><span className="shimmer" /><strong>{item.status === 'ERROR' ? 'ساخت تصویر ناموفق بود' : pendingText[items.indexOf(item) % pendingText.length]}</strong>{item.status === 'ERROR' && <span onClick={(e) => { e.stopPropagation(); reuse(item); }}>تلاش دوباره</span>}</>}</button>)}</div>
+          {nextCursor !== null && <button className="load-more" type="button" onClick={() => void load(nextCursor)}>نمایش بیشتر</button>}
+        </>}
+      </div>
     </section>}
-    {tab === 'gallery' && chatStudioSwitcher ? <div className="studio-gallery-switcher">{chatStudioSwitcher}</div> : null}
+    <div className="studio-bottom-spacer" aria-hidden="true" />
     {selected && <div className="studio-modal" role="dialog" aria-modal="true" aria-label="نمایش تصویر" onMouseDown={(e) => e.target === e.currentTarget && setSelected(null)}>
       <div className="studio-modal-panel">
         <button className="modal-close" type="button" onClick={() => setSelected(null)} aria-label="بستن">×</button>
@@ -226,6 +295,13 @@ export default function ImageStudio({ onBack, chatStudioSwitcher }: { onBack: ()
         </div>
         <div className="studio-modal-details">
           <p>{getUserFacingPrompt(selected.originalPrompt)}</p>
+          {selected.refinedPrompt && selected.refinedPrompt !== selected.originalPrompt ? (
+            <details className="optimized-prompt-details">
+              <summary>پرامپت بهینه‌شده</summary>
+              <p dir="ltr">{selected.refinedPrompt}</p>
+              <button type="button" onClick={() => void navigator.clipboard?.writeText(selected.refinedPrompt)}>کپی پرامپت</button>
+            </details>
+          ) : null}
           <div className="modal-actions">
             <button type="button" onClick={() => void download(selected)}>دانلود</button>
             <button type="button" onClick={() => reuse(selected)}>ساخت مشابه</button>

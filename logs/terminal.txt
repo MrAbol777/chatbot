@@ -1,55 +1,73 @@
-(node:13128) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:19488) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[16:54:38] FRONTEND 
-[16:54:38] FRONTEND > hemraz-frontend@1.0.0 dev
-[16:54:38] FRONTEND > vite
-[16:54:38] FRONTEND 
-[16:54:38] BACKEND 
-[16:54:38] BACKEND > hemraz-backend@1.0.0 dev
-[16:54:38] BACKEND > nodemon --config nodemon.json src/server.js
-[16:54:38] BACKEND 
-[16:54:39] BACKEND [33m[nodemon] 3.1.14[39m
-[16:54:39] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[16:54:39] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[16:54:39] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[16:54:39] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[16:54:39] FRONTEND 
-[16:54:39] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m406[22m[2m[0m ms[22m
-[16:54:39] FRONTEND 
-[16:54:39] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[16:54:39] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.5.0.2:[1m5173[22m/[39m
-[16:54:39] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.24:[1m5173[22m/[39m
-[16:54:40] BACKEND [BOOT] DB mode=mysql
-[16:54:40] BACKEND [SMS] routes mounted
-[16:54:40] BACKEND [BALE] webhook mounted at /bale/webhook
-[16:54:40] BACKEND [DB] Connecting to local MySQL...
-[16:54:40] BACKEND [BALE] webhook configured {
-[16:54:40] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
-[16:54:40] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
-[16:54:40] BACKEND }
-[16:54:40] BACKEND [DB] Connected to local MySQL
-[16:54:40] BACKEND [BOOT] Database initialized
-[16:54:40] BACKEND [2026-07-13T13:24:40.468Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.5-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[16:54:42] BACKEND [2026-07-13T13:24:42.673Z] [HTTP] request_started {"requestId":"mrj981td-aql89e","method":"GET","path":"/api/settings/public"}
-[16:54:42] BACKEND [2026-07-13T13:24:42.677Z] [HTTP] request_finished {"requestId":"mrj981td-aql89e","method":"GET","path":"/api/settings/public","status":304,"durationMs":4}
-[16:54:42] BACKEND [2026-07-13T13:24:42.682Z] [HTTP] request_started {"requestId":"mrj981tm-dgeqsc","method":"GET","path":"/api/settings/public"}
-[16:54:42] BACKEND [2026-07-13T13:24:42.684Z] [HTTP] request_finished {"requestId":"mrj981tm-dgeqsc","method":"GET","path":"/api/settings/public","status":304,"durationMs":2}
-[16:54:44] BACKEND [2026-07-13T13:24:44.573Z] [HTTP] request_started {"requestId":"mrj983a5-dsl1re","method":"GET","path":"/api/images?limit=24&cursor=0"}
-[16:54:44] BACKEND [2026-07-13T13:24:44.582Z] [HTTP] request_finished {"requestId":"mrj983a5-dsl1re","method":"GET","path":"/api/images?limit=24&cursor=0","status":304,"durationMs":9}
-[16:54:44] BACKEND [2026-07-13T13:24:44.587Z] [HTTP] request_started {"requestId":"mrj983aj-hhdr1b","method":"GET","path":"/api/images?limit=24&cursor=0"}
-[16:54:44] BACKEND [2026-07-13T13:24:44.591Z] [HTTP] request_finished {"requestId":"mrj983aj-hhdr1b","method":"GET","path":"/api/images?limit=24&cursor=0","status":304,"durationMs":4}
-[16:55:17] BACKEND [32m[nodemon] restarting child process[39m
-[16:55:17] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[16:55:18] BACKEND [BOOT] DB mode=mysql
-[16:55:18] BACKEND [SMS] routes mounted
-[16:55:18] BACKEND [BALE] webhook mounted at /bale/webhook
-[16:55:18] BACKEND [DB] Connecting to local MySQL...
-[16:55:19] BACKEND [DB] Connected to local MySQL
-[16:55:19] BACKEND [BOOT] Database initialized
-[16:55:19] BACKEND [2026-07-13T13:25:19.124Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.5-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[16:55:19] BACKEND [BALE] webhook configured {
-[16:55:19] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
-[16:55:19] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
-[16:55:19] BACKEND }
-[16:55:22] BACKEND ^C^C^CTerminate batch job (Y/N)? ^CTerminate batch job (Y/N)? npm run dev --prefix backend exited with code 3221225786
-[16:55:22] FRONTEND npm run dev --prefix frontend exited with code 3221225786
+[13:51:24] FRONTEND 
+[13:51:24] FRONTEND > hemraz-frontend@1.0.0 dev
+[13:51:24] FRONTEND > vite
+[13:51:24] FRONTEND 
+[13:51:24] BACKEND 
+[13:51:24] BACKEND > hemraz-backend@1.0.0 dev
+[13:51:24] BACKEND > nodemon --config nodemon.json src/server.js
+[13:51:24] BACKEND 
+[13:51:25] BACKEND [33m[nodemon] 3.1.14[39m
+[13:51:25] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[13:51:25] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[13:51:25] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[13:51:25] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[13:51:25] FRONTEND 
+[13:51:25] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m997[22m[2m[0m ms[22m
+[13:51:25] FRONTEND 
+[13:51:25] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[13:51:25] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.5.0.2:[1m5173[22m/[39m
+[13:51:25] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.103:[1m5173[22m/[39m
+[13:51:29] BACKEND [BOOT] DB mode=mysql
+[13:51:29] BACKEND [SMS] routes mounted
+[13:51:29] BACKEND [BALE] webhook mounted at /bale/webhook
+[13:51:29] BACKEND [DB] Connecting to local MySQL...
+[13:51:29] BACKEND [DB] Connected to local MySQL
+[13:51:29] BACKEND [BOOT] Database initialized
+[13:51:29] BACKEND [2026-07-14T10:21:29.669Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.5-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[13:51:30] BACKEND [BALE] webhook configured {
+[13:51:30] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
+[13:51:30] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
+[13:51:30] BACKEND }
+[13:51:33] BACKEND [2026-07-14T10:21:33.001Z] [HTTP] request_started {"requestId":"mrki4csp-287cpc","method":"GET","path":"/api/settings/public"}
+[13:51:33] BACKEND [2026-07-14T10:21:33.051Z] [HTTP] request_started {"requestId":"mrki4cu3-nlklny","method":"POST","path":"/api/conversations/load"}
+[13:51:33] BACKEND [2026-07-14T10:21:33.055Z] [HTTP] request_finished {"requestId":"mrki4csp-287cpc","method":"GET","path":"/api/settings/public","status":200,"durationMs":54}
+[13:51:33] BACKEND [2026-07-14T10:21:33.060Z] [HTTP] request_started {"requestId":"mrki4cuc-21zyp2","method":"GET","path":"/api/settings/public"}
+[13:51:33] BACKEND [2026-07-14T10:21:33.098Z] [HTTP] request_finished {"requestId":"mrki4cuc-21zyp2","method":"GET","path":"/api/settings/public","status":304,"durationMs":38}
+[13:51:33] BACKEND [2026-07-14T10:21:33.123Z] [HTTP] request_finished {"requestId":"mrki4cu3-nlklny","method":"POST","path":"/api/conversations/load","status":200,"durationMs":72}
+[13:51:33] BACKEND [2026-07-14T10:21:33.635Z] [HTTP] request_started {"requestId":"mrki4dab-2o37eh","method":"POST","path":"/api/conversations/sync"}
+[13:51:33] BACKEND [2026-07-14T10:21:33.666Z] [HTTP] request_finished {"requestId":"mrki4dab-2o37eh","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":31}
+[13:51:40] BACKEND [2026-07-14T10:21:40.132Z] [HTTP] request_started {"requestId":"mrki4ias-ccjcuo","method":"GET","path":"/api/images?limit=24&cursor=0"}
+[13:51:40] BACKEND [2026-07-14T10:21:40.143Z] [HTTP] request_finished {"requestId":"mrki4ias-ccjcuo","method":"GET","path":"/api/images?limit=24&cursor=0","status":304,"durationMs":11}
+[13:51:40] BACKEND [2026-07-14T10:21:40.147Z] [HTTP] request_started {"requestId":"mrki4ib7-hg1e9l","method":"GET","path":"/api/images?limit=24&cursor=0"}
+[13:51:40] BACKEND [2026-07-14T10:21:40.151Z] [HTTP] request_finished {"requestId":"mrki4ib7-hg1e9l","method":"GET","path":"/api/images?limit=24&cursor=0","status":304,"durationMs":4}
+[13:51:57] BACKEND [2026-07-14T10:21:57.314Z] [HTTP] request_started {"requestId":"mrki4vk2-lt2aac","method":"GET","path":"/api/settings/public"}
+[13:51:57] BACKEND [2026-07-14T10:21:57.317Z] [HTTP] request_finished {"requestId":"mrki4vk2-lt2aac","method":"GET","path":"/api/settings/public","status":304,"durationMs":3}
+[13:51:57] BACKEND [2026-07-14T10:21:57.321Z] [HTTP] request_started {"requestId":"mrki4vk9-9izbh2","method":"GET","path":"/api/settings/public"}
+[13:51:57] BACKEND [2026-07-14T10:21:57.323Z] [HTTP] request_finished {"requestId":"mrki4vk9-9izbh2","method":"GET","path":"/api/settings/public","status":304,"durationMs":2}
+[13:52:24] BACKEND [2026-07-14T10:22:24.664Z] [HTTP] request_started {"requestId":"mrki5gns-pj956n","method":"GET","path":"/api/images?limit=24&cursor=0"}
+[13:52:24] BACKEND [2026-07-14T10:22:24.670Z] [HTTP] request_finished {"requestId":"mrki5gns-pj956n","method":"GET","path":"/api/images?limit=24&cursor=0","status":200,"durationMs":6}
+[13:52:24] BACKEND [2026-07-14T10:22:24.683Z] [HTTP] request_started {"requestId":"mrki5gob-l3f5xx","method":"GET","path":"/api/images?limit=24&cursor=0"}
+[13:52:24] BACKEND [2026-07-14T10:22:24.686Z] [HTTP] request_finished {"requestId":"mrki5gob-l3f5xx","method":"GET","path":"/api/images?limit=24&cursor=0","status":304,"durationMs":3}
+[13:52:53] FRONTEND [2m1:52:53 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[13:52:53] FRONTEND [2m1:52:53 PM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/App.tsx[22m Could not Fast Refresh ("loadProfile" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[13:52:53] FRONTEND [2m1:52:53 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/App.tsx[22m
+[13:52:54] BACKEND [2026-07-14T10:22:54.209Z] [HTTP] request_started {"requestId":"mrki63gh-99x26a","method":"GET","path":"/api/settings/public"}
+[13:52:54] BACKEND [2026-07-14T10:22:54.211Z] [HTTP] request_finished {"requestId":"mrki63gh-99x26a","method":"GET","path":"/api/settings/public","status":304,"durationMs":2}
+[13:52:54] BACKEND [2026-07-14T10:22:54.223Z] [HTTP] request_started {"requestId":"mrki63gv-nln214","method":"GET","path":"/api/settings/public"}
+[13:52:54] BACKEND [2026-07-14T10:22:54.225Z] [HTTP] request_finished {"requestId":"mrki63gv-nln214","method":"GET","path":"/api/settings/public","status":304,"durationMs":2}
+[13:52:54] BACKEND [2026-07-14T10:22:54.243Z] [HTTP] request_started {"requestId":"mrki63hf-93jqil","method":"POST","path":"/api/conversations/load"}
+[13:52:54] BACKEND [2026-07-14T10:22:54.267Z] [HTTP] request_finished {"requestId":"mrki63hf-93jqil","method":"POST","path":"/api/conversations/load","status":200,"durationMs":24}
+[13:52:54] BACKEND [2026-07-14T10:22:54.975Z] [HTTP] request_started {"requestId":"mrki641r-amffca","method":"POST","path":"/api/conversations/sync"}
+[13:52:55] BACKEND [2026-07-14T10:22:55.003Z] [HTTP] request_finished {"requestId":"mrki641r-amffca","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":28}
+[13:52:55] FRONTEND [2m1:52:55 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ChatExperience.css[22m
+[13:53:08] FRONTEND [2m1:53:08 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[13:53:39] BACKEND [2026-07-14T10:23:39.478Z] [HTTP] request_started {"requestId":"mrki72dy-oa05or","method":"GET","path":"/api/settings/public"}
+[13:53:39] BACKEND [2026-07-14T10:23:39.480Z] [HTTP] request_finished {"requestId":"mrki72dy-oa05or","method":"GET","path":"/api/settings/public","status":304,"durationMs":2}
+[13:53:39] BACKEND [2026-07-14T10:23:39.484Z] [HTTP] request_started {"requestId":"mrki72e4-q1vq01","method":"GET","path":"/api/settings/public"}
+[13:53:39] BACKEND [2026-07-14T10:23:39.487Z] [HTTP] request_finished {"requestId":"mrki72e4-q1vq01","method":"GET","path":"/api/settings/public","status":304,"durationMs":3}
+[13:53:39] BACKEND [2026-07-14T10:23:39.499Z] [HTTP] request_started {"requestId":"mrki72ej-d67yn0","method":"POST","path":"/api/conversations/load"}
+[13:53:39] BACKEND [2026-07-14T10:23:39.517Z] [HTTP] request_finished {"requestId":"mrki72ej-d67yn0","method":"POST","path":"/api/conversations/load","status":200,"durationMs":18}
+[13:53:40] BACKEND [2026-07-14T10:23:40.031Z] [HTTP] request_started {"requestId":"mrki72tb-y794dk","method":"POST","path":"/api/conversations/sync"}
+[13:53:40] BACKEND [2026-07-14T10:23:40.067Z] [HTTP] request_finished {"requestId":"mrki72tb-y794dk","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":36}

@@ -616,6 +616,14 @@ const SETTING_DEFINITIONS = {
     defaultValue: true,
     adminEditable: true
   },
+  'input_optimizer.enabled': { label: 'فعال بودن Input Optimizer', type: 'boolean', category: 'ai', defaultValue: true, adminEditable: true },
+  'input_optimizer.model': { label: 'مدل Input Optimizer', type: 'string', category: 'ai', defaultValue: 'gemini-2.5-flash-lite-preview', adminEditable: true },
+  'input_optimizer.temperature': { label: 'Temperature Input Optimizer', type: 'number', category: 'ai', defaultValue: 0, min: 0, max: 0.2, adminEditable: true },
+  'input_optimizer.timeout_ms': { label: 'Timeout Input Optimizer (ms)', type: 'number', category: 'ai', defaultValue: 3500, min: 500, max: 30000, adminEditable: true },
+  'input_optimizer.max_retries': { label: 'تعداد retry Input Optimizer', type: 'number', category: 'ai', defaultValue: 1, min: 0, max: 1, adminEditable: true },
+  'input_optimizer.max_output_tokens': { label: 'Max tokens Input Optimizer', type: 'number', category: 'ai', defaultValue: 450, min: 100, max: 1000, adminEditable: true },
+  'input_optimizer.version': { label: 'نسخه Input Optimizer', type: 'string', category: 'ai', defaultValue: '1', adminEditable: true },
+  'input_optimizer.allow_chat_key_fallback': { label: 'Fallback کلید چت برای Input Optimizer', type: 'boolean', category: 'ai', defaultValue: true, adminEditable: true },
   'ai.intent_router.provider': {
     label: 'Provider مسیریاب هوشمند',
     type: 'string',

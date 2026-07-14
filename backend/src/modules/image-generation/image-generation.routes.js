@@ -45,6 +45,7 @@ function createImageGenerationRouter(deps) {
   const controller = createImageGenerationController({
     imageGenerationService,
     imagePromptRefinerService,
+    inputOptimizerService: deps.inputOptimizerService,
     db: deps.db,
     plansRepository: deps.plansRepository,
     settingsRepository: deps.settingsRepository,

@@ -15,6 +15,7 @@ function createAiRouter(deps) {
     settingsRepository: deps.settingsRepository,
     uploadedImagesRepository: deps.uploadedImagesRepository,
     intentRouterService: deps.intentRouterService,
+    inputOptimizerService: deps.inputOptimizerService,
     conversationMemoryService: deps.conversationMemoryService,
     conversationContextBuilder: deps.conversationContextBuilder,
     conversationMemoryWriterService: deps.conversationMemoryWriterService,

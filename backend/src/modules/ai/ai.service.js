@@ -557,7 +557,7 @@ function createAiService({
     }
   };
 
-  const sendChatMessage = async ({ message, profile, history, conversationId, imageIds, requestId, limitStatus = null }) => {
+  const sendChatMessage = async ({ message, originalMessage = '', profile, history, conversationId, imageIds, requestId, limitStatus = null }) => {
     const trimmedMessage = typeof message === 'string' ? message.trim() : '';
     const userMessageCreatedAt = new Date();
     const rawImageIds = Array.isArray(imageIds) ? imageIds : [];
@@ -610,7 +610,7 @@ function createAiService({
     }
 
     const userId = await usersRepository.ensureUserExists(profile || {});
-    const messageForHistory = trimmedMessage || '📷 عکس ارسال شد';
+    const messageForHistory = (typeof originalMessage === 'string' && originalMessage.trim()) ? originalMessage.trim() : (trimmedMessage || '📷 عکس ارسال شد');
     const category = detectCategory(messageForHistory);
     let normalizedConversationId =
       typeof conversationId === 'string' && conversationId.trim().length > 0
@@ -664,7 +664,7 @@ function createAiService({
       },
       {
         role: 'user',
-        content: messageForHistory
+        content: trimmedMessage || messageForHistory
       }
     ];
     if (conversationContextBuilder && typeof conversationContextBuilder.buildChatMessages === 'function') {
@@ -672,7 +672,7 @@ function createAiService({
         const imageParts = buildImageContentParts(trimmedMessage, resolvedImages).filter((part) => part.type === 'image_url');
         ({ messages } = await conversationContextBuilder.buildImageChatMessages({
           conversationId: normalizedConversationId,
-          userMessage: messageForHistory,
+          userMessage: trimmedMessage || messageForHistory,
           systemPrompt,
           owner: { userId },
           imageParts
@@ -680,7 +680,7 @@ function createAiService({
       } else {
         ({ messages } = await conversationContextBuilder.buildChatMessages({
           conversationId: normalizedConversationId,
-          userMessage: messageForHistory,
+          userMessage: trimmedMessage || messageForHistory,
           systemPrompt,
           owner: { userId }
         }));
@@ -739,7 +739,7 @@ function createAiService({
     return executeTurn();
   };
 
-  const streamChatMessage = async ({ message, profile, conversationId, imageIds, requestId, limitStatus = null, turnId, signal, onDelta }) => {
+  const streamChatMessage = async ({ message, originalMessage = '', profile, conversationId, imageIds, requestId, limitStatus = null, turnId, signal, onDelta }) => {
     const trimmedMessage = typeof message === 'string' ? message.trim() : '';
     const normalizedImageIds = normalizeImageIds(imageIds);
     if (!trimmedMessage && normalizedImageIds.length === 0) {
@@ -751,7 +751,7 @@ function createAiService({
     }
     const userId = await usersRepository.ensureUserExists(profile || {});
     const normalizedConversationId = typeof conversationId === 'string' && conversationId.trim() ? conversationId.trim() : 'default';
-    const messageForHistory = trimmedMessage || '📷 عکس ارسال شد';
+    const messageForHistory = (typeof originalMessage === 'string' && originalMessage.trim()) ? originalMessage.trim() : (trimmedMessage || '📷 عکس ارسال شد');
     const category = detectCategory(messageForHistory);
     await conversationsRepository.ensureConversation(userId, normalizedConversationId);
 
@@ -761,13 +761,13 @@ function createAiService({
       const previousDocument = conversationMemoryService?.readForConversation
         ? await conversationMemoryService.readForConversation(normalizedConversationId, { userId }, { createIfMissing: true })
         : null;
-      let messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: messageForHistory }];
+      let messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: trimmedMessage || messageForHistory }];
       if (conversationContextBuilder?.buildChatMessages) {
         if (resolvedImages.length > 0 && conversationContextBuilder.buildImageChatMessages) {
           const imageParts = buildImageContentParts(trimmedMessage, resolvedImages).filter((part) => part.type === 'image_url');
           ({ messages } = await conversationContextBuilder.buildImageChatMessages({
             conversationId: normalizedConversationId,
-            userMessage: messageForHistory,
+            userMessage: trimmedMessage || messageForHistory,
             systemPrompt,
             owner: { userId },
             imageParts
@@ -775,7 +775,7 @@ function createAiService({
         } else {
           ({ messages } = await conversationContextBuilder.buildChatMessages({
             conversationId: normalizedConversationId,
-            userMessage: messageForHistory,
+            userMessage: trimmedMessage || messageForHistory,
             systemPrompt,
             owner: { userId }
           }));

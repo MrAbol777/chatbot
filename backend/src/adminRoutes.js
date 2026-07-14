@@ -68,6 +68,7 @@ function createAdminModule({
   imagePromptRefinerService,
   imageUnderstandingService,
   intentRouterService,
+  inputOptimizerService,
   conversationMemoryService,
   conversationMemoryWriterService
 }) {
@@ -157,6 +158,15 @@ function createAdminModule({
 
   router.get('/me', requireAdminAuth, (req, res) => {
     return res.json({ admin: req.admin });
+  });
+
+  router.get('/input-optimizations', requireAdminAuth, async (req, res) => {
+    const records = await repositories?.inputOptimizations?.listForAdmin?.({
+      conversationId: typeof req.query?.conversationId === 'string' ? req.query.conversationId : '',
+      status: typeof req.query?.status === 'string' ? req.query.status : '',
+      limit: req.query?.limit
+    }) || [];
+    return res.json({ items: records });
   });
 
   const getImageRuntimeSettings = async (options = {}) => {
@@ -1353,6 +1363,13 @@ function createAdminModule({
         typeof intentRouterService.invalidate === 'function'
       ) {
         intentRouterService.invalidate();
+      }
+      if (
+        changedKeys.some((key) => String(key).startsWith('input_optimizer.')) &&
+        inputOptimizerService &&
+        typeof inputOptimizerService.invalidate === 'function'
+      ) {
+        inputOptimizerService.invalidate();
       }
       if (
         changedKeys.some((key) => String(key).startsWith('ai.conversation_memory.')) &&

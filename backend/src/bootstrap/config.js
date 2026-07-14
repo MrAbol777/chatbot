@@ -149,6 +149,9 @@ function loadRuntimeConfig(env = process.env) {
   const intentRouterKey = pickApiKey([
     { source: 'METIS_INTENT_ROUTER_API_KEY', value: env.METIS_INTENT_ROUTER_API_KEY }
   ]);
+  const inputOptimizerKey = pickApiKey([
+    { source: 'METIS_INPUT_OPTIMIZER_API_KEY', value: env.METIS_INPUT_OPTIMIZER_API_KEY }
+  ]);
   const conversationMemoryKey = pickApiKey([
     { source: 'METIS_CONVERSATION_MEMORY_API_KEY', value: env.METIS_CONVERSATION_MEMORY_API_KEY },
     { source: 'legacy METIS_CHAT_API_KEY', value: env.METIS_CHAT_API_KEY },
@@ -245,6 +248,20 @@ function loadRuntimeConfig(env = process.env) {
       apiKey: intentRouterKey.apiKey,
       apiKeySource: intentRouterKey.apiKeySource,
       apiKeyFingerprint: intentRouterKey.apiKeyFingerprint
+    },
+    inputOptimizer: {
+      enabled: env.INPUT_OPTIMIZER_ENABLED !== 'false',
+      provider: 'metis',
+      model: env.INPUT_OPTIMIZER_MODEL || 'gemini-2.5-flash-lite-preview',
+      temperature: Number.isFinite(Number(env.INPUT_OPTIMIZER_TEMPERATURE)) ? Number(env.INPUT_OPTIMIZER_TEMPERATURE) : 0,
+      timeoutMs: Number.isFinite(Number(env.INPUT_OPTIMIZER_TIMEOUT_MS)) ? Number(env.INPUT_OPTIMIZER_TIMEOUT_MS) : 3500,
+      maxRetries: Number.isFinite(Number(env.INPUT_OPTIMIZER_MAX_RETRIES)) ? Number(env.INPUT_OPTIMIZER_MAX_RETRIES) : 1,
+      maxOutputTokens: Number.isFinite(Number(env.INPUT_OPTIMIZER_MAX_OUTPUT_TOKENS)) ? Number(env.INPUT_OPTIMIZER_MAX_OUTPUT_TOKENS) : 450,
+      version: env.INPUT_OPTIMIZER_VERSION || '1',
+      allowChatKeyFallback: env.INPUT_OPTIMIZER_ALLOW_CHAT_KEY_FALLBACK !== 'false',
+      apiKey: inputOptimizerKey.apiKey,
+      apiKeySource: inputOptimizerKey.apiKeySource,
+      apiKeyFingerprint: inputOptimizerKey.apiKeyFingerprint
     },
     conversationMemory: {
       enabled: env.CONVERSATION_MEMORY_ENABLED !== 'false',

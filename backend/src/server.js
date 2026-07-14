@@ -25,6 +25,7 @@ const { createAiRouter } = require('./modules/ai/ai.routes');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createImageUnderstandingRouter } = require('./modules/image-understanding/image-understanding.routes');
 const { createIntentRouterService } = require('./modules/intent-router/intent-router.service');
+const { createInputOptimizerService } = require('./modules/input-optimizer/input-optimizer.service');
 const { createConversationMemoryService } = require('./modules/conversation-memory/conversation-memory.service');
 const { createConversationMemoryWriterService } = require('./modules/conversation-memory/conversation-memory-writer.service');
 const { createConversationContextBuilder } = require('./modules/conversation-memory/conversation-context-builder.service');
@@ -394,6 +395,15 @@ const { router: authRouter } = createAuthModule({
 });
 app.use(authRouter);
 
+const inputOptimizerService = createInputOptimizerService({
+  httpClient: axios,
+  settingsRepository: repositories.settings,
+  optimizationRepository: repositories.inputOptimizations,
+  optimizerConfig: ai.inputOptimizer,
+  chatConfig: ai.chat,
+  logger: console
+});
+
 const imageGenerationModule = createImageGenerationRouter({
   httpClient: axios,
   geminiApiKey,
@@ -407,7 +417,8 @@ const imageGenerationModule = createImageGenerationRouter({
   guestsRepository: repositories.guests,
   conversationsRepository: repositories.conversations,
   eventsRepository: repositories.events,
-  authJwtSecret
+  authJwtSecret,
+  inputOptimizerService
 });
 app.use('/api/images', imageGenerationModule.publicRouter);
 app.use('/api/images', imageGenerationModule.router);
@@ -471,6 +482,7 @@ app.use(createAiRouter({
   uploadedImagesRepository,
   settingsRepository: repositories.settings,
   intentRouterService,
+  inputOptimizerService,
   conversationMemoryService,
   conversationContextBuilder,
   conversationMemoryWriterService,
@@ -527,6 +539,7 @@ const { router: adminRouter } = createAdminRouter({
   imagePromptRefinerService: imageGenerationModule.imagePromptRefinerService,
   imageUnderstandingService: imageUnderstandingModule.imageUnderstandingService,
   intentRouterService,
+  inputOptimizerService,
   conversationMemoryService,
   conversationMemoryWriterService
 });
