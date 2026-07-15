@@ -102,15 +102,21 @@ export async function getImageGenerationStatusForConversation(taskId: string, co
 }
 
 export async function fetchProtectedImageBlobUrl(imageUrl: string): Promise<string> {
-  const res = await safeFetch(apiUrl(imageUrl), {
-    headers: authHeaders(),
-    credentials: 'include'
-  });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || 'بارگذاری تصویر انجام نشد.');
+  const isExternal = /^https?:\/\//i.test(imageUrl);
+  try {
+    const res = await safeFetch(apiUrl(imageUrl), {
+      headers: isExternal ? {} : authHeaders(),
+      credentials: isExternal ? 'omit' : 'include'
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || 'بارگذاری تصویر انجام نشد.');
+    }
+    return URL.createObjectURL(await res.blob());
+  } catch {
+    if (isExternal) return imageUrl;
+    throw new Error('بارگذاری تصویر انجام نشد.');
   }
-  return URL.createObjectURL(await res.blob());
 }
 
 /**

@@ -1104,22 +1104,34 @@ function createImageGenerationController({
     }
   };
 
-  const serializeImage = (record) => ({
-    id: String(record.id),
-    taskId: String(record.id),
-    originalPrompt: record.original_prompt || record.prompt || '',
-    refinedPrompt: record.refined_prompt || record.prompt || '',
-    model: record.model_runtime_value || record.model_admin_value || null,
-    aspectRatio: record.aspect_ratio || '1:1',
-    operation: record.operation || 'generate',
-    conversationId: record.conversation_id || null,
-    parentImageId: record.parent_image_id ? String(record.parent_image_id) : null,
-    status: record.status,
-    imageUrl: record.status === 'COMPLETED' ? getLocalPublicUrl(record.id) : null,
-    error: record.status === 'ERROR' ? publicImageErrorMessage(record.error) : null,
-    createdAt: record.created_at,
-    updatedAt: record.updated_at
-  });
+  const serializeImage = (record) => {
+    let imageUrl = null;
+    if (record.status === 'COMPLETED') {
+      const hasLocalFile = typeof record.local_file_path === 'string' && record.local_file_path.trim().length > 0;
+      const hasExternalUrl = typeof record.image_url === 'string' && record.image_url.trim().length > 0;
+      if (hasLocalFile) {
+        imageUrl = getLocalPublicUrl(record.id);
+      } else if (hasExternalUrl) {
+        imageUrl = record.image_url.trim();
+      }
+    }
+    return {
+      id: String(record.id),
+      taskId: String(record.id),
+      originalPrompt: record.original_prompt || record.prompt || '',
+      refinedPrompt: record.refined_prompt || record.prompt || '',
+      model: record.model_runtime_value || record.model_admin_value || null,
+      aspectRatio: record.aspect_ratio || '1:1',
+      operation: record.operation || 'generate',
+      conversationId: record.conversation_id || null,
+      parentImageId: record.parent_image_id ? String(record.parent_image_id) : null,
+      status: record.status,
+      imageUrl,
+      error: record.status === 'ERROR' ? publicImageErrorMessage(record.error) : null,
+      createdAt: record.created_at,
+      updatedAt: record.updated_at
+    };
+  };
 
   const listImages = async (req, res) => {
     try {

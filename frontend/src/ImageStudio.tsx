@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteGalleryImage, fetchProtectedImageBlobUrl, GalleryImage, getImageGenerationStatus, listGalleryImages, startImageEdit, startImageGeneration } from './services/imageGeneration';
+import ImageViewer from './ImageViewer';
 import './ImageStudio.css';
 
 const ratios = [
@@ -50,12 +51,16 @@ const getUserFacingPrompt = (prompt: string) => {
 
 function ProtectedImage({ src, alt }: { src: string; alt: string }) {
   const [blobUrl, setBlobUrl] = useState('');
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     let active = true; let created = '';
-    fetchProtectedImageBlobUrl(src).then((url) => { created = url; if (active) setBlobUrl(url); else URL.revokeObjectURL(url); }).catch(() => {});
-    return () => { active = false; if (created) URL.revokeObjectURL(created); };
+    setFailed(false);
+    fetchProtectedImageBlobUrl(src).then((url) => { created = url; if (active) setBlobUrl(url); else if (url.startsWith('blob:')) URL.revokeObjectURL(url); }).catch(() => { if (active) setFailed(true); });
+    return () => { active = false; if (created && created.startsWith('blob:')) URL.revokeObjectURL(created); };
   }, [src]);
-  return blobUrl ? <img src={blobUrl} alt={alt} loading="lazy" /> : <span className="shimmer" aria-label="در حال بارگذاری تصویر" />;
+  if (blobUrl) return <img src={blobUrl} alt={alt} loading="lazy" />;
+  if (failed) return <span className="image-card-error" aria-label="بارگذاری تصویر انجام نشد">!</span>;
+  return <span className="shimmer" aria-label="در حال بارگذاری تصویر" />;
 }
 
 type SortOrder = 'newest' | 'oldest';
@@ -139,13 +144,12 @@ export default function ImageStudio({ onBack }: { onBack: () => void }) {
   }, [pendingIds.join(',')]);
   useEffect(() => {
     if (!selected) return;
-    const close = (e: KeyboardEvent) => e.key === 'Escape' && setSelected(null);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', close);
+    document.body.classList.add('studio-viewer-open');
     return () => {
       document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', close);
+      document.body.classList.remove('studio-viewer-open');
     };
   }, [selected]);
 
@@ -163,7 +167,7 @@ export default function ImageStudio({ onBack }: { onBack: () => void }) {
   };
   const reuse = (item: GalleryImage, edit = false) => { setPrompt(edit ? '' : getUserFacingPrompt(item.originalPrompt)); setRatio(item.aspectRatio); setEditSource(edit ? item : null); setSelected(null); setError(''); setTab('create'); };
   const remove = async (item: GalleryImage) => { if (!confirm('این تصویر از گالری حذف شود؟')) return; try { await deleteGalleryImage(item.id); setItems((old) => old.filter((x) => x.id !== item.id)); setSelected(null); } catch (e) { setError(e instanceof Error ? e.message : 'حذف انجام نشد.'); } };
-  const download = async (item: GalleryImage) => { if (!item.imageUrl) return; const url = await fetchProtectedImageBlobUrl(item.imageUrl); const a = document.createElement('a'); a.href = url; a.download = `danoa-${item.id}.jpg`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 0); };
+  const download = async (item: GalleryImage) => { if (!item.imageUrl) return; const url = await fetchProtectedImageBlobUrl(item.imageUrl); const a = document.createElement('a'); a.href = url; a.download = `danoa-${item.id}.jpg`; a.click(); if (url.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(url), 0); };
 
   const sortedItems = useMemo(() => {
     const list = [...items];
@@ -287,30 +291,7 @@ export default function ImageStudio({ onBack }: { onBack: () => void }) {
       </div>
     </section>}
     <div className="studio-bottom-spacer" aria-hidden="true" />
-    {selected && <div className="studio-modal" role="dialog" aria-modal="true" aria-label="نمایش تصویر" onMouseDown={(e) => e.target === e.currentTarget && setSelected(null)}>
-      <div className="studio-modal-panel">
-        <button className="modal-close" type="button" onClick={() => setSelected(null)} aria-label="بستن">×</button>
-        <div className="studio-modal-media">
-          {selected.imageUrl && <ProtectedImage src={selected.imageUrl} alt={getUserFacingPrompt(selected.originalPrompt)} />}
-        </div>
-        <div className="studio-modal-details">
-          <p>{getUserFacingPrompt(selected.originalPrompt)}</p>
-          {selected.refinedPrompt && selected.refinedPrompt !== selected.originalPrompt ? (
-            <details className="optimized-prompt-details">
-              <summary>پرامپت بهینه‌شده</summary>
-              <p dir="ltr">{selected.refinedPrompt}</p>
-              <button type="button" onClick={() => void navigator.clipboard?.writeText(selected.refinedPrompt)}>کپی پرامپت</button>
-            </details>
-          ) : null}
-          <div className="modal-actions">
-            <button type="button" onClick={() => void download(selected)}>دانلود</button>
-            <button type="button" onClick={() => reuse(selected)}>ساخت مشابه</button>
-            <button type="button" onClick={() => reuse(selected, true)}>ویرایش</button>
-            <button type="button" className="danger" onClick={() => void remove(selected)}>حذف</button>
-          </div>
-        </div>
-      </div>
-    </div>}
+    {selected && <ImageViewer item={selected} onClose={() => setSelected(null)} onDownload={download} />}
     </div>
   </main>;
 }
