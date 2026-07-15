@@ -4247,32 +4247,6 @@ function ChatApp() {
             ) : null}
 
             <div className={`composer-row ${isRecording ? 'recording' : ''} ${shouldShowSendAction ? 'has-action' : 'voice-action'}`}>
-              <div className={`composer-card ${isRecording ? 'recording' : ''} ${canSendMessage ? 'ready' : ''}`}>
-                <div className="composer-main">
-                  <div className="message-field">
-                    <textarea
-                      ref={messageInputRef}
-                      dir="auto"
-                      rows={1}
-                      value={inputValue}
-                      disabled={isRecording}
-                      onChange={(event) => setInputValue(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && !event.shiftKey) {
-                          event.preventDefault();
-                          void handleSendMessage();
-                        }
-                      }}
-                      placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیام خود را بنویسید...'}
-                      aria-label="نوشتن پیام"
-                    />
-                    <div className="composer-hint">
-                      <span>{isRecording ? 'ضبط صدا فعال است' : 'Enter برای ارسال، Shift + Enter برای خط جدید'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {!isRecording ? (
                 <div className="attachment-rail">
                   <div className="attachment-box attachment-tools" ref={attachmentBoxRef}>
@@ -4315,6 +4289,32 @@ function ChatApp() {
                   </div>
                 </div>
               ) : null}
+
+              <div className={`composer-card ${isRecording ? 'recording' : ''} ${canSendMessage ? 'ready' : ''}`}>
+                <div className="composer-main">
+                  <div className="message-field">
+                    <textarea
+                      ref={messageInputRef}
+                      dir="auto"
+                      rows={1}
+                      value={inputValue}
+                      disabled={isRecording}
+                      onChange={(event) => setInputValue(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' && !event.shiftKey) {
+                          event.preventDefault();
+                          void handleSendMessage();
+                        }
+                      }}
+                      placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیام خود را بنویسید...'}
+                      aria-label="نوشتن پیام"
+                    />
+                    <div className="composer-hint">
+                      <span>{isRecording ? 'ضبط صدا فعال است' : 'Enter برای ارسال، Shift + Enter برای خط جدید'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div className="composer-actions">
                 {isRecording ? (

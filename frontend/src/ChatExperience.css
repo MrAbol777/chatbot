@@ -226,6 +226,9 @@
 
 @media (min-width: 768px) {
   .chat-shell.view-chat .empty-state.chat-empty-state { transform: translateY(-4%); }
+  .chat-shell.view-chat .composer-card { order: 0; }
+  .chat-shell.view-chat .attachment-rail { order: 1; }
+  .chat-shell.view-chat .composer-actions { order: 2; }
 }
 
 @media (min-width: 1100px) {
@@ -266,4 +269,8 @@
   .chat-shell.view-chat .input-area > .chat-studio-switcher > .chat-studio-switcher__panel { min-height: 54px; }
   .chat-shell.view-chat .input-area > .chat-studio-switcher .chat-studio-switcher__item,
   .chat-shell.view-chat .input-area > .chat-studio-switcher .chat-studio-switcher__new-chat { min-height: 44px; font-size: .69rem; }
+  .chat-shell.view-chat .composer-row { gap: 6px; }
+  .chat-shell.view-chat .attachment-rail {
+    margin-right: -2px;
+  }
 }
