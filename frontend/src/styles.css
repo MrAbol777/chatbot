@@ -2871,10 +2871,10 @@ textarea {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .empty-state {
@@ -2889,7 +2889,6 @@ textarea {
 .message-row {
   display: flex;
   width: 100%;
-  margin-bottom: 12px;
   direction: ltr;
   animation: slideIn 0.25s ease;
 }
@@ -3945,10 +3944,9 @@ select:focus-visible {
 .chat-shell.view-chat .chat-card {
   width: min(100%, 1180px);
   max-width: 1180px;
-  min-height: min(840px, calc(100dvh - 40px));
-  border-width: 6px;
-  border-radius: 30px;
-  box-shadow: 0 20px 52px rgba(45, 49, 51, .12);
+  overflow: hidden;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .chat-shell.view-chat .top-bar {
@@ -3987,8 +3985,8 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .messages-area {
-  padding: 28px clamp(20px, 4vw, 52px) 22px;
-  gap: 14px;
+  padding: 10px clamp(16px, 4vw, 48px) 10px;
+  gap: 6px;
 }
 
 .chat-shell.view-chat .message-row,
@@ -4033,7 +4031,7 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .input-area {
-  padding: 16px clamp(14px, 3vw, 34px) calc(14px + env(safe-area-inset-bottom, 0px));
+  padding: 8px clamp(12px, 3vw, 28px) calc(10px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(180deg, rgba(247, 249, 251, 0) 0%, rgba(247, 249, 251, .88) 32%, rgba(247, 249, 251, .98) 100%);
 }
 
@@ -4104,9 +4102,9 @@ select:focus-visible {
 .chat-shell.view-chat .chat-studio-switcher__new-chat > svg { width: 21px; height: 21px; padding: 2px; border-radius: 7px; }
 
 @media (min-width: 1100px) {
-  .chat-shell.view-chat { padding: 20px; }
+  .chat-shell.view-chat { padding: 0; }
   .chat-shell.view-chat .chat-card { width: min(100%, 1220px); max-width: 1220px; }
-  .chat-shell.view-chat .messages-area { padding-inline: 54px; }
+  .chat-shell.view-chat .messages-area { padding-inline: clamp(32px, 5vw, 54px); }
 }
 
 @media (max-width: 600px) {
@@ -4121,9 +4119,9 @@ select:focus-visible {
   .chat-title-text small { font-size: .62rem; }
   .chat-shell.view-chat .menu-btn,
   .chat-shell.view-chat .header-action-btn { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
-  .chat-shell.view-chat .messages-area { padding: 18px 12px; }
+  .chat-shell.view-chat .messages-area { padding: 10px 10px; }
   .chat-shell.view-chat .chat-empty-state { width: min(100%, 360px); padding: 18px 14px; border-radius: 19px; }
-  .chat-shell.view-chat .input-area { padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .chat-shell.view-chat .input-area { padding: 6px 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
   .chat-shell.view-chat .message-field textarea,
   .chat-shell.view-chat .message-field input { min-height: 48px; padding-inline: 14px; }
   .chat-shell.view-chat .attachment-rail,
@@ -5408,8 +5406,8 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .messages-area {
-  padding: 18px 12px 20px;
-  gap: 10px;
+  padding: 10px 12px 10px;
+  gap: 6px;
   background: transparent;
   scrollbar-width: thin;
 }
@@ -5431,11 +5429,11 @@ select:focus-visible {
 
 .chat-shell.view-chat .message-row.assistant {
   gap: 8px;
-  padding-inline: 0 28px;
+  padding-inline: 0 12px;
 }
 
 .chat-shell.view-chat .message-row.user {
-  padding-inline: 32px 0;
+  padding-inline: 12px 0;
 }
 
 .chat-shell.view-chat .bot-avatar {
@@ -5450,11 +5448,11 @@ select:focus-visible {
 
 .chat-shell.view-chat .bubble {
   max-width: min(82%, 640px);
-  padding: 11px 14px;
+  padding: 10px 14px;
   border: 1px solid transparent;
   font-size: 0.95rem;
   font-weight: 500;
-  line-height: 1.75;
+  line-height: 1.7;
   box-shadow: none;
 }
 
@@ -5604,10 +5602,9 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .input-area {
-  position: sticky;
-  inset-block-end: 0;
-  z-index: 12;
-  padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  z-index: 8;
+  padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(180deg, rgba(244, 246, 251, 0), rgba(244, 246, 251, 0.96) 36%, rgba(244, 246, 251, 0.98));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -5715,15 +5712,15 @@ select:focus-visible {
 
 @media (min-width: 768px) {
   .chat-shell.view-chat {
-    padding: 18px;
+    padding: 0;
   }
 
   .chat-shell.view-chat .chat-card {
     width: min(100%, 980px);
     max-width: 980px;
-    min-height: min(820px, calc(100dvh - 36px));
+    min-height: 100dvh;
     border: 1px solid rgba(214, 218, 230, 0.9);
-    border-radius: 24px;
+    border-radius: 0;
     box-shadow: 0 24px 60px rgba(45, 49, 51, 0.12);
   }
 
@@ -5733,7 +5730,7 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .messages-area {
-    padding: 24px 28px;
+    padding: 10px 24px;
   }
 
   .chat-shell.view-chat .message-row,
@@ -5744,15 +5741,15 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .message-row.assistant {
-    padding-inline-end: 84px;
+    padding-inline-end: 48px;
   }
 
   .chat-shell.view-chat .message-row.user {
-    padding-inline-start: 84px;
+    padding-inline-start: 48px;
   }
 
   .chat-shell.view-chat .input-area {
-    padding: 12px 28px calc(18px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 24px calc(12px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -6932,8 +6929,8 @@ select:focus-visible {
 /* Chat thread redesign */
 .chat-shell.view-chat {
   background: #d8dadc;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 .chat-shell.view-chat .chat-card {
@@ -7162,8 +7159,8 @@ select:focus-visible {
   z-index: 1;
   flex: 1;
   min-height: 0;
-  padding: 24px 16px 26px;
-  gap: 18px;
+  padding: 10px 16px 10px;
+  gap: 6px;
   overflow-y: auto;
   scrollbar-width: none;
   background:
@@ -7182,7 +7179,7 @@ select:focus-visible {
 
 .chat-shell.view-chat .message-row {
   position: relative;
-  margin: 0 0 18px;
+  margin: 0;
   animation: slideIn 0.22s ease;
 }
 
@@ -7192,13 +7189,13 @@ select:focus-visible {
   align-items: flex-start;
   gap: 10px;
   padding-inline-start: 4px;
-  padding-inline-end: 34px;
+  padding-inline-end: 16px;
 }
 
 .chat-shell.view-chat .message-row.user {
   direction: ltr;
   justify-content: flex-end;
-  padding-inline-start: 30px;
+  padding-inline-start: 16px;
   padding-inline-end: 8px;
 }
 
@@ -7217,14 +7214,14 @@ select:focus-visible {
   width: auto;
   max-width: calc(100% - 52px);
   min-width: 0;
-  padding: 16px 20px;
+  padding: 10px 14px;
   border: none;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   color: #191c1e;
   font-size: 0.96rem;
   font-weight: 500;
-  line-height: 1.7;
+  line-height: 1.65;
   box-shadow: 0 4px 20px rgba(45, 49, 51, 0.05);
 }
 
@@ -7646,6 +7643,14 @@ select:focus-visible {
   align-self: end;
 }
 
+.chat-shell.view-chat .composer-row.voice-action .action-toggle-btn {
+  transform: translateY(-8px);
+}
+
+.chat-shell.view-chat .composer-row.voice-action .action-toggle-btn:hover {
+  transform: translateY(-9px);
+}
+
 .chat-shell.view-chat .attach-btn,
 .chat-shell.view-chat .mic-btn {
   width: 42px;
@@ -7764,16 +7769,16 @@ select:focus-visible {
 
 @media (min-width: 768px) {
   .chat-shell.view-chat {
-    padding: 24px;
+    padding: 0;
   }
 
   .chat-shell.view-chat .chat-card {
-    width: min(100%, 960px);
-    max-width: 960px;
-    min-height: min(860px, calc(100dvh - 48px));
-    border: 8px solid #ffffff;
-    border-radius: 2rem;
-    box-shadow: 0 22px 58px rgba(45, 49, 51, 0.18);
+    width: 100%;
+    max-width: 100%;
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .chat-shell.view-chat .top-bar {
@@ -7782,7 +7787,8 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .messages-area {
-    padding: 34px 34px 28px;
+    padding: 10px 24px 10px;
+    gap: 6px;
   }
 
   .chat-shell.view-chat .message-row,
@@ -7793,11 +7799,11 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .message-row.assistant {
-    padding-inline-end: 90px;
+    padding-inline-end: 24px;
   }
 
   .chat-shell.view-chat .message-row.user {
-    padding-inline-start: 90px;
+    padding-inline-start: 24px;
   }
 
   .chat-shell.view-chat .bubble {
@@ -7809,27 +7815,27 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .input-area {
-    padding: 18px 34px calc(26px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 24px calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
   .chat-shell.view-chat .composer-card {
-    border-radius: 26px;
+    border-radius: 18px;
   }
 
   .chat-shell.view-chat .composer-main {
-    border-radius: 24px;
+    border-radius: 17px;
   }
 
   .chat-shell.view-chat .message-field input {
-    min-height: 54px;
-    padding-inline: 20px;
+    min-height: 50px;
+    padding-inline: 17px;
   }
 }
 
 @media (min-width: 1200px) {
   .chat-shell.view-chat .chat-card {
-    width: min(100%, 1080px);
-    max-width: 1080px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .chat-shell.view-chat .message-row,
@@ -7888,13 +7894,13 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .messages-area {
-    padding: 22px 12px 22px;
-    gap: 16px;
+    padding: 8px 8px 8px;
+    gap: 4px;
   }
 
   .chat-shell.view-chat .bubble {
     max-width: calc(100% - 52px);
-    padding: 15px 18px;
+    padding: 10px 14px;
     font-size: 0.92rem;
   }
 
@@ -7907,7 +7913,7 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .message-row.user {
-    padding-inline-start: 28px;
+    padding-inline-start: 16px;
   }
 
   .chat-shell.view-chat .message-row.assistant.has-images .bubble {
@@ -7948,11 +7954,11 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .input-area {
-    padding: 12px 12px calc(18px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 10px calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
   .chat-shell.view-chat .composer-row {
-    gap: 7px;
+    gap: 6px;
   }
 
   .chat-shell.view-chat .composer-main {
@@ -8031,6 +8037,12 @@ select:focus-visible {
     justify-content: center;
   }
 
+  .app-shell.chat-shell.view-chat {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
   .chat-shell.view-home .chat-card,
   .chat-shell.view-generate .chat-card,
   .chat-shell.view-profile .chat-card {
@@ -8044,12 +8056,12 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .chat-card {
-    width: min(100%, calc(100vw - 36px));
-    max-width: 860px;
-    min-height: min(860px, calc(100dvh - 36px));
-    border: 8px solid #ffffff;
-    border-radius: 2rem;
-    box-shadow: 0 22px 58px rgba(45, 49, 51, 0.16);
+    width: 100%;
+    max-width: 100%;
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .chat-shell.view-home .sidebar.conversation-home {
@@ -8181,6 +8193,12 @@ select:focus-visible {
     justify-content: center;
   }
 
+  .app-shell.chat-shell.view-chat {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
   .chat-shell.view-home .chat-card {
     width: min(100%, calc(100vw - 56px));
     max-width: 1120px;
@@ -8188,9 +8206,9 @@ select:focus-visible {
   }
 
   .chat-shell.view-chat .chat-card {
-    width: min(100%, calc(100vw - 56px));
-    max-width: 1080px;
-    min-height: min(860px, calc(100dvh - 56px));
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
   }
 
   .chat-shell.view-generate .chat-card,

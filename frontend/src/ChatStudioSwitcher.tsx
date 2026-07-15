@@ -2,6 +2,7 @@ import './ChatStudioSwitcher.css';
 
 type ChatStudioSwitcherProps = {
   active: 'chat' | 'studio';
+  isMobileKeyboardOpen?: boolean;
   onChat: () => void;
   onNewChat: () => void;
   onStudio: () => void;
@@ -9,13 +10,14 @@ type ChatStudioSwitcherProps = {
 
 export default function ChatStudioSwitcher({
   active,
+  isMobileKeyboardOpen = false,
   onChat,
   onNewChat,
   onStudio
 }: ChatStudioSwitcherProps) {
   return (
     <nav
-      className="chat-studio-switcher"
+      className={`chat-studio-switcher${isMobileKeyboardOpen ? ' is-mobile-keyboard-hidden' : ''}`}
       aria-label="جابجایی بین چت و استودیو"
     >
       <div className="chat-studio-switcher__panel">

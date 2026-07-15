@@ -1,232 +1,78 @@
-(node:11468) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(node:22328) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
-[10:14:26] FRONTEND 
-[10:14:26] FRONTEND > hemraz-frontend@1.0.0 dev
-[10:14:26] FRONTEND > vite
-[10:14:26] FRONTEND 
-[10:14:26] BACKEND 
-[10:14:26] BACKEND > hemraz-backend@1.0.0 dev
-[10:14:26] BACKEND > nodemon --config nodemon.json src/server.js
-[10:14:26] BACKEND 
-[10:14:27] BACKEND [33m[nodemon] 3.1.14[39m
-[10:14:27] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
-[10:14:27] BACKEND [33m[nodemon] watching path(s): *.*[39m
-[10:14:27] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
-[10:14:27] BACKEND [32m[nodemon] starting `node src/server.js`[39m
-[10:14:27] FRONTEND 
-[10:14:27] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m334[22m[2m[0m ms[22m
-[10:14:27] FRONTEND 
-[10:14:27] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-[10:14:27] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.5.0.2:[1m5173[22m/[39m
-[10:14:27] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.20:[1m5173[22m/[39m
-[10:14:28] BACKEND [BOOT] DB mode=mysql
-[10:14:28] BACKEND [SMS] routes mounted
-[10:14:28] BACKEND [BALE] webhook mounted at /bale/webhook
-[10:14:28] BACKEND [DB] Connecting to local MySQL...
-[10:14:28] BACKEND [BALE] webhook configured {
-[10:14:28] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
-[10:14:28] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
-[10:14:28] BACKEND }
-[10:14:28] BACKEND [DB] Connected to local MySQL
-[10:14:28] BACKEND [BOOT] Database initialized
-[10:14:28] BACKEND [2026-07-15T06:44:28.626Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.5-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
-[10:14:34] BACKEND [2026-07-15T06:44:34.617Z] [HTTP] request_started {"requestId":"mrlpt6ex-rh04y3","method":"GET","path":"/api/settings/public"}
-[10:14:34] BACKEND [2026-07-15T06:44:34.627Z] [HTTP] request_finished {"requestId":"mrlpt6ex-rh04y3","method":"GET","path":"/api/settings/public","status":304,"durationMs":10}
-[10:14:34] BACKEND [2026-07-15T06:44:34.671Z] [HTTP] request_started {"requestId":"mrlpt6gf-ug0pnm","method":"POST","path":"/api/conversations/load"}
-[10:14:34] BACKEND [2026-07-15T06:44:34.675Z] [HTTP] request_started {"requestId":"mrlpt6gj-b8hdic","method":"GET","path":"/api/settings/public"}
-[10:14:34] BACKEND [2026-07-15T06:44:34.683Z] [HTTP] request_finished {"requestId":"mrlpt6gj-b8hdic","method":"GET","path":"/api/settings/public","status":304,"durationMs":8}
-[10:14:34] BACKEND [2026-07-15T06:44:34.706Z] [HTTP] request_finished {"requestId":"mrlpt6gf-ug0pnm","method":"POST","path":"/api/conversations/load","status":200,"durationMs":35}
-[10:14:35] BACKEND [2026-07-15T06:44:35.256Z] [HTTP] request_started {"requestId":"mrlpt6wo-pmosjo","method":"POST","path":"/api/conversations/sync"}
-[10:14:35] BACKEND [2026-07-15T06:44:35.306Z] [HTTP] request_finished {"requestId":"mrlpt6wo-pmosjo","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":50}
-[10:14:38] BACKEND [2026-07-15T06:44:38.315Z] [HTTP] request_started {"requestId":"mrlpt99n-ygxubs","method":"GET","path":"/api/images?limit=24&cursor=0"}
-[10:14:38] BACKEND [2026-07-15T06:44:38.330Z] [HTTP] request_finished {"requestId":"mrlpt99n-ygxubs","method":"GET","path":"/api/images?limit=24&cursor=0","status":304,"durationMs":15}
-[10:14:38] BACKEND [2026-07-15T06:44:38.336Z] [HTTP] request_started {"requestId":"mrlpt9a8-15j2yq","method":"GET","path":"/api/images?limit=24&cursor=0"}
-[10:14:38] BACKEND [2026-07-15T06:44:38.342Z] [HTTP] request_finished {"requestId":"mrlpt9a8-15j2yq","method":"GET","path":"/api/images?limit=24&cursor=0","status":304,"durationMs":6}
-[10:14:44] BACKEND [2026-07-15T06:44:44.474Z] [HTTP] request_started {"requestId":"mrlpte0q-83ywxm","method":"GET","path":"/api/settings/public"}
-[10:14:44] BACKEND [2026-07-15T06:44:44.484Z] [HTTP] request_started {"requestId":"mrlpte10-tlclfh","method":"GET","path":"/api/settings/public"}
-[10:14:44] BACKEND [2026-07-15T06:44:44.486Z] [HTTP] request_finished {"requestId":"mrlpte0q-83ywxm","method":"GET","path":"/api/settings/public","status":200,"durationMs":12}
-[10:14:44] BACKEND [2026-07-15T06:44:44.493Z] [HTTP] request_finished {"requestId":"mrlpte10-tlclfh","method":"GET","path":"/api/settings/public","status":200,"durationMs":9}
-[10:14:44] BACKEND [2026-07-15T06:44:44.511Z] [HTTP] request_started {"requestId":"mrlpte1r-hf6lhf","method":"POST","path":"/api/conversations/load"}
-[10:14:44] BACKEND [2026-07-15T06:44:44.535Z] [HTTP] request_finished {"requestId":"mrlpte1r-hf6lhf","method":"POST","path":"/api/conversations/load","status":200,"durationMs":24}
-[10:14:45] BACKEND [2026-07-15T06:44:45.056Z] [HTTP] request_started {"requestId":"mrlptegw-ivlntw","method":"POST","path":"/api/conversations/sync"}
-[10:14:45] BACKEND [2026-07-15T06:44:45.126Z] [HTTP] request_finished {"requestId":"mrlptegw-ivlntw","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":70}
-[10:14:50] BACKEND [2026-07-15T06:44:50.140Z] [HTTP] request_started {"requestId":"mrlptie4-shi71x","method":"GET","path":"/api/settings/public"}
-[10:14:50] BACKEND [2026-07-15T06:44:50.145Z] [HTTP] request_started {"requestId":"mrlptie8-o6z43s","method":"GET","path":"/api/settings/public"}
-[10:14:50] BACKEND [2026-07-15T06:44:50.146Z] [HTTP] request_finished {"requestId":"mrlptie4-shi71x","method":"GET","path":"/api/settings/public","status":200,"durationMs":6}
-[10:14:50] BACKEND [2026-07-15T06:44:50.149Z] [HTTP] request_finished {"requestId":"mrlptie8-o6z43s","method":"GET","path":"/api/settings/public","status":200,"durationMs":5}
-[10:14:50] BACKEND [2026-07-15T06:44:50.154Z] [HTTP] request_started {"requestId":"mrlptiei-b0iftp","method":"POST","path":"/api/conversations/load"}
-[10:14:50] BACKEND [2026-07-15T06:44:50.172Z] [HTTP] request_finished {"requestId":"mrlptiei-b0iftp","method":"POST","path":"/api/conversations/load","status":200,"durationMs":18}
-[10:14:50] BACKEND [2026-07-15T06:44:50.721Z] [HTTP] request_started {"requestId":"mrlptiu9-dt30i2","method":"POST","path":"/api/conversations/sync"}
-[10:14:50] BACKEND [2026-07-15T06:44:50.757Z] [HTTP] request_finished {"requestId":"mrlptiu9-dt30i2","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":36}
-[10:14:52] BACKEND [2026-07-15T06:44:52.256Z] [HTTP] request_started {"requestId":"mrlptk0w-nmz0le","method":"GET","path":"/api/images?limit=24&cursor=0"}
-[10:14:52] BACKEND [2026-07-15T06:44:52.258Z] [HTTP] request_started {"requestId":"mrlptk0y-ykqnx7","method":"GET","path":"/api/images?limit=24&cursor=0"}
-[10:14:52] BACKEND [2026-07-15T06:44:52.268Z] [HTTP] request_finished {"requestId":"mrlptk0y-ykqnx7","method":"GET","path":"/api/images?limit=24&cursor=0","status":200,"durationMs":10}
-[10:14:52] BACKEND [2026-07-15T06:44:52.269Z] [HTTP] request_finished {"requestId":"mrlptk0w-nmz0le","method":"GET","path":"/api/images?limit=24&cursor=0","status":200,"durationMs":13}
-[10:20:59] FRONTEND [2m10:20:59 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
-[10:20:59] FRONTEND [2m10:20:59 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
-[10:21:01] FRONTEND [2m10:21:01 AM[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/App.tsx[22m Could not Fast Refresh ("loadProfile" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
-[10:21:01] FRONTEND [2m10:21:01 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/App.tsx[22m
-[10:21:03] BACKEND [2026-07-15T06:51:03.673Z] [HTTP] request_started {"requestId":"mrlq1im1-475fzp","method":"GET","path":"/api/settings/public"}
-[10:21:03] BACKEND [2026-07-15T06:51:03.680Z] [HTTP] request_finished {"requestId":"mrlq1im1-475fzp","method":"GET","path":"/api/settings/public","status":200,"durationMs":7}
-[10:21:04] BACKEND [2026-07-15T06:51:04.144Z] [HTTP] request_started {"requestId":"mrlq1iz4-l741d0","method":"GET","path":"/api/settings/public"}
-[10:21:04] BACKEND [2026-07-15T06:51:04.149Z] [HTTP] request_finished {"requestId":"mrlq1iz4-l741d0","method":"GET","path":"/api/settings/public","status":200,"durationMs":5}
-[10:21:04] BACKEND [2026-07-15T06:51:04.388Z] [HTTP] request_started {"requestId":"mrlq1j5w-5jj774","method":"POST","path":"/api/conversations/load"}
-[10:21:04] BACKEND [2026-07-15T06:51:04.409Z] [HTTP] request_finished {"requestId":"mrlq1j5w-5jj774","method":"POST","path":"/api/conversations/load","status":200,"durationMs":21}
-[10:21:06] BACKEND [2026-07-15T06:51:06.236Z] [HTTP] request_started {"requestId":"mrlq1kl8-8rmqa2","method":"GET","path":"/api/settings/public"}
-[10:21:06] BACKEND [2026-07-15T06:51:06.240Z] [HTTP] request_finished {"requestId":"mrlq1kl8-8rmqa2","method":"GET","path":"/api/settings/public","status":200,"durationMs":4}
-[10:21:06] BACKEND [2026-07-15T06:51:06.245Z] [HTTP] request_started {"requestId":"mrlq1klh-30xunf","method":"GET","path":"/api/settings/public"}
-[10:21:06] BACKEND [2026-07-15T06:51:06.248Z] [HTTP] request_finished {"requestId":"mrlq1klh-30xunf","method":"GET","path":"/api/settings/public","status":200,"durationMs":3}
-[10:21:06] BACKEND [2026-07-15T06:51:06.372Z] [HTTP] request_started {"requestId":"mrlq1kp0-kwii4c","method":"POST","path":"/api/conversations/load"}
-[10:21:06] BACKEND [2026-07-15T06:51:06.394Z] [HTTP] request_finished {"requestId":"mrlq1kp0-kwii4c","method":"POST","path":"/api/conversations/load","status":200,"durationMs":22}
-[10:21:06] BACKEND [2026-07-15T06:51:06.959Z] [HTTP] request_started {"requestId":"mrlq1l5b-d9r6x8","method":"POST","path":"/api/conversations/sync"}
-[10:21:07] BACKEND [2026-07-15T06:51:07.000Z] [HTTP] request_finished {"requestId":"mrlq1l5b-d9r6x8","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":41}
-[10:21:07] BACKEND [2026-07-15T06:51:07.956Z] [HTTP] request_started {"requestId":"mrlq1lx0-xmzxs3","method":"POST","path":"/api/conversations/sync"}
-[10:21:07] BACKEND [2026-07-15T06:51:07.990Z] [HTTP] request_finished {"requestId":"mrlq1lx0-xmzxs3","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":34}
-[10:22:02] FRONTEND [2m10:22:02 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ChatExperience.css[22m
-[10:22:03] BACKEND [2026-07-15T06:52:03.313Z] [HTTP] request_started {"requestId":"mrlq2smp-yj3pxl","method":"GET","path":"/api/settings/public"}
-[10:22:03] BACKEND [settings] failed to read settings, using defaults read ECONNRESET
-[10:22:03] BACKEND [2026-07-15T06:52:03.318Z] [HTTP] request_finished {"requestId":"mrlq2smp-yj3pxl","method":"GET","path":"/api/settings/public","status":200,"durationMs":5}
-[10:22:03] BACKEND [2026-07-15T06:52:03.332Z] [HTTP] request_started {"requestId":"mrlq2sn8-n79vw5","method":"GET","path":"/api/settings/public"}
-[10:22:03] BACKEND [settings] failed to read settings, using defaults read ECONNRESET
-[10:22:03] BACKEND [2026-07-15T06:52:03.333Z] [HTTP] request_finished {"requestId":"mrlq2sn8-n79vw5","method":"GET","path":"/api/settings/public","status":200,"durationMs":1}
-[10:22:03] BACKEND [2026-07-15T06:52:03.478Z] [HTTP] request_started {"requestId":"mrlq2sra-m1odat","method":"POST","path":"/api/conversations/load"}
-[10:22:03] BACKEND [2026-07-15T06:52:03.513Z] [HTTP] request_finished {"requestId":"mrlq2sra-m1odat","method":"POST","path":"/api/conversations/load","status":200,"durationMs":35}
-[10:22:05] BACKEND [2026-07-15T06:52:05.761Z] [HTTP] request_started {"requestId":"mrlq2uip-x7oxxz","method":"GET","path":"/api/settings/public"}
-[10:22:05] BACKEND [2026-07-15T06:52:05.764Z] [HTTP] request_started {"requestId":"mrlq2uis-s7z6fc","method":"GET","path":"/api/settings/public"}
-[10:22:05] BACKEND [2026-07-15T06:52:05.766Z] [HTTP] request_finished {"requestId":"mrlq2uip-x7oxxz","method":"GET","path":"/api/settings/public","status":200,"durationMs":5}
-[10:22:05] BACKEND [2026-07-15T06:52:05.768Z] [HTTP] request_finished {"requestId":"mrlq2uis-s7z6fc","method":"GET","path":"/api/settings/public","status":200,"durationMs":4}
-[10:22:05] BACKEND [2026-07-15T06:52:05.841Z] [HTTP] request_started {"requestId":"mrlq2ukx-atu84e","method":"POST","path":"/api/conversations/load"}
-[10:22:05] BACKEND [2026-07-15T06:52:05.866Z] [HTTP] request_finished {"requestId":"mrlq2ukx-atu84e","method":"POST","path":"/api/conversations/load","status":200,"durationMs":25}
-[10:22:06] BACKEND [2026-07-15T06:52:06.064Z] [HTTP] request_started {"requestId":"mrlq2ur4-kxe82m","method":"POST","path":"/api/conversations/sync"}
-[10:22:06] BACKEND [2026-07-15T06:52:06.116Z] [HTTP] request_finished {"requestId":"mrlq2ur4-kxe82m","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":52}
-[10:22:07] BACKEND [2026-07-15T06:52:07.001Z] [HTTP] request_started {"requestId":"mrlq2vh4-15i3fg","method":"POST","path":"/api/conversations/sync"}
-[10:22:07] BACKEND [2026-07-15T06:52:07.057Z] [HTTP] request_finished {"requestId":"mrlq2vh4-15i3fg","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":57}
-[10:22:15] FRONTEND [2m10:22:15 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/ChatExperience.css[22m
-[10:22:22] BACKEND [2026-07-15T06:52:22.782Z] [HTTP] request_started {"requestId":"mrlq37ni-dtgqra","method":"GET","path":"/api/settings/public"}
-[10:22:22] BACKEND [2026-07-15T06:52:22.783Z] [HTTP] request_started {"requestId":"mrlq37nj-ycyu8f","method":"GET","path":"/api/settings/public"}
-[10:22:22] BACKEND [2026-07-15T06:52:22.788Z] [HTTP] request_finished {"requestId":"mrlq37ni-dtgqra","method":"GET","path":"/api/settings/public","status":200,"durationMs":6}
-[10:22:22] BACKEND [2026-07-15T06:52:22.794Z] [HTTP] request_finished {"requestId":"mrlq37nj-ycyu8f","method":"GET","path":"/api/settings/public","status":200,"durationMs":11}
-[10:22:22] BACKEND [2026-07-15T06:52:22.802Z] [HTTP] request_started {"requestId":"mrlq37o2-azuy0a","method":"POST","path":"/api/conversations/load"}
-[10:22:22] BACKEND [2026-07-15T06:52:22.832Z] [HTTP] request_finished {"requestId":"mrlq37o2-azuy0a","method":"POST","path":"/api/conversations/load","status":200,"durationMs":30}
-[10:22:23] BACKEND [2026-07-15T06:52:23.378Z] [HTTP] request_started {"requestId":"mrlq3842-fu6pey","method":"POST","path":"/api/conversations/sync"}
-[10:22:23] BACKEND [2026-07-15T06:52:23.453Z] [HTTP] request_finished {"requestId":"mrlq3842-fu6pey","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":75}
-[10:22:24] BACKEND [2026-07-15T06:52:24.387Z] [HTTP] request_started {"requestId":"mrlq38w3-fyumc5","method":"GET","path":"/api/settings/public"}
-[10:22:24] BACKEND [2026-07-15T06:52:24.388Z] [HTTP] request_started {"requestId":"mrlq38w4-s2d417","method":"GET","path":"/api/settings/public"}
-[10:22:24] BACKEND [2026-07-15T06:52:24.399Z] [HTTP] request_finished {"requestId":"mrlq38w3-fyumc5","method":"GET","path":"/api/settings/public","status":200,"durationMs":12}
-[10:22:24] BACKEND [2026-07-15T06:52:24.402Z] [HTTP] request_finished {"requestId":"mrlq38w4-s2d417","method":"GET","path":"/api/settings/public","status":200,"durationMs":14}
-[10:22:24] BACKEND [2026-07-15T06:52:24.457Z] [HTTP] request_started {"requestId":"mrlq38y1-15dc7y","method":"POST","path":"/api/conversations/load"}
-[10:22:24] BACKEND [2026-07-15T06:52:24.490Z] [HTTP] request_finished {"requestId":"mrlq38y1-15dc7y","method":"POST","path":"/api/conversations/load","status":200,"durationMs":33}
-[10:22:25] BACKEND [2026-07-15T06:52:25.045Z] [HTTP] request_started {"requestId":"mrlq39ed-8cu8jc","method":"POST","path":"/api/conversations/sync"}
-[10:22:25] BACKEND [2026-07-15T06:52:25.085Z] [HTTP] request_finished {"requestId":"mrlq39ed-8cu8jc","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":40}
-[10:22:26] BACKEND [2026-07-15T06:52:26.875Z] [HTTP] request_started {"requestId":"mrlq3at7-gk1nb8","method":"GET","path":"/api/settings/public"}
-[10:22:26] BACKEND [2026-07-15T06:52:26.878Z] [HTTP] request_finished {"requestId":"mrlq3at7-gk1nb8","method":"GET","path":"/api/settings/public","status":200,"durationMs":3}
-[10:22:26] BACKEND [2026-07-15T06:52:26.880Z] [HTTP] request_started {"requestId":"mrlq3atc-bnbdci","method":"GET","path":"/api/settings/public"}
-[10:22:26] BACKEND [2026-07-15T06:52:26.883Z] [HTTP] request_finished {"requestId":"mrlq3atc-bnbdci","method":"GET","path":"/api/settings/public","status":200,"durationMs":3}
-[10:22:26] BACKEND [2026-07-15T06:52:26.892Z] [HTTP] request_started {"requestId":"mrlq3ato-h73ltu","method":"POST","path":"/api/conversations/load"}
-[10:22:26] BACKEND [2026-07-15T06:52:26.911Z] [HTTP] request_finished {"requestId":"mrlq3ato-h73ltu","method":"POST","path":"/api/conversations/load","status":200,"durationMs":19}
-[10:22:27] BACKEND [2026-07-15T06:52:27.444Z] [HTTP] request_started {"requestId":"mrlq3b90-0ko48y","method":"POST","path":"/api/conversations/sync"}
-[10:22:27] BACKEND [2026-07-15T06:52:27.482Z] [HTTP] request_finished {"requestId":"mrlq3b90-0ko48y","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":38}
-[10:22:28] BACKEND [2026-07-15T06:52:28.719Z] [HTTP] request_started {"requestId":"mrlq3c8f-hiurc8","method":"GET","path":"/api/settings/public"}
-[10:22:28] BACKEND [2026-07-15T06:52:28.722Z] [HTTP] request_started {"requestId":"mrlq3c8i-y743nv","method":"GET","path":"/api/settings/public"}
-[10:22:28] BACKEND [2026-07-15T06:52:28.723Z] [HTTP] request_finished {"requestId":"mrlq3c8f-hiurc8","method":"GET","path":"/api/settings/public","status":200,"durationMs":4}
-[10:22:28] BACKEND [2026-07-15T06:52:28.727Z] [HTTP] request_finished {"requestId":"mrlq3c8i-y743nv","method":"GET","path":"/api/settings/public","status":200,"durationMs":5}
-[10:22:28] BACKEND [2026-07-15T06:52:28.733Z] [HTTP] request_started {"requestId":"mrlq3c8t-xmi8i9","method":"POST","path":"/api/conversations/load"}
-[10:22:28] BACKEND [2026-07-15T06:52:28.757Z] [HTTP] request_finished {"requestId":"mrlq3c8t-xmi8i9","method":"POST","path":"/api/conversations/load","status":200,"durationMs":24}
-[10:22:29] BACKEND [2026-07-15T06:52:29.293Z] [HTTP] request_started {"requestId":"mrlq3cod-iemlwm","method":"POST","path":"/api/conversations/sync"}
-[10:22:29] BACKEND [2026-07-15T06:52:29.335Z] [HTTP] request_finished {"requestId":"mrlq3cod-iemlwm","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":42}
-[10:22:36] BACKEND [2026-07-15T06:52:36.473Z] [HTTP] request_started {"requestId":"mrlq3i7t-oavll1","method":"GET","path":"/api/settings/public"}
-[10:22:36] BACKEND [2026-07-15T06:52:36.476Z] [HTTP] request_finished {"requestId":"mrlq3i7t-oavll1","method":"GET","path":"/api/settings/public","status":200,"durationMs":3}
-[10:22:36] BACKEND [2026-07-15T06:52:36.477Z] [HTTP] request_started {"requestId":"mrlq3i7x-sqljh8","method":"GET","path":"/api/settings/public"}
-[10:22:36] BACKEND [2026-07-15T06:52:36.480Z] [HTTP] request_finished {"requestId":"mrlq3i7x-sqljh8","method":"GET","path":"/api/settings/public","status":200,"durationMs":3}
-[10:22:36] BACKEND [2026-07-15T06:52:36.486Z] [HTTP] request_started {"requestId":"mrlq3i86-3yjinl","method":"POST","path":"/api/conversations/load"}
-[10:22:36] BACKEND [2026-07-15T06:52:36.519Z] [HTTP] request_finished {"requestId":"mrlq3i86-3yjinl","method":"POST","path":"/api/conversations/load","status":200,"durationMs":33}
-[10:22:37] BACKEND [2026-07-15T06:52:37.088Z] [HTTP] request_started {"requestId":"mrlq3iow-ziaiju","method":"POST","path":"/api/conversations/sync"}
-[10:22:37] BACKEND [2026-07-15T06:52:37.174Z] [HTTP] request_finished {"requestId":"mrlq3iow-ziaiju","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":85}
-[10:22:39] BACKEND [2026-07-15T06:52:39.568Z] [HTTP] request_started {"requestId":"mrlq3kls-yltc26","method":"GET","path":"/api/settings/public"}
-[10:22:39] BACKEND [2026-07-15T06:52:39.570Z] [HTTP] request_started {"requestId":"mrlq3klu-zz0bjj","method":"GET","path":"/api/settings/public"}
-[10:22:39] BACKEND [2026-07-15T06:52:39.574Z] [HTTP] request_finished {"requestId":"mrlq3kls-yltc26","method":"GET","path":"/api/settings/public","status":200,"durationMs":6}
-[10:22:39] BACKEND [2026-07-15T06:52:39.578Z] [HTTP] request_finished {"requestId":"mrlq3klu-zz0bjj","method":"GET","path":"/api/settings/public","status":200,"durationMs":8}
-[10:22:39] BACKEND [2026-07-15T06:52:39.582Z] [HTTP] request_started {"requestId":"mrlq3km6-4imky6","method":"POST","path":"/api/conversations/load"}
-[10:22:39] BACKEND [2026-07-15T06:52:39.599Z] [HTTP] request_finished {"requestId":"mrlq3km6-4imky6","method":"POST","path":"/api/conversations/load","status":200,"durationMs":17}
-[10:22:40] BACKEND [2026-07-15T06:52:40.148Z] [HTTP] request_started {"requestId":"mrlq3l1w-ncd29z","method":"POST","path":"/api/conversations/sync"}
-[10:22:40] BACKEND [2026-07-15T06:52:40.200Z] [HTTP] request_finished {"requestId":"mrlq3l1w-ncd29z","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":52}
-[10:22:42] BACKEND [2026-07-15T06:52:42.083Z] [HTTP] request_started {"requestId":"mrlq3mjn-qkmdyr","method":"GET","path":"/api/settings/public"}
-[10:22:42] BACKEND [2026-07-15T06:52:42.086Z] [HTTP] request_started {"requestId":"mrlq3mjq-4wslve","method":"GET","path":"/api/settings/public"}
-[10:22:42] BACKEND [2026-07-15T06:52:42.091Z] [HTTP] request_finished {"requestId":"mrlq3mjn-qkmdyr","method":"GET","path":"/api/settings/public","status":200,"durationMs":8}
-[10:22:42] BACKEND [2026-07-15T06:52:42.093Z] [HTTP] request_finished {"requestId":"mrlq3mjq-4wslve","method":"GET","path":"/api/settings/public","status":200,"durationMs":7}
-[10:22:42] BACKEND [2026-07-15T06:52:42.108Z] [HTTP] request_started {"requestId":"mrlq3mkc-3qzsmm","method":"POST","path":"/api/conversations/load"}
-[10:22:42] BACKEND [2026-07-15T06:52:42.133Z] [HTTP] request_finished {"requestId":"mrlq3mkc-3qzsmm","method":"POST","path":"/api/conversations/load","status":200,"durationMs":25}
-[10:22:42] BACKEND [2026-07-15T06:52:42.681Z] [HTTP] request_started {"requestId":"mrlq3n09-sai2yn","method":"POST","path":"/api/conversations/sync"}
-[10:22:42] BACKEND [2026-07-15T06:52:42.778Z] [HTTP] request_finished {"requestId":"mrlq3n09-sai2yn","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":97}
-[10:22:43] BACKEND [2026-07-15T06:52:43.806Z] [HTTP] request_started {"requestId":"mrlq3nvi-8xvsaf","method":"GET","path":"/api/settings/public"}
-[10:22:43] BACKEND [2026-07-15T06:52:43.810Z] [HTTP] request_finished {"requestId":"mrlq3nvi-8xvsaf","method":"GET","path":"/api/settings/public","status":200,"durationMs":4}
-[10:22:43] BACKEND [2026-07-15T06:52:43.812Z] [HTTP] request_started {"requestId":"mrlq3nvo-ftdjz8","method":"GET","path":"/api/settings/public"}
-[10:22:43] BACKEND [2026-07-15T06:52:43.817Z] [HTTP] request_finished {"requestId":"mrlq3nvo-ftdjz8","method":"GET","path":"/api/settings/public","status":200,"durationMs":5}
-[10:22:43] BACKEND [2026-07-15T06:52:43.826Z] [HTTP] request_started {"requestId":"mrlq3nw2-o2rok5","method":"POST","path":"/api/conversations/load"}
-[10:22:43] BACKEND [2026-07-15T06:52:43.857Z] [HTTP] request_finished {"requestId":"mrlq3nw2-o2rok5","method":"POST","path":"/api/conversations/load","status":200,"durationMs":31}
-[10:22:44] BACKEND [2026-07-15T06:52:44.378Z] [HTTP] request_started {"requestId":"mrlq3obe-zeggc3","method":"POST","path":"/api/conversations/sync"}
-[10:22:44] BACKEND [2026-07-15T06:52:44.433Z] [HTTP] request_finished {"requestId":"mrlq3obe-zeggc3","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":55}
-[10:22:44] BACKEND [2026-07-15T06:52:44.959Z] [HTTP] request_started {"requestId":"mrlq3orj-fhvset","method":"GET","path":"/api/settings/public"}
-[10:22:44] BACKEND [2026-07-15T06:52:44.963Z] [HTTP] request_finished {"requestId":"mrlq3orj-fhvset","method":"GET","path":"/api/settings/public","status":200,"durationMs":4}
-[10:22:44] BACKEND [2026-07-15T06:52:44.968Z] [HTTP] request_started {"requestId":"mrlq3ors-2ty296","method":"GET","path":"/api/settings/public"}
-[10:22:44] BACKEND [2026-07-15T06:52:44.972Z] [HTTP] request_finished {"requestId":"mrlq3ors-2ty296","method":"GET","path":"/api/settings/public","status":200,"durationMs":4}
-[10:22:44] BACKEND [2026-07-15T06:52:44.983Z] [HTTP] request_started {"requestId":"mrlq3os7-3lxxf2","method":"POST","path":"/api/conversations/load"}
-[10:22:44] BACKEND [2026-07-15T06:52:44.994Z] [HTTP] request_finished {"requestId":"mrlq3os7-3lxxf2","method":"POST","path":"/api/conversations/load","status":200,"durationMs":11}
-[10:22:45] BACKEND [2026-07-15T06:52:45.536Z] [HTTP] request_started {"requestId":"mrlq3p7k-tb7ztk","method":"POST","path":"/api/conversations/sync"}
-[10:22:45] BACKEND [2026-07-15T06:52:45.585Z] [HTTP] request_finished {"requestId":"mrlq3p7k-tb7ztk","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":49}
-[10:22:48] BACKEND [2026-07-15T06:52:48.276Z] [HTTP] request_started {"requestId":"mrlq3rbo-ybl1xr","method":"GET","path":"/api/settings/public"}
-[10:22:48] BACKEND [2026-07-15T06:52:48.278Z] [HTTP] request_started {"requestId":"mrlq3rbq-m1dyv1","method":"GET","path":"/api/settings/public"}
-[10:22:48] BACKEND [2026-07-15T06:52:48.281Z] [HTTP] request_finished {"requestId":"mrlq3rbo-ybl1xr","method":"GET","path":"/api/settings/public","status":200,"durationMs":5}
-[10:22:48] BACKEND [2026-07-15T06:52:48.282Z] [HTTP] request_finished {"requestId":"mrlq3rbq-m1dyv1","method":"GET","path":"/api/settings/public","status":200,"durationMs":4}
-[10:22:48] BACKEND [2026-07-15T06:52:48.292Z] [HTTP] request_started {"requestId":"mrlq3rc4-r8lyx1","method":"POST","path":"/api/conversations/load"}
-[10:22:48] BACKEND [2026-07-15T06:52:48.318Z] [HTTP] request_finished {"requestId":"mrlq3rc4-r8lyx1","method":"POST","path":"/api/conversations/load","status":200,"durationMs":26}
-[10:22:48] BACKEND [2026-07-15T06:52:48.848Z] [HTTP] request_started {"requestId":"mrlq3rrk-49j8of","method":"POST","path":"/api/conversations/sync"}
-[10:22:48] BACKEND [2026-07-15T06:52:48.885Z] [HTTP] request_finished {"requestId":"mrlq3rrk-49j8of","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":37}
-[10:22:50] BACKEND [2026-07-15T06:52:50.545Z] [HTTP] request_started {"requestId":"mrlq3t2p-3bfzju","method":"GET","path":"/api/settings/public"}
-[10:22:50] BACKEND [2026-07-15T06:52:50.548Z] [HTTP] request_finished {"requestId":"mrlq3t2p-3bfzju","method":"GET","path":"/api/settings/public","status":200,"durationMs":3}
-[10:22:50] BACKEND [2026-07-15T06:52:50.551Z] [HTTP] request_started {"requestId":"mrlq3t2v-fvv203","method":"GET","path":"/api/settings/public"}
-[10:22:50] BACKEND [2026-07-15T06:52:50.554Z] [HTTP] request_finished {"requestId":"mrlq3t2v-fvv203","method":"GET","path":"/api/settings/public","status":200,"durationMs":3}
-[10:22:50] BACKEND [2026-07-15T06:52:50.557Z] [HTTP] request_started {"requestId":"mrlq3t31-3zaor9","method":"POST","path":"/api/conversations/load"}
-[10:22:50] BACKEND [2026-07-15T06:52:50.576Z] [HTTP] request_finished {"requestId":"mrlq3t31-3zaor9","method":"POST","path":"/api/conversations/load","status":200,"durationMs":19}
-[10:22:51] BACKEND [2026-07-15T06:52:51.129Z] [HTTP] request_started {"requestId":"mrlq3tix-jeuf3n","method":"POST","path":"/api/conversations/sync"}
-[10:22:51] BACKEND [2026-07-15T06:52:51.166Z] [HTTP] request_finished {"requestId":"mrlq3tix-jeuf3n","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":37}
-[10:22:54] BACKEND [2026-07-15T06:52:54.347Z] [HTTP] request_started {"requestId":"mrlq3w0b-ri6u20","method":"GET","path":"/api/settings/public"}
-[10:22:54] BACKEND [2026-07-15T06:52:54.351Z] [HTTP] request_finished {"requestId":"mrlq3w0b-ri6u20","method":"GET","path":"/api/settings/public","status":200,"durationMs":4}
-[10:22:54] BACKEND [2026-07-15T06:52:54.354Z] [HTTP] request_started {"requestId":"mrlq3w0i-53fw0z","method":"GET","path":"/api/settings/public"}
-[10:22:54] BACKEND [2026-07-15T06:52:54.358Z] [HTTP] request_finished {"requestId":"mrlq3w0i-53fw0z","method":"GET","path":"/api/settings/public","status":200,"durationMs":4}
-[10:22:54] BACKEND [2026-07-15T06:52:54.368Z] [HTTP] request_started {"requestId":"mrlq3w0w-oxwj5q","method":"POST","path":"/api/conversations/load"}
-[10:22:54] BACKEND [2026-07-15T06:52:54.397Z] [HTTP] request_finished {"requestId":"mrlq3w0w-oxwj5q","method":"POST","path":"/api/conversations/load","status":200,"durationMs":29}
-[10:22:54] BACKEND [2026-07-15T06:52:54.925Z] [HTTP] request_started {"requestId":"mrlq3wgd-4u4v2x","method":"POST","path":"/api/conversations/sync"}
-[10:22:54] BACKEND [2026-07-15T06:52:54.951Z] [HTTP] request_finished {"requestId":"mrlq3wgd-4u4v2x","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":26}
-[10:22:56] BACKEND [2026-07-15T06:52:56.081Z] [HTTP] request_started {"requestId":"mrlq3xch-aq5ftm","method":"GET","path":"/api/settings/public"}
-[10:22:56] BACKEND [2026-07-15T06:52:56.085Z] [HTTP] request_started {"requestId":"mrlq3xcl-ds5e1n","method":"GET","path":"/api/settings/public"}
-[10:22:56] BACKEND [2026-07-15T06:52:56.088Z] [HTTP] request_finished {"requestId":"mrlq3xch-aq5ftm","method":"GET","path":"/api/settings/public","status":200,"durationMs":7}
-[10:22:56] BACKEND [2026-07-15T06:52:56.091Z] [HTTP] request_finished {"requestId":"mrlq3xcl-ds5e1n","method":"GET","path":"/api/settings/public","status":200,"durationMs":6}
-[10:22:56] BACKEND [2026-07-15T06:52:56.102Z] [HTTP] request_started {"requestId":"mrlq3xd2-t4r1kc","method":"POST","path":"/api/conversations/load"}
-[10:22:56] BACKEND [2026-07-15T06:52:56.139Z] [HTTP] request_finished {"requestId":"mrlq3xd2-t4r1kc","method":"POST","path":"/api/conversations/load","status":200,"durationMs":37}
-[10:22:56] BACKEND [2026-07-15T06:52:56.665Z] [HTTP] request_started {"requestId":"mrlq3xsp-o8rdc8","method":"POST","path":"/api/conversations/sync"}
-[10:22:56] BACKEND [2026-07-15T06:52:56.723Z] [HTTP] request_finished {"requestId":"mrlq3xsp-o8rdc8","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":58}
-[10:23:12] BACKEND [2026-07-15T06:53:12.589Z] [HTTP] request_started {"requestId":"mrlq4a31-gjzlsi","method":"GET","path":"/api/settings/public"}
-[10:23:12] BACKEND [2026-07-15T06:53:12.594Z] [HTTP] request_started {"requestId":"mrlq4a36-3vf3y1","method":"GET","path":"/api/settings/public"}
-[10:23:12] BACKEND [2026-07-15T06:53:12.597Z] [HTTP] request_finished {"requestId":"mrlq4a31-gjzlsi","method":"GET","path":"/api/settings/public","status":200,"durationMs":8}
-[10:23:12] BACKEND [2026-07-15T06:53:12.606Z] [HTTP] request_finished {"requestId":"mrlq4a36-3vf3y1","method":"GET","path":"/api/settings/public","status":200,"durationMs":12}
-[10:23:12] BACKEND [2026-07-15T06:53:12.608Z] [HTTP] request_started {"requestId":"mrlq4a3k-z9f1nr","method":"POST","path":"/api/conversations/load"}
-[10:23:12] BACKEND [2026-07-15T06:53:12.640Z] [HTTP] request_finished {"requestId":"mrlq4a3k-z9f1nr","method":"POST","path":"/api/conversations/load","status":200,"durationMs":32}
-[10:23:13] BACKEND [2026-07-15T06:53:13.162Z] [HTTP] request_started {"requestId":"mrlq4aiy-fjnqzd","method":"POST","path":"/api/conversations/sync"}
-[10:23:13] BACKEND [2026-07-15T06:53:13.188Z] [HTTP] request_finished {"requestId":"mrlq4aiy-fjnqzd","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":26}
-[10:23:24] BACKEND [2026-07-15T06:53:24.375Z] [HTTP] request_started {"requestId":"mrlq4j6f-caab1z","method":"GET","path":"/api/settings/public"}
-[10:23:24] BACKEND [2026-07-15T06:53:24.379Z] [HTTP] request_finished {"requestId":"mrlq4j6f-caab1z","method":"GET","path":"/api/settings/public","status":304,"durationMs":4}
-[10:23:24] BACKEND [2026-07-15T06:53:24.382Z] [HTTP] request_started {"requestId":"mrlq4j6m-32igrv","method":"GET","path":"/api/settings/public"}
-[10:23:24] BACKEND [2026-07-15T06:53:24.383Z] [HTTP] request_finished {"requestId":"mrlq4j6m-32igrv","method":"GET","path":"/api/settings/public","status":304,"durationMs":1}
-[10:23:24] BACKEND [2026-07-15T06:53:24.392Z] [HTTP] request_started {"requestId":"mrlq4j6w-np86yw","method":"POST","path":"/api/conversations/load"}
-[10:23:24] BACKEND [2026-07-15T06:53:24.409Z] [HTTP] request_finished {"requestId":"mrlq4j6w-np86yw","method":"POST","path":"/api/conversations/load","status":200,"durationMs":17}
-[10:23:24] BACKEND [2026-07-15T06:53:24.968Z] [HTTP] request_started {"requestId":"mrlq4jmw-9zm9gk","method":"POST","path":"/api/conversations/sync"}
-[10:23:25] BACKEND [2026-07-15T06:53:25.079Z] [HTTP] request_finished {"requestId":"mrlq4jmw-9zm9gk","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":111}
-[10:23:27] BACKEND [2026-07-15T06:53:27.690Z] [HTTP] request_started {"requestId":"mrlq4lqi-phoqa2","method":"GET","path":"/api/settings/public"}
-[10:23:27] BACKEND [2026-07-15T06:53:27.696Z] [HTTP] request_started {"requestId":"mrlq4lqo-9ju850","method":"GET","path":"/api/settings/public"}
-[10:23:27] BACKEND [2026-07-15T06:53:27.700Z] [HTTP] request_finished {"requestId":"mrlq4lqi-phoqa2","method":"GET","path":"/api/settings/public","status":200,"durationMs":10}
-[10:23:27] BACKEND [2026-07-15T06:53:27.702Z] [HTTP] request_finished {"requestId":"mrlq4lqo-9ju850","method":"GET","path":"/api/settings/public","status":200,"durationMs":6}
-[10:23:27] BACKEND [2026-07-15T06:53:27.710Z] [HTTP] request_started {"requestId":"mrlq4lr2-c0b890","method":"POST","path":"/api/conversations/load"}
-[10:23:27] BACKEND [2026-07-15T06:53:27.725Z] [HTTP] request_finished {"requestId":"mrlq4lr2-c0b890","method":"POST","path":"/api/conversations/load","status":200,"durationMs":15}
-[10:23:28] BACKEND [2026-07-15T06:53:28.240Z] [HTTP] request_started {"requestId":"mrlq4m5s-pef7ka","method":"POST","path":"/api/conversations/sync"}
-[10:23:28] BACKEND [2026-07-15T06:53:28.279Z] [HTTP] request_finished {"requestId":"mrlq4m5s-pef7ka","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":39}
+[11:24:15] FRONTEND 
+[11:24:15] FRONTEND > hemraz-frontend@1.0.0 dev
+[11:24:15] FRONTEND > vite
+[11:24:15] FRONTEND 
+[11:24:15] BACKEND 
+[11:24:15] BACKEND > hemraz-backend@1.0.0 dev
+[11:24:15] BACKEND > nodemon --config nodemon.json src/server.js
+[11:24:15] BACKEND 
+[11:24:15] BACKEND [33m[nodemon] 3.1.14[39m
+[11:24:15] BACKEND [33m[nodemon] to restart at any time, enter `rs`[39m
+[11:24:15] BACKEND [33m[nodemon] watching path(s): *.*[39m
+[11:24:15] BACKEND [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[11:24:15] BACKEND [32m[nodemon] starting `node src/server.js`[39m
+[11:24:16] FRONTEND 
+[11:24:16] FRONTEND   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m370[22m[2m[0m ms[22m
+[11:24:16] FRONTEND 
+[11:24:16] FRONTEND   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[11:24:16] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.5.0.2:[1m5173[22m/[39m
+[11:24:16] FRONTEND   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.100.20:[1m5173[22m/[39m
+[11:24:17] BACKEND [BOOT] DB mode=mysql
+[11:24:17] BACKEND [SMS] routes mounted
+[11:24:17] BACKEND [BALE] webhook mounted at /bale/webhook
+[11:24:17] BACKEND [DB] Connecting to local MySQL...
+[11:24:18] BACKEND [DB] Connected to local MySQL
+[11:24:18] BACKEND [BOOT] Database initialized
+[11:24:18] BACKEND [2026-07-15T07:54:18.646Z] [BOOT] backend_started {"host":"0.0.0.0","port":3000,"model":"gemini-2.5-flash","baseUrl":"https://api.metisai.ir","timeoutMs":30000}
+[11:24:19] BACKEND [BALE] webhook configured {
+[11:24:19] BACKEND   expected: 'https://www.donoa.ir/bale/webhook',
+[11:24:19] BACKEND   current: 'https://www.donoa.ir/bale/webhook'
+[11:24:19] BACKEND }
+[11:24:20] BACKEND [2026-07-15T07:54:20.658Z] [HTTP] request_started {"requestId":"mrlsawdu-2h5ro5","method":"GET","path":"/api/settings/public"}
+[11:24:20] BACKEND [2026-07-15T07:54:20.676Z] [HTTP] request_finished {"requestId":"mrlsawdu-2h5ro5","method":"GET","path":"/api/settings/public","status":304,"durationMs":18}
+[11:24:20] BACKEND [2026-07-15T07:54:20.690Z] [HTTP] request_started {"requestId":"mrlsaweq-bxdhqh","method":"GET","path":"/api/settings/public"}
+[11:24:20] BACKEND [2026-07-15T07:54:20.694Z] [HTTP] request_finished {"requestId":"mrlsaweq-bxdhqh","method":"GET","path":"/api/settings/public","status":304,"durationMs":4}
+[11:24:28] BACKEND [2026-07-15T07:54:28.773Z] [HTTP] request_started {"requestId":"mrlsb2n9-8avb5x","method":"GET","path":"/api/settings/public"}
+[11:24:28] BACKEND [2026-07-15T07:54:28.778Z] [HTTP] request_finished {"requestId":"mrlsb2n9-8avb5x","method":"GET","path":"/api/settings/public","status":304,"durationMs":5}
+[11:24:28] BACKEND [2026-07-15T07:54:28.797Z] [HTTP] request_started {"requestId":"mrlsb2nx-jkex8p","method":"GET","path":"/api/settings/public"}
+[11:24:28] BACKEND [2026-07-15T07:54:28.801Z] [HTTP] request_finished {"requestId":"mrlsb2nx-jkex8p","method":"GET","path":"/api/settings/public","status":304,"durationMs":4}
+[11:24:28] BACKEND [2026-07-15T07:54:28.923Z] [HTTP] request_started {"requestId":"mrlsb2re-uxfg7q","method":"POST","path":"/api/conversations/load"}
+[11:24:28] BACKEND [2026-07-15T07:54:28.991Z] [HTTP] request_finished {"requestId":"mrlsb2re-uxfg7q","method":"POST","path":"/api/conversations/load","status":200,"durationMs":69}
+[11:24:29] BACKEND [2026-07-15T07:54:29.522Z] [HTTP] request_started {"requestId":"mrlsb381-6wn8j1","method":"POST","path":"/api/conversations/sync"}
+[11:24:29] BACKEND [2026-07-15T07:54:29.607Z] [HTTP] request_finished {"requestId":"mrlsb381-6wn8j1","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":86}
+[11:24:37] BACKEND [2026-07-15T07:54:37.193Z] [HTTP] request_started {"requestId":"mrlsb955-zb3pf5","method":"POST","path":"/api/conversations"}
+[11:24:37] BACKEND [2026-07-15T07:54:37.264Z] [HTTP] request_finished {"requestId":"mrlsb955-zb3pf5","method":"POST","path":"/api/conversations","status":201,"durationMs":71}
+[11:24:37] BACKEND [2026-07-15T07:54:37.283Z] [HTTP] request_started {"requestId":"mrlsb97n-7mycaz","method":"POST","path":"/api/chat"}
+[11:24:37] BACKEND [2026-07-15T07:54:37.816Z] [HTTP] request_started {"requestId":"mrlsb9mg-sztdkt","method":"POST","path":"/api/conversations/sync"}
+[11:24:37] BACKEND [2026-07-15T07:54:37.909Z] [HTTP] request_finished {"requestId":"mrlsb9mg-sztdkt","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":93}
+[11:24:39] BACKEND [intent-router] model routing failed {
+[11:24:39] BACKEND   attempts: [
+[11:24:39] BACKEND     {
+[11:24:39] BACKEND       model: 'gemini-2.5-flash-lite-preview',
+[11:24:39] BACKEND       ok: false,
+[11:24:39] BACKEND       errorType: 'missing_key',
+[11:24:39] BACKEND       durationMs: 0
+[11:24:39] BACKEND     },
+[11:24:39] BACKEND     {
+[11:24:39] BACKEND       model: 'gemini-2.5-flash',
+[11:24:39] BACKEND       ok: false,
+[11:24:39] BACKEND       errorType: 'missing_key',
+[11:24:39] BACKEND       durationMs: 0
+[11:24:39] BACKEND     }
+[11:24:39] BACKEND   ]
+[11:24:39] BACKEND }
+[11:24:40] BACKEND [2026-07-15T07:54:40.385Z] [HTTP] request_started {"requestId":"mrlsbblt-grz6rg","method":"POST","path":"/api/conversations/sync"}
+[11:24:40] BACKEND [2026-07-15T07:54:40.512Z] [HTTP] request_finished {"requestId":"mrlsbblt-grz6rg","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":127}
+[11:24:44] BACKEND [2026-07-15T07:54:44.296Z] [HTTP] request_started {"requestId":"mrlsbemg-td5oyl","method":"POST","path":"/api/conversations/sync"}
+[11:24:44] BACKEND [conversation-memory] writer attempt failed {
+[11:24:44] BACKEND   conversationId: '4b75b192-b101-4f10-a05d-e9dc4480ed77',
+[11:24:44] BACKEND   model: 'gemini-2.5-flash-lite-preview',
+[11:24:44] BACKEND   code: 'ERR_BAD_REQUEST',
+[11:24:44] BACKEND   message: 'Request failed with status code 404'
+[11:24:44] BACKEND }
+[11:24:44] BACKEND [2026-07-15T07:54:44.351Z] [HTTP] request_finished {"requestId":"mrlsbemg-td5oyl","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":55}
+[11:24:47] BACKEND [2026-07-15T07:54:47.536Z] [HTTP] request_finished {"requestId":"mrlsb97n-7mycaz","method":"POST","path":"/api/chat","status":200,"durationMs":10253}
+[11:24:48] BACKEND [2026-07-15T07:54:48.057Z] [HTTP] request_started {"requestId":"mrlsbhix-xlmplx","method":"POST","path":"/api/conversations/sync"}
+[11:24:48] BACKEND [2026-07-15T07:54:48.101Z] [HTTP] request_finished {"requestId":"mrlsbhix-xlmplx","method":"POST","path":"/api/conversations/sync","status":200,"durationMs":44}

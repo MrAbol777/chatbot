@@ -1141,6 +1141,7 @@ function ChatApp() {
     if (typeof window === 'undefined') return '';
     return readSessionValue(getChatDraftKey(getConversationIdFromPath(window.location.pathname)));
   });
+  const [isMobileKeyboardOpen, setIsMobileKeyboardOpen] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
  const [isSending, setIsSending] = useState(false);
@@ -1190,6 +1191,8 @@ function ChatApp() {
   const attachmentUrlsRef = useRef<Set<string>>(new Set());
   const imageTaskPollingRef = useRef<Set<string>>(new Set());
   const preserveDraftDuringSendRef = useRef(false);
+  const lastVisualViewportHeightRef = useRef(0);
+  const keyboardDismissedWhileFocusedRef = useRef(false);
 
   useEffect(() => {
     if (currentView !== 'chat' || preserveDraftDuringSendRef.current) {
@@ -1204,6 +1207,54 @@ function ChatApp() {
     }
     writeSessionValue(getChatDraftKey(activeConversationId), inputValue);
   }, [activeConversationId, currentView, inputValue]);
+
+  // Mobile browsers resize the VisualViewport when their software keyboard is
+  // shown. This keeps the bottom switcher out of the keyboard's way while
+  // leaving desktop and tablet layouts untouched.
+  useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 767px)');
+    const viewport = window.visualViewport;
+    lastVisualViewportHeightRef.current = viewport?.height ?? window.innerHeight;
+
+    const updateKeyboardState = () => {
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const keyboardHeight = viewport
+        ? window.innerHeight - viewportHeight - viewport.offsetTop
+        : 0;
+      const textareaHasFocus = document.activeElement === messageInputRef.current;
+      const viewportHasExpanded = viewportHeight - lastVisualViewportHeightRef.current > 80;
+      lastVisualViewportHeightRef.current = viewportHeight;
+
+      if (!mobileQuery.matches || !textareaHasFocus) {
+        keyboardDismissedWhileFocusedRef.current = false;
+        setIsMobileKeyboardOpen(false);
+        return;
+      }
+
+      if (keyboardHeight > 150) {
+        keyboardDismissedWhileFocusedRef.current = false;
+      } else if (viewportHasExpanded) {
+        // Android can keep the textarea focused after its Back button closes
+        // the keyboard. A growing visual viewport is the reliable close cue.
+        keyboardDismissedWhileFocusedRef.current = true;
+      }
+
+      setIsMobileKeyboardOpen(!keyboardDismissedWhileFocusedRef.current);
+    };
+
+    updateKeyboardState();
+    mobileQuery.addEventListener('change', updateKeyboardState);
+    window.addEventListener('resize', updateKeyboardState);
+    viewport?.addEventListener('resize', updateKeyboardState);
+    viewport?.addEventListener('scroll', updateKeyboardState);
+
+    return () => {
+      mobileQuery.removeEventListener('change', updateKeyboardState);
+      window.removeEventListener('resize', updateKeyboardState);
+      viewport?.removeEventListener('resize', updateKeyboardState);
+      viewport?.removeEventListener('scroll', updateKeyboardState);
+    };
+  }, []);
 
   // Resize from the rendered content rather than newline count. This keeps a
   // wrapped mobile message fully visible while preserving a compact single row
@@ -3344,6 +3395,7 @@ function ChatApp() {
   const chatStudioSwitcher = shouldShowChatStudioSwitcher ? (
     <ChatStudioSwitcher
       active={activeChatStudioView}
+      isMobileKeyboardOpen={isMobileKeyboardOpen && activeChatStudioView === 'chat'}
       onChat={() => {
         if (activeChatStudioView !== 'chat') returnToChatFromStudio();
       }}
@@ -4300,6 +4352,29 @@ function ChatApp() {
                       value={inputValue}
                       disabled={isRecording}
                       onChange={(event) => setInputValue(event.target.value)}
+                      onFocus={() => {
+                        // Some Android WebViews do not resize VisualViewport
+                        // until after the keyboard animation has begun.
+                        if (window.matchMedia('(max-width: 767px)').matches) {
+                          keyboardDismissedWhileFocusedRef.current = false;
+                          setIsMobileKeyboardOpen(true);
+                        }
+                      }}
+                      onPointerDown={() => {
+                        if (window.matchMedia('(max-width: 767px)').matches) {
+                          keyboardDismissedWhileFocusedRef.current = false;
+                          setIsMobileKeyboardOpen(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        // Let the next focused element settle before deciding
+                        // whether the composer has actually lost focus.
+                        window.setTimeout(() => {
+                          if (document.activeElement !== messageInputRef.current) {
+                            setIsMobileKeyboardOpen(false);
+                          }
+                        }, 0);
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' && !event.shiftKey) {
                           event.preventDefault();
