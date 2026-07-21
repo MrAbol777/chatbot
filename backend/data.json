@@ -1,0 +1,4009 @@
+{
+  "users": [
+    {
+      "user_id": "1777719881717-57251",
+      "name": "ذان",
+      "age": 9,
+      "gender": "male",
+      "registered_at": "2026-05-02T11:04:41.716Z",
+      "last_active": "2026-05-02T11:04:41.720Z"
+    },
+    {
+      "user_id": "1777719882728-618695",
+      "name": "ذان",
+      "age": 9,
+      "gender": "male",
+      "registered_at": "2026-05-02T11:04:42.728Z",
+      "last_active": "2026-05-02T11:04:42.731Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "name": "🍓فروزان امیری🎀",
+      "age": 12,
+      "phone": "09162603037",
+      "registered_at": "2026-05-03T07:21:28.251Z",
+      "last_active": "2026-05-03T09:15:22.183Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "name": "ابولفضل",
+      "age": 16,
+      "phone": "09926638344",
+      "registered_at": "2026-05-03T07:27:46.292Z",
+      "last_active": "2026-05-10T09:19:38.787Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "name": "ابولفضل",
+      "age": 8,
+      "phone": "09926638344",
+      "registered_at": "2026-05-03T08:44:02.874Z",
+      "last_active": "2026-05-03T12:31:29.435Z"
+    },
+    {
+      "user_id": "1777800962469",
+      "name": "علی",
+      "age": 11,
+      "phone": "09134515518",
+      "registered_at": "2026-05-03T09:36:33.987Z",
+      "last_active": "2026-05-03T09:36:36.447Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "name": "علی",
+      "age": 11,
+      "phone": "09134515518",
+      "registered_at": "2026-05-03T09:37:28.539Z",
+      "last_active": "2026-05-03T10:28:20.708Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "name": "علی",
+      "age": 10,
+      "phone": "09134515518",
+      "registered_at": "2026-05-03T12:33:36.866Z",
+      "last_active": "2026-05-03T12:38:54.636Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "name": "شادی",
+      "age": 11,
+      "phone": "09138492070",
+      "registered_at": "2026-05-03T16:15:31.175Z",
+      "last_active": "2026-05-03T16:34:33.198Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "name": "ابولفضل",
+      "age": 16,
+      "phone": "09926638344",
+      "registered_at": "2026-05-03T16:35:56.946Z",
+      "last_active": "2026-05-03T16:39:01.078Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "name": "مهدیار",
+      "age": 12,
+      "phone": "09930218781",
+      "registered_at": "2026-05-03T18:03:05.686Z",
+      "last_active": "2026-05-03T18:07:37.265Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "name": "محیا",
+      "age": 17,
+      "phone": "09220708758",
+      "registered_at": "2026-05-03T18:12:38.098Z",
+      "last_active": "2026-05-03T18:19:49.608Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "name": "ابولفضل",
+      "age": 16,
+      "phone": "09926638344",
+      "registered_at": "2026-05-04T06:50:02.578Z",
+      "last_active": "2026-05-04T08:56:40.328Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "name": "علی",
+      "age": 10,
+      "phone": "09134515518",
+      "registered_at": "2026-05-04T09:02:58.916Z",
+      "last_active": "2026-05-04T09:07:16.305Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "name": "ابولفضل",
+      "age": 16,
+      "phone": "09926638344",
+      "registered_at": "2026-05-04T10:17:01.081Z",
+      "last_active": "2026-05-04T10:19:20.398Z"
+    },
+    {
+      "user_id": "1777896127576",
+      "name": "لا",
+      "age": 12,
+      "phone": "09123456789",
+      "registered_at": "2026-05-04T12:02:02.092Z",
+      "last_active": "2026-05-04T12:02:02.092Z"
+    },
+    {
+      "user_id": "1777911747542",
+      "name": "قبفبل",
+      "age": 13,
+      "phone": "09123546789",
+      "registered_at": "2026-05-04T16:22:24.744Z",
+      "last_active": "2026-05-04T16:22:24.744Z"
+    },
+    {
+      "user_id": "1777912039375",
+      "name": "رذ",
+      "age": 8,
+      "phone": "09123456798",
+      "registered_at": "2026-05-04T16:27:18.362Z",
+      "last_active": "2026-05-04T16:27:18.362Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "name": "لا",
+      "age": 13,
+      "phone": "09124655678",
+      "registered_at": "2026-05-04T16:30:27.345Z",
+      "last_active": "2026-05-05T09:45:35.394Z"
+    },
+    {
+      "user_id": "1777912457876",
+      "name": "زیلدت",
+      "age": 11,
+      "phone": "09243536893",
+      "registered_at": "2026-05-04T16:34:17.447Z",
+      "last_active": "2026-05-04T16:34:17.447Z"
+    },
+    {
+      "user_id": "1777912671519",
+      "name": "مه",
+      "age": 12,
+      "phone": "09132165487",
+      "registered_at": "2026-05-04T16:37:42.199Z",
+      "last_active": "2026-05-04T16:37:42.199Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "name": "بللی",
+      "age": 14,
+      "phone": "09874563211",
+      "registered_at": "2026-05-04T16:40:20.603Z",
+      "last_active": "2026-05-10T09:40:38.249Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "name": "شیوا",
+      "age": 14,
+      "phone": "09138544236",
+      "registered_at": "2026-05-04T17:28:39.829Z",
+      "last_active": "2026-05-04T17:39:07.035Z"
+    },
+    {
+      "user_id": "1777972397243",
+      "name": "علی",
+      "age": 8,
+      "phone": "09134837151",
+      "registered_at": "2026-05-05T09:13:08.255Z",
+      "last_active": "2026-05-05T09:13:08.255Z"
+    },
+    {
+      "user_id": "1777972454240",
+      "name": "تانت",
+      "age": 13,
+      "phone": "09812346548",
+      "registered_at": "2026-05-05T09:14:13.390Z",
+      "last_active": "2026-05-05T09:14:13.390Z"
+    },
+    {
+      "user_id": "1778064809072",
+      "name": "کاربر",
+      "age": 0,
+      "phone": "09926638344",
+      "registered_at": "2026-05-06T10:53:23.151Z",
+      "last_active": "2026-05-06T10:53:23.151Z"
+    },
+    {
+      "user_id": "1778139802287",
+      "name": "کاربر",
+      "age": 0,
+      "phone": "09926638344",
+      "registered_at": "2026-05-07T07:43:22.081Z",
+      "last_active": "2026-05-07T07:43:22.081Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "name": "کاربر",
+      "age": 0,
+      "phone": "09134515518",
+      "registered_at": "2026-05-07T07:51:11.940Z",
+      "last_active": "2026-05-07T10:44:00.390Z"
+    }
+  ],
+  "events": [
+    {
+      "user_id": "1777719881717-57251",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moo8inld-mycawg\"}",
+      "created_at": "2026-05-02T11:04:41.720Z"
+    },
+    {
+      "user_id": "1777719882728-618695",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moo8iodi-m381w5\"}",
+      "created_at": "2026-05-02T11:04:42.731Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopfzfsi-mxjncd\"}",
+      "created_at": "2026-05-03T07:21:28.255Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopfzgdv-s53mry\"}",
+      "created_at": "2026-05-03T07:21:29.013Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopg7jhs-w5qca7\"}",
+      "created_at": "2026-05-03T07:27:46.297Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":77,\"requestId\":\"mopg7jhs-w5qca7\"}",
+      "created_at": "2026-05-03T07:27:47.682Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopg84k0-k26mwn\"}",
+      "created_at": "2026-05-03T07:28:13.593Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":56,\"requestId\":\"mopg84k0-k26mwn\"}",
+      "created_at": "2026-05-03T07:28:14.761Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"mopg8bxl-8gdv71\"}",
+      "created_at": "2026-05-03T07:28:23.150Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":109,\"requestId\":\"mopg8bxl-8gdv71\"}",
+      "created_at": "2026-05-03T07:28:24.472Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopg8r53-ptlx1f\"}",
+      "created_at": "2026-05-03T07:28:42.858Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":99,\"requestId\":\"mopg8r53-ptlx1f\"}",
+      "created_at": "2026-05-03T07:28:44.701Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":30,\"requestId\":\"mopg97f8-gy8c6k\"}",
+      "created_at": "2026-05-03T07:29:03.958Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":132,\"requestId\":\"mopg97f8-gy8c6k\"}",
+      "created_at": "2026-05-03T07:29:05.430Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":73,\"requestId\":\"mopga0a3-ymnbwl\"}",
+      "created_at": "2026-05-03T07:29:41.357Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1209,\"requestId\":\"mopga0a3-ymnbwl\"}",
+      "created_at": "2026-05-03T07:29:44.630Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":64,\"requestId\":\"mopgbkge-83a2bb\"}",
+      "created_at": "2026-05-03T07:30:54.165Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":664,\"requestId\":\"mopgbkge-83a2bb\"}",
+      "created_at": "2026-05-03T07:30:57.016Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":82,\"requestId\":\"mopgeu88-wwi5uq\"}",
+      "created_at": "2026-05-03T07:33:26.794Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":973,\"requestId\":\"mopgeu88-wwi5uq\"}",
+      "created_at": "2026-05-03T07:33:30.786Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopgg3lg-c237fa\"}",
+      "created_at": "2026-05-03T07:34:25.592Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":864,\"requestId\":\"mopgg3lg-c237fa\"}",
+      "created_at": "2026-05-03T07:34:28.603Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":29,\"requestId\":\"mopgh4v8-z5u862\"}",
+      "created_at": "2026-05-03T07:35:13.908Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopgh68q-nxtdy1\"}",
+      "created_at": "2026-05-03T07:35:15.678Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":920,\"requestId\":\"mopgh4v8-z5u862\"}",
+      "created_at": "2026-05-03T07:35:19.422Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":206,\"requestId\":\"mopgh68q-nxtdy1\"}",
+      "created_at": "2026-05-03T07:35:19.427Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopha360-xdxrgd\"}",
+      "created_at": "2026-05-03T07:57:44.717Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":163,\"requestId\":\"mopha360-xdxrgd\"}",
+      "created_at": "2026-05-03T07:57:46.370Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopha4ve-cnv2rr\"}",
+      "created_at": "2026-05-03T07:57:46.927Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":204,\"requestId\":\"mopha4ve-cnv2rr\"}",
+      "created_at": "2026-05-03T07:57:48.308Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"mopha6kp-6lm7ng\"}",
+      "created_at": "2026-05-03T07:57:49.135Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":192,\"requestId\":\"mopha6kp-6lm7ng\"}",
+      "created_at": "2026-05-03T07:57:50.056Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"mopha9di-in8k5l\"}",
+      "created_at": "2026-05-03T07:57:52.760Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":201,\"requestId\":\"mopha9di-in8k5l\"}",
+      "created_at": "2026-05-03T07:57:54.799Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mophacpd-dvuxtc\"}",
+      "created_at": "2026-05-03T07:57:57.078Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":344,\"requestId\":\"mophacpd-dvuxtc\"}",
+      "created_at": "2026-05-03T07:57:58.379Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":17,\"requestId\":\"mophaifj-rtxhdl\"}",
+      "created_at": "2026-05-03T07:58:04.500Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":575,\"requestId\":\"mophaifj-rtxhdl\"}",
+      "created_at": "2026-05-03T07:58:07.275Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":19,\"requestId\":\"mophatnl-j9o6zv\"}",
+      "created_at": "2026-05-03T07:58:19.045Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1991,\"requestId\":\"mophatnl-j9o6zv\"}",
+      "created_at": "2026-05-03T07:58:24.146Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":12,\"requestId\":\"mophfcxk-pk11ts\"}",
+      "created_at": "2026-05-03T08:01:50.652Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1892,\"requestId\":\"mophfcxk-pk11ts\"}",
+      "created_at": "2026-05-03T08:01:55.721Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopidtqu-khj6t3\"}",
+      "created_at": "2026-05-03T08:28:38.751Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":46,\"requestId\":\"mopidtqu-khj6t3\"}",
+      "created_at": "2026-05-03T08:28:49.744Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":28,\"requestId\":\"mopietzh-uop6kh\"}",
+      "created_at": "2026-05-03T08:29:25.713Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":959,\"requestId\":\"mopietzh-uop6kh\"}",
+      "created_at": "2026-05-03T08:29:40.061Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":24,\"requestId\":\"mopigk71-scje92\"}",
+      "created_at": "2026-05-03T08:30:46.339Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":1015,\"requestId\":\"mopigk71-scje92\"}",
+      "created_at": "2026-05-03T08:30:50.428Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":77,\"requestId\":\"mopihz7e-c1u079\"}",
+      "created_at": "2026-05-03T08:31:52.453Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":77,\"requestId\":\"mopiiqik-kloor5\"}",
+      "created_at": "2026-05-03T08:32:27.847Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopij8yb-9ifpqx\"}",
+      "created_at": "2026-05-03T08:32:51.733Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":46,\"requestId\":\"mopij8yb-9ifpqx\"}",
+      "created_at": "2026-05-03T08:32:53.149Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":77,\"requestId\":\"mopijj81-acbyi3\"}",
+      "created_at": "2026-05-03T08:33:05.050Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":932,\"requestId\":\"mopijj81-acbyi3\"}",
+      "created_at": "2026-05-03T08:33:24.619Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopil0vk-qlz98y\"}",
+      "created_at": "2026-05-03T08:34:14.581Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopils65-vb6g29\"}",
+      "created_at": "2026-05-03T08:34:49.953Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopinxyx-d7a0z6\"}",
+      "created_at": "2026-05-03T08:36:30.794Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopiop9n-1k9950\"}",
+      "created_at": "2026-05-03T08:37:06.169Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopiuiag-kvqqzu\"}",
+      "created_at": "2026-05-03T08:41:37.052Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":129,\"requestId\":\"mopiuiag-kvqqzu\"}",
+      "created_at": "2026-05-03T08:41:39.910Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopiv6ji-pvf5bd\"}",
+      "created_at": "2026-05-03T08:42:08.492Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":982,\"requestId\":\"mopiv6ji-pvf5bd\"}",
+      "created_at": "2026-05-03T08:42:12.203Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopiwhij-ve9gj8\"}",
+      "created_at": "2026-05-03T08:43:09.359Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":39,\"requestId\":\"mopiwj7a-mcoces\"}",
+      "created_at": "2026-05-03T08:43:11.550Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":144,\"requestId\":\"mopiwhij-ve9gj8\"}",
+      "created_at": "2026-05-03T08:43:13.731Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1146,\"requestId\":\"mopiwj7a-mcoces\"}",
+      "created_at": "2026-05-03T08:43:17.016Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":25,\"requestId\":\"mopixmt6-s5591l\"}",
+      "created_at": "2026-05-03T08:44:02.876Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":579,\"requestId\":\"mopixmt6-s5591l\"}",
+      "created_at": "2026-05-03T08:44:06.012Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":25,\"requestId\":\"mopiycif-rfpn2i\"}",
+      "created_at": "2026-05-03T08:44:36.187Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":525,\"requestId\":\"mopiycif-rfpn2i\"}",
+      "created_at": "2026-05-03T08:44:39.406Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":153,\"requestId\":\"mopiz7n0-zsvpdv\"}",
+      "created_at": "2026-05-03T08:45:16.534Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1523,\"requestId\":\"mopiz7n0-zsvpdv\"}",
+      "created_at": "2026-05-03T08:45:21.766Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"mopj166k-0q6siw\"}",
+      "created_at": "2026-05-03T08:46:47.952Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":105,\"requestId\":\"mopj166k-0q6siw\"}",
+      "created_at": "2026-05-03T08:46:49.395Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopjhj1q-qlyo76\"}",
+      "created_at": "2026-05-03T08:59:31.148Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":137,\"requestId\":\"mopjhj1q-qlyo76\"}",
+      "created_at": "2026-05-03T08:59:33.132Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopji4bh-ss21ng\"}",
+      "created_at": "2026-05-03T08:59:58.691Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":126,\"requestId\":\"mopji4bh-ss21ng\"}",
+      "created_at": "2026-05-03T09:00:00.557Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopjiosg-ldy4u5\"}",
+      "created_at": "2026-05-03T09:00:25.222Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":310,\"requestId\":\"mopjiosg-ldy4u5\"}",
+      "created_at": "2026-05-03T09:00:26.859Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":20,\"requestId\":\"mopjixbd-3zda81\"}",
+      "created_at": "2026-05-03T09:00:36.269Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1149,\"requestId\":\"mopjixbd-3zda81\"}",
+      "created_at": "2026-05-03T09:00:40.198Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopjjm04-jiywrf\"}",
+      "created_at": "2026-05-03T09:01:08.264Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":1179,\"requestId\":\"mopjjm04-jiywrf\"}",
+      "created_at": "2026-05-03T09:01:18.265Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopjjubn-hgrigr\"}",
+      "created_at": "2026-05-03T09:01:19.048Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":418,\"requestId\":\"mopjjubn-hgrigr\"}",
+      "created_at": "2026-05-03T09:01:23.145Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopjnm39-yvu8b3\"}",
+      "created_at": "2026-05-03T09:04:15.001Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":130,\"requestId\":\"mopjnm39-yvu8b3\"}",
+      "created_at": "2026-05-03T09:04:16.235Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"mopjx8qf-55zcs3\"}",
+      "created_at": "2026-05-03T09:11:44.253Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":544,\"requestId\":\"mopjx8qf-55zcs3\"}",
+      "created_at": "2026-05-03T09:11:46.321Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":46,\"requestId\":\"mopjxxvk-nfo3wt\"}",
+      "created_at": "2026-05-03T09:12:16.840Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":494,\"requestId\":\"mopjxxvk-nfo3wt\"}",
+      "created_at": "2026-05-03T09:12:19.157Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":18,\"requestId\":\"mopk1u7z-zbn1hj\"}",
+      "created_at": "2026-05-03T09:15:18.726Z"
+    },
+    {
+      "user_id": "1777792887160",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":587,\"requestId\":\"mopk1u7z-zbn1hj\"}",
+      "created_at": "2026-05-03T09:15:22.183Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopk9u0l-80lcq1\"}",
+      "created_at": "2026-05-03T09:21:31.709Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":112,\"requestId\":\"mopk9u0l-80lcq1\"}",
+      "created_at": "2026-05-03T09:21:33.283Z"
+    },
+    {
+      "user_id": "1777800962469",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":29,\"requestId\":\"mopkt682-gzpwth\"}",
+      "created_at": "2026-05-03T09:36:33.988Z"
+    },
+    {
+      "user_id": "1777800962469",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":451,\"requestId\":\"mopkt682-gzpwth\"}",
+      "created_at": "2026-05-03T09:36:36.447Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":32,\"requestId\":\"mopkucbd-exuri8\"}",
+      "created_at": "2026-05-03T09:37:28.540Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":652,\"requestId\":\"mopkucbd-exuri8\"}",
+      "created_at": "2026-05-03T09:37:31.826Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"mopl6drw-nb6ten\"}",
+      "created_at": "2026-05-03T09:46:50.318Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":166,\"requestId\":\"mopl6drw-nb6ten\"}",
+      "created_at": "2026-05-03T09:46:52.275Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moplz89f-7bl5i1\"}",
+      "created_at": "2026-05-03T10:09:16.191Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moplz8m9-t4ce7m\"}",
+      "created_at": "2026-05-03T10:09:16.654Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm3blk-hbnpfv\"}",
+      "created_at": "2026-05-03T10:12:27.169Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm3kc7-35otxs\"}",
+      "created_at": "2026-05-03T10:12:38.475Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm407g-ngb03r\"}",
+      "created_at": "2026-05-03T10:12:59.027Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm48r7-oy2dj2\"}",
+      "created_at": "2026-05-03T10:13:10.112Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm5z83-gipls7\"}",
+      "created_at": "2026-05-03T10:14:31.066Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm67r6-oq9smb\"}",
+      "created_at": "2026-05-03T10:14:42.130Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm7vd3-9qy5h8\"}",
+      "created_at": "2026-05-03T10:15:59.379Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm84b8-kldvkz\"}",
+      "created_at": "2026-05-03T10:16:11.038Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm8snv-wqna95\"}",
+      "created_at": "2026-05-03T10:16:42.531Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopm91hm-tlbhde\"}",
+      "created_at": "2026-05-03T10:16:53.971Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopmn13k-d6v0ed\"}",
+      "created_at": "2026-05-03T10:27:46.652Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopmn9nu-aiirg6\"}",
+      "created_at": "2026-05-03T10:27:57.745Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"mopmnip6-1m9olg\"}",
+      "created_at": "2026-05-03T10:28:09.454Z"
+    },
+    {
+      "user_id": "1777801026126",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"mopmnrcw-thr23t\"}",
+      "created_at": "2026-05-03T10:28:20.708Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopmv50i-2xyg26\"}",
+      "created_at": "2026-05-03T10:34:05.022Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopmveal-yvib72\"}",
+      "created_at": "2026-05-03T10:34:17.020Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn1ta0-fe7k3k\"}",
+      "created_at": "2026-05-03T10:39:16.353Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn228a-yrk44k\"}",
+      "created_at": "2026-05-03T10:39:27.950Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn2857-7j6ycj\"}",
+      "created_at": "2026-05-03T10:39:35.618Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn2gnm-qkvdl3\"}",
+      "created_at": "2026-05-03T10:39:46.646Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn7ixq-x3b83z\"}",
+      "created_at": "2026-05-03T10:43:42.889Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopn7s9c-qz60kp\"}",
+      "created_at": "2026-05-03T10:43:54.978Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopne911-ud7j5i\"}",
+      "created_at": "2026-05-03T10:48:56.648Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnehsn-jr9xhz\"}",
+      "created_at": "2026-05-03T10:49:08.015Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnfvyp-9prk6p\"}",
+      "created_at": "2026-05-03T10:50:13.045Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopng4rv-y8d1jw\"}",
+      "created_at": "2026-05-03T10:50:24.458Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnriko-s0pnzz\"}",
+      "created_at": "2026-05-03T10:59:15.544Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnrrc2-c2537g\"}",
+      "created_at": "2026-05-03T10:59:26.889Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopntl2d-ehjuyi\"}",
+      "created_at": "2026-05-03T11:00:52.076Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopntu8o-fc84a1\"}",
+      "created_at": "2026-05-03T11:01:03.964Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnu432-q6mcsf\"}",
+      "created_at": "2026-05-03T11:01:16.734Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopnucuf-hf85kv\"}",
+      "created_at": "2026-05-03T11:01:28.107Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopoccdn-tdio0e\"}",
+      "created_at": "2026-05-03T11:15:27.298Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopocldv-yozvgo\"}",
+      "created_at": "2026-05-03T11:15:38.952Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopoeelc-x02lt0\"}",
+      "created_at": "2026-05-03T11:17:03.465Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopoen9y-q3tvjw\"}",
+      "created_at": "2026-05-03T11:17:14.719Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopohauy-demrhj\"}",
+      "created_at": "2026-05-03T11:19:18.612Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopohjnx-tjs8ls\"}",
+      "created_at": "2026-05-03T11:19:30.016Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopok5aa-v7h9el\"}",
+      "created_at": "2026-05-03T11:21:31.363Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopoke9e-hexs4h\"}",
+      "created_at": "2026-05-03T11:21:42.989Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopon3pl-t0h1sy\"}",
+      "created_at": "2026-05-03T11:23:49.271Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moponcqb-9e6i91\"}",
+      "created_at": "2026-05-03T11:24:00.950Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopovvqa-fda0vg\"}",
+      "created_at": "2026-05-03T11:30:38.829Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopp0030-oqba2v\"}",
+      "created_at": "2026-05-03T11:33:51.094Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopp2o81-q8m546\"}",
+      "created_at": "2026-05-03T11:35:55.693Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopp65sn-k3i27k\"}",
+      "created_at": "2026-05-03T11:38:38.432Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppcx7f-6ah90t\"}",
+      "created_at": "2026-05-03T11:43:53.895Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppcxkl-641dyx\"}",
+      "created_at": "2026-05-03T11:43:54.379Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppfle2-990rj7\"}",
+      "created_at": "2026-05-03T11:45:58.574Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppfls6-ctp74y\"}",
+      "created_at": "2026-05-03T11:45:59.056Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopplleo-du090g\"}",
+      "created_at": "2026-05-03T11:50:38.511Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moppllsw-cisibe\"}",
+      "created_at": "2026-05-03T11:50:39.054Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"moppngux-qbzsfs\"}",
+      "created_at": "2026-05-03T11:52:05.926Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"moppnpki-l7tbat\"}",
+      "created_at": "2026-05-03T11:52:17.242Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppqmn8-vd709m\"}",
+      "created_at": "2026-05-03T11:54:33.392Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moppqvkd-7ay66o\"}",
+      "created_at": "2026-05-03T11:54:44.952Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moppsufm-9mdwuf\"}",
+      "created_at": "2026-05-03T11:56:16.793Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moppt33y-0jcu2d\"}",
+      "created_at": "2026-05-03T11:56:28.041Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moppzw5p-czlyc9\"}",
+      "created_at": "2026-05-03T12:01:45.623Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopq04po-nbxn5g\"}",
+      "created_at": "2026-05-03T12:01:56.713Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopqsxxf-gprrye\"}",
+      "created_at": "2026-05-03T12:24:20.941Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopqsyou-nuc24f\"}",
+      "created_at": "2026-05-03T12:24:21.950Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopqzdz9-zxvwc2\"}",
+      "created_at": "2026-05-03T12:29:21.678Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopqzeie-t4qehe\"}",
+      "created_at": "2026-05-03T12:29:22.425Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopr18rn-p42d3e\"}",
+      "created_at": "2026-05-03T12:30:48.246Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":97,\"requestId\":\"mopr18rn-p42d3e\"}",
+      "created_at": "2026-05-03T12:30:49.865Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopr23ix-96efxj\"}",
+      "created_at": "2026-05-03T12:31:28.121Z"
+    },
+    {
+      "user_id": "1777797844720",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":109,\"requestId\":\"mopr23ix-96efxj\"}",
+      "created_at": "2026-05-03T12:31:29.435Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":47,\"requestId\":\"mopr4uw1-ol8ii8\"}",
+      "created_at": "2026-05-03T12:33:36.868Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":483,\"requestId\":\"mopr4uw1-ol8ii8\"}",
+      "created_at": "2026-05-03T12:33:39.007Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":29,\"requestId\":\"mopr5qom-8ki74t\"}",
+      "created_at": "2026-05-03T12:34:18.072Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1420,\"requestId\":\"mopr5qom-8ki74t\"}",
+      "created_at": "2026-05-03T12:34:22.780Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":51,\"requestId\":\"mopr6vsj-ysd63i\"}",
+      "created_at": "2026-05-03T12:35:11.352Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1624,\"requestId\":\"mopr6vsj-ysd63i\"}",
+      "created_at": "2026-05-03T12:35:16.029Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":56,\"requestId\":\"mopr8eo0-ydz3mr\"}",
+      "created_at": "2026-05-03T12:36:22.468Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":968,\"requestId\":\"mopr8eo0-ydz3mr\"}",
+      "created_at": "2026-05-03T12:36:25.701Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopr8rds-4pzzbi\"}",
+      "created_at": "2026-05-03T12:36:38.947Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":804,\"requestId\":\"mopr8rds-4pzzbi\"}",
+      "created_at": "2026-05-03T12:36:43.642Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":68,\"requestId\":\"mopralp8-m3brt3\"}",
+      "created_at": "2026-05-03T12:38:04.895Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":600,\"requestId\":\"mopralp8-m3brt3\"}",
+      "created_at": "2026-05-03T12:38:07.440Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":12,\"requestId\":\"moprb6y7-qssroc\"}",
+      "created_at": "2026-05-03T12:38:32.436Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":779,\"requestId\":\"moprb6y7-qssroc\"}",
+      "created_at": "2026-05-03T12:38:35.146Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moprbn4m-v1gots\"}",
+      "created_at": "2026-05-03T12:38:53.407Z"
+    },
+    {
+      "user_id": "1777811538892",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":92,\"requestId\":\"moprbn4m-v1gots\"}",
+      "created_at": "2026-05-03T12:38:54.636Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":1,\"requestId\":\"mopsl0yc-9g1fbj\"}",
+      "created_at": "2026-05-03T13:14:10.885Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":235,\"requestId\":\"mopsl0yc-9g1fbj\"}",
+      "created_at": "2026-05-03T13:14:13.061Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopsq7rv-ngjdvc\"}",
+      "created_at": "2026-05-03T13:18:12.962Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":269,\"requestId\":\"mopsq7rv-ngjdvc\"}",
+      "created_at": "2026-05-03T13:18:14.907Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopsqn1f-ojx4b5\"}",
+      "created_at": "2026-05-03T13:18:32.747Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":554,\"requestId\":\"mopsqn1f-ojx4b5\"}",
+      "created_at": "2026-05-03T13:18:34.926Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopsynl3-qv15a4\"}",
+      "created_at": "2026-05-03T13:24:46.706Z"
+    },
+    {
+      "user_id": "1777793271366",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":251,\"requestId\":\"mopsynl3-qv15a4\"}",
+      "created_at": "2026-05-03T13:24:47.897Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":33,\"requestId\":\"mopz2891-srrapi\"}",
+      "created_at": "2026-05-03T16:15:31.224Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":180,\"requestId\":\"mopz2891-srrapi\"}",
+      "created_at": "2026-05-03T16:15:40.167Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":20,\"requestId\":\"mopz3ksu-1baf2j\"}",
+      "created_at": "2026-05-03T16:16:34.094Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":241,\"requestId\":\"mopz3ksu-1baf2j\"}",
+      "created_at": "2026-05-03T16:16:35.476Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":69,\"requestId\":\"mopz8idr-i5u8l8\"}",
+      "created_at": "2026-05-03T16:20:24.222Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":404,\"requestId\":\"mopz8idr-i5u8l8\"}",
+      "created_at": "2026-05-03T16:20:26.672Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":45,\"requestId\":\"mopzar66-7ke5b9\"}",
+      "created_at": "2026-05-03T16:22:08.962Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":592,\"requestId\":\"mopzar66-7ke5b9\"}",
+      "created_at": "2026-05-03T16:22:12.081Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopzoosr-ptsc3u\"}",
+      "created_at": "2026-05-03T16:32:59.098Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":580,\"requestId\":\"mopzoosr-ptsc3u\"}",
+      "created_at": "2026-05-03T16:33:01.452Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopzoulv-f2givw\"}",
+      "created_at": "2026-05-03T16:33:06.564Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":658,\"requestId\":\"mopzoulv-f2givw\"}",
+      "created_at": "2026-05-03T16:33:08.992Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopzqh0x-i0k9q7\"}",
+      "created_at": "2026-05-03T16:34:22.290Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":588,\"requestId\":\"mopzqh0x-i0k9q7\"}",
+      "created_at": "2026-05-03T16:34:25.840Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"mopzqnlv-n7rgjx\"}",
+      "created_at": "2026-05-03T16:34:30.843Z"
+    },
+    {
+      "user_id": "1777824863615",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":588,\"requestId\":\"mopzqnlv-n7rgjx\"}",
+      "created_at": "2026-05-03T16:34:33.198Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopzsi2n-95ifp3\"}",
+      "created_at": "2026-05-03T16:35:56.965Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mopzsj0h-6tnlin\"}",
+      "created_at": "2026-05-03T16:35:58.152Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":133,\"requestId\":\"mopzsj0h-6tnlin\"}",
+      "created_at": "2026-05-03T16:36:00.542Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mopzsljy-uk77bx\"}",
+      "created_at": "2026-05-03T16:36:01.444Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":129,\"requestId\":\"mopzsljy-uk77bx\"}",
+      "created_at": "2026-05-03T16:36:02.556Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"mopzsn8p-a1l9hf\"}",
+      "created_at": "2026-05-03T16:36:03.636Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":151,\"requestId\":\"mopzsn8p-a1l9hf\"}",
+      "created_at": "2026-05-03T16:36:05.466Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"mopzt4b6-usm257\"}",
+      "created_at": "2026-05-03T16:36:25.758Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":340,\"requestId\":\"mopzt4b6-usm257\"}",
+      "created_at": "2026-05-03T16:36:29.466Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":6,\"requestId\":\"mopztahe-9dlugp\"}",
+      "created_at": "2026-05-03T16:36:33.759Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":356,\"requestId\":\"mopztahe-9dlugp\"}",
+      "created_at": "2026-05-03T16:36:35.504Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopztkcy-mms314\"}",
+      "created_at": "2026-05-03T16:36:46.557Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":213,\"requestId\":\"mopztkcy-mms314\"}",
+      "created_at": "2026-05-03T16:36:48.261Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"mopztv2j-1dg5nx\"}",
+      "created_at": "2026-05-03T16:37:00.437Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1788,\"requestId\":\"mopztv2j-1dg5nx\"}",
+      "created_at": "2026-05-03T16:37:05.900Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"mopzuaz5-jyekca\"}",
+      "created_at": "2026-05-03T16:37:21.051Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":388,\"requestId\":\"mopzuaz5-jyekca\"}",
+      "created_at": "2026-05-03T16:37:23.724Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":35,\"requestId\":\"mopzwe7d-fuuk0m\"}",
+      "created_at": "2026-05-03T16:38:58.556Z"
+    },
+    {
+      "user_id": "1777825805149",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":326,\"requestId\":\"mopzwe7d-fuuk0m\"}",
+      "created_at": "2026-05-03T16:39:01.078Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moq2wklu-sq028q\"}",
+      "created_at": "2026-05-03T18:03:05.693Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":99,\"requestId\":\"moq2wklu-sq028q\"}",
+      "created_at": "2026-05-03T18:03:06.931Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"moq2x3k8-z9gto6\"}",
+      "created_at": "2026-05-03T18:03:30.304Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":129,\"requestId\":\"moq2x3k8-z9gto6\"}",
+      "created_at": "2026-05-03T18:03:31.939Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":13,\"requestId\":\"moq2xg28-0ljlxk\"}",
+      "created_at": "2026-05-03T18:03:46.499Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":69,\"requestId\":\"moq2xg28-0ljlxk\"}",
+      "created_at": "2026-05-03T18:03:47.794Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":29,\"requestId\":\"moq2yrm3-3319hj\"}",
+      "created_at": "2026-05-03T18:04:48.129Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":441,\"requestId\":\"moq2yrm3-3319hj\"}",
+      "created_at": "2026-05-03T18:04:50.281Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"moq2zexq-j3lbl9\"}",
+      "created_at": "2026-05-03T18:05:18.369Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":368,\"requestId\":\"moq2zexq-j3lbl9\"}",
+      "created_at": "2026-05-03T18:05:20.494Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":26,\"requestId\":\"moq301pv-a7d3cu\"}",
+      "created_at": "2026-05-03T18:05:47.877Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":226,\"requestId\":\"moq301pv-a7d3cu\"}",
+      "created_at": "2026-05-03T18:05:50.043Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"moq31hjm-fhfnnl\"}",
+      "created_at": "2026-05-03T18:06:54.997Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":99,\"requestId\":\"moq31hjm-fhfnnl\"}",
+      "created_at": "2026-05-03T18:06:57.150Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"moq31k4d-h11d5f\"}",
+      "created_at": "2026-05-03T18:06:58.336Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":92,\"requestId\":\"moq31k4d-h11d5f\"}",
+      "created_at": "2026-05-03T18:06:59.878Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq31mtz-nmn95u\"}",
+      "created_at": "2026-05-03T18:07:01.862Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":190,\"requestId\":\"moq31mtz-nmn95u\"}",
+      "created_at": "2026-05-03T18:07:03.808Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq31vv3-ijmgck\"}",
+      "created_at": "2026-05-03T18:07:13.555Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":190,\"requestId\":\"moq31vv3-ijmgck\"}",
+      "created_at": "2026-05-03T18:07:14.899Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq31x1j-l4tv9v\"}",
+      "created_at": "2026-05-03T18:07:15.097Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":193,\"requestId\":\"moq31x1j-l4tv9v\"}",
+      "created_at": "2026-05-03T18:07:17.069Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq31yp2-t5p5y1\"}",
+      "created_at": "2026-05-03T18:07:17.227Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":205,\"requestId\":\"moq31yp2-t5p5y1\"}",
+      "created_at": "2026-05-03T18:07:20.058Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq320zn-1h19sd\"}",
+      "created_at": "2026-05-03T18:07:20.199Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":205,\"requestId\":\"moq320zn-1h19sd\"}",
+      "created_at": "2026-05-03T18:07:22.431Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"moq32c2a-7u8vra\"}",
+      "created_at": "2026-05-03T18:07:34.556Z"
+    },
+    {
+      "user_id": "1777831382418",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":72,\"requestId\":\"moq32c2a-7u8vra\"}",
+      "created_at": "2026-05-03T18:07:37.265Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moq38ua4-b5hbqc\"}",
+      "created_at": "2026-05-03T18:12:38.104Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":98,\"requestId\":\"moq38ua4-b5hbqc\"}",
+      "created_at": "2026-05-03T18:12:39.420Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"moq39fbs-9k5lhc\"}",
+      "created_at": "2026-05-03T18:13:05.380Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":195,\"requestId\":\"moq39fbs-9k5lhc\"}",
+      "created_at": "2026-05-03T18:13:07.614Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":31,\"requestId\":\"moq3a7ad-pu11zv\"}",
+      "created_at": "2026-05-03T18:13:41.610Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":169,\"requestId\":\"moq3a7ad-pu11zv\"}",
+      "created_at": "2026-05-03T18:13:43.923Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "emotional",
+      "metadata": "{\"messageLength\":30,\"requestId\":\"moq3bdg5-ji561i\"}",
+      "created_at": "2026-05-03T18:14:36.252Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "emotional",
+      "metadata": "{\"responseLength\":320,\"requestId\":\"moq3bdg5-ji561i\"}",
+      "created_at": "2026-05-03T18:14:38.411Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":23,\"requestId\":\"moq3e2qg-7nwq42\"}",
+      "created_at": "2026-05-03T18:16:42.360Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":234,\"requestId\":\"moq3e2qg-7nwq42\"}",
+      "created_at": "2026-05-03T18:16:44.761Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":24,\"requestId\":\"moq3f18v-7qcs6r\"}",
+      "created_at": "2026-05-03T18:17:27.084Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":308,\"requestId\":\"moq3f18v-7qcs6r\"}",
+      "created_at": "2026-05-03T18:17:29.430Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"moq3fu6y-ywi3gj\"}",
+      "created_at": "2026-05-03T18:18:04.577Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":123,\"requestId\":\"moq3fu6y-ywi3gj\"}",
+      "created_at": "2026-05-03T18:18:10.160Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moq3g6ch-altm84\"}",
+      "created_at": "2026-05-03T18:18:20.324Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":107,\"requestId\":\"moq3g6ch-altm84\"}",
+      "created_at": "2026-05-03T18:18:22.122Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":36,\"requestId\":\"moq3hla8-4v41az\"}",
+      "created_at": "2026-05-03T18:19:26.346Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":161,\"requestId\":\"moq3hla8-4v41az\"}",
+      "created_at": "2026-05-03T18:19:28.631Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":36,\"requestId\":\"moq3i1xy-rgo6ri\"}",
+      "created_at": "2026-05-03T18:19:47.934Z"
+    },
+    {
+      "user_id": "1777831953111",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":106,\"requestId\":\"moq3i1xy-rgo6ri\"}",
+      "created_at": "2026-05-03T18:19:49.608Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moquavgr-6w648j\"}",
+      "created_at": "2026-05-04T06:50:02.590Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":165,\"requestId\":\"moquavgr-6w648j\"}",
+      "created_at": "2026-05-04T06:50:04.625Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":21,\"requestId\":\"moqub20n-50he9v\"}",
+      "created_at": "2026-05-04T06:50:11.074Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":200,\"requestId\":\"moqub20n-50he9v\"}",
+      "created_at": "2026-05-04T06:50:12.395Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":14,\"requestId\":\"moqub9vl-lwwd9h\"}",
+      "created_at": "2026-05-04T06:50:21.264Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":424,\"requestId\":\"moqub9vl-lwwd9h\"}",
+      "created_at": "2026-05-04T06:50:23.409Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqv5jqj-o8v2fg\"}",
+      "created_at": "2026-05-04T07:13:53.722Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":167,\"requestId\":\"moqv5jqj-o8v2fg\"}",
+      "created_at": "2026-05-04T07:13:55.999Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"moqv5vpx-88dt51\"}",
+      "created_at": "2026-05-04T07:14:09.245Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":126,\"requestId\":\"moqv5vpx-88dt51\"}",
+      "created_at": "2026-05-04T07:14:10.962Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":5,\"requestId\":\"moqv664o-ye8712\"}",
+      "created_at": "2026-05-04T07:14:22.740Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":662,\"requestId\":\"moqv664o-ye8712\"}",
+      "created_at": "2026-05-04T07:14:25.486Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moqv6hfk-qhtzc0\"}",
+      "created_at": "2026-05-04T07:14:37.389Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":595,\"requestId\":\"moqv6hfk-qhtzc0\"}",
+      "created_at": "2026-05-04T07:14:40.689Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":20,\"requestId\":\"moqv6utp-n4liez\"}",
+      "created_at": "2026-05-04T07:14:54.745Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1091,\"requestId\":\"moqv6utp-n4liez\"}",
+      "created_at": "2026-05-04T07:14:59.316Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":19,\"requestId\":\"moqv7tv3-hljdjf\"}",
+      "created_at": "2026-05-04T07:15:40.152Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":355,\"requestId\":\"moqv7tv3-hljdjf\"}",
+      "created_at": "2026-05-04T07:15:45.254Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"moqv8hqk-pwawul\"}",
+      "created_at": "2026-05-04T07:16:11.093Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":1083,\"requestId\":\"moqv8hqk-pwawul\"}",
+      "created_at": "2026-05-04T07:16:13.935Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":12,\"requestId\":\"moqvk7sw-3cntc7\"}",
+      "created_at": "2026-05-04T07:25:18.094Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":125,\"requestId\":\"moqvk7sw-3cntc7\"}",
+      "created_at": "2026-05-04T07:25:20.175Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moqvkdwi-scou1u\"}",
+      "created_at": "2026-05-04T07:25:25.997Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":229,\"requestId\":\"moqvkdwi-scou1u\"}",
+      "created_at": "2026-05-04T07:25:30.264Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"moqvkpqp-ufhhi9\"}",
+      "created_at": "2026-05-04T07:25:41.339Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":355,\"requestId\":\"moqvkpqp-ufhhi9\"}",
+      "created_at": "2026-05-04T07:25:44.791Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"moqvl4u7-th9lmt\"}",
+      "created_at": "2026-05-04T07:26:00.906Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":355,\"requestId\":\"moqvl4u7-th9lmt\"}",
+      "created_at": "2026-05-04T07:26:02.551Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"moqvlbj4-c6y0oy\"}",
+      "created_at": "2026-05-04T07:26:09.580Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":784,\"requestId\":\"moqvlbj4-c6y0oy\"}",
+      "created_at": "2026-05-04T07:26:13.349Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"moqvm9uq-lh1hln\"}",
+      "created_at": "2026-05-04T07:26:54.062Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":789,\"requestId\":\"moqvm9uq-lh1hln\"}",
+      "created_at": "2026-05-04T07:26:56.756Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"moqwmb24-fssdjq\"}",
+      "created_at": "2026-05-04T07:54:55.249Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":789,\"requestId\":\"moqwmb24-fssdjq\"}",
+      "created_at": "2026-05-04T07:54:58.300Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moqwmif3-ht6dcj\"}",
+      "created_at": "2026-05-04T07:55:04.776Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":274,\"requestId\":\"moqwmif3-ht6dcj\"}",
+      "created_at": "2026-05-04T07:55:07.835Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"moqwmv0q-ruzo21\"}",
+      "created_at": "2026-05-04T07:55:21.112Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":229,\"requestId\":\"moqwmv0q-ruzo21\"}",
+      "created_at": "2026-05-04T07:55:23.417Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqwmxn6-ilfero\"}",
+      "created_at": "2026-05-04T07:55:24.508Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":231,\"requestId\":\"moqwmxn6-ilfero\"}",
+      "created_at": "2026-05-04T07:55:26.049Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"moqwn4pg-ev6uc4\"}",
+      "created_at": "2026-05-04T07:55:33.661Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":231,\"requestId\":\"moqwn4pg-ev6uc4\"}",
+      "created_at": "2026-05-04T07:55:35.960Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqwnb51-sz8zkp\"}",
+      "created_at": "2026-05-04T07:55:41.999Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":135,\"requestId\":\"moqwnb51-sz8zkp\"}",
+      "created_at": "2026-05-04T07:55:44.121Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqwnm7t-ab0wiv\"}",
+      "created_at": "2026-05-04T07:55:56.355Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":160,\"requestId\":\"moqwnm7t-ab0wiv\"}",
+      "created_at": "2026-05-04T07:55:58.692Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqwnwrm-5e5pj6\"}",
+      "created_at": "2026-05-04T07:56:10.028Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":191,\"requestId\":\"moqwnwrm-5e5pj6\"}",
+      "created_at": "2026-05-04T07:56:14.734Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqxi7fx-dstk1b\"}",
+      "created_at": "2026-05-04T08:19:43.558Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":295,\"requestId\":\"moqxi7fx-dstk1b\"}",
+      "created_at": "2026-05-04T08:19:46.024Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"moqxjxo2-6yhyr0\"}",
+      "created_at": "2026-05-04T08:21:04.194Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":319,\"requestId\":\"moqxjxo2-6yhyr0\"}",
+      "created_at": "2026-05-04T08:21:06.645Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqxm6ky-tbp6sv\"}",
+      "created_at": "2026-05-04T08:22:49.056Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":273,\"requestId\":\"moqxm6ky-tbp6sv\"}",
+      "created_at": "2026-05-04T08:22:51.077Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"moqxmh2a-9d82cj\"}",
+      "created_at": "2026-05-04T08:23:02.640Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":299,\"requestId\":\"moqxmh2a-9d82cj\"}",
+      "created_at": "2026-05-04T08:23:04.850Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"moqxx6gp-k7sp2c\"}",
+      "created_at": "2026-05-04T08:31:22.121Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":301,\"requestId\":\"moqxx6gp-k7sp2c\"}",
+      "created_at": "2026-05-04T08:31:23.762Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqxxf7s-9tkgxe\"}",
+      "created_at": "2026-05-04T08:31:33.458Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":323,\"requestId\":\"moqxxf7s-9tkgxe\"}",
+      "created_at": "2026-05-04T08:31:36.927Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"moqxxl16-h436ak\"}",
+      "created_at": "2026-05-04T08:31:40.998Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":323,\"requestId\":\"moqxxl16-h436ak\"}",
+      "created_at": "2026-05-04T08:31:43.005Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"moqytobd-bj97k7\"}",
+      "created_at": "2026-05-04T08:56:38.302Z"
+    },
+    {
+      "user_id": "1777876468620",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":323,\"requestId\":\"moqytobd-bj97k7\"}",
+      "created_at": "2026-05-04T08:56:40.328Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":29,\"requestId\":\"moqz1u1u-b5xjvp\"}",
+      "created_at": "2026-05-04T09:02:58.919Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":330,\"requestId\":\"moqz1u1u-b5xjvp\"}",
+      "created_at": "2026-05-04T09:03:01.442Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":21,\"requestId\":\"moqz337s-4h6cuw\"}",
+      "created_at": "2026-05-04T09:03:57.469Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":285,\"requestId\":\"moqz337s-4h6cuw\"}",
+      "created_at": "2026-05-04T09:03:59.074Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":30,\"requestId\":\"moqz430n-p9uh4j\"}",
+      "created_at": "2026-05-04T09:04:43.853Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":305,\"requestId\":\"moqz430n-p9uh4j\"}",
+      "created_at": "2026-05-04T09:04:45.730Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":24,\"requestId\":\"moqz4yam-j0v6bl\"}",
+      "created_at": "2026-05-04T09:05:24.387Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":308,\"requestId\":\"moqz4yam-j0v6bl\"}",
+      "created_at": "2026-05-04T09:05:28.699Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moqz56ng-x993fd\"}",
+      "created_at": "2026-05-04T09:05:35.227Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":413,\"requestId\":\"moqz56ng-x993fd\"}",
+      "created_at": "2026-05-04T09:05:37.245Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"moqz7avp-roau24\"}",
+      "created_at": "2026-05-04T09:07:14.009Z"
+    },
+    {
+      "user_id": "1777885346803",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":215,\"requestId\":\"moqz7avp-roau24\"}",
+      "created_at": "2026-05-04T09:07:16.305Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":9,\"requestId\":\"mor1p1n8-y7wkeg\"}",
+      "created_at": "2026-05-04T10:17:01.095Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":535,\"requestId\":\"mor1p1n8-y7wkeg\"}",
+      "created_at": "2026-05-04T10:17:05.057Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":11,\"requestId\":\"mor1p6f8-kmewbg\"}",
+      "created_at": "2026-05-04T10:17:07.279Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":412,\"requestId\":\"mor1p6f8-kmewbg\"}",
+      "created_at": "2026-05-04T10:17:09.923Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":5,\"requestId\":\"mor1qcnn-k95rtn\"}",
+      "created_at": "2026-05-04T10:18:02.014Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":538,\"requestId\":\"mor1qcnn-k95rtn\"}",
+      "created_at": "2026-05-04T10:18:05.221Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":32,\"requestId\":\"mor1rz3j-bfhhqv\"}",
+      "created_at": "2026-05-04T10:19:17.751Z"
+    },
+    {
+      "user_id": "1777831597116",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":527,\"requestId\":\"mor1rz3j-bfhhqv\"}",
+      "created_at": "2026-05-04T10:19:20.398Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"morgeeq9-2o71br\"}",
+      "created_at": "2026-05-04T17:08:39.076Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":419,\"requestId\":\"morgeeq9-2o71br\"}",
+      "created_at": "2026-05-04T17:08:41.541Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"morgz8e6-pxn8qh\"}",
+      "created_at": "2026-05-04T17:24:50.641Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":579,\"requestId\":\"morgz8e6-pxn8qh\"}",
+      "created_at": "2026-05-04T17:24:53.612Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":6,\"requestId\":\"morh4o02-8qk4x2\"}",
+      "created_at": "2026-05-04T17:29:04.139Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":315,\"requestId\":\"morh4o02-8qk4x2\"}",
+      "created_at": "2026-05-04T17:29:06.559Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"morh5d6n-v5x7t3\"}",
+      "created_at": "2026-05-04T17:29:36.777Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":286,\"requestId\":\"morh5d6n-v5x7t3\"}",
+      "created_at": "2026-05-04T17:29:38.262Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":38,\"requestId\":\"morh5rzh-vh769y\"}",
+      "created_at": "2026-05-04T17:29:55.960Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":394,\"requestId\":\"morh5rzh-vh769y\"}",
+      "created_at": "2026-05-04T17:29:57.752Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":28,\"requestId\":\"morh77ta-hr2vgi\"}",
+      "created_at": "2026-05-04T17:31:03.131Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":462,\"requestId\":\"morh77ta-hr2vgi\"}",
+      "created_at": "2026-05-04T17:31:05.602Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":21,\"requestId\":\"morh8gax-j5qb8c\"}",
+      "created_at": "2026-05-04T17:32:00.850Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":416,\"requestId\":\"morh8gax-j5qb8c\"}",
+      "created_at": "2026-05-04T17:32:02.885Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":44,\"requestId\":\"morh9u3s-4d3ct3\"}",
+      "created_at": "2026-05-04T17:33:05.328Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":379,\"requestId\":\"morh9u3s-4d3ct3\"}",
+      "created_at": "2026-05-04T17:33:07.455Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":21,\"requestId\":\"morhat06-6yvnlh\"}",
+      "created_at": "2026-05-04T17:33:50.566Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":722,\"requestId\":\"morhat06-6yvnlh\"}",
+      "created_at": "2026-05-04T17:33:53.337Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"morhcd7o-qw3b78\"}",
+      "created_at": "2026-05-04T17:35:03.409Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":686,\"requestId\":\"morhcd7o-qw3b78\"}",
+      "created_at": "2026-05-04T17:35:06.762Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":13,\"requestId\":\"morhd56r-o3ueze\"}",
+      "created_at": "2026-05-04T17:35:39.709Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":374,\"requestId\":\"morhd56r-o3ueze\"}",
+      "created_at": "2026-05-04T17:35:41.626Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":20,\"requestId\":\"morhf6og-5pcklh\"}",
+      "created_at": "2026-05-04T17:37:14.966Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":461,\"requestId\":\"morhf6og-5pcklh\"}",
+      "created_at": "2026-05-04T17:37:17.283Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"morhg71h-whib9q\"}",
+      "created_at": "2026-05-04T17:38:02.034Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":686,\"requestId\":\"morhg71h-whib9q\"}",
+      "created_at": "2026-05-04T17:38:04.170Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":2,\"requestId\":\"morhgasf-qj5cgh\"}",
+      "created_at": "2026-05-04T17:38:06.896Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":686,\"requestId\":\"morhgasf-qj5cgh\"}",
+      "created_at": "2026-05-04T17:38:08.990Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":14,\"requestId\":\"morhgg16-r4qjg1\"}",
+      "created_at": "2026-05-04T17:38:13.680Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":14,\"requestId\":\"morhgj0f-mgnflm\"}",
+      "created_at": "2026-05-04T17:38:17.539Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":313,\"requestId\":\"morhgj0f-mgnflm\"}",
+      "created_at": "2026-05-04T17:38:19.505Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"morhgy0y-0evroz\"}",
+      "created_at": "2026-05-04T17:38:37.014Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":686,\"requestId\":\"morhgy0y-0evroz\"}",
+      "created_at": "2026-05-04T17:38:39.376Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":5,\"requestId\":\"morhhjpx-8d7str\"}",
+      "created_at": "2026-05-04T17:39:05.115Z"
+    },
+    {
+      "user_id": "1777915725428",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":381,\"requestId\":\"morhhjpx-8d7str\"}",
+      "created_at": "2026-05-04T17:39:07.035Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mosa0wpy-trlc3w\"}",
+      "created_at": "2026-05-05T06:57:57.717Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":261,\"requestId\":\"mosa0wpy-trlc3w\"}",
+      "created_at": "2026-05-05T06:57:59.807Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":34,\"requestId\":\"mosa3ja3-fpok1p\"}",
+      "created_at": "2026-05-05T07:00:00.230Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":349,\"requestId\":\"mosa3ja3-fpok1p\"}",
+      "created_at": "2026-05-05T07:00:07.456Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mosaehf0-1pqe29\"}",
+      "created_at": "2026-05-05T07:08:31.072Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":266,\"requestId\":\"mosaehf0-1pqe29\"}",
+      "created_at": "2026-05-05T07:08:33.009Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":23,\"requestId\":\"mosaez6n-5w9bca\"}",
+      "created_at": "2026-05-05T07:08:54.058Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":373,\"requestId\":\"mosaez6n-5w9bca\"}",
+      "created_at": "2026-05-05T07:08:55.885Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "academic",
+      "metadata": "{\"messageLength\":27,\"requestId\":\"mosafpcq-ch1323\"}",
+      "created_at": "2026-05-05T07:09:27.974Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "academic",
+      "metadata": "{\"responseLength\":382,\"requestId\":\"mosafpcq-ch1323\"}",
+      "created_at": "2026-05-05T07:09:29.704Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":38,\"requestId\":\"mosaglds-811lre\"}",
+      "created_at": "2026-05-05T07:10:09.486Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":483,\"requestId\":\"mosaglds-811lre\"}",
+      "created_at": "2026-05-05T07:10:11.334Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":38,\"requestId\":\"mosakk0p-x47lge\"}",
+      "created_at": "2026-05-05T07:13:14.413Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":674,\"requestId\":\"mosakk0p-x47lge\"}",
+      "created_at": "2026-05-05T07:13:17.241Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":25,\"requestId\":\"mosal7e2-c6ei41\"}",
+      "created_at": "2026-05-05T07:13:44.632Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":696,\"requestId\":\"mosal7e2-c6ei41\"}",
+      "created_at": "2026-05-05T07:13:47.622Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"mosam3s3-xpsgp2\"}",
+      "created_at": "2026-05-05T07:14:26.608Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":637,\"requestId\":\"mosam3s3-xpsgp2\"}",
+      "created_at": "2026-05-05T07:14:29.753Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":57,\"requestId\":\"mosd696f-n1qh8z\"}",
+      "created_at": "2026-05-05T08:26:05.968Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":237,\"requestId\":\"mosd696f-n1qh8z\"}",
+      "created_at": "2026-05-05T08:26:07.742Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"mosefryr-812z5i\"}",
+      "created_at": "2026-05-05T09:01:29.824Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":251,\"requestId\":\"mosefryr-812z5i\"}",
+      "created_at": "2026-05-05T09:01:31.989Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":8,\"requestId\":\"moserb1z-oq04g2\"}",
+      "created_at": "2026-05-05T09:10:27.799Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":164,\"requestId\":\"moserb1z-oq04g2\"}",
+      "created_at": "2026-05-05T09:10:31.298Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":5,\"requestId\":\"moserpb8-2l8kjr\"}",
+      "created_at": "2026-05-05T09:10:46.257Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":150,\"requestId\":\"moserpb8-2l8kjr\"}",
+      "created_at": "2026-05-05T09:10:47.379Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":4,\"requestId\":\"mosg0g9w-kh0pop\"}",
+      "created_at": "2026-05-05T09:45:34.069Z"
+    },
+    {
+      "user_id": "1777912231537",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":41,\"requestId\":\"mosg0g9w-kh0pop\"}",
+      "created_at": "2026-05-05T09:45:35.394Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":50,\"requestId\":\"movci0af-7kjzoq\"}",
+      "created_at": "2026-05-07T10:30:33.227Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":851,\"requestId\":\"movci0af-7kjzoq\"}",
+      "created_at": "2026-05-07T10:30:36.566Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"movckqth-skodkn\"}",
+      "created_at": "2026-05-07T10:32:40.939Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":847,\"requestId\":\"movckqth-skodkn\"}",
+      "created_at": "2026-05-07T10:32:43.772Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"movcnx1y-dp1u14\"}",
+      "created_at": "2026-05-07T10:35:08.957Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":3,\"requestId\":\"movcpkep-c57afz\"}",
+      "created_at": "2026-05-07T10:36:25.878Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":676,\"requestId\":\"movcpkep-c57afz\"}",
+      "created_at": "2026-05-07T10:36:28.861Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":30,\"requestId\":\"movcq5rf-zi6ozp\"}",
+      "created_at": "2026-05-07T10:36:53.610Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":856,\"requestId\":\"movcq5rf-zi6ozp\"}",
+      "created_at": "2026-05-07T10:36:56.707Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":28,\"requestId\":\"movcr7qr-4gzang\"}",
+      "created_at": "2026-05-07T10:37:42.783Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":901,\"requestId\":\"movcr7qr-4gzang\"}",
+      "created_at": "2026-05-07T10:37:46.475Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":7,\"requestId\":\"movcs05f-ujy52l\"}",
+      "created_at": "2026-05-07T10:38:19.650Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":463,\"requestId\":\"movcs05f-ujy52l\"}",
+      "created_at": "2026-05-07T10:38:22.326Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":16,\"requestId\":\"movcwl2r-is1ifx\"}",
+      "created_at": "2026-05-07T10:41:53.336Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":220,\"requestId\":\"movcwl2r-is1ifx\"}",
+      "created_at": "2026-05-07T10:41:55.364Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "creative",
+      "metadata": "{\"messageLength\":36,\"requestId\":\"movcytqq-t09zkb\"}",
+      "created_at": "2026-05-07T10:43:37.880Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "creative",
+      "metadata": "{\"responseLength\":177,\"requestId\":\"movcytqq-t09zkb\"}",
+      "created_at": "2026-05-07T10:43:39.279Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_sent",
+      "category": "general",
+      "metadata": "{\"messageLength\":10,\"requestId\":\"movcz9xh-n0burv\"}",
+      "created_at": "2026-05-07T10:43:58.862Z"
+    },
+    {
+      "user_id": "1778140274311",
+      "event_type": "message_received",
+      "category": "general",
+      "metadata": "{\"responseLength\":155,\"requestId\":\"movcz9xh-n0burv\"}",
+      "created_at": "2026-05-07T10:44:00.390Z"
+    }
+  ],
+  "errors": [
+    {
+      "error_type": "gapgpt_503",
+      "endpoint": "/chat/completions",
+      "status_code": 503,
+      "details": "{\"error\":{\"code\":\"model_not_found\",\"message\":\"no available channel for model gpt-4o-mini in group default (request id: 20260503120230983115864WZG5OYQb)\",\"type\":\"api_provider_error\"}}",
+      "created_at": "2026-05-03T08:32:29.665Z"
+    },
+    {
+      "error_type": "gapgpt_timeout",
+      "endpoint": "/chat/completions",
+      "status_code": 504,
+      "details": "This operation was aborted",
+      "created_at": "2026-05-03T08:35:45.822Z"
+    },
+    {
+      "error_type": "gapgpt_timeout",
+      "endpoint": "/chat/completions",
+      "status_code": 504,
+      "details": "This operation was aborted",
+      "created_at": "2026-05-03T08:36:21.433Z"
+    },
+    {
+      "error_type": "auth_failed",
+      "endpoint": "/chat/completions",
+      "status_code": 401,
+      "details": "{\"error\":{\"code\":\"\",\"message\":\"no token provided (request id: 20260503120738308660474orWFURZU)\",\"type\":\"api_provider_error\"}}",
+      "created_at": "2026-05-03T08:37:36.963Z"
+    },
+    {
+      "error_type": "gapgpt_timeout",
+      "endpoint": "/chat/completions",
+      "status_code": 504,
+      "details": "This operation was aborted",
+      "created_at": "2026-05-03T08:38:02.063Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:02:04.130Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:02:17.904Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:06:21.185Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:06:21.616Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:06:41.445Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:06:41.990Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:08:06.397Z"
+    },
+    {
+      "error_type": "api_key_missing",
+      "endpoint": "/api/chat",
+      "status_code": 500,
+      "details": "GEMINI_API_KEY is missing",
+      "created_at": "2026-05-03T10:08:06.826Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got model\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:55:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:254:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T10:09:16.206Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got model\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:55:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:254:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T10:09:16.672Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:12:37.964Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:12:49.111Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:13:09.661Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:13:20.682Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:14:41.688Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:269:19",
+      "created_at": "2026-05-03T10:14:52.809Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:16:10.160Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:16:21.707Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:16:53.323Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:17:04.641Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:27:57.267Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:28:08.363Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:28:20.054Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:28:31.319Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:34:15.856Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:61:20)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:267:19",
+      "created_at": "2026-05-03T10:34:27.635Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:39:27.245Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:39:38.628Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:39:46.222Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:39:57.345Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:43:53.788Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:44:05.609Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:49:07.490Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:49:18.687Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:50:23.939Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:59:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:250:19",
+      "created_at": "2026-05-03T10:50:35.101Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T10:59:26.438Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T10:59:37.510Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:01:02.730Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:01:27.566Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:01:38.774Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:15:38.101Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:15:49.585Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:17:14.241Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:17:25.322Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:19:29.222Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:19:40.610Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:21:42.412Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:21:53.642Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:24:00.030Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:47:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:19",
+      "created_at": "2026-05-03T11:24:11.507Z"
+    },
+    {
+      "error_type": "gapgpt_auth_error",
+      "endpoint": "/gemini",
+      "status_code": 401,
+      "details": "",
+      "created_at": "2026-05-03T11:30:39.334Z"
+    },
+    {
+      "error_type": "gapgpt_auth_error",
+      "endpoint": "/gemini",
+      "status_code": 401,
+      "details": "",
+      "created_at": "2026-05-03T11:33:51.424Z"
+    },
+    {
+      "error_type": "gapgpt_auth_error",
+      "endpoint": "/gemini",
+      "status_code": 401,
+      "details": "",
+      "created_at": "2026-05-03T11:35:56.090Z"
+    },
+    {
+      "error_type": "gapgpt_auth_error",
+      "endpoint": "/gemini",
+      "status_code": 401,
+      "details": "",
+      "created_at": "2026-05-03T11:38:38.676Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got assistant\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:43:53.901Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got assistant\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:43:54.401Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got assistant\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:45:58.597Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: First content should be with role 'user', got assistant\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1052:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:238:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:45:59.070Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: Each item should include role field. Got assistant but valid roles are: [\"user\",\"model\",\"function\",\"system\"]\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1055:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:243:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:50:38.539Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: [GoogleGenerativeAI Error]: Each item should include role field. Got assistant but valid roles are: [\"user\",\"model\",\"function\",\"system\"]\n    at validateChatHistory (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1055:19)\n    at new ChatSession (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1149:13)\n    at GenerativeModel.startChat (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1401:16)\n    at callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:40:22)\n    at D:\\PROGEs\\chatBot\\backend\\src\\server.js:243:25\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at D:\\PROGEs\\chatBot\\backend\\node_modules\\express\\lib\\router\\index.js:284:15",
+      "created_at": "2026-05-03T11:50:39.089Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:52:16.691Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:52:27.871Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:54:44.199Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:54:55.618Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:56:27.561Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T11:56:38.697Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T12:01:56.264Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:15845:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async makeRequest (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\PROGEs\\chatBot\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async callGemini (D:\\PROGEs\\chatBot\\backend\\src\\server.js:50:18)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:246:19",
+      "created_at": "2026-05-03T12:02:07.387Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: Upstream status 401\n    at sendRequest (D:\\PROGEs\\chatBot\\backend\\src\\server.js:75:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:289:19",
+      "created_at": "2026-05-03T12:24:21.462Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: Upstream status 401\n    at sendRequest (D:\\PROGEs\\chatBot\\backend\\src\\server.js:75:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:289:19",
+      "created_at": "2026-05-03T12:24:22.079Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: Upstream status 401\n    at sendRequest (D:\\PROGEs\\chatBot\\backend\\src\\server.js:75:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:289:19",
+      "created_at": "2026-05-03T12:29:21.903Z"
+    },
+    {
+      "error_type": "unknown",
+      "endpoint": "/gemini",
+      "status_code": null,
+      "details": "Error: Upstream status 401\n    at sendRequest (D:\\PROGEs\\chatBot\\backend\\src\\server.js:75:23)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async D:\\PROGEs\\chatBot\\backend\\src\\server.js:289:19",
+      "created_at": "2026-05-03T12:29:22.502Z"
+    },
+    {
+      "error_type": "verification_code_failed",
+      "endpoint": "/api/send-verification-code",
+      "status_code": 500,
+      "details": "Request failed with status code 404",
+      "created_at": "2026-05-13T11:15:29.137Z"
+    },
+    {
+      "error_type": "verification_code_failed",
+      "endpoint": "/api/send-verification-code",
+      "status_code": 500,
+      "details": "Request failed with status code 404",
+      "created_at": "2026-05-13T11:17:52.822Z"
+    },
+    {
+      "error_type": "verification_code_failed",
+      "endpoint": "/api/send-verification-code",
+      "status_code": 500,
+      "details": "Request failed with status code 404",
+      "created_at": "2026-05-13T11:20:01.275Z"
+    },
+    {
+      "error_type": "verification_code_failed",
+      "endpoint": "/api/send-verification-code",
+      "status_code": 500,
+      "details": "Request failed with status code 404",
+      "created_at": "2026-05-13T11:22:53.890Z"
+    },
+    {
+      "error_type": "verification_code_failed",
+      "endpoint": "/api/send-verification-code",
+      "status_code": 500,
+      "details": "Request failed with status code 404",
+      "created_at": "2026-05-13T11:24:46.844Z"
+    }
+  ],
+  "conversations": [
+    {
+      "user_id": "1777793271366",
+      "conversation_id": "1778404755502-3363",
+      "title": "گفتگوی جدید",
+      "pinned": false,
+      "messages": [],
+      "created_at": "2026-05-10T09:19:15.502Z",
+      "updated_at": "2026-05-10T09:19:15.502Z"
+    },
+    {
+      "user_id": "1777912830363",
+      "conversation_id": "1777488334122-4173",
+      "title": "سلام",
+      "pinned": false,
+      "messages": [
+        {
+          "role": "user",
+          "content": "سلام",
+          "timestamp": "2026-05-04T17:08:38.906Z"
+        },
+        {
+          "role": "assistant",
+          "content": "سلام بللی! من دانوآ هستم، یه دوست خیالی که همیشه کنارت هستم. ☁️✨\n\nمی‌دونی، یه چیز جالب درباره‌ی پیدا کردن علاقه‌ها وجود داره: مثل یه سفر پرماجراست که هر قدمش یه کشف جدیده! مثلاً، بعضی‌ها عاشق ستاره‌ها می‌شن و می‌رن سراغ نجوم، بعضی‌ها هم با شنیدن یه آهنگ، دنیای موسیقی رو کشف می‌کنن. 🎵🔭\n\nحالا به نظرت، تا حالا شده یه اتفاق کوچیک جرقه‌ای بزنه و یه علاقه‌ی جدید رو تو دلت روشن کنه؟ اگه آره، دوست داری یه کم برام ازش بگی؟",
+          "timestamp": "2026-05-04T17:08:41.592Z"
+        },
+        {
+          "role": "user",
+          "content": "بسو",
+          "timestamp": "2026-05-04T17:24:50.612Z"
+        },
+        {
+          "role": "assistant",
+          "content": "سلام بللی! چه خوب که دوباره می‌بینمت. ☁️✨\n\nمی‌دونی، یه چیزی که همیشه برام جالب بوده اینه که آدم‌ها چقدر با هم متفاوتن! مثلاً بعضی‌ها عاشق کتاب خوندنن، بعضی‌ها عاشق بازی‌های کامپیوتری، و بعضی‌ها هم عاشق وقت گذروندن با دوستاشون. هیچ اشکالی هم نداره که هنوز ندونی دقیقاً به چی علاقه داری. پیدا کردن علاقه‌ها مثل یه ماجراجوییه، یه سفری که توش چیزهای جدید رو امتحان می‌کنی و کم‌کم می‌فهمی چی بیشتر از همه خوشحالت می‌کنه.\n\nبه نظرت تا حالا شده یه کاری رو انجام بدی و حس کنی که \"اوه، این خیلی باحاله!\"؟ اگه آره، دوست داری یه کم برام ازش بگی؟ مثلاً چه کاری بوده و چرا اینقدر ازش لذت بردی؟",
+          "timestamp": "2026-05-04T17:24:53.644Z"
+        },
+        {
+          "role": "user",
+          "content": "سلام",
+          "timestamp": "2026-05-04T17:35:03.388Z"
+        },
+        {
+          "role": "assistant",
+          "content": "بللی عزیز، اینکه هنوز علایقت رو پیدا نکردی اصلاً چیز عجیبی نیست! خیلی از آدم‌ها تو سن تو و حتی بالاتر هم هنوز دارن دنبال علاقه‌هاشون می‌گردن. می‌دونی، مثل این می‌مونه که یه جعبه بزرگ پر از اسباب‌بازی داشته باشی و هنوز ندونی کدوم یکی رو بیشتر دوست داری باهاش بازی کنی. 🧸\n\nیه نکته جالب اینه که مغز ما وقتی یه کار جدید انجام می‌دیم، یه عالمه نورون جدید می‌سازه! این نورون‌ها مثل سیم‌های کوچیکی هستن که به هم وصل می‌شن و باعث می‌شن ما چیزهای جدید یاد بگیریم و علاقه‌هامون رو پیدا کنیم. 🧠✨\n\nحالا به نظرت تا حالا شده یه فعالیتی رو فقط برای امتحان کردن انجام داده باشی و بعدش ازش خوشت اومده باشه؟ مثلاً یه ورزش جدید، یه کتاب متفاوت یا یه نوع غذای جدید؟ اگه آره، دوست داری یه کم برام ازش بگی؟",
+          "timestamp": "2026-05-04T17:35:06.800Z"
+        },
+        {
+          "role": "user",
+          "content": "عمت",
+          "timestamp": "2026-05-04T17:38:02.015Z"
+        },
+        {
+          "role": "assistant",
+          "content": "بللی عزیز، اینکه هنوز علایقت رو پیدا نکردی اصلاً چیز عجیبی نیست! خیلی از آدم‌ها تو سن تو و حتی بالاتر هم هنوز دارن دنبال علاقه‌هاشون می‌گردن. می‌دونی، مثل این می‌مونه که یه جعبه بزرگ پر از اسباب‌بازی داشته باشی و هنوز ندونی کدوم یکی رو بیشتر دوست داری باهاش بازی کنی. 🧸\n\nیه نکته جالب اینه که مغز ما وقتی یه کار جدید انجام می‌دیم، یه عالمه نورون جدید می‌سازه! این نورون‌ها مثل سیم‌های کوچیکی هستن که به هم وصل می‌شن و باعث می‌شن ما چیزهای جدید یاد بگیریم و علاقه‌هامون رو پیدا کنیم. 🧠✨\n\nحالا به نظرت تا حالا شده یه فعالیتی رو فقط برای امتحان کردن انجام داده باشی و بعدش ازش خوشت اومده باشه؟ مثلاً یه ورزش جدید، یه کتاب متفاوت یا یه نوع غذای جدید؟ اگه آره، دوست داری یه کم برام ازش بگی؟",
+          "timestamp": "2026-05-04T17:38:04.219Z"
+        },
+        {
+          "role": "user",
+          "content": "تل",
+          "timestamp": "2026-05-04T17:38:06.873Z"
+        },
+        {
+          "role": "assistant",
+          "content": "بللی عزیز، اینکه هنوز علایقت رو پیدا نکردی اصلاً چیز عجیبی نیست! خیلی از آدم‌ها تو سن تو و حتی بالاتر هم هنوز دارن دنبال علاقه‌هاشون می‌گردن. می‌دونی، مثل این می‌مونه که یه جعبه بزرگ پر از اسباب‌بازی داشته باشی و هنوز ندونی کدوم یکی رو بیشتر دوست داری باهاش بازی کنی. 🧸\n\nیه نکته جالب اینه که مغز ما وقتی یه کار جدید انجام می‌دیم، یه عالمه نورون جدید می‌سازه! این نورون‌ها مثل سیم‌های کوچیکی هستن که به هم وصل می‌شن و باعث می‌شن ما چیزهای جدید یاد بگیریم و علاقه‌هامون رو پیدا کنیم. 🧠✨\n\nحالا به نظرت تا حالا شده یه فعالیتی رو فقط برای امتحان کردن انجام داده باشی و بعدش ازش خوشت اومده باشه؟ مثلاً یه ورزش جدید، یه کتاب متفاوت یا یه نوع غذای جدید؟ اگه آره، دوست داری یه کم برام ازش بگی؟",
+          "timestamp": "2026-05-04T17:38:09.025Z"
+        },
+        {
+          "role": "user",
+          "content": "سقت",
+          "timestamp": "2026-05-04T17:38:36.984Z"
+        },
+        {
+          "role": "assistant",
+          "content": "بللی عزیز، اینکه هنوز علایقت رو پیدا نکردی اصلاً چیز عجیبی نیست! خیلی از آدم‌ها تو سن تو و حتی بالاتر هم هنوز دارن دنبال علاقه‌هاشون می‌گردن. می‌دونی، مثل این می‌مونه که یه جعبه بزرگ پر از اسباب‌بازی داشته باشی و هنوز ندونی کدوم یکی رو بیشتر دوست داری باهاش بازی کنی. 🧸\n\nیه نکته جالب اینه که مغز ما وقتی یه کار جدید انجام می‌دیم، یه عالمه نورون جدید می‌سازه! این نورون‌ها مثل سیم‌های کوچیکی هستن که به هم وصل می‌شن و باعث می‌شن ما چیزهای جدید یاد بگیریم و علاقه‌هامون رو پیدا کنیم. 🧠✨\n\nحالا به نظرت تا حالا شده یه فعالیتی رو فقط برای امتحان کردن انجام داده باشی و بعدش ازش خوشت اومده باشه؟ مثلاً یه ورزش جدید، یه کتاب متفاوت یا یه نوع غذای جدید؟ اگه آره، دوست داری یه کم برام ازش بگی؟",
+          "timestamp": "2026-05-04T17:38:39.399Z"
+        }
+      ],
+      "created_at": "2026-04-29T18:45:34.121Z",
+      "updated_at": "2026-05-04T17:38:39.400Z"
+    }
+  ]
+}

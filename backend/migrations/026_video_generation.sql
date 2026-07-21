@@ -1,0 +1,87 @@
+-- Additive, local-only migration. No provider model is seeded intentionally.
+CREATE TABLE IF NOT EXISTS app_video_models (
+  internal_key VARCHAR(64) PRIMARY KEY,
+  provider VARCHAR(32) NOT NULL,
+  provider_model_id VARCHAR(191) NOT NULL,
+  display_name_fa VARCHAR(191) NOT NULL,
+  description_fa VARCHAR(500) NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 0,
+  supports_text_to_video TINYINT(1) NOT NULL DEFAULT 0,
+  supports_image_to_video TINYINT(1) NOT NULL DEFAULT 0,
+  allowed_aspect_ratios JSON NOT NULL,
+  allowed_durations JSON NOT NULL,
+  allowed_qualities JSON NOT NULL,
+  max_prompt_length INT NOT NULL,
+  max_input_image_bytes BIGINT NULL,
+  quota_units INT NOT NULL,
+  sort_order INT NOT NULL DEFAULT 999,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_video_models_active_sort (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS app_video_usage (
+  user_id VARCHAR(191) NOT NULL,
+  period_key VARCHAR(32) NOT NULL,
+  video_used INT NOT NULL DEFAULT 0,
+  video_reserved INT NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY (user_id, period_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS app_video_generations (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(191) NOT NULL,
+  mode ENUM('text-to-video','image-to-video') NOT NULL,
+  model_key VARCHAR(64) NOT NULL,
+  provider VARCHAR(32) NOT NULL,
+  provider_model_id_snapshot VARCHAR(191) NOT NULL,
+  status ENUM('queued','submitted','processing','succeeded','failed','cancelled','expired') NOT NULL,
+  prompt TEXT NOT NULL,
+  aspect_ratio VARCHAR(16) NOT NULL,
+  duration VARCHAR(32) NOT NULL,
+  quality VARCHAR(32) NOT NULL,
+  input_media_reference VARCHAR(191) NULL,
+  provider_job_id VARCHAR(191) NULL,
+  provider_status VARCHAR(64) NULL,
+  quota_units INT NOT NULL,
+  quota_reservation_id VARCHAR(64) NOT NULL,
+  result_storage_key VARCHAR(255) NULL,
+  result_mime_type VARCHAR(100) NULL,
+  result_size_bytes BIGINT NULL,
+  provider_cost_minor BIGINT NULL,
+  provider_cost_currency VARCHAR(16) NULL,
+  safe_error_code VARCHAR(100) NULL,
+  safe_error_message VARCHAR(500) NULL,
+  idempotency_hash CHAR(64) NOT NULL,
+  payload_hash CHAR(64) NOT NULL,
+  submitted_at DATETIME NULL,
+  processing_at DATETIME NULL,
+  completed_at DATETIME NULL,
+  failed_at DATETIME NULL,
+  expires_at DATETIME NOT NULL,
+  next_poll_at DATETIME NULL,
+  poll_attempts INT NOT NULL DEFAULT 0,
+  worker_lease_until DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  UNIQUE KEY uq_video_generation_idempotency (user_id, idempotency_hash),
+  INDEX idx_video_generations_user_created (user_id, created_at),
+  INDEX idx_video_generations_status_poll (status, next_poll_at),
+  INDEX idx_video_generations_provider_job (provider_job_id),
+  INDEX idx_video_generations_lease (worker_lease_until)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS app_video_quota_reservations (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(191) NOT NULL,
+  period_key VARCHAR(32) NOT NULL,
+  generation_id VARCHAR(64) NOT NULL,
+  quota_units INT NOT NULL,
+  status ENUM('reserved','finalized','released') NOT NULL DEFAULT 'reserved',
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  UNIQUE KEY uq_video_reservation_generation (generation_id),
+  INDEX idx_video_reservation_status (status),
+  CONSTRAINT fk_video_reservation_generation FOREIGN KEY (generation_id) REFERENCES app_video_generations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
