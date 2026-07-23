@@ -361,16 +361,16 @@ const TAB_LABELS: Record<AdminTab, string> = {
 };
 
 const TAB_ICONS: Record<keyof typeof TAB_LABELS, string> = {
-  dashboard: '▦',
-  users: '◎',
-  imageGenerations: '▧',
-  subscriptions: '◈',
-  limits: '⏱',
-  errors: '!',
-  siteSettings: '⚙',
-  supervisedOtp: 'OTP',
-  config: '⚙',
-  audit: '⌁'
+  dashboard: 'DH',
+  users: 'US',
+  imageGenerations: 'IM',
+  subscriptions: 'PL',
+  limits: 'LM',
+  errors: 'ER',
+  siteSettings: 'ST',
+  supervisedOtp: 'OT',
+  config: 'CF',
+  audit: 'AD'
 };
 
 const REPORT_SECTION_OPTIONS: Array<{ key: ReportSection; label: string }> = [

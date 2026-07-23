@@ -1,12 +1,33 @@
-node_modules
-frontend/node_modules
-backend/node_modules
-frontend/dist
-backend/.env
-backend/data.db
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/test-results/
+**/*.tsbuildinfo
+
+# Local secrets; commit only explicitly named examples.
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+# Runtime data, user content and generated media.
+data/
+logs/
 backend/data/
-backend/storage/generated-images/
-backend/storage/videos/
-data/generated-images/
+backend/data.json
+backend/*.db
+backend/storage/
+backend/uploads/
+backend/admin.json
+backend/config.json
+backend/subscriptions.json
+
+# Local tooling, backups and browser audit artefacts.
+.deploy-backups/
+.chrome-audit-*/
+.opencode/
 .DS_Store
 *.log

@@ -4,8 +4,9 @@ import remarkGfm from 'remark-gfm';
 import { ChatMessage, Conversation, UserProfile } from './types';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
-import DanuaLanding from './DanuaLanding';
 import PaymentSuccessPage from './PaymentSuccessPage';
+import LandingPage from './Landing';
+import NotFound from './NotFound';
 import ImageStudio from './ImageStudio';
 import ChatStudioSwitcher from './ChatStudioSwitcher';
 import StudioPage from './studio/StudioPage';
@@ -17,6 +18,10 @@ import {
   startImageGeneration
 } from './services/imageGeneration';
 import { Button, Dialog, TextField, ToastProvider, useToast } from './design-system/components';
+import EmptyState from './components/EmptyState';
+import Icon from './components/Icon';
+import type { IconName } from './components/Icon';
+import ProfileForm from './components/ProfileForm';
 import DesignSystemPreview from './design-system/preview/DesignSystemPreview';
 
 const PROFILE_KEY = 'chat_profile';
@@ -291,7 +296,7 @@ const MessageImage = ({
   if (failed) {
     return (
       <div className="image-load-error">
-        ⚠️ خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید
+        <Icon name="info-circle" size="1.1em" aria-hidden="true" /> خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید
       </div>
     );
   }
@@ -837,13 +842,18 @@ const sortConversations = (items: Conversation[]): Conversation[] => {
   });
 };
 
-const conversationVisuals = [
-  { icon: '📖', tone: 'yellow' },
-  { icon: '🌙', tone: 'indigo' },
-  { icon: '🎨', tone: 'orange' },
-  { icon: '🤖', tone: 'teal' },
-  { icon: '❓', tone: 'blue' }
+const conversationVisuals: Array<{ tone: string }> = [
+  { tone: 'yellow' },
+  { tone: 'indigo' },
+  { tone: 'orange' },
+  { tone: 'teal' },
+  { tone: 'blue' }
 ];
+
+const conversationVisualIcon = (index: number): IconName => {
+  const icons: IconName[] = ['book', 'star', 'companion', 'sparkle', 'question'];
+  return icons[index % icons.length];
+};
 
 const formatConversationDate = (value: string): string => {
   const date = new Date(value);
@@ -1138,6 +1148,7 @@ function ChatApp() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string>('');
   const [hasHydratedRemoteConversations, setHasHydratedRemoteConversations] = useState(false);
+  const [conversationLoadingId, setConversationLoadingId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.location.pathname === '/home';
@@ -1150,7 +1161,7 @@ function ChatApp() {
   const [profileFormName, setProfileFormName] = useState('');
   const [profileFormAge, setProfileFormAge] = useState('');
   const [profileFormErrors, setProfileFormErrors] = useState<{ name?: string; age?: string }>({});
-  const [theme, setTheme] = useState<'energy' | 'calm'>('energy');
+  const [, setTheme] = useState<'energy' | 'calm'>('energy');
   const { pushToast } = useToast();
 
   const [inputValue, setInputValue] = useState(() => {
@@ -1286,21 +1297,6 @@ function ChatApp() {
   }, [currentView, inputValue]);
 
   useEffect(() => {
-    if (!imagePreview) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setImagePreview(null);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [imagePreview]);
-
-  useEffect(() => {
     let cancelled = false;
     const loadPublicSettings = async () => {
       try {
@@ -1332,6 +1328,44 @@ function ChatApp() {
     [activeConversation?.messages]
   );
 
+  useEffect(() => {
+    if (!imagePreview) {
+      return;
+    }
+
+    const images = visibleMessages.reduce<string[]>((acc, msg) => {
+      if (Array.isArray(msg.images)) {
+        msg.images.forEach((img) => { if (img?.url) acc.push(img.url); });
+      }
+      return acc;
+    }, []);
+    const uniqueImages = [...new Set(images)];
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setImagePreview(null);
+        return;
+      }
+      if (uniqueImages.length < 2) return;
+      const currentIndex = uniqueImages.indexOf(imagePreview.src);
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        const nextIndex = currentIndex >= 0 ? (currentIndex - 1 + uniqueImages.length) % uniqueImages.length : 0;
+        const src = uniqueImages[nextIndex];
+        setImagePreview({ src, alt: 'تصویر', downloadName: buildImageDownloadName(src, nextIndex) });
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % uniqueImages.length : 0;
+        const src = uniqueImages[nextIndex];
+        setImagePreview({ src, alt: 'تصویر', downloadName: buildImageDownloadName(src, nextIndex) });
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [imagePreview, visibleMessages]);
+
   const orderedConversations = useMemo(() => sortConversations(conversations), [conversations]);
   const visibleConversations = useMemo(() => {
     const query = conversationSearchTerm.trim().toLocaleLowerCase('fa-IR');
@@ -1343,6 +1377,22 @@ function ChatApp() {
         return searchableText.includes(query);
       });
   }, [conversationSearchTerm, orderedConversations]);
+
+  useEffect(() => {
+    if (!activeConversationId) {
+      setConversationLoadingId(null);
+      return;
+    }
+    const conversation = conversations.find((c) => c.id === activeConversationId);
+    if (conversation) {
+      setConversationLoadingId(null);
+      return;
+    }
+    setConversationLoadingId(activeConversationId);
+    const timeout = setTimeout(() => setConversationLoadingId(null), 3000);
+    return () => clearTimeout(timeout);
+  }, [activeConversationId, conversations]);
+
   const lastAssistantMessageIndex = useMemo(
     () => visibleMessages.map((item) => item.role).lastIndexOf('assistant'),
     [visibleMessages]
@@ -1485,7 +1535,7 @@ function ChatApp() {
 
   const handleViewPlans = () => {
     setShowMessageLimitModal(false);
-    pushToast('بخش اشتراک به زودی فعال می‌شود', 'default');
+    window.location.assign('/landing#plans');
   };
 
   const handleRemindMessageLimitLater = () => {
@@ -3546,7 +3596,7 @@ function ChatApp() {
             gap: '8px',
             flexShrink: 0
           }}>
-            <span>⚠️</span>
+            <Icon name="info-circle" size="1.1em" aria-hidden="true" />
             <span>توکن احراز هویت شما ذخیره نشده. برای استفاده از ساخت عکس، لطفاً یک‌بار خارج و دوباره وارد شوید.</span>
             <button
               type="button"
@@ -3628,6 +3678,21 @@ function ChatApp() {
                     placeholder="جستجوی گفتگوها"
                     aria-label="جستجو در گفتگوها"
                   />
+                  {conversationSearchTerm ? (
+                    <button
+                      type="button"
+                      className="conversation-search-clear"
+                      onClick={() => {
+                        setConversationSearchTerm('');
+                        conversationSearchInputRef.current?.focus();
+                      }}
+                      aria-label="پاک کردن جستجو"
+                    >
+                      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="conversation-search-close"
@@ -3638,7 +3703,9 @@ function ChatApp() {
                     aria-label="بستن جستجو"
                     title="بستن"
                   >
-                    ×
+                    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
               ) : (
@@ -3656,6 +3723,20 @@ function ChatApp() {
           </header>
 
           <div className="conversation-list conversation-home-list">
+            {!hasHydratedRemoteConversations && profile?.phone ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="conversation-row conversation-card conversation-skeleton" aria-hidden="true">
+                  <div className="conversation-card-icon skeleton-shimmer" />
+                  <div className="conversation-main">
+                    <div className="skeleton-line skeleton-line--title" />
+                    <div className="skeleton-line skeleton-line--text" />
+                  </div>
+                  <div className="conversation-card-meta">
+                    <div className="skeleton-line skeleton-line--short" />
+                  </div>
+                </div>
+              ))
+            ) : null}
             {visibleConversations.map(({ conversation, index }) => {
               const isActive = conversation.id === activeConversationId;
               const isEditing = editingId === conversation.id;
@@ -3673,7 +3754,7 @@ function ChatApp() {
                   }}
                 >
                   <div className={`conversation-card-icon conversation-card-icon--${visual.tone}`} aria-hidden="true">
-                    {visual.icon}
+                    <Icon name={conversationVisualIcon(index)} size="1.5em" />
                   </div>
 
                   <div className="conversation-main">
@@ -3706,7 +3787,7 @@ function ChatApp() {
 
                   <div className="conversation-card-meta" onClick={(event) => event.stopPropagation()}>
                     <span className="conversation-card-date">
-                      {conversation.pinned ? <span aria-hidden="true">⭐</span> : null}
+                      {conversation.pinned ? <span aria-hidden="true"><Icon name="pin" size="1em" /></span> : null}
                       {dateLabel}
                     </span>
                     <div className="conversation-actions">
@@ -3726,7 +3807,7 @@ function ChatApp() {
                         }))
                       }
                     >
-                      📌
+                      <Icon name="pin" size="1.15em" />
                     </Button>
                     <Button
                       type="button"
@@ -3741,7 +3822,7 @@ function ChatApp() {
                         setEditingTitle(conversation.title);
                       }}
                     >
-                      ✏️
+                      <Icon name="edit" size="1.15em" />
                     </Button>
                     <Button
                       type="button"
@@ -3753,7 +3834,7 @@ function ChatApp() {
                       title="حذف"
                       onClick={() => handleDeleteConversation(conversation.id)}
                     >
-                      🗑️
+                      <Icon name="delete" size="1.15em" />
                     </Button>
                     </div>
                   </div>
@@ -3763,17 +3844,21 @@ function ChatApp() {
             {visibleConversations.length === 0 ? (
               <div className="conversation-search-empty" role="status">
                 {orderedConversations.length === 0 ? (
-                  <>
-                    <span className="conversation-empty-emoji" aria-hidden="true">💬</span>
-                    <span>هنوز گفتگویی نداری. اولین گفتگو رو شروع کن!</span>
-                    <button
-                      type="button"
-                      className="conversation-empty-action"
-                      onClick={handleCreateConversation}
-                    >
-                      شروع گفتگوی جدید
-                    </button>
-                  </>
+                  <EmptyState
+                    icon={
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6.5 17.5 4 20V7.7C4 5.7 5.7 4 7.7 4h8.6C18.3 4 20 5.7 20 7.7v6.1c0 2-1.7 3.7-3.7 3.7H6.5Z" />
+                        <path d="M8 9h8M8 12.3h5.6" />
+                      </svg>
+                    }
+                    title="هنوز گفتگویی نداری"
+                    description="اولین گفتگو رو شروع کن!"
+                    action={
+                      <Button type="button" onClick={handleCreateConversation}>
+                        شروع گفتگوی جدید
+                      </Button>
+                    }
+                  />
                 ) : (
                   <span>گفتگویی با این عبارت پیدا نشد.</span>
                 )}
@@ -3842,7 +3927,9 @@ function ChatApp() {
               <div className="image-gen-hero" aria-hidden="true">
                 <span className="image-gen-glow" />
                 <span className="image-gen-orb">
-                  <span className="image-gen-wand">🪄</span>
+                  <span className="image-gen-wand" aria-hidden="true">
+                    <Icon name="sparkle" size={32} />
+                  </span>
                 </span>
                 <span className="image-gen-star image-gen-star--one" />
                 <span className="image-gen-star image-gen-star--two" />
@@ -3906,7 +3993,7 @@ function ChatApp() {
                 disabled={!canSubmitImagePrompt}
               >
                 <span>{isGeneratingImage ? 'در حال ساخت...' : 'ساخت تصویر'}</span>
-                <span aria-hidden="true">✦</span>
+                <Icon name="sparkle" size="1.1em" aria-hidden="true" />
               </Button>
             </section>
           </main>
@@ -3929,93 +4016,106 @@ function ChatApp() {
                 <span>حساب کاربری</span>
                 <h1>پروفایل</h1>
               </div>
+              <div className="profile-page-header-status">
+                <span className={`profile-status-badge ${profile?.phone ? 'registered' : 'guest'}`}>
+                  {profile?.phone ? 'ثبت نام شده' : 'مهمان'}
+                </span>
+              </div>
             </header>
 
             <section className="profile-page-grid">
               <div className="profile-page-card profile-page-card-main">
-                <div className="profile-avatar" aria-hidden="true">
-                  {String(profile.name || 'ک').trim().charAt(0) || 'ک'}
-                </div>
-                <div className="profile-page-fields">
-                  <TextField label="نام" type="text" value={profileFormName} onChange={(event) => setProfileFormName(event.target.value)} errorText={profileFormErrors.name} />
-                  <TextField
-                    label="سن"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9۰-۹٠-٩]*"
-                    value={profileFormAge}
-                    onChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
-                    errorText={profileFormErrors.age}
-                  />
-                  <TextField label="شماره والد" type="text" value={profile.phone || '-'} readOnly helperText="شماره والد هنگام ثبت نام تعیین می‌شود." />
-                </div>
-                <div className="profile-id-box">
-                  <span>شناسه یکتا:</span>
-                  <code>{String(profile.id ?? '')}</code>
-                </div>
-                <Button type="button" className="start-btn" onClick={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}>
-                  ذخیره تغییرات
-                </Button>
+                <ProfileForm
+                  profile={profile}
+                  profileFormName={profileFormName}
+                  profileFormAge={profileFormAge}
+                  profileFormErrors={profileFormErrors}
+                  onNameChange={(event) => setProfileFormName(event.target.value)}
+                  onAgeChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
+                  onSave={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}
+                  onDeleteAll={handleDeleteAllConversations}
+                  onLogout={handleLogout}
+                />
               </div>
 
-              <div className="profile-page-card">
-                <div className="profile-section">
-                  <label>تم سایت</label>
-                  <div className="profile-theme-actions">
-                    <Button type="button" className={`theme-btn ${theme === 'energy' ? 'active' : ''}`} onClick={() => applyTheme('energy')}>
-                      انرژی
-                    </Button>
-                    <Button type="button" className={`theme-btn ${theme === 'calm' ? 'active' : ''}`} onClick={() => applyTheme('calm')}>
-                      آرامش
-                    </Button>
+              <div className="profile-page-card profile-page-card-side">
+                <div className="profile-stats">
+                  <div className="profile-stats-header">
+                    <span>خلاصه فعالیت</span>
+                  </div>
+                  <div className="profile-stats-grid">
+                    <div className="profile-stat-card">
+                      <span className="profile-stat-icon profile-stat-icon--chat">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M6.5 17.5 4 20V7.7C4 5.7 5.7 4 7.7 4h8.6C18.3 4 20 5.7 20 7.7v6.1c0 2-1.7 3.7-3.7 3.7H6.5Z" />
+                          <path d="M8 9h8M8 12.3h5.6" />
+                        </svg>
+                      </span>
+                      <strong>{new Intl.NumberFormat('fa-IR').format(conversations.length)}</strong>
+                      <span>گفتگو</span>
+                    </div>
+                    <div className="profile-stat-card">
+                      <span className="profile-stat-icon profile-stat-icon--shield">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 3.5 19 6v5.4c0 4.1-2.8 7.8-7 9.1-4.2-1.3-7-5-7-9.1V6l7-2.5Z" />
+                          <path d="m8.8 12.2 2.1 2.1 4.5-4.7" />
+                        </svg>
+                      </span>
+                      <strong>{profile?.phone ? 'امن' : 'محدود'}</strong>
+                      <span>{profile?.phone ? 'حساب امن' : 'حساب مهمان'}</span>
+                    </div>
+                    <div className="profile-stat-card">
+                      <span className="profile-stat-icon profile-stat-icon--age">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="8" r="3.2" />
+                          <path d="M6 18.8c.4-2.8 2.2-4.3 6-4.3s5.6 1.5 6 4.3" />
+                        </svg>
+                      </span>
+                      <strong>{profile?.age ? new Intl.NumberFormat('fa-IR').format(profile.age) : '-'}</strong>
+                      <span>سال</span>
+                    </div>
+                    <div className="profile-stat-card">
+                      <span className="profile-stat-icon profile-stat-icon--plan">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="m12 4 2.2 4.5 5 .7-3.6 3.5.8 5-4.4-2.4-4.4 2.4.8-5-3.6-3.5 5-.7L12 4Z" />
+                        </svg>
+                      </span>
+                      <strong>{profile?.phone ? 'رایگان' : 'مهمان'}</strong>
+                      <span>پلن</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="parent-panel">
-                  <div className="parent-panel__header">
-                    <div>
-                      <strong>پنل والد</strong>
-                      <span>مدیریت امن حساب کودک</span>
-                    </div>
-                    <span className="parent-panel__badge">فعال</span>
+                <div className="profile-quick-actions">
+                  <div className="profile-quick-actions-header">
+                    <span>دسترسی سریع</span>
                   </div>
-
-                  <div className="parent-panel__grid">
-                    <div>
-                      <span>کودک</span>
-                      <strong>{profileFormName.trim() || profile.name || 'کودک'}</strong>
-                    </div>
-                    <div>
-                      <span>شماره والد</span>
-                      <strong>{profile.phone || '-'}</strong>
-                    </div>
-                    <div>
-                      <span>سطح ایمنی</span>
-                      <strong>{Number(profile.age || 0) <= 12 ? 'سخت‌گیرانه' : 'استاندارد'}</strong>
-                    </div>
-                    <div>
-                      <span>پیام مهمان</span>
-                      <strong>{String(publicSettings['guest.limit_modal.badge_text'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text'])} پیام</strong>
-                    </div>
-                  </div>
-
-                  <div className="parent-panel__actions">
-                    <Button type="button" variant="secondary" onClick={handleViewPlans}>
-                      مدیریت اشتراک
-                    </Button>
-                    <Button type="button" variant="ghost" onClick={handleDownloadActiveConversation}>
-                      ذخیره گفتگوی فعلی
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="profile-danger-actions">
-                  <Button type="button" variant="danger" onClick={handleDeleteAllConversations}>
-                    حذف همه گفتگوها
-                  </Button>
-                  <Button type="button" variant="danger" onClick={handleLogout}>
-                    خروج از حساب کاربری
-                  </Button>
+                  <button type="button" className="profile-quick-action-btn" onClick={handleViewPlans}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
+                      <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z" />
+                    </svg>
+                    <span>مدیریت اشتراک</span>
+                  </button>
+                  <button type="button" className="profile-quick-action-btn" onClick={handleDownloadActiveConversation}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
+                      <path d="M12 15l-4-4h3V4h2v7h3l-4 4ZM5 19v2h14v-2H5Z" />
+                    </svg>
+                    <span>ذخیره گفتگوی فعلی</span>
+                  </button>
+                  <button type="button" className="profile-quick-action-btn profile-quick-action-btn--danger" onClick={handleDeleteAllConversations}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
+                      <path d="M5 6.5h14M8.5 6.5V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1.5M9.5 10v6a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-6" />
+                    </svg>
+                    <span>حذف همه گفتگوها</span>
+                  </button>
+                  {profile?.phone ? (
+                    <button type="button" className="profile-quick-action-btn profile-quick-action-btn--danger" onClick={handleLogout}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
+                        <path d="M10.5 7.2 15.3 12l-4.8 4.8" /><path d="M4 12h11" /><path d="M14 5h3.5A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19H14" />
+                      </svg>
+                      <span>خروج از حساب</span>
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </section>
@@ -4033,96 +4133,19 @@ function ChatApp() {
         {showProfileModal ? (
           <Dialog open={showProfileModal} title="تنظیمات پروفایل" onClose={() => setShowProfileModal(false)} showFooter={false}>
             <div className="profile-modal">
-              <TextField label="نام" type="text" value={profileFormName} onChange={(event) => setProfileFormName(event.target.value)} errorText={profileFormErrors.name} />
-
-              <TextField
-                label="سن"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9۰-۹٠-٩]*"
-                value={profileFormAge}
-                onChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
-                errorText={profileFormErrors.age}
+              <ProfileForm
+                profile={profile}
+                profileFormName={profileFormName}
+                profileFormAge={profileFormAge}
+                profileFormErrors={profileFormErrors}
+                onNameChange={(event) => setProfileFormName(event.target.value)}
+                onAgeChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
+                onSave={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}
+                onDeleteAll={handleDeleteAllConversations}
+                onLogout={handleLogout}
               />
 
-              <TextField label="شماره موبایل" type="text" value={profile.phone || '-'} readOnly helperText="شماره موبایل فقط هنگام ثبت نام تعیین می شود." />
-
-              <div className="profile-id-box">
-                <span>شناسه یکتا:</span>
-                <code>{String(profile.id ?? '')}</code>
-              </div>
-
-              <div className="profile-section">
-                <label>تم سایت</label>
-                <div className="profile-theme-actions">
-                  <Button
-                    type="button"
-                    className={`theme-btn ${theme === 'energy' ? 'active' : ''}`}
-                    onClick={() => applyTheme('energy')}
-                  >
-                    انرژی
-                  </Button>
-                  <Button
-                    type="button"
-                    className={`theme-btn ${theme === 'calm' ? 'active' : ''}`}
-                    onClick={() => applyTheme('calm')}
-                  >
-                    آرامش
-                  </Button>
-                </div>
-              </div>
-
-              <div className="parent-panel">
-                <div className="parent-panel__header">
-                  <div>
-                    <strong>پنل والد</strong>
-                    <span>مدیریت امن حساب کودک</span>
-                  </div>
-                  <span className="parent-panel__badge">فعال</span>
-                </div>
-
-                <div className="parent-panel__grid">
-                  <div>
-                    <span>کودک</span>
-                    <strong>{profileFormName.trim() || profile.name || 'کودک'}</strong>
-                  </div>
-                  <div>
-                    <span>شماره والد</span>
-                    <strong>{profile.phone || '-'}</strong>
-                  </div>
-                  <div>
-                    <span>سطح ایمنی</span>
-                    <strong>{Number(profile.age || 0) <= 12 ? 'سخت‌گیرانه' : 'استاندارد'}</strong>
-                  </div>
-                  <div>
-                    <span>پیام مهمان</span>
-                    <strong>{String(publicSettings['guest.limit_modal.badge_text'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text'])} پیام</strong>
-                  </div>
-                </div>
-
-                <div className="parent-panel__actions">
-                  <Button type="button" variant="secondary" onClick={handleViewPlans}>
-                    مدیریت اشتراک
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={handleDownloadActiveConversation}>
-                    ذخیره گفتگوی فعلی
-                  </Button>
-                </div>
-              </div>
-
-              <div className="profile-danger-actions">
-                <Button type="button" variant="danger" onClick={handleDeleteAllConversations}>
-                  حذف همه گفتگوها
-                </Button>
-                <Button type="button" variant="danger" onClick={handleLogout}>
-                  خروج از حساب کاربری
-                </Button>
-              </div>
-
               <div className="modal-buttons">
-                <Button type="button" className="start-btn" onClick={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}>
-                  ذخیره تغییرات
-                </Button>
                 <Button type="button" variant="danger" onClick={() => setShowProfileModal(false)}>
                   انصراف
                 </Button>
@@ -4150,20 +4173,31 @@ function ChatApp() {
        {showMessageLimitModal ? (
          <Dialog open={showMessageLimitModal} title="آهووو! به سقف پیام‌ها رسیدی" onClose={() => setShowMessageLimitModal(false)} showFooter={false}>
            <div className="message-limit-modal">
-             <button
-               type="button"
-               className="message-limit-close"
-               aria-label="بستن"
-               onClick={() => setShowMessageLimitModal(false)}
-             >
-               ×
-             </button>
+              <button
+                type="button"
+                className="message-limit-close"
+                aria-label="بستن"
+                onClick={() => setShowMessageLimitModal(false)}
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
 
              <div className="message-limit-hero" aria-hidden="true">
-               <span className="message-limit-glow" />
-               <span className="message-limit-dragon">🐉</span>
-               <span className="message-limit-tear">😢</span>
-             </div>
+                <span className="message-limit-glow" />
+                <span className="message-limit-dragon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#7c3aed" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3.5 19 6v5.4c0 4.1-2.8 7.8-7 9.1-4.2-1.3-7-5-7-9.1V6l7-2.5Z" />
+                    <path d="m8.8 12.2 2.1 2.1 4.5-4.7" />
+                  </svg>
+                </span>
+                <span className="message-limit-tear" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="#7c3aed" stroke="none" opacity="0.6">
+                    <path d="M12 21c-2.8 0-5-2.2-5-5 0-3.3 5-9.5 5-9.5s5 6.2 5 9.5c0 2.8-2.2 5-5 5Z" />
+                  </svg>
+                </span>
+              </div>
 
              <div className="message-limit-copy">
                <h2>آهووو! به سقف پیام‌ها رسیدی</h2>
@@ -4238,22 +4272,26 @@ function ChatApp() {
        {showImageGenModal ? (
          <Dialog open={showImageGenModal} title="ساخت تصویر" onClose={handleCloseImageGenerator} showFooter={false}>
            <div className="image-gen-modal">
-             <button
-               type="button"
-               className="image-gen-close"
-               aria-label="بستن"
-               onClick={(event) => {
-                 event.stopPropagation();
-                 handleCloseImageGenerator();
-               }}
-             >
-               ×
-             </button>
+              <button
+                type="button"
+                className="image-gen-close"
+                aria-label="بستن"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleCloseImageGenerator();
+                }}
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
 
              <div className="image-gen-hero" aria-hidden="true">
                <span className="image-gen-glow" />
                <span className="image-gen-orb">
-                 <span className="image-gen-wand">🪄</span>
+                 <span className="image-gen-wand" aria-hidden="true">
+                    <Icon name="sparkle" size={32} />
+                  </span>
                </span>
                <span className="image-gen-star image-gen-star--one" />
                <span className="image-gen-star image-gen-star--two" />
@@ -4409,12 +4447,26 @@ function ChatApp() {
                 )}
               </div>
             ))
-          ) : (
-            <div className="empty-state chat-empty-state">
-              <span className="chat-empty-state__eyebrow">شروع یک گفت‌وگوی تازه</span>
-              <strong>سلام، من دانوآم</strong>
-              <p>سؤال بپرس، عکس بفرست یا با هم یک ایده را پیدا کنیم.</p>
+          ) : conversationLoadingId ? (
+            <div className="empty-state chat-empty-state" role="status" aria-label="در حال بارگذاری گفتگو">
+              <div className="conversation-loading-spinner" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#630ed4" strokeWidth="2">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                </svg>
+              </div>
+              <strong>در حال بارگذاری گفتگو...</strong>
             </div>
+          ) : (
+            <EmptyState
+              icon={
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6.5 17.5 4 20V7.7C4 5.7 5.7 4 7.7 4h8.6C18.3 4 20 5.7 20 7.7v6.1c0 2-1.7 3.7-3.7 3.7H6.5Z" />
+                  <path d="M8 9h8M8 12.3h5.6" />
+                </svg>
+              }
+              title="سلام، من دانوآم"
+              description="سؤال بپرس، عکس بفرست یا با هم یک ایده را پیدا کنیم."
+            />
           )}
 
           {isSending && !visibleMessages.some((message) => message.streamStatus === 'streaming') ? (
@@ -4455,7 +4507,7 @@ function ChatApp() {
                         </button>
                       ) : null}
                       <button className="remove-thumb-btn" type="button" aria-label="حذف تصویر" onClick={() => handleRemoveImage(attachment.id)}>
-                        ✕
+                        <Icon name="x-close" size="1em" />
                       </button>
                     </div>
                   </div>
@@ -4480,13 +4532,13 @@ function ChatApp() {
                       </svg>
                     </button>
                     {attachmentMenuOpen ? (
-                     <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
+                      <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
                        <button type="button" onClick={handlePickImageClick}>
-                         <span aria-hidden="true">📷</span>
+                         <Icon name="attach-image" size="1.2em" aria-hidden="true" />
                          ارسال عکس
                        </button>
                        <button type="button" onClick={handleGenerateImageClick}>
-                         <span aria-hidden="true">🎨</span>
+                         <Icon name="sparkle" size="1.2em" aria-hidden="true" />
                          ساخت عکس با هوش مصنوعی
                        </button>
                        <button
@@ -4497,7 +4549,7 @@ function ChatApp() {
                             pushToast('به زودی فعال میشه این بخش ...', 'warning');
                           }}
                         >
-                          <span aria-hidden="true">📄</span>
+                          <Icon name="story" size="1.2em" aria-hidden="true" />
                           ارسال فایل
                         </button>
                       </div>
@@ -4588,12 +4640,16 @@ function ChatApp() {
                         <svg viewBox="0 0 24 24">
                           <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
                         </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24">
-                          <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
-                          <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
-                        </svg>
-                      )}
+          ) : shouldShowSendAction ? (
+                      <svg viewBox="0 0 24 24">
+                        <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24">
+                        <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
+                        <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
+                      </svg>
+                    )}
                     </span>
                   </button>
                 )}
@@ -4643,6 +4699,10 @@ function App() {
     return <ToastProvider><ChatApp /></ToastProvider>;
   }
 
+  if (pathname === '/landing') {
+    return <LandingPage />;
+  }
+
   if (pathname === '/payment/success' || pathname === '/success') {
     return <PaymentSuccessPage />;
   }
@@ -4655,7 +4715,7 @@ function App() {
     pathname !== '/profile' &&
     pathname !== '/settings'
   ) {
-    return <DanuaLanding />;
+    return <NotFound />;
   }
 
   return (

@@ -1,4 +1,5 @@
 import './PaymentSuccessPage.css';
+import Icon from './components/Icon';
 
 const PROFILE_KEY = 'chat_profile';
 
@@ -102,7 +103,7 @@ function PaymentSuccessPage() {
 
         <div className="payment-success-copy">
           <h1 id="payment-success-title">
-            <span aria-hidden="true">🎉</span>
+            <Icon name="check-circle" size="1.5em" aria-hidden="true" />
             پرداخت موفق
           </h1>
           <p>

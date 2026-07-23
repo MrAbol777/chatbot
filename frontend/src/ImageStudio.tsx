@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteGalleryImage, fetchProtectedImageBlobUrl, GalleryImage, getImageGenerationStatus, listGalleryImages, startImageEdit, startImageGeneration } from './services/imageGeneration';
 import ImageViewer from './ImageViewer';
+import Icon from './components/Icon';
 import './ImageStudio.css';
 
 const ratios = [
@@ -202,11 +203,11 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       </div>
       <button className="studio-header-back" type="button" onClick={onBack} aria-label={backLabel} title={backLabel}>
         <span>{backLabel}</span>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg>
+        <Icon name="chevron-left" size="1.3em" aria-hidden="true" />
       </button>
     </header>
     <div className="studio-tabs" role="tablist" aria-label="بخش‌های استودیوی تصویر"><span className={`studio-tab-indicator ${tab === 'gallery' ? 'gallery' : ''}`} aria-hidden="true" /><button type="button" role="tab" aria-selected={tab === 'create'} className={tab === 'create' ? 'active' : ''} onClick={() => setTab('create')}>ساخت تصویر</button><button type="button" role="tab" aria-selected={tab === 'gallery'} className={tab === 'gallery' ? 'active' : ''} onClick={() => setTab('gallery')}>تصاویر من</button></div>
-    {(error || (tab === 'gallery' && galleryError)) && <div className="studio-error" role="alert"><span className="studio-error-icon" aria-hidden="true">!</span><span>{error || galleryError}</span><button type="button" onClick={() => { setError(''); setGalleryError(''); }} aria-label="بستن پیام">×</button></div>}
+    {(error || (tab === 'gallery' && galleryError)) && <div className="studio-error" role="alert"><span className="studio-error-icon" aria-hidden="true">!</span><span>{error || galleryError}</span><button type="button" onClick={() => { setError(''); setGalleryError(''); }} aria-label="بستن پیام"><Icon name="x-close" size="1em" /></button></div>}
     {tab === 'create' ? <form className="studio-create" onSubmit={submit}>
       {editSource && <section className="studio-edit-workspace" aria-label="تصویر مبدا ویرایش">
         <div className="studio-source-preview">{editSource.imageUrl && <ProtectedImage src={editSource.imageUrl} alt="تصویر مبدا ویرایش" />}<span aria-hidden="true">اصل</span></div>
@@ -218,25 +219,25 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
           <div className="studio-prompt-block">
             <label htmlFor="studio-prompt"><span>{editSource ? 'چه تغییری می‌خواهی؟' : 'چی توی ذهنت داری؟'}</span><small>{prompt.length}/۷۰۰</small></label>
             <p className="studio-field-help">سوژه، سبک، نور و حس تصویر را با چند کلمه توضیح بده.</p>
-            <div className="studio-textarea-wrap"><span className="studio-input-spark" aria-hidden="true">✦</span><textarea ref={promptInputRef} id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, 700)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} maxLength={700} /></div>
+            <div className="studio-textarea-wrap"><Icon name="sparkle" size="1em" className="studio-input-spark" aria-hidden="true" /><textarea ref={promptInputRef} id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, 700)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} maxLength={700} /></div>
             <div className="studio-idea-section">
               <span>برای شروع، یکی را انتخاب کن</span>
               <div className="studio-ideas" aria-label="ایده‌های پیشنهادی">{(editSource ? editIdeas : promptIdeas).map((idea) => <button type="button" key={idea} onClick={() => setPrompt(idea)} disabled={busy}>{idea}</button>)}</div>
             </div>
           </div>
           <div className="studio-submit-dock">
-            <button className="studio-submit" disabled={busy || prompt.trim().length < 8}><span className="studio-submit-icon" aria-hidden="true">✦</span><span>{busy ? 'در حال ساخت تصویر...' : editSource ? 'ویرایش تصویر' : 'ساخت تصویر'}</span>{busy && <i aria-hidden="true" />}</button>
+            <button className="studio-submit" disabled={busy || prompt.trim().length < 8}><Icon name="sparkle" size={18} className="studio-submit-icon" aria-hidden="true" /><span>{busy ? 'در حال ساخت تصویر...' : editSource ? 'ویرایش تصویر' : 'ساخت تصویر'}</span>{busy && <i aria-hidden="true" />}</button>
             <small>{editSource ? 'تصویر اصلی شما بدون تغییر باقی می‌ماند.' : 'ساخت تصویر ممکن است چند لحظه زمان ببرد.'}</small>
           </div>
         </section>
         <aside className="studio-settings-card" aria-label="تنظیمات تصویر">
-          <div className="studio-settings-heading"><span className="studio-settings-icon" aria-hidden="true">✦</span><div><h2>تنظیمات تصویر</h2><p>قاب مناسب خروجی را انتخاب کن</p></div></div>
+          <div className="studio-settings-heading"><Icon name="sparkle" size="1em" className="studio-settings-icon" aria-hidden="true" /><div><h2>تنظیمات تصویر</h2><p>قاب مناسب خروجی را انتخاب کن</p></div></div>
           <fieldset className="ratio-field">
             <legend>نسبت تصویر</legend>
             <div className="ratio-options" role="group" aria-label="انتخاب نسبت تصویر">
               {ratios.map((option) => <button type="button" key={option.value} className={ratio === option.value ? 'active' : ''} aria-pressed={ratio === option.value} onClick={() => setRatio(option.value)} disabled={busy}>
                 <i className={`ratio-shape ratio-${option.value.replace(':', '-')}`} aria-hidden="true" />
-                <span>{option.label}</span><small>{option.value}</small>{ratio === option.value ? <b aria-hidden="true">✓</b> : null}
+                <span>{option.label}</span><small>{option.value}</small>{ratio === option.value ? <Icon name="check" size="1em" aria-hidden="true" /> : null}
               </button>)}
             </div>
           </fieldset>

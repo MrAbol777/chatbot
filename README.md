@@ -1,309 +1,186 @@
-دانوآ (چت‌بات فارسی کودک و نوجوان)
- 
-یک چت‌بات امن و دوستانه برای سنین ۸ تا ۱۸ سال با `React + TypeScript + Vite` در فرانت‌اند و `Node.js + Express` در بک‌اند.
+# دانوآ — چت‌بات فارسی کودک و نوجوان
 
-## وضعیت فعلی Design System (خرداد ۱۴۰۵)
+دانوآ یک چت‌بات فارسی، RTL و مناسب کاربران ۸ تا ۱۸ سال است. پروژه یک فرانت‌اند React و یک API مبتنی بر Node.js دارد و امکانات گفت‌وگو، احراز هویت پیامکی، مدیریت مکالمه، پنل ادمین، پردازش تصویر و تولید ویدئو را فراهم می‌کند.
 
-- وضعیت کلی: **Foundation پایدار است، ولی هنوز Full Adoption کامل نشده است**.
-- مسیر DS: `frontend/src/design-system/`
-- Primitiveهای موجود:
-  - `Button`
-  - `TextField`
-  - `TextAreaField`
-  - `Card`
-  - `FieldGroup`
-  - `InlineMessage`
-  - `Dialog`
-  - `Toast` 
-- Adoption انجام‌شده:
-  - `AdminLogin` با DS هماهنگ شده است.
-  - بخش‌هایی از `AdminPanel` (از جمله Config و برخی actionها) مهاجرت شده‌اند.
-  - بخشی از `App` (quick chips) به DS Button/FieldGroup مهاجرت شده است.
-- کارهای باقی‌مانده برای Full Adoption:
-  - جایگزینی کنترل‌های raw باقی‌مانده در `App.tsx` (composer controls، textarea، برخی buttonها)
-  - جایگزینی کنترل‌های raw در `AdminPanel.tsx` (checkbox/select)
-  - استانداردسازی کامل message/help/error rendering روی DS
+> این مخزن فقط شامل کد و نمونه‌تنظیمات است. کلیدها، فایل‌های `.env`، دادهٔ کاربران، مکالمه‌ها، رسانه‌های تولیدشده، گزارش‌ها و cacheها نباید commit شوند.
 
-## Guardrailهای فرانت/DS (Stage 5)
+## قابلیت‌ها
 
-- برای UI جدید یا تغییر UI، ابتدا از primitiveهای موجود DS استفاده شود.
-- اگر primitive مناسب وجود ندارد، در PR جداگانه پیشنهاد شود (نیاز + API + A11y).
-- migrationها باید behavior-preserving باشند (بدون تغییر API/state/business logic).
-- CSS تغییرات باید scoped باشد و از leak روی legacy DOM جلوگیری شود.
-- برای هر PR فرانت:
-  - `frontend: npm run build` پاس شود.
-  - یک manual test checklist ارائه شود.
+- رابط واکنش‌گرا و راست‌به‌چپ با React، TypeScript و Vite
+- گفت‌وگوی فارسی با پشتیبانی از streaming، حافظهٔ مکالمه، عنوان‌گذاری خودکار و بهینه‌سازی ورودی
+- ورود و ثبت‌نام با شمارهٔ موبایل و OTP؛ تشخیص کاربر جدید/قدیمی و انتقال گفت‌وگوی مهمان پس از ثبت‌نام
+- محدودسازی درخواست‌های OTP و تلاش‌های ناموفق، انقضا و مصرف یک‌بارهٔ کد
+- گفت‌وگوهای چندگانه: ایجاد، بارگذاری، همگام‌سازی، تغییر عنوان و سنجاق‌کردن
+- ورودی صوتی فارسی با Web Speech API و امکان پیوست تصویر
+- تولید، ویرایش، نمایش و مدیریت تصاویر؛ تحلیل تصویر با محدودیت نوع و تعداد فایل
+- تولید ویدئو با صف، worker مستقل، سهمیهٔ پلن، ذخیره‌سازی خصوصی و کنترل URL نتیجه
+- پنل ادمین برای کاربران، آمار، تنظیمات مدل، گزارش‌ها، اشتراک‌ها و لاگ‌های audit
+- پرداخت و اشتراک، پیامک IPPanel و webhook/monitor سرویس Bale (در صورت تنظیم)
+- اجرا با Docker Compose و MariaDB؛ health checkهای `/healthz` و `/api/health`
 
-## امکانات اصلی
-
-- ورود/ثبت‌نام یکپارچه با شماره موبایل و کد تأیید
-- تشخیص خودکار `login` یا `signup` بعد از تأیید OTP
-- تکمیل پروفایل فقط برای کاربر جدید (نام و سن)
-- انتقال خودکار تاریخچه مهمان به حساب کاربری بعد از ثبت‌نام موفق
-- ذخیره پروفایل، مکالمه‌ها و تنظیمات در `localStorage`
-- مدیریت مکالمه‌ها (گفتگوی جدید، سنجاق، تغییر نام، حذف)
-- ورودی صوتی فارسی با Web Speech API (`fa-IR`)
-- پشتیبانی از انتخاب تم (`energy` و `calm`)
-- امکان انتخاب تصویر از UI چت (پیش‌نمایش و حذف قبل از ارسال)
-- رابط RTL واکنش‌گرا با طراحی مناسب کودک/نوجوان
-
-## تغییرات جدید
-
-- مهاجرت سرویس مدل از GapGPT به Gemini (از طریق `GEMINI_BASE_URL`)
-- افزودن و تثبیت اولیه Design System و migration مرحله‌ای UIها
-- تکمیل فلو احراز هویت پیامکی در بک‌اند:
-  - `POST /api/send-verification-code`
-  - `POST /api/verify-code`
-  - `POST /api/register-profile`
-- افزودن rate limit برای OTP:
-  - حداکثر `3` درخواست کد در `10` دقیقه برای هر شماره
-  - حداکثر `5` تلاش ناموفق برای تأیید هر کد
-- پاک‌سازی OTP بعد از تأیید موفق یا انقضا
-- پشتیبانی از ارقام فارسی/عربی برای شماره موبایل، سن و کد OTP
-- پشتیبانی از `OTP_DEV_MOCK=true` برای توسعه محلی بدون ارسال SMS واقعی
-- اضافه شدن `GET /api/admin/stats` با `ADMIN_API_KEY`
-- اضافه شدن اسکریپت توسعه با لاگ فایل (`logs/terminal.txt`)
-
-## ساختار پروژه
+## معماری
 
 ```text
-project-root/
-├── frontend/
-├── backend/
-├── logs/
-├── scripts/
-├── package.json
-└── README.md
+frontend/                 React + TypeScript + Vite
+  src/design-system/      primitiveهای قابل‌استفادهٔ مجدد UI
+  src/video-generation/   رابط تولید و پخش ویدئو
+  src/studio/             رابط تولید و ویرایش تصویر
+
+backend/                  Express API
+  src/modules/            auth, ai, conversations, image, video, admin, sms, ...
+  src/repositories/       دسترسی متمرکز به پایگاه‌داده
+  migrations/             migrationهای MySQL/MariaDB
+  scripts/                migration، worker و ابزارهای عملیاتی
+
+deploy/                   پیکربندی Nginx و اسکریپت deployment
+docs/                     معماری و runbookهای عملیاتی
 ```
+
+لایهٔ composition در `backend/src/server.js` وابستگی‌ها را می‌سازد و routeها را mount می‌کند. منطق دامنه در `backend/src/modules` و دسترسی مستقیم به داده در `backend/src/repositories` نگه‌داری می‌شود. جزئیات بیشتر در [docs/architecture.md](docs/architecture.md) است.
 
 ## پیش‌نیازها
 
-- `Node.js` نسخه ۱۸ یا بالاتر
-- `npm`
+- Node.js 20 LTS یا جدیدتر
+- npm 10 یا جدیدتر
+- MySQL 8 / MariaDB 10.11 برای اجرای محلی یا Docker Desktop برای اجرای containerized
+- حساب و کلید سرویس‌های اختیاری موردنیاز شما (Metis/Gemini، IPPanel و ...)
 
-## راه‌اندازی
+## راه‌اندازی محلی
 
-1) نصب وابستگی‌ها از ریشه پروژه:
+1. وابستگی‌ها را نصب کنید:
 
 ```bash
 npm run install-all
 ```
 
-2) ساخت فایل محیطی بک‌اند:
+2. نمونه‌تنظیمات بک‌اند را کپی کنید:
 
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-3) تنظیم `backend/.env`:
+در PowerShell:
 
-```env
-GEMINI_API_KEY=your_metis_key
-GEMINI_BASE_URL=https://api.metisai.ir
-GEMINI_MODEL=gemini-2.0-flash
-GAPGPT_TIMEOUT_MS=30000
-ADMIN_API_KEY=your-secret-key
-PORT=3000
-DATABASE_URL=mysql://root:@localhost:3306/chatbot
-AUTH_JWT_SECRET=change-me
-IPPANEL_API_KEY=your-ippanel-api-key
-IPPANEL_PATTERN_CODE=your-pattern-code
-IPPANEL_SENDER=3000505
-OTP_EXPIRE=120
-OTP_DEV_MOCK=true
+```powershell
+Copy-Item backend/.env.example backend/.env
 ```
 
-- اگر `OTP_DEV_MOCK=true` باشد، کد OTP در لاگ بک‌اند چاپ می‌شود و درخواست واقعی به IPPanel ارسال نمی‌شود.
+3. مقدارهای لازم را در `backend/.env` وارد کنید. هیچ‌گاه این فایل را commit نکنید.
 
-4) اجرای همزمان فرانت و بک‌اند:
+4. پایگاه‌داده را آماده و migrationهای موردنیاز را اجرا کنید. برای امکانات تصویر و ویدئو از اسکریپت‌های migration زیر استفاده کنید:
+
+```bash
+cd backend
+npm run db:migrate-image-studio
+npm run db:migrate-video-generation
+```
+
+5. در ریشهٔ پروژه سرویس‌ها را اجرا کنید:
 
 ```bash
 npm run dev
 ```
 
 - فرانت‌اند: `http://localhost:5173`
-- بک‌اند: `http://localhost:3000`
+- API بک‌اند: `http://localhost:3000`
+
+## متغیرهای محیطی
+
+فایل مرجع کامل، [backend/.env.example](backend/.env.example) است. کلیدها را فقط در secret manager یا فایل محیطیِ خارج از Git نگه دارید.
+
+| گروه | متغیرهای مهم |
+| --- | --- |
+| پایگاه‌داده و API | `PORT`، `DATABASE_URL`، `ADMIN_API_KEY`، `ADMIN_JWT_SECRET` |
+| مدل گفت‌وگو | `METIS_API_KEY`، `METIS_OPENAI_BASE_URL`، `OPENAI_MODEL`، `GEMINI_API_KEY` |
+| پیامک | `IPPANEL_API_KEY`، `IPPANEL_PATTERN_CODE`، `IPPANEL_SENDER`، `OTP_EXPIRE` |
+| تصویر | `METIS_IMAGE_API_KEY`، `GEMINI_IMAGE_API_KEY`، `IMAGE_PROVIDER`، `IMAGE_MODEL` |
+| ویدئو | `VIDEO_GENERATION_ENABLED`، `METIS_BASE_URL`، `VIDEO_STORAGE_ROOT`، allowlistهای `VIDEO_RESULT_*` |
+| حافظه و پرداخت | `CONVERSATION_MEMORY_STORAGE_DIR`، `ZARINPAL_*`، `BALE_*` |
+
+برای توسعهٔ بدون ارسال پیامک واقعی، فقط در محیط محلی مقدار `OTP_DEV_MOCK=true` را قرار دهید. در production این مقدار باید غیرفعال باشد.
+
+## Docker Compose
+
+ابتدا یک فایل `.env` محلی کنار `docker-compose.yml` بسازید و secretها را در آن قرار دهید. سپس:
+
+```bash
+docker compose up --build
+```
+
+Compose یک MariaDB و سرویس برنامه را بالا می‌آورد. داده‌های پایدار به volumeهای Docker یا مسیرهای mount شده منتقل می‌شوند و نباید وارد مخزن شوند.
+
+برای reverse proxy و استقرار سرور به [deploy/nginx.conf](deploy/nginx.conf) و [docs/video-generation-deployment.md](docs/video-generation-deployment.md) رجوع کنید.
 
 ## اسکریپت‌ها
 
-### ریشه پروژه
+### ریشهٔ پروژه
 
-- `npm run install-all`: نصب وابستگی‌های `frontend` و `backend`
-- `npm run dev`: اجرای همزمان دو سرویس + ثبت لاگ در `logs/terminal.txt`
+| دستور | کاربرد |
+| --- | --- |
+| `npm run install-all` | نصب وابستگی‌های frontend و backend |
+| `npm run dev` | اجرای هم‌زمان سرویس‌ها و ثبت لاگ محلی |
 
-### frontend
-
-- `npm run dev`
-- `npm run build`
-- `npm run preview`
-
-## چک سریع کیفیت (قبل از Merge)
-
-برای تغییرات فرانت‌اند/Design System:
+### فرانت‌اند
 
 ```bash
 cd frontend
+npm run dev
 npm run build
+npm test
+npm run test:video-generation
 ```
 
-چک دستی پیشنهادی:
+### بک‌اند
 
-- از لندینگ، دکمه‌های `شروع رایگان` و `ورود به حساب` کاربر را واقعاً به `/chat` ببرند.
-- فلو auth به ترتیب `شماره موبایل -> کد تایید -> تکمیل پروفایل برای کاربر جدید` کار کند.
-- برای کاربر قدیمی بعد از OTP، ورود مستقیم انجام شود و فرم نام/سن نمایش داده نشود.
-- در سناریوی مهمان، بعد از رسیدن به سقف پیام و ثبت‌نام موفق، تاریخچه گفتگو منتقل شود.
-- در `AdminPanel` دکمه‌های `پروفایل` / `مسدود-رفع مسدود` / `حذف` فعال باشند.
-- در چت، quick chips همچنان پیام صحیح ارسال کنند.
-- ناوبری کیبورد (Tab/Enter/Space) روی کنترل‌های جدید درست عمل کند.
-- روی موبایل و دسکتاپ شکست CSS نداشته باشیم.
+```bash
+cd backend
+npm run dev
+npm start
+npm run test:stream
+npm run test:video-generation
+npm run check:video-generation-readiness
+npm run video-worker
+```
 
-### backend
+اسکریپت‌های `db:migrate-*` و ابزارهای مدیریت ویدئو در [backend/package.json](backend/package.json) فهرست شده‌اند. پیش از اجرای worker یا فعال‌سازی مدل ویدئو، runbook مربوطه را کامل بخوانید.
 
-- `npm run dev`
-- `npm run start`
+## APIهای کلیدی
 
-## نکات
+| حوزه | مسیرهای نمونه |
+| --- | --- |
+| احراز هویت | `POST /api/send-verification-code`، `POST /api/verify-code`، `POST /api/register-profile` |
+| گفت‌وگو | `POST /api/chat`، routeهای `/api/conversations` |
+| تصویر | routeهای `/api/images` برای generate، edit، status و serve |
+| تحلیل تصویر | `POST /api/image-understanding/analyze` |
+| ویدئو | routeهای `/api/video-generations` برای submit، status، history و content |
+| سلامت | `GET /healthz`، `GET /api/health`، `GET /api/health/video-generation` |
+| ادمین | routeهای محافظت‌شدهٔ `/api/admin/*` |
 
-- فرانت‌اند هیچ API Key نگه نمی‌دارد و فقط به API بک‌اند درخواست می‌فرستد.
-- بک‌اند برای هر پیام، پرامپت پویا بر اساس پروفایل و تاریخچه می‌سازد.
-- برای ورودی صوتی، مرورگر باید دسترسی میکروفون داشته باشد.
+پاسخ‌ها، مجوزها و جزئیات endpointها ممکن است با ماژول تغییر کنند؛ routeهای موجود در `backend/src/modules/*/*.routes.js` مرجع اجرایی هستند.
 
-## ماژول‌های بک‌اند (ریزبه‌ریز)
+## نکات امنیتی و عملیاتی
 
-بک‌اند در مسیر `backend/src` ماژولار شده و هر بخش مسئولیت مشخص خودش را دارد:
+- `.env`، backupهای تنظیمات، tokenها، دادهٔ کاربران، رسانه‌های آپلودی/تولیدی و coverage را هرگز commit نکنید.
+- اگر هر کلیدی حتی در یک commit محلی یا عمومی ثبت شده است، آن را افشا‌شده فرض و فوراً rotate کنید.
+- برای production، secretها را در محیط اجرا یا secret manager تنظیم کنید؛ به فایل‌های env داخل image یا repository تکیه نکنید.
+- `ADMIN_JWT_SECRET` و `ADMIN_API_KEY` باید تصادفی، بلند و یکتا باشند.
+- OTP mock، debug logging و endpointهای آزمایشی را در production غیرفعال کنید.
+- ذخیره‌سازی ویدئو باید خارج از مسیر public web، با مجوز محدود و allowlist دقیق نتیجهٔ provider باشد.
+- پیش از فعال‌سازی تولید ویدئو، migration، مسیر storage، سهمیه و health check را طبق [runbook](docs/video-generation-deployment.md) بررسی کنید.
 
-### 1) هسته اجرا (`backend/src/server.js`)
+## توسعهٔ UI
 
-- نقطه شروع برنامه و بالا آوردن سرور `Express`
-- بارگذاری متغیرهای محیطی از `backend/.env`
-- اعمال Middlewareهای اصلی: `cors`، `helmet`، `compression`، `cookie-parser` و `express.json`
-- ساخت و تزریق Dependencyها به ماژول‌ها (Repositoryها، سرویس AI، سرویس SMS و...)
-- رجیستر کردن تمام Routeها:
-  - `auth`
-  - `ai/chat`
-  - `conversations`
-  - `sms`
-  - `admin`
-  - `health`
-- اجرای `bale_monitor` و سرو فایل استاتیک خروجی فرانت
+برای هر کنترل تعاملی جدید، ابتدا primitiveهای موجود در `frontend/src/design-system` را بررسی کنید. migrationهای UI باید رفتار API و state را حفظ کنند، CSS را scoped نگه دارند و با `npm run build` و بررسی دستی کیبورد/موبایل اعتبارسنجی شوند.
 
-### 2) لایه Repository (`backend/src/repositories`)
+## بررسی پیش از انتشار
 
-این لایه دسترسی به دیتا را متمرکز می‌کند تا بقیه ماژول‌ها مستقیم به DB وصل نشوند:
+```bash
+cd frontend && npm run build && npm test
+cd ../backend && npm run test:stream && npm run test:video-generation
+```
 
-- `DatabaseClient.js`: مدیریت اتصال و اجرای Query
-- `UserRepository.js`: عملیات کاربران (ثبت، یافتن، اطمینان از وجود کاربر)
-- `ConversationRepository.js`: عملیات مکالمه‌ها
-- `EventRepository.js`: ثبت رویدادها (مثل پیام ارسال‌شده)
-- `ErrorRepository.js`: ثبت خطاهای سیستمی/API
-- `AnalyticsRepository.js`: خواندن داده خام برای آمار و گزارش
-- `helpers.js` و `index.js`: ابزارهای مشترک و Factory ساخت Repositoryها
-- `GuestRepository.js`: مدیریت guest user، شمارش پیام مهمان، و migration گفتگوها از `guest_id` به `user_id`
+همچنین `git status` را بررسی کنید تا هیچ فایل env، دادهٔ کاربر، خروجی تولیدی یا گزارش runtime وارد commit نشده باشد.
 
-### 3) ماژول احراز هویت (`backend/src/modules/auth`)
+## مجوز
 
-مسئول چرخه کامل OTP و مدیریت کاربر:
-
-- `auth.routes.js`: تعریف endpointهای احراز هویت
-- `auth.controller.js`: دریافت Request و تبدیل خطا/خروجی به Response استاندارد
-- `auth.service.js`: منطق اصلی:
-  - ارسال کد تایید برای شماره موبایل
-  - تشخیص کاربر قدیمی/جدید بعد از verify
-  - ورود مستقیم کاربر قدیمی با JWT
-  - صدور `signupToken` کوتاه‌عمر برای تکمیل پروفایل کاربر جدید
-  - ثبت/تکمیل پروفایل و migration مهمان به کاربر
-  - صدور JWT نهایی
-- `auth.repository.js`: دسترسی داده‌ای اختصاصی auth
-  - جدول `app_auth_otps` برای نگهداری OTP
-  - جدول `app_auth_otp_request_limits` برای rate limit درخواست کد
-  - محدودیت تلاش اشتباه و invalidate کردن کد پس از مصرف/انقضا
-- `auth.module.js`: Compose کردن Route + Service + Repository برای تزریق در `server.js`
-
-### 4) ماژول SMS (`backend/src/modules/sms`)
-
-مسئول ارتباط با IPPanel برای ارسال OTP:
-
-- `sms.routes.js`: مسیرهای API پیامک (ارسال/وضعیت)
-- `sms.controller.js`: کنترل ورودی و خروجی HTTP
-- `sms.service.js`: منطق ارسال Pattern OTP به IPPanel، مدیریت timeout و خطا
-  - پشتیبانی از `IPPANEL_API_KEY`، `IPPANEL_PATTERN_CODE` و `IPPANEL_SENDER`
-  - پشتیبانی از `OTP_DEV_MOCK=true` برای توسعه محلی
-- `sms.module.js`: سیم‌کشی وابستگی‌ها برای مصرف در سرور
-
-> نکته: در `backend/src/services` چند فایل قدیمی/آزمایشی SMS هم هست (`smsService.js`، `sms.service.ts`، `testSMS.js`) که مسیر اصلی اجرای فعلی نیستند؛ مسیر عملیاتی اصلی پروژه، `modules/sms` است.
-
-### 5) ماژول هوش مصنوعی (`backend/src/modules/ai`)
-
-مسئول پردازش پیام چت و ارتباط با مدل:
-
-- `ai.routes.js`: تعریف `POST /api/chat`
-- `ai.controller.js`: اعتبارسنجی ورودی، مدیریت error codeها و پاسخ HTTP
-- `ai.service.js`: منطق اصلی:
-  - نرمال‌سازی history
-  - ساخت payload استاندارد چت
-  - فراخوانی مدل با timeout
-  - استخراج پاسخ متنی
-  - حذف greeting اضافی در پیام‌های غیرابتدایی
-  - دسته‌بندی موضوع پیام (academic/emotional/creative/general)
-  - ثبت event/خطا/ذخیره در مکالمه‌ها
-- `prompt.service.js`: مدیریت system prompt و config مدل (همراه با cache و invalidation)
-
-### 6) ماژول مکالمه‌ها (`backend/src/modules/conversations`)
-
-مسئول CRUD مکالمات کاربر:
-
-- `routes.js`: endpointهای لیست/ذخیره مکالمه
-- `controller.js`: مدیریت ورودی/خروجی API
-- `service.js`: منطق اعمال روی مکالمات (خواندن، جایگزینی، اعتبارسنجی)
-- `index.js`: ساخت ماژول و تزریق dependency
-
-### 7) ماژول Health (`backend/src/modules/health`)
-
-پایش سلامت سرویس:
-
-- `health.routes.js`: مسیرهای health check
-- `health.controller.js`: پاسخ‌دهی وضعیت سرویس
-- `health.service.js`: چک داخلی سرور و چک اتصال به سرویس مدل
-
-### 8) ماژول ادمین (`backend/src/adminRoutes.js` + `backend/src/modules/admin`)
-
-مسئول پنل مدیریت، تنظیمات و گزارش‌ها:
-
-- `adminRoutes.js`:
-  - لاگین ادمین، صدور/بررسی JWT و cookie
-  - محافظت مسیرها با `requireAdminAuth`
-  - bootstrap فایل‌های `admin.json`، `config.json`، `audit.log`
-  - mount زیرماژول‌های admin
-- زیرماژول‌ها:
-  - `modules/admin/analytics`:
-    - آمار داشبورد
-    - خروجی CSV گزارش
-    - پشتیبانی از `GET /api/admin/stats` (legacy key-based)
-  - `modules/admin/system`:
-    - مشاهده/ویرایش config
-    - مشاهده/ویرایش system prompt
-    - ثبت audit برای تغییرات مهم
-  - `modules/admin/logs`:
-    - مشاهده خطاها با فیلتر تاریخ/نوع
-    - صفحه‌بندی audit log
-
-### 9) ماژول مانیتورینگ Bale (`backend/src/modules/bale_monitor`)
-
-ماژول زمان‌بندی‌شده برای مانیتورینگ یک منبع Bale:
-
-- `scheduler.js`: اجرای دوره‌ای Job
-- `checker.js`: منطق چک داده/وضعیت
-- `baleClient.js`: ارتباط با endpoint منبع
-- `parser.js`: تبدیل داده خام به ساختار قابل استفاده
-- `storage.js`: ذخیره snapshot و state مانیتورینگ
-- `config.js`: تنظیمات ماژول
-- `index.js`: راه‌اندازی (`initBaleMonitor`)
-
-### 10) ابزارهای مشترک (`backend/src/shared`)
-
-- `shared/validators/phone.validator.js`:
-  - نرمال‌سازی شماره موبایل ایران (local/international)
-  - پشتیبانی از ارقام فارسی و عربی
-  - اعتبارسنجی موبایل
-  - نرمال‌سازی کد OTP (اعداد فارسی/عربی به انگلیسی)
-  - تولید variantهای شماره برای تطبیق بهتر
+مجوز پروژه در حال حاضر در این مخزن اعلام نشده است. پیش از استفاده یا انتشار مجدد، با مالک مخزن هماهنگ کنید.
