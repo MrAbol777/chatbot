@@ -21,7 +21,6 @@ class ChatMessageRepository {
     responseTimeMs = null,
     tokenUsage = null,
     errorCode = null,
-    limitStatus = null,
     createdAt = new Date()
   }) {
     await this.db.init();
@@ -39,8 +38,8 @@ class ChatMessageRepository {
 
     const [result] = await this.db.query(
       `INSERT INTO app_chat_messages
-       (user_id, guest_id, user_type, conversation_id, turn_id, role, content, model, response_time_ms, token_usage, error_code, limit_status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       (user_id, guest_id, user_type, conversation_id, turn_id, role, content, model, response_time_ms, token_usage, error_code, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE message_id = LAST_INSERT_ID(message_id)`,
       [
         storedUserId,
@@ -54,7 +53,6 @@ class ChatMessageRepository {
         Number.isFinite(Number(responseTimeMs)) ? Math.max(0, Math.round(Number(responseTimeMs))) : null,
         tokenUsage ? JSON.stringify(tokenUsage) : null,
         normalizeNullableString(errorCode),
-        normalizeNullableString(limitStatus),
         createdAt
       ]
     );
@@ -70,12 +68,11 @@ class ChatMessageRepository {
     model,
     responseTimeMs,
     tokenUsage,
-    limitStatus,
     userCreatedAt,
     assistantCreatedAt,
     turnId = null
   }) {
-    const common = { userId, conversationId, turnId, model, errorCode: null, limitStatus };
+    const common = { userId, conversationId, turnId, model, errorCode: null };
     const userMessageId = await this.logMessage({
       ...common,
       role: 'user',

@@ -4,7 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LandingPage from './Landing';
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      tomanPerNoa: '10000.000000',
+      pricingConfigs: [
+        { actionKey: 'text_chat', unit: 'message', unitPriceNoa: '0.120000', isActive: true },
+        { actionKey: 'image_generation', unit: 'image', unitPriceNoa: '1.700000', isActive: true },
+        { actionKey: 'video_generation', unit: 'second', unitPriceNoa: '0.800000', isActive: true },
+      ],
+    }),
+  }));
 });
 
 afterEach(() => {
@@ -33,9 +43,9 @@ describe('LandingPage — all sections render', () => {
     expect(screen.getByText('فضایی امن برای یادگیری و خیال‌پردازی')).toBeInTheDocument();
   });
 
-  it('renders Pricing section header', () => {
+  it('renders Noa section header', () => {
     render(<LandingPage />);
-    expect(screen.getAllByText('پلن‌ها').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('کیف پول نوآ').length).toBeGreaterThan(0);
   });
 
   it('renders Testimonials section', () => {
@@ -76,7 +86,7 @@ describe('LandingPage — IntersectionObserver fallback', () => {
     expect(screen.getByText('دانوآ،')).toBeVisible();
     expect(screen.getAllByText('قابلیت‌ها').length).toBeGreaterThan(0);
     expect(screen.getByText('برای آرامش والدین')).toBeVisible();
-    expect(screen.getAllByText('پلن‌ها').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('کیف پول نوآ').length).toBeGreaterThan(0);
     (window as any).IntersectionObserver = origObserver;
   });
 });
@@ -134,43 +144,42 @@ describe('LandingPage — FAQ keyboard', () => {
   });
 });
 
-describe('LandingPage — Pricing filters test plans', () => {
-  it('does not render a plan named Metis Video Live Test', async () => {
+describe('LandingPage — live Noa pricing', () => {
+  it('renders only the live database pricing payload', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        plans: [
-          { id: 'free', name: 'رایگان', price: 0, features: ['20 پیام'], description: 'Plan free' },
-          { id: 'gold', name: 'طلایی', price: 99000, features: ['300 پیام'], description: 'Plan gold' },
-          { id: 'diamond', name: 'الماسی', price: 199000, features: ['پیام نامحدود'], description: 'Plan diamond' },
-          { id: 'metis-video-live-test', name: 'Metis Video Live Test', price: 0, features: ['test'], description: 'test-only' },
+        tomanPerNoa: '12500.000000',
+        pricingConfigs: [
+          { actionKey: 'text_chat', unit: 'message', unitPriceNoa: '0.230000', isActive: true },
+          { actionKey: 'image_generation', unit: 'image', unitPriceNoa: '2.100000', isActive: false },
         ],
       }),
     }));
     render(<LandingPage />);
     await waitFor(() => {
-      expect(screen.getByText('رایگان')).toBeInTheDocument();
-      expect(screen.getByText('طلایی')).toBeInTheDocument();
-      expect(screen.getByText('الماسی')).toBeInTheDocument();
+      expect(screen.getByText('۰٫۲۳ نوآ')).toBeInTheDocument();
+      expect(screen.getByText(/۱۲٬۵۰۰ تومان/)).toBeInTheDocument();
     });
-    expect(screen.queryByText('Metis Video Live Test')).toBeNull();
+    expect(screen.queryByText('۲٫۱ نوآ')).toBeNull();
   });
 
-  it('uses fallback plans when API fails and they contain no test plans', async () => {
+  it('does not invent fallback prices when the API fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
     render(<LandingPage />);
     await waitFor(() => {
-      expect(screen.getByText('رایگان')).toBeInTheDocument();
+      expect(screen.getByText(/قیمت‌های لحظه‌ای نوآ اکنون در دسترس نیست/)).toBeInTheDocument();
     });
-    expect(screen.queryByText(/test/i)).toBeNull();
+    expect(screen.queryByText('۰٫۱۲ نوآ')).toBeNull();
   });
 });
 
 describe('LandingPage — CTA navigation', () => {
-  it('has a start free button in header that navigates', async () => {
+  it('has an account creation button in header that navigates', async () => {
     const assign = vi.fn();
     Object.defineProperty(window, 'location', { value: { assign }, writable: true });
     render(<LandingPage />);
-    const cta = screen.getAllByText('شروع رایگان')[0];
+    const cta = screen.getAllByText('ساخت حساب')[0];
     await userEvent.click(cta);
     expect(assign).toHaveBeenCalledWith('/chat?auth=signup');
   });

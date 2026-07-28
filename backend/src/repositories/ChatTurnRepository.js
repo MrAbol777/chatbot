@@ -20,8 +20,8 @@ class ChatTurnRepository {
     const now = new Date();
     const [result] = await this.db.query(
       `INSERT IGNORE INTO app_chat_turns
-       (turn_id, user_id, conversation_id, client_message_id, user_message, intent, status, quota_charged, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'streaming', 0, ?, ?)`,
+       (turn_id, user_id, conversation_id, client_message_id, user_message, intent, status, noa_reservation_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'streaming', NULL, ?, ?)`,
       [id, owner, normalizeId(conversationId) || 'default', normalizeId(clientMessageId) || null, String(userMessage || ''), intent, now, now]
     );
     const [rows] = await this.db.query('SELECT * FROM app_chat_turns WHERE turn_id = ? LIMIT 1', [id]);
@@ -33,6 +33,44 @@ class ChatTurnRepository {
       throw Object.assign(new Error('TURN_ID_CONFLICT'), { code: 'TURN_ID_CONFLICT' });
     }
     return { turn, created: Boolean(result?.affectedRows) };
+  }
+
+  async claimTurnForExecution(turnId) {
+    const id = normalizeId(turnId);
+    if (!id) throw Object.assign(new Error('INVALID_TURN_ID'), { code: 'INVALID_TURN_ID' });
+    const [result] = await this.db.query(
+      `UPDATE app_chat_turns
+       SET status = 'streaming', error_code = NULL, updated_at = ?
+       WHERE turn_id = ? AND status IN ('failed', 'cancelled')`,
+      [new Date(), id]
+    );
+    return Number(result?.affectedRows || 0) === 1;
+  }
+
+  async setNoaReservation(turnId, reservationId) {
+    const id = normalizeId(turnId);
+    const normalizedReservationId = normalizeId(reservationId);
+    if (!id || !normalizedReservationId) {
+      throw Object.assign(new Error('INVALID_NOA_RESERVATION'), { code: 'INVALID_NOA_RESERVATION' });
+    }
+    const [result] = await this.db.query(
+      'UPDATE app_chat_turns SET noa_reservation_id = ?, updated_at = ? WHERE turn_id = ?',
+      [normalizedReservationId, new Date(), id]
+    );
+    return Number(result?.affectedRows || 0) === 1;
+  }
+
+  async setIntent(turnId, intent) {
+    const id = normalizeId(turnId);
+    const normalizedIntent = normalizeId(intent);
+    if (!id || !normalizedIntent) {
+      throw Object.assign(new Error('INVALID_CHAT_INTENT'), { code: 'INVALID_CHAT_INTENT' });
+    }
+    const [result] = await this.db.query(
+      'UPDATE app_chat_turns SET intent = ?, updated_at = ? WHERE turn_id = ?',
+      [normalizedIntent, new Date(), id]
+    );
+    return Number(result?.affectedRows || 0) === 1;
   }
 
   async beginAttempt({ attemptId, turnId }) {
@@ -76,13 +114,6 @@ class ChatTurnRepository {
     );
   }
 
-  async claimQuota(turnId) {
-    const [result] = await this.db.query(
-      'UPDATE app_chat_turns SET quota_charged = 1, updated_at = ? WHERE turn_id = ? AND quota_charged = 0',
-      [new Date(), normalizeId(turnId)]
-    );
-    return Number(result?.affectedRows || 0) === 1;
-  }
 }
 
 module.exports = { ChatTurnRepository };

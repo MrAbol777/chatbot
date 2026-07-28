@@ -39,3 +39,25 @@ function guard(client, protocol) {
 
 guard(http, 'HTTP');
 guard(https, 'HTTPS');
+
+const originalSocketConnect = net.Socket.prototype.connect;
+net.Socket.prototype.connect = function guardedSocketConnect(...args) {
+  const first = args[0];
+  const options = Array.isArray(first) ? first[0] : first;
+  const host = options && typeof options === 'object'
+    ? options.host || options.hostname
+    : typeof args[1] === 'string' ? args[1] : null;
+  // Named pipes and omitted hosts are local transports. Every explicit
+  // non-loopback TCP destination fails before a socket can be opened.
+  if (host && !loopback(host)) throw new Error('External TCP network is blocked in video-generation tests.');
+  return originalSocketConnect.apply(this, args);
+};
+
+if (typeof global.fetch === 'function') {
+  const originalFetch = global.fetch.bind(global);
+  global.fetch = (input, init) => {
+    const host = requestedHost([input]);
+    if (host && !loopback(host)) return Promise.reject(new Error('External fetch network is blocked in video-generation tests.'));
+    return originalFetch(input, init);
+  };
+}

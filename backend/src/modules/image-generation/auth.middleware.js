@@ -8,7 +8,11 @@ function createAuthMiddleware({ jwtSecret, db }) {
   return async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next();
+      return res.status(401).json({
+        success: false,
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'برای استفاده از هوش مصنوعی وارد حساب کاربری شوید.'
+      });
     }
 
     const token = authHeader.split(' ')[1];

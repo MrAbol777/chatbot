@@ -1,32 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { videoModel } from '../test/fixtures/video-generation';
 import VideoGenerationForm from './VideoGenerationForm';
 
-const props = (overrides: Partial<React.ComponentProps<typeof VideoGenerationForm>> = {}) => ({ models: [videoModel], loading: false, error: '', onRetry: vi.fn(), modelKey: 'test-video', setModelKey: vi.fn(), prompt: '', setPrompt: vi.fn(), aspectRatio: '16:9', setAspectRatio: vi.fn(), duration: '5', setDuration: vi.fn(), quality: 'standard', setQuality: vi.fn(), submitting: false, onSubmit: vi.fn(), ...overrides });
+const capability = { allowedAspectRatios:['9:16','16:9','1:1'],allowedDurations:Array.from({length:15},(_,index)=>String(index+1)),allowedQualities:[],allowedResolutions:['480p'],maxPromptLength:40,quotaUnits:2 };
+const profile = { id:'profile-1',profileKey:'cinematic',displayName:'واقعی و سینمایی',publicDescription:'واقعی',visualKey:'cinematic-frame',displayOrder:10,currentVersion:1 };
+const media = { mediaId:'media-1',mimeType:'image/jpeg',sizeBytes:1024 };
+const props = (overrides: Partial<React.ComponentProps<typeof VideoGenerationForm>> = {}): React.ComponentProps<typeof VideoGenerationForm> => ({ capability,profile,featureEnabled:true,loading:false,error:'',onRetry:vi.fn(),prompt:'',setPrompt:vi.fn(),aspectRatio:'9:16',setAspectRatio:vi.fn(),duration:'5',setDuration:vi.fn(),resolution:'480p',setResolution:vi.fn(),media:null,mediaPreviewUrl:'',mediaFilename:'',onMediaFile:vi.fn(),onRemoveMedia:vi.fn(),mediaUploading:false,mediaError:'',submitting:false,onBack:vi.fn(),onReview:vi.fn(),...overrides });
 
-describe('VideoGenerationForm', () => {
-  it('renders loading, retry error, and no-active-model states', () => {
-    const retry = vi.fn(); const { rerender } = render(<VideoGenerationForm {...props({ loading: true, onRetry: retry })} />);
-    expect(screen.getByRole('status')).toHaveTextContent('در حال دریافت مدل‌ها');
-    rerender(<VideoGenerationForm {...props({ error: 'خطای امن', onRetry: retry })} />); fireEvent.click(screen.getByRole('button', { name: 'دریافت دوباره' })); expect(retry).toHaveBeenCalledOnce();
-    rerender(<VideoGenerationForm {...props({ models: [] })} />); expect(screen.getByText(/فعلاً مدل فعالی/)).toBeInTheDocument();
-  });
-
-  it('validates empty, whitespace, too-long, and valid prompts', async () => {
-    const user = userEvent.setup(); const onSubmit = vi.fn(); const setPrompt = vi.fn(); const { rerender } = render(<VideoGenerationForm {...props({ onSubmit, setPrompt })} />);
-    expect(screen.getByRole('button', { name: 'ساخت ویدیو' })).toBeDisabled(); await user.type(screen.getByLabelText(/توضیحات ویدیو/), ' '); expect(setPrompt).toHaveBeenCalled();
-    rerender(<VideoGenerationForm {...props({ prompt: '  ', onSubmit })} />); expect(screen.getByText('توضیحات ویدیو را وارد کنید.')).toBeInTheDocument();
-    rerender(<VideoGenerationForm {...props({ prompt: 'x'.repeat(41), onSubmit })} />); expect(screen.getByText('حداکثر 40 کاراکتر مجاز است.')).toBeInTheDocument();
-    rerender(<VideoGenerationForm {...props({ prompt: 'یک متن معتبر', onSubmit })} />); await user.click(screen.getByRole('button', { name: 'ساخت ویدیو' })); expect(onSubmit).toHaveBeenCalledOnce();
-  });
-
-  it('has labelled settings controls and keeps image-to-video/upload unavailable', () => {
-    const setAspectRatio = vi.fn(); const { container } = render(<VideoGenerationForm {...props({ prompt: 'یک متن معتبر', setAspectRatio })} />);
-    expect(screen.getByLabelText(/مدل ساخت ویدیو/)).toHaveValue('test-video'); expect(screen.getByRole('group', { name: /نسبت تصویر/ })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /عمودی/ })); fireEvent.change(screen.getByLabelText(/کیفیت/), { target: { value: 'high' } });
-    expect(setAspectRatio).toHaveBeenCalledWith('9:16');
-    expect(screen.getByText('تصویر به ویدیو به‌زودی')).toBeInTheDocument(); expect(container.querySelector('input[type=file]')).toBeNull(); expect(screen.queryByText(/providerModelId|provider_model/i)).toBeNull();
-  });
+describe('VideoGenerationForm',()=>{
+  it('renders loading, retry, and unavailable states',()=>{const retry=vi.fn();const {rerender}=render(<VideoGenerationForm {...props({loading:true,onRetry:retry})}/>);expect(screen.getByRole('status')).toHaveTextContent('تنظیمات معتبر');rerender(<VideoGenerationForm {...props({error:'خطای امن',onRetry:retry})}/>);fireEvent.click(screen.getByRole('button',{name:'دریافت دوباره'}));expect(retry).toHaveBeenCalledOnce();rerender(<VideoGenerationForm {...props({capability:null})}/>);expect(screen.getByText(/فعلاً توسط مدیر/)).toBeInTheDocument();});
+  it('requires image and prompt before review',async()=>{const user=userEvent.setup();const onReview=vi.fn();const {rerender}=render(<VideoGenerationForm {...props({onReview})}/>);expect(screen.getByText('مرحله ۲ از ۳')).toBeInTheDocument();expect(screen.getByText(/تصویر را اینجا رها کنید/)).toBeInTheDocument();expect(screen.getByRole('button',{name:'ادامه و بازبینی'})).toBeDisabled();rerender(<VideoGenerationForm {...props({prompt:'یک حرکت معتبر',media,onReview})}/>);await user.click(screen.getByRole('button',{name:'ادامه و بازبینی'}));expect(onReview).toHaveBeenCalledOnce();});
+  it('uploads one private image and exposes no provider or model controls',async()=>{const user=userEvent.setup();const onMediaFile=vi.fn();render(<VideoGenerationForm {...props({prompt:'یک حرکت معتبر',onMediaFile})}/>);const input=screen.getByLabelText(/تصویر ورودی خصوصی/) as HTMLInputElement;expect(input).toHaveAttribute('required');const file=new File([new Uint8Array([0xff,0xd8,0xff])],'input.jpg',{type:'image/jpeg'});await user.upload(input,file);expect(onMediaFile).toHaveBeenCalledWith(file);expect(screen.queryByText(/bananaai|metis|مدل ساخت ویدیو/i)).not.toBeInTheDocument();});
+  it('offers a numeric 1-to-15 duration control and the currently enabled resolution',()=>{const setAspectRatio=vi.fn();const setDuration=vi.fn();const setResolution=vi.fn();render(<VideoGenerationForm {...props({prompt:'حرکت معتبر',media,setAspectRatio,setDuration,setResolution})}/>);fireEvent.click(screen.getByRole('button',{name:/عمودی/}));expect(setAspectRatio).toHaveBeenCalledWith('9:16');const slider=screen.getByRole('slider',{name:'مدت ویدیو به ثانیه'});expect(slider).toHaveAttribute('min','1');expect(slider).toHaveAttribute('max','15');fireEvent.change(slider,{target:{value:'12'}});expect(setDuration).toHaveBeenCalledWith('12');fireEvent.click(screen.getByRole('button',{name:'وضوح 480p'}));expect(setResolution).toHaveBeenCalledWith('480p');expect(screen.queryByRole('button',{name:'وضوح 720p'})).toBeNull();expect(screen.getByRole('button',{name:'بازگشت'})).toBeEnabled();});
+  it('shows the selected image with replace and remove actions',async()=>{const user=userEvent.setup();const onRemoveMedia=vi.fn();render(<VideoGenerationForm {...props({prompt:'حرکت معتبر',media,mediaFilename:'portrait.jpg',mediaPreviewUrl:'blob:preview',onRemoveMedia})}/>);expect(screen.getByRole('img',{name:/portrait.jpg/})).toHaveAttribute('src','blob:preview');await user.click(screen.getByRole('button',{name:/حذف/}));expect(onRemoveMedia).toHaveBeenCalledOnce();expect(screen.getByText('تعویض تصویر')).toBeInTheDocument();});
 });

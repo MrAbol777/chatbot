@@ -29,19 +29,20 @@ function useScrollReveal(threshold = 0.08) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (!('IntersectionObserver' in window)) {
+    if (typeof window.IntersectionObserver !== 'function') {
       el.dataset.revealed = 'true';
       return;
     }
+    let observer: IntersectionObserver | null = null;
     el.dataset.revealed = 'true';
     const revealTimer = setTimeout(() => {
       if (!el.isConnected) return;
       el.dataset.revealed = 'false';
-      const observer = new IntersectionObserver(
+      observer = new window.IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting || entry.boundingClientRect.top < window.innerHeight) {
             el.dataset.revealed = 'true';
-            observer.unobserve(el);
+            observer?.unobserve(el);
           }
         },
         { threshold }
@@ -50,6 +51,7 @@ function useScrollReveal(threshold = 0.08) {
     }, 300);
     return () => {
       clearTimeout(revealTimer);
+      observer?.disconnect();
     };
   }, [threshold]);
   return ref;
@@ -142,50 +144,15 @@ function TiltCard({ children, className = '', strength = 12 }: { children: React
   );
 }
 
-type Plan = {
-  id: string;
-  name: string;
-  price: string;
-  period: string;
-  items: string[];
-  tier: string;
-  icon: string;
-  featured?: boolean;
-  badge?: string;
+type NoaPublicConfig = {
+  tomanPerNoa: string;
+  pricingConfigs: Array<{
+    actionKey: string;
+    unit: string;
+    unitPriceNoa: string;
+    isActive: boolean;
+  }>;
 };
-
-const fallbackPlans: Plan[] = [
-  {
-    id: 'free',
-    name: 'رایگان',
-    price: '۰ تومان',
-    period: 'همیشه رایگان',
-    items: ['۲۰ پیام در روز', 'گفت‌وگوی هوشمند', 'بدون نیاز به کارت بانکی'],
-    tier: 'free',
-    icon: 'spark',
-    featured: true,
-    badge: 'شروع پیشنهادی',
-  },
-  {
-    id: 'gold',
-    name: 'طلایی',
-    price: '۹۹,۰۰۰ تومان',
-    period: 'ماهانه',
-    items: ['۳۰۰ پیام در روز', 'ساخت تصویر هوش مصنوعی', 'اولویت پاسخگویی', 'مناسب خانواده'],
-    tier: 'gold',
-    icon: 'crown',
-    badge: 'محبوب',
-  },
-  {
-    id: 'diamond',
-    name: 'الماسی',
-    price: '۱۹۹,۰۰۰ تومان',
-    period: 'ماهانه',
-    items: ['پیام نامحدود', 'ساخت تصویر نامحدود', 'دسترسی به استودیو ویدیو', 'پشتیبانی ویژه'],
-    tier: 'diamond',
-    icon: 'diamond',
-  },
-];
 
 const features = [
   {
@@ -239,7 +206,7 @@ const testimonials = [
 const faqs = [
   {
     q: 'دانوآ مناسب چه گروه سنی‌ست؟',
-    a: 'تمرکز اصلی دانوآ روی کودکان ۷ تا ۱۳ سال است، اما والدین نیز می‌توانند از آن استفاده کنند. محتوا و لحن پاسخ‌ها متناسب با این گروه سنی طراحی شده.',
+    a: 'تمرکز اصلی دانوآ روی کودکان و نوجوانان سن مدرسه است و پاسخ‌ها با توجه به سن ثبت‌شده، ساده و قابل‌فهم ارائه می‌شوند.',
   },
   {
     q: 'چطور از امنیت محتوا مطمئن شوم؟',
@@ -251,18 +218,18 @@ const faqs = [
   },
   {
     q: 'چطور می‌توانم شروع کنم؟',
-    a: 'کافیست روی دکمه «شروع رایگان» کلیک کنید. با شماره موبایل ثبت‌نام کنید و از همان لحظه گفتگو با دانوآ را شروع کنید. هیچ هزینه‌ای نداره.',
+    a: 'با شماره موبایل وارد شوید، کیف پول نوآ را از بخش پروفایل شارژ کنید و فقط به اندازه عملیات انجام‌شده هزینه بپردازید.',
   },
   {
-    q: 'ساخت تصویر و ویدیو در چه پلن‌هایی فعال است؟',
-    a: 'پلن رایگان شامل ۲۰ پیام متنی در روز است. برای ساخت تصویر، پلن طلایی و برای دسترسی کامل به استودیو ویدیو، پلن الماسی را انتخاب کنید.',
+    q: 'هزینه چت، تصویر و ویدیو چطور محاسبه می‌شود؟',
+    a: 'قیمت هر عملیات از تنظیمات زنده نوآ خوانده می‌شود. پیش از اجرا موجودی رزرو می‌شود و اگر عملیات پیش از تولید خروجی شکست بخورد، رزرو آزاد خواهد شد.',
   },
 ];
 
 const navLinks = [
   { href: '#features', label: 'قابلیت‌ها' },
   { href: '#trust', label: 'اعتماد' },
-  { href: '#plans', label: 'پلن‌ها' },
+  { href: '#noa', label: 'نوآ' },
   { href: '#faq', label: 'پرسش‌ها' },
 ];
 
@@ -341,7 +308,7 @@ function BackgroundOrbs() {
 function LandingHeader({ menuOpen, setMenuOpen, scrollTo, menuBtnRef }: { menuOpen: boolean; setMenuOpen: React.Dispatch<React.SetStateAction<boolean>>; scrollTo: (href: string) => void; menuBtnRef: React.RefObject<HTMLButtonElement> }) {
   return (
     <header className="landing-header">
-      <a className="landing-logo" href="/" aria-label="دانوآ - صفحه اصلی">
+      <a className="landing-logo" href="/landing" aria-label="دانوآ - صفحه معرفی">
         <span className="landing-logo-mark" aria-hidden="true">
           <Icon name="spark" />
         </span>
@@ -360,7 +327,7 @@ function LandingHeader({ menuOpen, setMenuOpen, scrollTo, menuBtnRef }: { menuOp
           className="landing-header-cta"
           onClick={() => window.location.assign('/chat?auth=signup')}
         >
-          شروع رایگان
+          ساخت حساب
         </Button>
         <button
           ref={menuBtnRef}
@@ -368,6 +335,7 @@ function LandingHeader({ menuOpen, setMenuOpen, scrollTo, menuBtnRef }: { menuOp
           className={`landing-menu-btn ${menuOpen ? 'is-open' : ''}`}
           aria-label={menuOpen ? 'بستن منو' : 'فهرست'}
           aria-expanded={menuOpen}
+          aria-controls="landing-mobile-menu"
           onClick={() => setMenuOpen(v => !v)}
         >
           {menuOpen ? <Icon name="x" /> : <Icon name="menu" />}
@@ -380,7 +348,7 @@ function LandingHeader({ menuOpen, setMenuOpen, scrollTo, menuBtnRef }: { menuOp
 function MobileMenu({ menuOpen, scrollTo }: { menuOpen: boolean; scrollTo: (href: string) => void }) {
   if (!menuOpen) return null;
   return (
-    <div className="landing-mobile-menu" role="dialog" aria-modal="true" aria-label="منوی ناوبری">
+    <div id="landing-mobile-menu" className="landing-mobile-menu" role="dialog" aria-modal="true" aria-label="منوی ناوبری">
       <nav aria-label="ناوبری موبایل">
         {navLinks.map((link) => (
           <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); scrollTo(link.href); }}>
@@ -390,7 +358,7 @@ function MobileMenu({ menuOpen, scrollTo }: { menuOpen: boolean; scrollTo: (href
       </nav>
       <Button type="button" size="lg" className="landing-cta landing-mobile-cta" onClick={() => window.location.assign('/chat?auth=signup')}>
         <Icon name="spark" />
-        شروع رایگان
+        ساخت حساب
       </Button>
     </div>
   );
@@ -422,7 +390,7 @@ function HeroSection() {
         <div className="landing-hero-actions">
           <Button type="button" size="lg" className="landing-cta landing-hero-primary" onClick={() => window.location.assign('/chat?auth=signup')}>
             <Icon name="spark" />
-            شروع رایگان
+            ساخت حساب
           </Button>
           <Button type="button" size="lg" variant="secondary" className="landing-hero-secondary" onClick={() => window.location.assign('/chat?auth=login')}>
             <Icon name="arrow-left" />
@@ -430,7 +398,7 @@ function HeroSection() {
           </Button>
         </div>
         <div className="landing-trust-badges">
-          {['مناسب سن ۷ تا ۱۳ سال', 'کاملاً فارسی', 'امن برای خانواده'].map((b) => (
+          {['مناسب کودک و نوجوان', 'کاملاً فارسی', 'امن برای خانواده'].map((b) => (
             <span key={b}>
               <Icon name="check" />
               {b}
@@ -528,6 +496,7 @@ function TrustSection() {
             </div>
             <h2>فضایی امن برای یادگیری و خیال‌پردازی</h2>
             <p>دانوآ با محتوای مناسب سن، پاسخ‌های کاملاً فارسی و فضای کنترل‌شده طراحی شده تا والدین با خیال راحت، کودکان را همراهی کنند.</p>
+            <p className="landing-ai-disclosure"><Icon name="bot" /> پاسخ‌ها توسط هوش مصنوعی ساخته می‌شوند و ممکن است اشتباه باشند؛ بهتر است والدین پاسخ‌های مهم را همراه کودک بررسی کنند.</p>
             <div className="landing-trust-items">
               {['پاسخ‌های متناسب با سن کودک', 'لحن گرم و خودمانی فارسی', 'تمرکز روی یادگیری، نه پاسخ آماده', 'گفتگو در محیط امن و کنترل‌شده'].map((item) => (
                 <span key={item}>
@@ -543,102 +512,94 @@ function TrustSection() {
   );
 }
 
-function PricingSection() {
-  const [plans, setPlans] = useState<Plan[]>([]);
+function NoaSection() {
+  const [config, setConfig] = useState<NoaPublicConfig | null>(null);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch('/api/subscription-plans');
-        if (!res.ok) { setPlans(fallbackPlans); return; }
-        const data = await res.json();
-        if (cancelled || !Array.isArray(data.plans)) { setPlans(fallbackPlans); return; }
-        const mapped = data.plans
-          .filter((p: any) => {
-            if (!p || typeof p.id !== 'string') return false;
-            const name = (typeof p.name === 'string' ? p.name : '').toLowerCase();
-            const id = p.id.toLowerCase();
-            const desc = (typeof p.description === 'string' ? p.description : '').toLowerCase();
-            const isTest = /test|test-only|internal/.test(id) || /test|test-only|internal/.test(name) || /test|test-only|internal/.test(desc);
-            return !isTest;
-          })
-          .map((p: any) => {
-            const price = Number(p.monthlyPrice ?? p.price ?? 0);
-            const isFree = price <= 0;
-            const isGold = p.id === 'gold';
-            return {
-              id: p.id,
-              name: typeof p.name === 'string' && p.name.trim() ? p.name.trim() : p.id,
-              price: isFree ? '۰ تومان' : `${new Intl.NumberFormat('fa-IR').format(price)} تومان`,
-              period: isFree ? 'همیشه رایگان' : 'ماهانه',
-              items: Array.isArray(p.features) && p.features.length > 0 ? p.features : ['امکانات ویژه'],
-              tier: isFree ? 'free' : isGold ? 'gold' : 'diamond',
-              icon: isFree ? 'spark' : isGold ? 'crown' : 'diamond',
-              featured: isFree,
-              badge: isFree ? 'شروع پیشنهادی' : isGold ? 'محبوب' : undefined,
-            } as Plan;
-          });
-        if (mapped.length > 0) setPlans(mapped);
-        else setPlans(fallbackPlans);
+        const response = await fetch('/api/noa/config');
+        if (!response.ok) throw new Error('NOA_CONFIG_UNAVAILABLE');
+        const payload = await response.json() as NoaPublicConfig;
+        if (
+          !cancelled &&
+          typeof payload?.tomanPerNoa === 'string' &&
+          Array.isArray(payload?.pricingConfigs)
+        ) {
+          setConfig(payload);
+          setLoadError('');
+        }
       } catch {
-        setPlans(fallbackPlans);
+        if (!cancelled) setLoadError('قیمت‌های لحظه‌ای نوآ اکنون در دسترس نیست؛ دوباره تلاش کنید.');
       }
     };
-    load();
+    void load();
     return () => { cancelled = true; };
   }, []);
 
-  const display = plans.length > 0 ? plans : fallbackPlans;
-
-  const handlePlanClick = (planId: string) => {
-    const params = new URLSearchParams({ auth: 'signup', plan: planId });
-    window.location.assign(`/chat?${params}`);
+  const formatLiveNumber = (value: string, maximumFractionDigits = 6) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric)
+      ? new Intl.NumberFormat('fa-IR', { maximumFractionDigits }).format(numeric)
+      : value;
   };
+  const actionLabels: Record<string, { title: string; icon: string }> = {
+    text_chat: { title: 'چت و درک تصویر', icon: 'chat' },
+    image_generation: { title: 'ساخت و ویرایش تصویر', icon: 'spark' },
+    video_generation: { title: 'ساخت ویدیو', icon: 'video' },
+  };
+  const unitLabels: Record<string, string> = {
+    message: 'برای هر پیام',
+    image: 'برای هر تصویر',
+    second: 'برای هر ثانیه',
+  };
+  const pricing = config?.pricingConfigs.filter((item) => item.isActive) || [];
 
   return (
-    <section id="plans" className="landing-section">
+    <section id="noa" className="landing-section">
       <div className="landing-section-header">
         <div className="landing-kicker-wrap">
           <Icon name="crown" />
-          <span className="landing-kicker">پلن‌ها</span>
+          <span className="landing-kicker">کیف پول نوآ</span>
         </div>
-        <h2>رایگان شروع کن، هر وقت خواستی بیشتر استفاده کن</h2>
+        <h2>بدون اشتراک؛ فقط به اندازه استفاده پرداخت کن</h2>
+        <p>قیمت‌های زیر مستقیماً از تنظیمات زنده سامانه خوانده می‌شوند.</p>
       </div>
       <div className="landing-plans">
-        {display.map((plan, i) => (
-          <TiltCard key={plan.id} strength={8}>
+        {pricing.map((item, index) => {
+          const presentation = actionLabels[item.actionKey] || { title: item.actionKey, icon: 'spark' };
+          return (
+          <TiltCard key={item.actionKey} strength={8}>
             <div
-              className={`landing-plan-card landing-plan--${plan.tier} ${plan.featured ? 'is-featured' : ''}`}
-              style={{ '--i': i } as React.CSSProperties}
+              className={`landing-plan-card landing-plan--${index === 1 ? 'gold' : index === 2 ? 'diamond' : 'free'}`}
+              style={{ '--i': index } as React.CSSProperties}
             >
-              {plan.badge && <span className="landing-badge">{plan.badge}</span>}
-              <div className="landing-plan-icon"><Icon name={plan.icon} /></div>
-              <h3 className="landing-plan-name">{plan.name}</h3>
+              <div className="landing-plan-icon"><Icon name={presentation.icon} /></div>
+              <h3 className="landing-plan-name">{presentation.title}</h3>
               <div className="landing-plan-price">
-                <strong>{plan.price}</strong>
-                <span>{plan.period}</span>
+                <strong>{formatLiveNumber(item.unitPriceNoa)} نوآ</strong>
+                <span>{unitLabels[item.unit] || item.unit}</span>
               </div>
               <ul className="landing-plan-items">
-                {plan.items.map((item) => (
-                  <li key={item}>
-                    <Icon name="check" />
-                    <span>{item}</span>
-                  </li>
-                ))}
+                <li><Icon name="check" /><span>رزرو امن اعتبار پیش از اجرا</span></li>
+                <li><Icon name="check" /><span>آزادسازی رزرو در خطای بدون خروجی</span></li>
               </ul>
-              <Button
-                type="button"
-                size="lg"
-                className={plan.featured ? 'landing-cta' : 'landing-plan-btn'}
-                onClick={() => handlePlanClick(plan.id)}
-              >
-                {plan.tier === 'free' ? 'شروع رایگان' : `انتخاب ${plan.name}`}
-              </Button>
             </div>
           </TiltCard>
-        ))}
+          );
+        })}
       </div>
+      {config ? (
+        <div className="landing-noa-rate" role="note">
+          نرخ فعال تبدیل: هر ۱ نوآ، {formatLiveNumber(config.tomanPerNoa, 0)} تومان
+        </div>
+      ) : null}
+      {loadError ? <p className="landing-noa-error" role="status">{loadError}</p> : null}
+      <Button type="button" size="lg" className="landing-cta" onClick={() => window.location.assign('/chat?auth=login')}>
+        ورود و شارژ کیف پول
+      </Button>
     </section>
   );
 }
@@ -728,7 +689,7 @@ function FinalCtaSection() {
         </div>
         <Button type="button" size="lg" className="landing-final-btn" onClick={() => window.location.assign('/chat?auth=signup')}>
           <Icon name="spark" />
-          شروع رایگان
+          ساخت حساب
         </Button>
       </section>
     </RevealSection>
@@ -744,7 +705,7 @@ function LandingFooter() {
   return (
     <footer className="landing-footer">
       <div className="landing-footer-inner">
-        <a className="landing-logo" href="/" aria-label="دانوآ - صفحه اصلی">
+        <a className="landing-logo" href="/landing" aria-label="دانوآ - صفحه معرفی">
           <span className="landing-logo-mark" aria-hidden="true">
             <Icon name="spark" />
           </span>
@@ -774,17 +735,43 @@ function LandingPage() {
   const menuBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!menuOpen) {
-      menuBtnRef.current?.focus();
-      return;
-    }
+    if (!menuOpen) return;
+    const previousFocus = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      ? document.activeElement
+      : null;
+    const previousOverflow = document.body.style.overflow;
+    const menu = document.getElementById('landing-mobile-menu');
+    const focusable = menu
+      ? Array.from(menu.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      : [];
+    document.body.style.overflow = 'hidden';
+    const focusFrame = window.requestAnimationFrame(() => focusable[0]?.focus());
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
         setMenuOpen(false);
+        return;
+      }
+      if (e.key === 'Tab' && focusable.length > 0) {
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.cancelAnimationFrame(focusFrame);
+      document.body.style.overflow = previousOverflow;
+      (previousFocus || menuBtnRef.current)?.focus();
+    };
   }, [menuOpen]);
 
   useEffect(() => {
@@ -811,7 +798,7 @@ function LandingPage() {
       <HeroSection />
       <FeaturesSection />
       <TrustSection />
-      <PricingSection />
+      <NoaSection />
       <TestimonialsSection />
       <FaqSection openFaq={openFaq} setOpenFaq={setOpenFaq} />
       <FinalCtaSection />

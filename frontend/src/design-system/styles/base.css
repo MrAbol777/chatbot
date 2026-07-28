@@ -66,6 +66,11 @@ button {
   touch-action: manipulation;
 }
 
+button:active:not(:disabled),
+a[href]:active {
+  filter: brightness(0.96);
+}
+
 :focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;

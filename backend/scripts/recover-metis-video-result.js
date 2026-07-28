@@ -14,6 +14,8 @@ const { loadVideoStorageConfig } = require('../src/modules/video-generation/stor
 const { createLocalVideoStorage } = require('../src/modules/video-generation/storage/local-video.storage');
 const { createVideoResultOrchestrator } = require('../src/modules/video-generation/storage/video-result-orchestrator');
 const { createVideoWorkerRepository } = require('../src/modules/video-generation/worker/video-worker.repository');
+const { createNoaRepository } = require('../src/modules/noa/noa.repository');
+const { createNoaBillingService } = require('../src/modules/noa/noa-billing.service');
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const JOB_ID = /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i;
@@ -27,7 +29,10 @@ function requiredEnv(env) {
   return { jobId, source, generationId: String(env.METIS_RECOVERY_GENERATION_ID || '').trim() || null };
 }
 
-async function prepareRecovery(pool, { jobId, generationId, workerId }) {
+async function prepareRecovery(pool, { jobId, generationId, workerId }, billingService) {
+  const billing = billingService || createNoaBillingService({
+    repository: createNoaRepository(pool)
+  });
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -36,15 +41,41 @@ async function prepareRecovery(pool, { jobId, generationId, workerId }) {
     if (!job) throw new Error('Recovery job was not found.');
     if (job.status === 'succeeded' && job.result_storage_key) { await connection.commit(); return { idempotent: true, job }; }
     if (job.status !== 'failed' || job.provider !== 'metis' || !job.provider_job_id) throw new Error('Only one failed Metis job with a provider result can be recovered.');
+    if (job.recovery_started_at) throw new Error('This job has already used its one-shot recovery attempt.');
     if (generationId && generationId !== job.provider_job_id) throw new Error('Recovery generation id does not match the selected job.');
-    const [reservations] = await connection.query('SELECT * FROM app_video_quota_reservations WHERE id=? FOR UPDATE', [job.quota_reservation_id]);
-    const reservation = reservations[0];
-    if (!reservation || reservation.status !== 'released') throw new Error('Recovery requires the released reservation belonging to this job.');
-    const [usageRows] = await connection.query('SELECT * FROM app_video_usage WHERE user_id=? AND period_key=? FOR UPDATE', [reservation.user_id, reservation.period_key]);
-    if (!usageRows[0]) throw new Error('Recovery usage record was not found.');
-    await connection.query("UPDATE app_video_usage SET video_reserved=video_reserved+?, updated_at=NOW() WHERE user_id=? AND period_key=?", [Number(reservation.quota_units), reservation.user_id, reservation.period_key]);
-    await connection.query("UPDATE app_video_quota_reservations SET status='reserved', released_at=NULL, release_reason=NULL, updated_at=NOW() WHERE id=? AND status='released'", [reservation.id]);
-    await connection.query("UPDATE app_video_generations SET status='storing', safe_error_code=NULL, safe_error_message=NULL, storage_safe_error_code=NULL, storage_safe_error_message=NULL, next_storage_attempt_at=NOW(), recovery_started_at=COALESCE(recovery_started_at,NOW()), worker_lease_owner=?, worker_lease_until=DATE_ADD(NOW(), INTERVAL 10 MINUTE), updated_at=NOW() WHERE id=? AND status='failed'", [workerId, job.id]);
+    const [reservations] = await connection.query(
+      'SELECT * FROM app_noa_reservations WHERE reservation_id=? FOR UPDATE',
+      [job.noa_reservation_id]
+    );
+    const originalReservation = reservations[0];
+    if (!originalReservation || originalReservation.status !== 'released') {
+      throw new Error('Recovery requires the released Noa reservation belonging to this job.');
+    }
+    const recoveryReservation = await billing.reserve({
+      userId: job.user_id,
+      actionKey: 'video_generation',
+      quantity: String(job.duration),
+      idempotencyKey: `metis-result-recovery:${job.id}`,
+      payloadHash: {
+        generationId: job.id,
+        providerJobId: job.provider_job_id,
+        recovery: true
+      },
+      referenceType: 'video_recovery',
+      referenceId: job.id,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      actorType: 'system',
+      actorId: 'metis-recovery',
+      metadata: {
+        generationId: job.id,
+        originalReservationId: originalReservation.reservation_id
+      }
+    }, { connection });
+    const [jobUpdate] = await connection.query(
+      "UPDATE app_video_generations SET status='storing', noa_reservation_id=?, safe_error_code=NULL, safe_error_message=NULL, storage_safe_error_code=NULL, storage_safe_error_message=NULL, next_storage_attempt_at=NOW(), recovery_started_at=NOW(), worker_lease_owner=?, worker_lease_until=DATE_ADD(NOW(), INTERVAL 10 MINUTE), updated_at=NOW() WHERE id=? AND status='failed' AND recovery_started_at IS NULL",
+      [recoveryReservation.reservationId, workerId, job.id]
+    );
+    if (jobUpdate.affectedRows !== 1) throw new Error('Recovery job state changed while reserving Noa.');
     const [updated] = await connection.query('SELECT * FROM app_video_generations WHERE id=?', [job.id]);
     await connection.commit();
     return { idempotent: false, job: updated[0] };
@@ -57,10 +88,13 @@ async function main({ env = process.env } = {}) {
   const pool = mysql.createPool({ ...databaseOptions(env.DATABASE_URL), connectionLimit: 1 });
   const workerId = `recovery-${crypto.randomUUID().slice(0, 8)}`;
   try {
-    const prepared = await prepareRecovery(pool, { ...input, workerId });
+    const noaBillingService = createNoaBillingService({
+      repository: createNoaRepository(pool)
+    });
+    const prepared = await prepareRecovery(pool, { ...input, workerId }, noaBillingService);
     if (prepared.idempotent) return console.log(JSON.stringify({ action: 'already-recovered', jobId: short(input.jobId) }));
     const provider = createMetisVideoProvider({ httpClient: axios, baseUrl: env.METIS_BASE_URL, apiKey: env.METIS_API_KEY, requestTimeoutMs: Number(env.METIS_REQUEST_TIMEOUT_MS || 120000), statusTimeoutMs: Number(env.METIS_STATUS_TIMEOUT_MS || 30000), resultAllowedHosts: storageConfig.allowedHosts, resultAllowedPorts: storageConfig.allowedPorts, resultAllowedPathPrefixes: storageConfig.allowedPathPrefixes, resultTimeoutMs: storageConfig.timeoutMs, resultMaxBytes: storageConfig.maxBytes, resultMaxRedirects: 0 });
-    const repository = createVideoWorkerRepository(pool);
+    const repository = createVideoWorkerRepository(pool, { noaBillingService });
     const storage = createLocalVideoStorage(storageConfig);
     const orchestrator = createVideoResultOrchestrator({ storage, config: storageConfig });
     const outcome = await orchestrator.store({ job: prepared.job, provider, descriptor: { source: input.source, filename: 'recovered-result.mp4' }, repository, workerId });

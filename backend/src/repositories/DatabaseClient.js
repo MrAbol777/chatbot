@@ -1,4 +1,5 @@
 const mysql = require('mysql2/promise');
+const { ensureNoaSchema } = require('../modules/noa/noa.schema');
 
 class DatabaseClient {
   constructor({ databaseUrl }) {
@@ -147,21 +148,6 @@ class DatabaseClient {
       await this.ensureCompositeIndex('app_conversations', 'idx_app_conversations_title_source', '`title_source`, `updated_at`');
 
       await this.pool.query(`
-        CREATE TABLE IF NOT EXISTS guest_message_counts (
-          id BIGINT AUTO_INCREMENT PRIMARY KEY,
-          guest_id VARCHAR(64) NOT NULL,
-          ip_address VARCHAR(64) NOT NULL,
-          message_count INT NOT NULL DEFAULT 0,
-          created_at DATETIME NOT NULL,
-          last_message_at DATETIME NOT NULL,
-          UNIQUE KEY uq_guest_message_counts_guest_ip (guest_id, ip_address),
-          INDEX idx_guest_message_counts_guest (guest_id),
-          INDEX idx_guest_message_counts_ip (ip_address),
-          INDEX idx_guest_message_counts_last_message (last_message_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
-
-      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS app_chat_messages (
           message_id BIGINT AUTO_INCREMENT PRIMARY KEY,
           user_id VARCHAR(191) NULL,
@@ -174,7 +160,6 @@ class DatabaseClient {
           response_time_ms INT NULL,
           token_usage JSON NULL,
           error_code VARCHAR(100) NULL,
-          limit_status VARCHAR(100) NULL,
           created_at DATETIME NOT NULL,
           INDEX idx_chat_messages_user_id (user_id),
           INDEX idx_chat_messages_guest_id (guest_id),
@@ -199,7 +184,6 @@ class DatabaseClient {
           model VARCHAR(191) NULL,
           token_usage JSON NULL,
           error_code VARCHAR(100) NULL,
-          quota_charged TINYINT(1) NOT NULL DEFAULT 0,
           created_at DATETIME NOT NULL,
           updated_at DATETIME NOT NULL,
           completed_at DATETIME NULL,
@@ -388,50 +372,7 @@ class DatabaseClient {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
 
-      await this.pool.query(`
-        CREATE TABLE IF NOT EXISTS app_plans (
-          id VARCHAR(64) PRIMARY KEY,
-          name VARCHAR(191) NOT NULL,
-          icon VARCHAR(64) NOT NULL DEFAULT '✨',
-          tagline VARCHAR(255) NULL,
-          monthly_price INT NOT NULL DEFAULT 0,
-          daily_price INT NOT NULL DEFAULT 0,
-          daily_message_limit INT NULL,
-          daily_image_limit INT NULL,
-          hourly_image_limit INT NULL,
-          features JSON NOT NULL,
-          is_active TINYINT(1) NOT NULL DEFAULT 1,
-          sort_order INT NOT NULL DEFAULT 999,
-          created_at DATETIME NOT NULL,
-          updated_at DATETIME NOT NULL,
-          INDEX idx_app_plans_active_sort (is_active, sort_order)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
-      await this.ensureColumn('app_plans', 'hourly_image_limit', 'INT NULL AFTER daily_image_limit');
-      await this.ensureColumn('app_plans', 'video_limit', 'INT NULL AFTER hourly_image_limit');
-
-      await this.pool.query(`
-        CREATE TABLE IF NOT EXISTS app_plan_daily_usage (
-          user_id VARCHAR(191) NOT NULL,
-          usage_date DATE NOT NULL,
-          message_count INT NOT NULL DEFAULT 0,
-          image_count INT NOT NULL DEFAULT 0,
-          updated_at DATETIME NOT NULL,
-          PRIMARY KEY (user_id, usage_date),
-          INDEX idx_plan_daily_usage_date (usage_date)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
-
-      await this.pool.query(`
-        CREATE TABLE IF NOT EXISTS app_plan_hourly_usage (
-          user_id VARCHAR(191) NOT NULL,
-          usage_hour DATETIME NOT NULL,
-          image_count INT NOT NULL DEFAULT 0,
-          updated_at DATETIME NOT NULL,
-          PRIMARY KEY (user_id, usage_hour),
-          INDEX idx_plan_hourly_usage_hour (usage_hour)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
+      await ensureNoaSchema(this.pool);
 
       console.log('[DB] Connected to local MySQL');
     })();

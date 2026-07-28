@@ -7,7 +7,6 @@ const { ErrorRepository } = require('./ErrorRepository');
 const { AnalyticsRepository } = require('./AnalyticsRepository');
 const { GuestRepository } = require('./GuestRepository');
 const { SettingsRepository } = require('./SettingsRepository');
-const { PlanRepository } = require('./PlanRepository');
 const { ChatMessageRepository } = require('./ChatMessageRepository');
 const { SupervisedOtpRepository } = require('./SupervisedOtpRepository');
 const { ChatTurnRepository } = require('./ChatTurnRepository');
@@ -27,7 +26,6 @@ function createRepositories() {
   });
   const guests = new GuestRepository(db);
   const settings = new SettingsRepository(db);
-  const plans = new PlanRepository(db);
   const chatMessages = new ChatMessageRepository(db);
   const supervisedOtp = new SupervisedOtpRepository(db);
   const chatTurns = new ChatTurnRepository(db);
@@ -42,7 +40,6 @@ function createRepositories() {
     analytics,
     guests,
     settings,
-    plans,
     chatMessages,
     chatTurns,
     inputOptimizations,

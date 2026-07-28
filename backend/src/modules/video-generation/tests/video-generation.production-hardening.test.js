@@ -6,6 +6,7 @@ const { JOB_STATUSES, canTransitionJob, isIdempotentJobTransition } = require('.
 const { createVideoGenerationService } = require('../video-generation.service');
 const { requiredEnv } = require('../../../../scripts/recover-metis-video-result');
 const { validateMetisBaseUrl } = require('../providers/metis-video.provider');
+const { createNoaBillingFixture } = require('./noa-billing.fixture');
 
 test('real-provider state machine requires storage before success and keeps transitions idempotent', () => {
   assert.equal(canTransitionJob(JOB_STATUSES.QUEUED, JOB_STATUSES.SUBMITTED), true);
@@ -20,7 +21,7 @@ test('global feature flag denies submit before persistence or provider use', asy
   let touched = false;
   const service = createVideoGenerationService({
     repository: { findIdempotent: async () => { touched = true; return null; } },
-    quotaService: {}, provider: {}, isFeatureEnabled: () => false
+    noaBillingService: createNoaBillingFixture(), provider: {}, isFeatureEnabled: () => false
   });
   await assert.rejects(() => service.submit({ userId: 'user', idempotencyKey: 'abcdefgh', input: {} }), { code: 'VIDEO_GENERATION_DISABLED' });
   assert.equal(touched, false);

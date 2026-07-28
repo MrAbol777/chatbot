@@ -2,7 +2,7 @@ import { TERMINAL_VIDEO_STATUSES } from './video-generation.constants';
 import type { VideoGenerationStatus } from './video-generation.types';
 
 export const normalizeVideoStatus = (value: string | undefined): VideoGenerationStatus => {
-  const known: VideoGenerationStatus[] = ['queued', 'submitting', 'submitted', 'processing', 'storing', 'succeeded', 'failed', 'cancelled', 'expired'];
+  const known: VideoGenerationStatus[] = ['queued', 'routing', 'submitting', 'submitted', 'processing', 'storing', 'provider_status_unknown', 'succeeded', 'failed', 'cancelled', 'expired'];
   return known.includes(value as VideoGenerationStatus) ? value as VideoGenerationStatus : 'unknown';
 };
 export const isTerminalVideoStatus = (value: string | undefined) => TERMINAL_VIDEO_STATUSES.has(normalizeVideoStatus(value));

@@ -7,9 +7,9 @@ INSERT INTO app_video_models (
   supports_image_to_video, upstream_supports_image_to_video,
   upstream_supports_start_image, supports_negative_prompt,
   allowed_aspect_ratios, allowed_durations, allowed_qualities,
-  max_prompt_length, max_input_image_bytes, quota_units, sort_order,
+  max_prompt_length, max_input_image_bytes, sort_order,
   created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, NOW(), NOW())
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NOW(), NOW())
 ON DUPLICATE KEY UPDATE
   provider=VALUES(provider),
   upstream_vendor=VALUES(upstream_vendor),
@@ -28,6 +28,5 @@ ON DUPLICATE KEY UPDATE
   allowed_qualities=VALUES(allowed_qualities),
   max_prompt_length=VALUES(max_prompt_length),
   max_input_image_bytes=VALUES(max_input_image_bytes),
-  quota_units=VALUES(quota_units),
   sort_order=VALUES(sort_order),
   updated_at=NOW();

@@ -16,6 +16,10 @@ function createFakeVideoProvider({ scenario = 'processing' } = {}) {
   };
   return {
     kind: 'fake',
+    getProviderKey: () => 'fake',
+    getAdapterVersion: () => '1.0.0-test',
+    getCapabilities: () => ['video.text_to_video', 'video.image_to_video'],
+    submit: (input) => submit(input),
     submitTextToVideo: submit, submitImageToVideo: submit,
     getJobStatus: async (id) => next(id),
     plan: (id, values) => planned.set(id, Array.isArray(values) ? [...values] : [values]),

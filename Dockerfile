@@ -49,6 +49,7 @@ COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --omit=dev --no-audit --no-fund
 
 COPY backend/ ./backend/
+COPY docs/video-prompts/ ./docs/video-prompts/
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY scripts/container-start.sh /app/container-start.sh
 RUN chmod +x /app/container-start.sh

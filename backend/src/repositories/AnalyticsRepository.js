@@ -24,15 +24,12 @@ class AnalyticsRepository {
 
   async readDB() {
     await this.db.init();
-    const [[users], [events], [errors], [conversations], [chatMessages], [plans], [planDailyUsage], [guestMessageCounts]] = await Promise.all([
+    const [[users], [events], [errors], [conversations], [chatMessages]] = await Promise.all([
       this.db.query('SELECT * FROM app_users'),
       this.db.query('SELECT * FROM app_events'),
       this.db.query('SELECT * FROM app_app_errors'),
       this.db.query('SELECT * FROM app_conversations'),
-      this.db.query('SELECT * FROM app_chat_messages ORDER BY created_at ASC, message_id ASC'),
-      this.db.query('SELECT * FROM app_plans ORDER BY sort_order ASC, id ASC'),
-      this.db.query('SELECT * FROM app_plan_daily_usage ORDER BY usage_date DESC, user_id ASC'),
-      this.db.query('SELECT * FROM guest_message_counts ORDER BY last_message_at DESC')
+      this.db.query('SELECT * FROM app_chat_messages ORDER BY created_at ASC, message_id ASC')
     ]);
 
     return {
@@ -46,13 +43,6 @@ class AnalyticsRepository {
         ...item,
         token_usage: typeof item.token_usage === 'string' ? item.token_usage : item.token_usage ? JSON.stringify(item.token_usage) : null
       })),
-      plans: plans.map((item) => ({
-        ...item,
-        features: safeParseArray(item.features),
-        is_active: Boolean(item.is_active)
-      })),
-      planDailyUsage,
-      guestMessageCounts,
       conversations: conversations.map((c) => {
         return { ...c, messages: safeParseArray(c.messages) };
       })

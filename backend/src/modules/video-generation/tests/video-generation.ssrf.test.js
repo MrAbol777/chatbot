@@ -2,6 +2,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
+const net = require('node:net');
 const { createMetisVideoProvider } = require('../providers/metis-video.provider');
 const { createVideoResultUrlValidator, createPinnedLookup, isBlockedAddress } = require('../storage/video-result-url-validator');
 
@@ -32,6 +33,11 @@ function provider(overrides = {}) {
 
 test('test network guard rejects an accidental external HTTP connection', () => {
   assert.throws(() => http.request('http://example.com/video'), /External HTTP network is blocked/);
+});
+
+test('test network guard also rejects external fetch and raw TCP sockets', async () => {
+  await assert.rejects(() => fetch('https://example.com/video'), /External fetch network is blocked/);
+  assert.throws(() => net.connect({ host: '93.184.216.34', port: 443 }), /External TCP network is blocked/);
 });
 
 test('SSRF matrix blocks private and special address representations before a connection', async () => {

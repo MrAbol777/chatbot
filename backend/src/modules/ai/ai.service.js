@@ -557,7 +557,7 @@ function createAiService({
     }
   };
 
-  const sendChatMessage = async ({ message, originalMessage = '', profile, history, conversationId, imageIds, requestId, limitStatus = null }) => {
+  const sendChatMessage = async ({ message, originalMessage = '', profile, history, conversationId, imageIds, requestId }) => {
     const trimmedMessage = typeof message === 'string' ? message.trim() : '';
     const userMessageCreatedAt = new Date();
     const rawImageIds = Array.isArray(imageIds) ? imageIds : [];
@@ -707,7 +707,6 @@ function createAiService({
         model: aiResult.model,
         responseTimeMs,
         tokenUsage: aiResult.tokenUsage,
-        limitStatus,
         userCreatedAt: userMessageCreatedAt,
         assistantCreatedAt: assistantMessageCreatedAt
       });
@@ -739,7 +738,7 @@ function createAiService({
     return executeTurn();
   };
 
-  const streamChatMessage = async ({ message, originalMessage = '', profile, conversationId, imageIds, requestId, limitStatus = null, turnId, signal, onDelta }) => {
+  const streamChatMessage = async ({ message, originalMessage = '', profile, conversationId, imageIds, requestId, turnId, signal, onDelta }) => {
     const trimmedMessage = typeof message === 'string' ? message.trim() : '';
     const normalizedImageIds = normalizeImageIds(imageIds);
     if (!trimmedMessage && normalizedImageIds.length === 0) {
@@ -812,7 +811,6 @@ function createAiService({
           model: aiResult.model,
           responseTimeMs: Date.now() - responseStart,
           tokenUsage: aiResult.tokenUsage,
-          limitStatus,
           userCreatedAt: new Date(responseStart),
           assistantCreatedAt: new Date()
         });
@@ -1043,16 +1041,14 @@ function createAiService({
         userId,
         conversationId: normalizedConversationId,
         role: 'user',
-        content: prompt,
-        limitStatus: intent
+        content: prompt
       });
       sourceAssistantMessageId = await chatMessagesRepository.logMessage({
         userId,
         conversationId: normalizedConversationId,
         role: 'assistant',
         content: taskId ? `${assistantText}\nTASK:${taskId}` : assistantText,
-        errorCode,
-        limitStatus: taskId ? `${intent}_queued` : `${intent}_not_started`
+        errorCode
       });
     }
 
@@ -1087,7 +1083,6 @@ function createAiService({
     clientMessageId = null,
     imageIds = [],
     diagnostics = null,
-    limitStatus = null,
     turnId = null
   }) => {
     const normalizedConversationId =
@@ -1150,16 +1145,14 @@ function createAiService({
         conversationId: normalizedConversationId,
         turnId,
         role: 'user',
-        content: prompt,
-        limitStatus: limitStatus || 'image_understanding'
+        content: prompt
       });
       sourceAssistantMessageId = await chatMessagesRepository.logMessage({
         userId: effectiveUserId,
         conversationId: normalizedConversationId,
         turnId,
         role: 'assistant',
-        content: assistantText,
-        limitStatus: diagnostics?.transport ? `image_understanding_${diagnostics.transport}` : 'image_understanding'
+        content: assistantText
       });
     }
 

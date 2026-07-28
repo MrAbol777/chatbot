@@ -3,7 +3,7 @@ const { assertVideoProvider } = require('../providers/video-provider.interface')
 const { calculatePollDelay } = require('./video-worker.config');
 const { VideoWorkerProcessingError, classifyProviderError, safeErrorMessage } = require('./video-worker.errors');
 
-const ACTIVE_STATUSES = new Set(['queued', 'submitted', 'processing', 'storing']);
+const ACTIVE_STATUSES = new Set(['queued', 'routing', 'submitting', 'submitted', 'processing', 'storing']);
 
 function resolveProvider(registry, name) {
   const provider = typeof registry === 'function' ? registry(name)
@@ -16,9 +16,14 @@ function resolveProvider(registry, name) {
   return assertVideoProvider(provider);
 }
 
-function createVideoJobProcessingService({ repository, providerRegistry, config, storageOrchestrator = null, clock = () => new Date(), logger = null }) {
+function createVideoJobProcessingService({ repository, providerRegistry, config, storageOrchestrator = null, providerInputGateway = null, submissionGuard = null, clock = () => new Date(), logger = null }) {
   if (!repository || !config) throw new Error('repository and config are required.');
   const log = (event, job, extra = {}) => logger?.info?.({ event, generationId: job.id, status: job.status, attempt: Number(job.poll_attempts || 0), leaseOwner: String(job.worker_lease_owner || '').slice(0, 12), ...extra });
+  const observeProviderOutcome = async (value) => {
+    if (typeof repository.recordProviderOutcome !== 'function') return;
+    try { await repository.recordProviderOutcome(value); }
+    catch (error) { logger?.warn?.({ event: 'video_provider_health_observation_failed', provider: value.providerKey, errorCode: error.code || 'AI_HEALTH_WRITE_FAILED' }); }
+  };
   const schedule = async (job, workerId, errorCode = null) => {
     const delay = calculatePollDelay(Math.max(0, Number(job.poll_attempts || 1) - 1), config);
     const nextPollAt = new Date(clock().getTime() + delay);
@@ -44,6 +49,67 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
         log('video_job_expired', job, { errorCode: 'VIDEO_MAX_POLL_ATTEMPTS_REACHED' });
         return { action: 'expired', errorCode: 'VIDEO_MAX_POLL_ATTEMPTS_REACHED' };
       }
+      if (job.status === 'submitting' && job.provider_attempt_id && typeof repository.markSubmissionAmbiguous === 'function') {
+        await repository.markSubmissionAmbiguous({ jobId: job.id, workerId, errorCode: 'VIDEO_PROVIDER_STATUS_UNKNOWN' });
+        return { action: 'provider-status-unknown', errorCode: 'VIDEO_PROVIDER_STATUS_UNKNOWN' };
+      }
+      if (['queued', 'routing', 'submitting'].includes(job.status) && job.provider_attempt_id && typeof repository.beginSubmission === 'function') {
+        let provider;
+        let submissionStarted = false;
+        let submitStartedAt = 0;
+        try {
+          provider = resolveProvider(providerRegistry, job.provider);
+          if ((job.capability_key === 'video.image_to_video' || job.mode === 'image-to-video') && !String(job.compiled_prompt || '').trim()) {
+            throw Object.assign(new Error('Compiled prompt snapshot is required for image-to-video.'), { code: 'VIDEO_COMPILED_PROMPT_REQUIRED', submissionOutcome: 'not_submitted' });
+          }
+          let snapshot = {};
+          try { snapshot = typeof job.route_snapshot === 'string' ? JSON.parse(job.route_snapshot) : job.route_snapshot || {}; } catch (_) {}
+          const promptLimit = Number(snapshot?.modelConstraints?.maxPromptLength || 2000);
+          const submitInput = {
+            capability: job.capability_key || (job.mode === 'image-to-video' ? 'video.image_to_video' : 'video.text_to_video'),
+            mode: job.mode,
+            providerModelId: job.provider_model_id_snapshot,
+            upstreamVendor: snapshot.upstreamVendor,
+            providerOperation: snapshot.providerOperation,
+            prompt: job.compiled_prompt || job.prompt,
+            negativePrompt: job.negative_prompt,
+            duration: job.duration,
+            resolution: job.resolution || job.quality || null,
+            aspectRatio: job.aspect_ratio,
+            generateAudio: Boolean(job.generate_audio)
+          };
+          if (!Number.isSafeInteger(promptLimit) || promptLimit < 256 || String(submitInput.prompt || '').length > promptLimit) {
+            throw Object.assign(new Error('Compiled prompt exceeds the provider model limit.'), { code: 'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG', submissionOutcome: 'not_submitted', details: { promptLength: String(submitInput.prompt || '').length, promptLimit } });
+          }
+          if (submitInput.capability === 'video.image_to_video') {
+            if (!providerInputGateway || typeof providerInputGateway.createUrl !== 'function') throw Object.assign(new Error('Provider input gateway is not configured.'), { code: 'VIDEO_INPUT_GATEWAY_NOT_CONFIGURED', submissionOutcome: 'not_submitted' });
+            submitInput.providerInputUrl = await providerInputGateway.createUrl({ jobId: job.id, attemptId: job.provider_attempt_id, mediaId: job.input_media_id, userId: job.user_id, mimeType: job.input_media_mime_type });
+          }
+          await submissionGuard?.check(job, submitInput);
+          provider.validateRequest?.(submitInput);
+          await repository.beginSubmission({ jobId: job.id, workerId });
+          submissionStarted = true;
+          submitStartedAt = Date.now();
+          const submitted = await provider.submit(submitInput);
+          await repository.markSubmissionAccepted({ jobId: job.id, workerId, providerJobId: submitted.providerJobId, creditsReserved: submitted.creditsReserved });
+          await observeProviderOutcome({ providerKey: job.provider, capabilityKey: submitInput.capability, success: true, latencyMs: Date.now() - submitStartedAt });
+          log('video_job_submitted', job);
+          return { action: 'submitted' };
+        } catch (error) {
+          const code = error?.code || 'VIDEO_PROVIDER_STATUS_UNKNOWN';
+          const providerStatus = Number(error?.details?.status || 0) || null;
+          const providerCode = typeof error?.details?.providerCode === 'string' ? error.details.providerCode.slice(0, 80) : null;
+          if (submissionStarted && error?.submissionOutcome !== 'confirmed_rejected' && error?.submissionOutcome !== 'not_submitted') {
+            await repository.markSubmissionAmbiguous({ jobId: job.id, workerId, errorCode: code });
+            await observeProviderOutcome({ providerKey: job.provider, capabilityKey: job.capability_key, success: false, latencyMs: submitStartedAt ? Date.now() - submitStartedAt : null });
+            log('video_submit_ambiguous', job, { errorCode: code, providerStatus, providerCode });
+            return { action: 'provider-status-unknown', errorCode: code };
+          }
+          const result = await repository.rejectSubmissionAndRoute({ jobId: job.id, workerId, errorCode: code, errorMessage: provider?.sanitizeError?.(error) || 'درخواست پیش از پذیرش Provider رد شد.' });
+          log(result.action === 'fallback-queued' ? 'video_fallback_queued' : 'video_submit_rejected', job, { errorCode: code, providerStatus, providerCode });
+          return { ...result, errorCode: code };
+        }
+      }
       if (!job.provider_job_id) {
         await repository.failAndReleaseJob({ jobId: job.id, workerId, errorCode: 'VIDEO_PROVIDER_JOB_ID_MISSING', errorMessage: 'شناسه امن کار Provider موجود نیست.', releaseReason: 'invalid_provider_job' });
         return { action: 'failed', errorCode: 'VIDEO_PROVIDER_JOB_ID_MISSING' };
@@ -53,8 +119,13 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
       try {
         provider = resolveProvider(providerRegistry, job.provider);
         if (!await repository.extendJobLease({ jobId: job.id, workerId, leaseSeconds: Math.ceil(config.leaseMs / 1000) })) return { action: 'ignored-lease-lost' };
+        const pollStartedAt = Date.now();
         const response = await provider.getJobStatus(job.provider_job_id);
         const normalized = provider.normalizeStatus(response);
+        const latencyMs = Date.now() - pollStartedAt;
+        const cost = provider.normalizeCost?.(response) || null;
+        await observeProviderOutcome({ providerKey: job.provider, capabilityKey: job.capability_key || (job.mode === 'image-to-video' ? 'video.image_to_video' : 'video.text_to_video'), success: true, latencyMs });
+        await repository.recordAttemptPoll?.({ attemptId: job.provider_attempt_id, normalizedStatus: normalized, actualCost: cost?.credits ?? cost?.minor ?? null, costCurrency: cost?.currency || null, latencyMs });
         // The fake provider has a test-only terminal result used by legacy DB
         // fixtures. Every real provider, including Metis, must use `storing`.
         const fakeTestSuccess = provider.kind === 'fake' && process.env.NODE_ENV === 'test' && normalized === 'succeeded';
@@ -97,6 +168,7 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
           return { action: 'failed', errorCode: error.code };
         }
         const classified = classifyProviderError(error);
+        if (classified.retryable) await observeProviderOutcome({ providerKey: job.provider, capabilityKey: job.capability_key || (job.mode === 'image-to-video' ? 'video.image_to_video' : 'video.text_to_video'), success: false });
         if (classified.retryable) return schedule(job, workerId, classified.code);
         if (provider) {
           await repository.failAndReleaseJob({ jobId: job.id, workerId, errorCode: classified.code, errorMessage: safeErrorMessage(error, provider), releaseReason: 'provider_failure' });

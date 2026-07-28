@@ -34,6 +34,8 @@ const { createAdminLogsService } = require('./modules/admin/logs/service');
 const { createAdminLogsRouter } = require('./modules/admin/logs/routes');
 const { createAdminSettingsService } = require('./modules/admin/settings/service');
 const { createAdminSettingsRouter } = require('./modules/admin/settings/routes');
+const { createAdminAiRoutingRouter } = require('./modules/ai-routing/admin-ai-routing.routes');
+const { createVideoPromptProfileAdminRouter } = require('./modules/video-prompt-profiles/video-prompt-profile.routes');
 const { createLoginLimiter, createRequireAdminAuth, parseBannedFilter } = require('./modules/admin/common/auth');
 const {
   CONFIG_FILE_PATH,
@@ -70,7 +72,9 @@ function createAdminModule({
   intentRouterService,
   inputOptimizerService,
   conversationMemoryService,
-  conversationMemoryWriterService
+  conversationMemoryWriterService,
+  aiRouteResolver,
+  noaBillingService
 }) {
   const router = express.Router();
   const adminVisionUpload = multer({
@@ -83,7 +87,6 @@ function createAdminModule({
   const isSystemPromptEditEnabled = () => process.env.ENABLE_SYSTEM_PROMPT_EDIT !== 'false';
   const usersRepository = repositories?.users;
   const analyticsRepository = repositories?.analytics;
-  const plansRepository = repositories?.plans;
   const supervisedOtpRepository = repositories?.supervisedOtp;
 
   const loginLimiter = createLoginLimiter();
@@ -727,31 +730,6 @@ function createAdminModule({
       apiKeyFingerprint: ''
     };
     const storageWritable = await checkStorageWritable(imageStorageDir);
-    const freePlan =
-      plansRepository && typeof plansRepository.getDefaultPlanForFreeUser === 'function'
-        ? await plansRepository.getDefaultPlanForFreeUser().catch(() => null)
-        : null;
-    const guestDailyLimit = settings['guest.image_limit_daily'] ?? null;
-    const guestHourlyLimit = settings['guest.image_limit_hourly'] ?? null;
-    const freeDailyLimit = freePlan?.dailyImageLimit ?? null;
-    const freeHourlyLimit = freePlan?.hourlyImageLimit ?? null;
-    const describeImagePlan = ({ planId, planName, dailyLimit, hourlyLimit }) => {
-      const disabledReason =
-        dailyLimit === 0 ? 'daily_image_limit_disabled' :
-        hourlyLimit === 0 ? 'hourly_image_limit_disabled' :
-        null;
-      return {
-        planId,
-        planName,
-        dailyImageLimit: dailyLimit,
-        hourlyImageLimit: hourlyLimit,
-        usedToday: null,
-        usedThisHour: null,
-        enabled: !disabledReason,
-        disabledReason
-      };
-    };
-
     return res.json({
       chat: {
         provider: titleProvider(chatRuntime.provider),
@@ -874,20 +852,6 @@ function createAdminModule({
           }
         },
         lastValidationStatus: 'unavailable'
-      },
-      imagePlan: {
-        defaultFree: describeImagePlan({
-          planId: freePlan?.id || 'free',
-          planName: freePlan?.name || 'free',
-          dailyLimit: freeDailyLimit,
-          hourlyLimit: freeHourlyLimit
-        }),
-        guest: describeImagePlan({
-          planId: 'guest',
-          planName: 'guest',
-          dailyLimit: guestDailyLimit,
-          hourlyLimit: guestHourlyLimit
-        })
       }
     });
   });
@@ -1072,152 +1036,6 @@ function createAdminModule({
     return res.json({ success: true, ...result });
   });
 
-  router.get('/subscriptions', requireAdminAuth, async (_req, res) => {
-    try {
-      const [subscriptions, usersResult] = await Promise.all([
-        plansRepository.readUserSubscriptions(),
-        analyticsRepository.listUsersWithConversationStats({ page: 1, pageSize: 100 })
-      ]);
-      const plans = await plansRepository.listPlans();
-      const planById = new Map(plans.map((plan) => [plan.id, plan]));
-      const userById = new Map((usersResult.items || []).map((user) => [String(user.user_id), user]));
-      const userSubscriptions = subscriptions.map((item) => ({
-        ...item,
-        plan: planById.get(item.planId) || null,
-        user: userById.get(String(item.userId)) || null
-      }));
-      return res.json({
-        plans,
-        userSubscriptions,
-        users: usersResult.items || [],
-        updatedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت اشتراک‌ها' });
-    }
-  });
-
-  router.put('/subscriptions/plans/:id', requireAdminAuth, async (req, res) => {
-    try {
-      const planId = String(req.params.id || '').trim();
-      const current = await plansRepository.getPlanById(planId);
-      if (!current) {
-        return res.status(404).json({ error: 'پلن پیدا نشد.' });
-      }
-
-      const nextPlan = {
-        ...current,
-        ...req.body,
-        id: planId,
-        features: Array.isArray(req.body?.features)
-          ? req.body.features
-          : typeof req.body?.featuresText === 'string'
-            ? req.body.featuresText.split('\n').map((item) => item.trim()).filter(Boolean)
-            : current.features
-      };
-      const savedPlan = await plansRepository.upsertPlan(nextPlan);
-
-      await appendAudit({
-        adminUsername: req.admin?.username,
-        action: 'update_subscription_plan',
-        target: planId,
-        details: { name: nextPlan.name, isActive: nextPlan.isActive }
-      });
-
-      return res.json({ success: true, plan: savedPlan });
-    } catch (error) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : 'ذخیره پلن ناموفق بود.' });
-    }
-  });
-
-  router.patch('/subscriptions/plans/:id/active', requireAdminAuth, async (req, res) => {
-    try {
-      const planId = String(req.params.id || '').trim();
-      const plan = await plansRepository.setPlanActive(planId, Boolean(req.body?.isActive));
-      if (!plan) {
-        return res.status(404).json({ error: 'پلن پیدا نشد.' });
-      }
-      await appendAudit({
-        adminUsername: req.admin?.username,
-        action: 'toggle_subscription_plan',
-        target: planId,
-        details: { isActive: plan.isActive }
-      });
-      return res.json({ success: true, plan });
-    } catch (error) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : 'تغییر وضعیت پلن ناموفق بود.' });
-    }
-  });
-
-  router.post('/subscriptions/assign', requireAdminAuth, async (req, res) => {
-    try {
-      const userId = String(req.body?.userId || '').trim();
-      const planId = String(req.body?.planId || '').trim();
-      const expiresAt = typeof req.body?.expiresAt === 'string' && req.body.expiresAt.trim() ? req.body.expiresAt.trim() : null;
-      if (!userId || !planId) {
-        return res.status(400).json({ error: 'کاربر و پلن الزامی است.' });
-      }
-
-      const user = await usersRepository.getUserFullProfile(userId);
-      if (!user) {
-        return res.status(404).json({ error: 'کاربر پیدا نشد.' });
-      }
-
-      const plan = await plansRepository.getPlanById(planId);
-      if (!plan) {
-        return res.status(404).json({ error: 'پلن پیدا نشد.' });
-      }
-
-      const assignedAt = new Date().toISOString();
-      const nextSubscription = {
-        userId,
-        planId,
-        status: 'active',
-        assignedAt,
-        expiresAt,
-        note: typeof req.body?.note === 'string' ? req.body.note.trim() : ''
-      };
-      const subscriptions = await plansRepository.readUserSubscriptions();
-      const userSubscriptions = await plansRepository.writeUserSubscriptions([
-        nextSubscription,
-        ...subscriptions.filter((item) => String(item.userId) !== userId)
-      ]);
-
-      await appendAudit({
-        adminUsername: req.admin?.username,
-        action: 'assign_subscription',
-        target: userId,
-        details: { planId, expiresAt }
-      });
-
-      return res.json({ success: true, subscription: userSubscriptions.find((item) => item.userId === userId) });
-    } catch (error) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : 'اختصاص اشتراک ناموفق بود.' });
-    }
-  });
-
-  router.delete('/subscriptions/users/:userId', requireAdminAuth, async (req, res) => {
-    try {
-      const userId = String(req.params.userId || '').trim();
-      const subscriptions = await plansRepository.readUserSubscriptions();
-      const before = subscriptions.length;
-      const userSubscriptions = await plansRepository.writeUserSubscriptions(
-        subscriptions.filter((item) => String(item.userId) !== userId)
-      );
-
-      await appendAudit({
-        adminUsername: req.admin?.username,
-        action: 'cancel_subscription',
-        target: userId,
-        details: { removed: before !== userSubscriptions.length }
-      });
-
-      return res.json({ success: true });
-    } catch (error) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : 'لغو اشتراک ناموفق بود.' });
-    }
-  });
-
   router.get('/supervised-otp', requireAdminAuth, async (_req, res) => {
     try {
       if (!supervisedOtpRepository) return res.status(503).json({ error: 'Supervised OTP repository is not available.' });
@@ -1297,7 +1115,6 @@ function createAdminModule({
     getErrorDistribution: (...args) => analyticsRepository.getErrorDistribution(...args),
     getRecentAuditLogs: (...args) => analyticsRepository.getRecentAuditLogs(...args),
     getStats: (...args) => analyticsRepository.getStats(...args),
-    getPlanSubscriptions: (...args) => plansRepository.readUserSubscriptions(...args),
     getSupervisedOtpUsage: (...args) => supervisedOtpRepository?.listUsage?.(...args)
   });
   const analyticsRouter = createAdminAnalyticsRouter({
@@ -1403,10 +1220,13 @@ function createAdminModule({
   router.use(intentRouterAdminRouter);
   router.use(settingsRouter);
   router.use(logsRouter);
+  router.use('/ai-routing', createAdminAiRoutingRouter({ db: repositories.db, requireAdminAuth, routeResolver: aiRouteResolver, noaBillingService, appendAudit }));
+  router.use('/video-prompt-profiles', createVideoPromptProfileAdminRouter({ db: repositories.db, requireAdminAuth, appendAudit }));
 
   return {
     router,
     requireAdminAuth,
+    appendAudit,
     ensureAdminData,
     ensureConfigData
   };

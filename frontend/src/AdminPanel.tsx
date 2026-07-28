@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -15,6 +15,12 @@ import {
   YAxis
 } from 'recharts';
 import { Button, FieldGroup, InlineMessage, TextAreaField, TextField } from './design-system/components';
+import Icon, { type IconName } from './components/Icon';
+import AiProviderManagement from './admin/ai-routing/AiProviderManagement';
+import VideoPromptProfilesAdmin from './admin/video-prompt-profiles/VideoPromptProfilesAdmin';
+import NoaFinanceAdmin from './admin/noa/NoaFinanceAdmin';
+import { fetchAdminIdentity } from './noa/noa.service';
+import type { AdminIdentity } from './noa/noa.types';
 
 type User = {
   user_id: string;
@@ -109,39 +115,6 @@ type DashboardStats = {
     target: string | null;
     details?: Record<string, unknown>;
   }>;
-};
-
-type SubscriptionPlan = {
-  id: string;
-  name: string;
-  icon: string;
-  tagline?: string;
-  monthlyPrice: number;
-  dailyPrice: number;
-  dailyMessageLimit: number | null;
-  dailyImageLimit: number | null;
-  hourlyImageLimit: number | null;
-  features: string[];
-  isActive: boolean;
-  sortOrder: number;
-};
-
-type UserSubscription = {
-  userId: string;
-  planId: string;
-  status: string;
-  assignedAt?: string;
-  expiresAt?: string | null;
-  note?: string;
-  plan?: SubscriptionPlan | null;
-  user?: User | null;
-};
-
-type SubscriptionsPayload = {
-  plans: SubscriptionPlan[];
-  userSubscriptions: UserSubscription[];
-  users: User[];
-  updatedAt?: string;
 };
 
 type SiteSettingsPayload = {
@@ -309,7 +282,7 @@ type SupervisedOtpConfig = {
 };
 
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
-type AdminTab = 'dashboard' | 'users' | 'imageGenerations' | 'subscriptions' | 'limits' | 'errors' | 'siteSettings' | 'supervisedOtp' | 'config' | 'audit';
+type AdminTab = 'dashboard' | 'users' | 'imageGenerations' | 'noaFinance' | 'aiRouting' | 'videoPromptProfiles' | 'errors' | 'siteSettings' | 'supervisedOtp' | 'config' | 'audit';
 type ReportUserScope = 'all' | 'selected';
 type ReportFormat = 'csv' | 'txt';
 type ReportSection =
@@ -317,69 +290,67 @@ type ReportSection =
   | 'errors'
   | 'conversation_summary'
   | 'messages'
-  | 'plans_usage'
-  | 'guest_usage'
   | 'ai_performance'
   | 'guest_conversations'
   | 'supervised_otp_usage';
 type ReportRangePreset = 'today' | '7d' | '30d' | 'custom';
 const USERS_PAGE_SIZE = 10;
 const IMAGE_GENERATIONS_PAGE_SIZE = 12;
-const parseNullableNumberInput = (value: string): number | null => (
-  value.trim() === '' ? null : Number(value)
-);
-const normalizeLimitValue = (value: number | null | undefined) => (
-  value === null || value === undefined ? null : Math.max(0, Number(value) || 0)
-);
-const formatLimitLabel = (value: number | null | undefined, unit: string) => {
-  if (value === null || value === undefined) return 'نامحدود';
-  if (Number(value) === 0) return 'غیرفعال';
-  return `${new Intl.NumberFormat('fa-IR').format(Number(value))} ${unit}`;
-};
-const getLimitTone = (messageLimit: number | null | undefined, dailyImageLimit: number | null | undefined, hourlyImageLimit: number | null | undefined) => {
-  if (messageLimit === 0 || dailyImageLimit === 0 || hourlyImageLimit === 0) return 'blocked';
-  if (messageLimit === null && dailyImageLimit === null && hourlyImageLimit === null) return 'unlimited';
-  return 'limited';
-};
-const LIMIT_PRESETS = [
-  { id: 'starter', label: 'شروع امن', message: 10, dailyImage: 2, hourlyImage: 1 },
-  { id: 'balanced', label: 'متعادل', message: 50, dailyImage: 10, hourlyImage: 4 },
-  { id: 'unlimited', label: 'نامحدود', message: null, dailyImage: null, hourlyImage: null },
-  { id: 'images-off', label: 'تصویر خاموش', message: null, dailyImage: 0, hourlyImage: 0 }
-] as const;
 const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'داشبورد',
   users: 'کاربران',
-  imageGenerations: 'تصاویر استودیو',
-  subscriptions: 'اشتراک‌ها',
-  limits: 'لیمیت‌ها',
+  imageGenerations: 'خروجی‌های تصویر',
+  noaFinance: 'مالی نوآ',
+  aiRouting: 'ارائه‌دهندگان AI',
+  videoPromptProfiles: 'پرامپت‌های ویدیو',
   errors: 'خطاها',
   siteSettings: 'تنظیمات سایت',
-  supervisedOtp: 'Supervised OTP',
-  config: 'سیستم',
-  audit: 'Audit'
+  supervisedOtp: 'رمز نظارتی',
+  config: 'تنظیمات سیستم',
+  audit: 'گزارش و ممیزی'
 };
 
-const TAB_ICONS: Record<keyof typeof TAB_LABELS, string> = {
-  dashboard: 'DH',
-  users: 'US',
-  imageGenerations: 'IM',
-  subscriptions: 'PL',
-  limits: 'LM',
-  errors: 'ER',
-  siteSettings: 'ST',
-  supervisedOtp: 'OT',
-  config: 'CF',
-  audit: 'AD'
+const TAB_ICONS: Record<AdminTab, IconName> = {
+  dashboard: 'grid',
+  users: 'family',
+  imageGenerations: 'studio-image',
+  noaFinance: 'credit-card',
+  aiRouting: 'sparkle',
+  videoPromptProfiles: 'studio-video',
+  errors: 'info-circle',
+  siteSettings: 'settings',
+  supervisedOtp: 'login',
+  config: 'settings',
+  audit: 'book'
 };
+
+const TAB_DESCRIPTIONS: Record<AdminTab, string> = {
+  dashboard: 'شاخص‌های کلیدی، روند استفاده و آخرین فعالیت‌های سامانه',
+  users: 'جست‌وجو، بررسی پروفایل و مدیریت دسترسی کاربران',
+  imageGenerations: 'پیگیری وضعیت و جزئیات خروجی‌های استودیوی تصویر',
+  noaFinance: 'مدیریت قیمت‌ها، نرخ تبدیل و رسیدهای واریز بانکی',
+  aiRouting: 'کنترل مسیرها، مدل‌ها و وضعیت ارائه‌دهندگان هوش مصنوعی',
+  videoPromptProfiles: 'مدیریت نسخه‌ها و قواعد پرامپت‌های ساخت ویدیو',
+  errors: 'بررسی خطاهای ثبت‌شده و الگوهای پرتکرار',
+  siteSettings: 'کنترل تنظیمات عمومی و تجربهٔ کاربری سایت',
+  supervisedOtp: 'مدیریت دسترسی نظارتی موقت و محدود',
+  config: 'تنظیمات runtime، مدل‌ها و دستورهای پایهٔ سامانه',
+  audit: 'دریافت گزارش و مرور رویدادهای مدیریتی'
+};
+
+const TAB_GROUPS: Array<{ label: string; items: AdminTab[] }> = [
+  { label: 'نمای کلی', items: ['dashboard'] },
+  { label: 'محصول و کاربران', items: ['users', 'imageGenerations'] },
+  { label: 'عملیات مالی', items: ['noaFinance'] },
+  { label: 'هوش مصنوعی', items: ['aiRouting', 'videoPromptProfiles'] },
+  { label: 'سیستم و امنیت', items: ['errors', 'siteSettings', 'supervisedOtp', 'config', 'audit'] }
+];
 
 const REPORT_SECTION_OPTIONS: Array<{ key: ReportSection; label: string }> = [
   { key: 'users', label: 'users' },
   { key: 'errors', label: 'errors' },
   { key: 'conversation_summary', label: 'conversation summary' },
   { key: 'messages', label: 'messages' },
-  { key: 'plans_usage', label: 'plans usage' },
-  { key: 'guest_usage', label: 'guest usage' },
   { key: 'ai_performance', label: 'AI performance' },
   { key: 'guest_conversations', label: 'چت‌های مهمان' },
   { key: 'supervised_otp_usage', label: 'Supervised OTP' }
@@ -543,6 +514,9 @@ const getProfileMessageImages = (message: ProfileMessage, userId: string): ChatI
 
 function AdminPanel() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
+  const [adminIdentity, setAdminIdentity] = useState<AdminIdentity | null>(null);
+  const [identityLoading, setIdentityLoading] = useState(true);
+  const sectionHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersPage, setUsersPage] = useState(1);
@@ -574,8 +548,6 @@ function AdminPanel() {
     errors: false,
     conversation_summary: false,
     messages: false,
-    plans_usage: false,
-    guest_usage: false,
     ai_performance: true,
     guest_conversations: false,
     supervised_otp_usage: false
@@ -591,12 +563,6 @@ function AdminPanel() {
   const [systemPromptMessage, setSystemPromptMessage] = useState('');
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
-  const [subscriptions, setSubscriptions] = useState<SubscriptionsPayload | null>(null);
-  const [subscriptionMessage, setSubscriptionMessage] = useState('');
-  const [subscriptionSaving, setSubscriptionSaving] = useState(false);
-  const [limitsMessage, setLimitsMessage] = useState('');
-  const [limitsSaving, setLimitsSaving] = useState(false);
-  const [assignForm, setAssignForm] = useState({ userId: '', planId: 'gold', expiresAt: '', note: '' });
   const [siteSettings, setSiteSettings] = useState<SiteSettingsPayload | null>(null);
   const [siteSettingsSaving, setSiteSettingsSaving] = useState(false);
   const [siteSettingsMessage, setSiteSettingsMessage] = useState('');
@@ -743,26 +709,6 @@ function AdminPanel() {
     }
   };
 
-  const loadSubscriptions = async () => {
-    setSubscriptionMessage('');
-    try {
-      const response = await fetch('/api/admin/subscriptions', { credentials: 'include' });
-      const result = await handleAdminResponse(response, 'بارگذاری اشتراک‌ها ناموفق بود.');
-      if (result.ok) {
-        setSubscriptions(result.data);
-        const firstUser = result.data.users?.[0]?.user_id || '';
-        const firstPlan = result.data.plans?.find((plan: SubscriptionPlan) => plan.id !== 'free')?.id || result.data.plans?.[0]?.id || 'gold';
-        setAssignForm((prev) => ({
-          ...prev,
-          userId: prev.userId || firstUser,
-          planId: prev.planId || firstPlan
-        }));
-      }
-    } catch {
-      setSubscriptionMessage('اتصال به سرور برای دریافت اشتراک‌ها برقرار نشد.');
-    }
-  };
-
   const loadConversationMemory = async (conversationId: string) => {
     setConversationMemoryLoading((prev) => ({ ...prev, [conversationId]: true }));
     setConversationMemoryMessage((prev) => ({ ...prev, [conversationId]: '' }));
@@ -861,31 +807,57 @@ function AdminPanel() {
   };
 
   useEffect(() => {
-    void loadDashboard();
-    void loadUsers();
-    void loadImageGenerations();
-    void loadErrors();
-    void loadConfig();
-    void loadSystemPrompt();
-    void loadLogs();
-    void loadSubscriptions();
-    void loadSiteSettings();
-    void loadAiRuntimeStatus();
-    void loadImageModelPresets();
-    void loadSupervisedOtp();
+    let active = true;
+    setIdentityLoading(true);
+    fetchAdminIdentity()
+      .then((identity) => {
+        if (active) setAdminIdentity(identity);
+      })
+      .catch((cause) => {
+        if (active) setLoadError(cause instanceof Error ? cause.message : 'دریافت سطح دسترسی مدیر انجام نشد.');
+      })
+      .finally(() => {
+        if (active) setIdentityLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
+  useEffect(() => {
+    if (tab === 'dashboard') void loadDashboard();
+    if (tab === 'users') void loadUsers();
+    if (tab === 'imageGenerations') void loadImageGenerations();
+    if (tab === 'errors') void loadErrors();
+    if (tab === 'siteSettings') void loadSiteSettings();
+    if (tab === 'supervisedOtp') void loadSupervisedOtp();
+    if (tab === 'config') {
+      void loadConfig();
+      void loadSystemPrompt();
+      void loadAiRuntimeStatus();
+      void loadImageModelPresets();
+    }
+    if (tab === 'audit') {
+      void loadLogs();
+      void loadUsers();
+      void loadErrors();
+    }
+  }, [tab]);
+
+  const changeTab = (nextTab: AdminTab) => {
+    if (nextTab === tab) return;
+    setTab(nextTab);
+    window.requestAnimationFrame(() => sectionHeadingRef.current?.focus({ preventScroll: true }));
+  };
+
   const visibleUsers = useMemo(() => users, [users]);
-  const sortedPlans = useMemo(
-    () => [...(subscriptions?.plans || [])].sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999)),
-    [subscriptions?.plans]
-  );
-  const activePlansCount = sortedPlans.filter((plan) => plan.isActive).length;
-  const guestLimitTone = getLimitTone(
-    siteSettings?.settings?.['guest.message_limit'],
-    siteSettings?.settings?.['guest.image_limit_daily'],
-    siteSettings?.settings?.['guest.image_limit_hourly']
-  );
+  const canManageFinance = adminIdentity?.role === 'finance' || adminIdentity?.role === 'superadmin';
+  const visibleTabGroups = useMemo(() => TAB_GROUPS
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => item !== 'noaFinance' || canManageFinance)
+    }))
+    .filter((group) => group.items.length > 0), [canManageFinance]);
   const usersTotalPages = Math.max(1, Math.ceil(usersTotal / USERS_PAGE_SIZE));
   const imageGenerationsTotalPages = Math.max(1, Math.ceil(imageGenerationsTotal / IMAGE_GENERATIONS_PAGE_SIZE));
   const selectedReportUsersOnPage = visibleUsers.filter((user) => selectedReportUserIds.includes(user.user_id));
@@ -1058,140 +1030,6 @@ function AdminPanel() {
       setSystemPromptMessage(error instanceof Error ? error.message : 'ذخیره سیستم پرامپت ناموفق بود.');
     } finally {
       setSystemPromptSaving(false);
-    }
-  };
-
-  const updateLocalPlan = (planId: string, patch: Partial<SubscriptionPlan> & { featuresText?: string }) => {
-    setSubscriptions((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        plans: prev.plans.map((plan) => (plan.id === planId ? { ...plan, ...patch } : plan))
-      };
-    });
-  };
-
-  const savePlan = async (plan: SubscriptionPlan) => {
-    setSubscriptionSaving(true);
-    setSubscriptionMessage('');
-    try {
-      const response = await fetch(`/api/admin/subscriptions/plans/${encodeURIComponent(plan.id)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(plan)
-      });
-      await handleAdminResponse(response, 'ذخیره پلن ناموفق بود.');
-      await loadSubscriptions();
-      setSubscriptionMessage('پلن با موفقیت ذخیره شد.');
-    } catch (error) {
-      setSubscriptionMessage(error instanceof Error ? error.message : 'ذخیره پلن ناموفق بود.');
-    } finally {
-      setSubscriptionSaving(false);
-    }
-  };
-
-  const saveLimitPlan = async (plan: SubscriptionPlan) => {
-    setLimitsSaving(true);
-    setLimitsMessage('');
-    try {
-      const response = await fetch(`/api/admin/subscriptions/plans/${encodeURIComponent(plan.id)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(plan)
-      });
-      await handleAdminResponse(response, 'ذخیره لیمیت پلن ناموفق بود.');
-      await loadSubscriptions();
-      setLimitsMessage(`لیمیت‌های پلن «${plan.name}» ذخیره شد.`);
-    } catch (error) {
-      setLimitsMessage(error instanceof Error ? error.message : 'ذخیره لیمیت پلن ناموفق بود.');
-    } finally {
-      setLimitsSaving(false);
-    }
-  };
-
-  const saveGuestLimits = async () => {
-    if (!siteSettings) return;
-    setLimitsSaving(true);
-    setLimitsMessage('');
-    try {
-      const response = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ settings: siteSettings.settings })
-      });
-      const result = await handleAdminResponse(response, 'ذخیره لیمیت مهمان ناموفق بود.');
-      if (result.ok) {
-        setSiteSettings(result.data);
-        await loadAiRuntimeStatus();
-        setLimitsMessage('لیمیت‌های مهمان ذخیره شد.');
-      }
-    } catch (error) {
-      setLimitsMessage(error instanceof Error ? error.message : 'ذخیره لیمیت مهمان ناموفق بود.');
-    } finally {
-      setLimitsSaving(false);
-    }
-  };
-
-  const applyGuestLimitPreset = (preset: typeof LIMIT_PRESETS[number]) => {
-    updateSiteSettingsPatch({
-      'guest.message_limit': normalizeLimitValue(preset.message),
-      'guest.image_limit_daily': normalizeLimitValue(preset.dailyImage),
-      'guest.image_limit_hourly': normalizeLimitValue(preset.hourlyImage),
-      'guest.limit_modal.badge_text': preset.message === null ? '∞' : String(preset.message)
-    });
-  };
-
-  const applyPlanLimitPreset = (planId: string, preset: typeof LIMIT_PRESETS[number]) => {
-    updateLocalPlan(planId, {
-      dailyMessageLimit: normalizeLimitValue(preset.message),
-      dailyImageLimit: normalizeLimitValue(preset.dailyImage),
-      hourlyImageLimit: normalizeLimitValue(preset.hourlyImage)
-    });
-  };
-
-  const assignSubscription = async () => {
-    if (!assignForm.userId || !assignForm.planId) {
-      setSubscriptionMessage('کاربر و پلن را انتخاب کنید.');
-      return;
-    }
-    setSubscriptionSaving(true);
-    setSubscriptionMessage('');
-    try {
-      const response = await fetch('/api/admin/subscriptions/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(assignForm)
-      });
-      await handleAdminResponse(response, 'اختصاص اشتراک ناموفق بود.');
-      await loadSubscriptions();
-      setSubscriptionMessage('اشتراک کاربر با موفقیت به‌روزرسانی شد.');
-    } catch (error) {
-      setSubscriptionMessage(error instanceof Error ? error.message : 'اختصاص اشتراک ناموفق بود.');
-    } finally {
-      setSubscriptionSaving(false);
-    }
-  };
-
-  const cancelSubscription = async (userId: string) => {
-    if (!window.confirm('اشتراک این کاربر لغو شود؟')) return;
-    setSubscriptionSaving(true);
-    setSubscriptionMessage('');
-    try {
-      const response = await fetch(`/api/admin/subscriptions/users/${encodeURIComponent(userId)}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      await handleAdminResponse(response, 'لغو اشتراک ناموفق بود.');
-      await loadSubscriptions();
-      setSubscriptionMessage('اشتراک لغو شد.');
-    } catch (error) {
-      setSubscriptionMessage(error instanceof Error ? error.message : 'لغو اشتراک ناموفق بود.');
-    } finally {
-      setSubscriptionSaving(false);
     }
   };
 
@@ -1616,35 +1454,66 @@ function AdminPanel() {
   );
 
   return (
-    <div className="admin-panel">
-      <div className="admin-panel__header">
-        <div>
-          <span className="admin-panel__eyebrow">مدیریت محصول</span>
-          <h2>پنل ادمین دانوآ</h2>
-          <p>نمای کلی وضعیت کاربران، اشتراک‌ها، خطاها و فعالیت سیستم</p>
-        </div>
-      </div>
+    <div className="admin-panel" dir="rtl">
+      <a className="admin-skip-link" href="#admin-main-content">پرش به محتوای اصلی</a>
+      <div className="admin-shell">
+        <aside className="admin-sidebar" aria-label="ناوبری پنل مدیریت">
+          <div className="admin-sidebar__brand">
+            <span className="admin-sidebar__mark" aria-hidden="true"><Icon name="shield" size={22} /></span>
+            <span><strong>دانوآ</strong><small>مرکز مدیریت</small></span>
+          </div>
+          <nav className="admin-sidebar__nav" aria-label="بخش‌های مدیریتی">
+            {visibleTabGroups.map((group) => (
+              <div className="admin-nav-group" key={group.label}>
+                <span className="admin-nav-group__label">{group.label}</span>
+                <div className="admin-nav-group__items">
+                  {group.items.map((item) => {
+                    const isActive = tab === item;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        className={`admin-nav-button ${isActive ? 'is-active' : ''}`}
+                        aria-label={TAB_LABELS[item]}
+                        aria-current={isActive ? 'page' : undefined}
+                        onClick={() => changeTab(item)}
+                      >
+                        <span className="admin-nav-button__icon" aria-hidden="true"><Icon name={TAB_ICONS[item]} size={19} /></span>
+                        <span className="admin-nav-button__copy"><strong>{TAB_LABELS[item]}</strong><small>{TAB_DESCRIPTIONS[item]}</small></span>
+                        <Icon className="admin-nav-button__chevron" name="chevron-left" size={16} aria-hidden="true" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+          <div className="admin-sidebar__footer"><Icon name="shield" size={17} aria-hidden="true" /><span>دسترسی محافظت‌شدهٔ مدیر</span></div>
+        </aside>
 
-      <div className="admin-tabs">
-        {(Object.keys(TAB_LABELS) as AdminTab[]).map((item) => (
-          <Button
-            key={item}
-            variant="secondary"
-            className={`admin-tab ${tab === item ? 'active' : ''}`}
-            onClick={() => setTab(item)}
-          >
-            <span className="admin-tab__icon" aria-hidden="true">{TAB_ICONS[item]}</span>
-            {TAB_LABELS[item]}
-          </Button>
-        ))}
-      </div>
+        <main className="admin-main" id="admin-main-content">
+          <header className="admin-panel__header">
+            <div className="admin-panel__identity">
+              <span className="admin-panel__eyebrow">مدیریت محصول</span>
+              <h1>پنل ادمین دانوآ</h1>
+              <p>کنترل عملیات، کاربران و زیرساخت هوش مصنوعی از یک فضای متمرکز</p>
+            </div>
+            <div className="admin-panel__current">
+              <span className="admin-panel__current-icon" aria-hidden="true"><Icon name={TAB_ICONS[tab]} size={21} /></span>
+              <div>
+                <small>بخش فعال</small>
+                <h2 id="admin-current-section" ref={sectionHeadingRef} tabIndex={-1}>{TAB_LABELS[tab]}</h2>
+                <p>{TAB_DESCRIPTIONS[tab]}</p>
+              </div>
+            </div>
+          </header>
 
-      {loadError && (
-        <InlineMessage text={loadError} variant="error" />
-      )}
-      {actionError && (
-        <InlineMessage text={actionError} variant="error" />
-      )}
+          <div className="admin-feedback" aria-live="polite">
+            {loadError && <InlineMessage text={loadError} variant="error" />}
+            {actionError && <InlineMessage text={actionError} variant="error" />}
+          </div>
+
+          <section className="admin-content" aria-labelledby="admin-current-section">
 
       {tab === 'dashboard' ? (
         <div className="admin-section">
@@ -1982,6 +1851,18 @@ function AdminPanel() {
         </div>
       ) : null}
 
+      {tab === 'aiRouting' ? <AiProviderManagement /> : null}
+      {tab === 'videoPromptProfiles' ? <VideoPromptProfilesAdmin /> : null}
+      {tab === 'noaFinance' ? (
+        canManageFinance ? (
+          <NoaFinanceAdmin />
+        ) : identityLoading ? (
+          <InlineMessage text="در حال بررسی سطح دسترسی مالی…" variant="help" />
+        ) : (
+          <InlineMessage text="این بخش فقط برای نقش‌های مالی و مدیر ارشد در دسترس است." variant="error" />
+        )
+      ) : null}
+
       {tab === 'imageGenerations' ? (
         <div className="admin-section">
           <div className="admin-section-header">
@@ -2056,353 +1937,6 @@ function AdminPanel() {
         </div>
       ) : null}
 
-      {tab === 'limits' ? (
-        <div className="admin-section limits-center">
-          <div className="admin-section-header limits-center__header">
-            <div>
-              <h3>مرکز کنترل لیمیت‌ها</h3>
-              <p className="admin-note">
-                لیمیت مهمان‌ها و همه اشتراک‌های فعلی از اینجا مدیریت می‌شود. هر پلنی که بعداً به سایت اضافه شود، خودکار در همین لیست دیده می‌شود.
-              </p>
-            </div>
-            <FieldGroup direction="row" className="limits-center__actions">
-              <Button className="admin-action-btn" onClick={() => { void loadSubscriptions(); void loadSiteSettings(); }}>
-                بروزرسانی
-              </Button>
-            </FieldGroup>
-          </div>
-
-          {limitsMessage ? (
-            <InlineMessage
-              text={limitsMessage}
-              variant={limitsMessage.includes('ذخیره شد') ? 'success' : 'error'}
-            />
-          ) : null}
-
-          <div className="limits-overview-grid">
-            <div className={`limits-overview-card tone-${guestLimitTone}`}>
-              <span>مهمان‌ها</span>
-              <strong>{formatLimitLabel(siteSettings?.settings?.['guest.message_limit'] ?? 10, 'پیام')}</strong>
-              <small>تصویر روزانه: {formatLimitLabel(siteSettings?.settings?.['guest.image_limit_daily'] ?? 0, 'تصویر')}</small>
-            </div>
-            <div className="limits-overview-card">
-              <span>پلن‌های فعال</span>
-              <strong>{new Intl.NumberFormat('fa-IR').format(activePlansCount)}</strong>
-              <small>از {new Intl.NumberFormat('fa-IR').format(sortedPlans.length)} پلن ثبت‌شده</small>
-            </div>
-            <div className="limits-overview-card">
-              <span>کاربران دارای اشتراک</span>
-              <strong>{new Intl.NumberFormat('fa-IR').format(subscriptions?.userSubscriptions?.length || 0)}</strong>
-              <small>بر اساس لیست اشتراک‌های فعال/ثبت‌شده</small>
-            </div>
-          </div>
-
-          <div className="limits-help-strip">
-            <span>راهنما</span>
-            <p>خالی یعنی نامحدود، عدد ۰ یعنی آن قابلیت کامل غیرفعال می‌شود، عدد مثبت یعنی سقف مصرف در همان بازه.</p>
-          </div>
-
-          <article className="limit-rule-card limit-rule-card--guest">
-            <div className="limit-rule-card__head">
-              <div>
-                <span className="limit-rule-card__eyebrow">Guest policy</span>
-                <h4>مهمان‌ها</h4>
-                <p>قبل از ثبت‌نام یا ورود، این محدودیت‌ها روی چت و ساخت تصویر مهمان اعمال می‌شود.</p>
-              </div>
-              <strong className={`limit-status-pill tone-${guestLimitTone}`}>
-                {guestLimitTone === 'blocked' ? 'بسته' : guestLimitTone === 'unlimited' ? 'نامحدود' : 'محدود'}
-              </strong>
-            </div>
-
-            <div className="limit-preset-row">
-              {LIMIT_PRESETS.map((preset) => (
-                <button key={preset.id} type="button" onClick={() => applyGuestLimitPreset(preset)}>
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-
-            {siteSettings ? (
-              <>
-                <FieldGroup direction="row">
-                  <TextField
-                    label="سقف پیام مهمان"
-                    type="number"
-                    value={String(siteSettings.settings['guest.message_limit'] ?? 10)}
-                    helperText="برای مهمان عدد مشخص بگذار؛ این مقدار سقف کل گفتگوی مهمان است."
-                    onChange={(e) => updateSiteSetting('guest.message_limit', Math.max(0, Number(e.target.value) || 0))}
-                  />
-                  <TextField
-                    label="سقف تصویر روزانه مهمان"
-                    value={siteSettings.settings['guest.image_limit_daily'] === null ? '' : String(siteSettings.settings['guest.image_limit_daily'] ?? 0)}
-                    placeholder="خالی = نامحدود، ۰ = غیرفعال"
-                    onChange={(e) => updateSiteSetting('guest.image_limit_daily', parseNullableNumberInput(e.target.value))}
-                  />
-                  <TextField
-                    label="سقف تصویر ساعتی مهمان"
-                    value={siteSettings.settings['guest.image_limit_hourly'] === null ? '' : String(siteSettings.settings['guest.image_limit_hourly'] ?? 0)}
-                    placeholder="خالی = نامحدود، ۰ = غیرفعال"
-                    onChange={(e) => updateSiteSetting('guest.image_limit_hourly', parseNullableNumberInput(e.target.value))}
-                  />
-                </FieldGroup>
-                <FieldGroup direction="row">
-                  <TextField
-                    label="نشان مودال لیمیت"
-                    value={String(siteSettings.settings['guest.limit_modal.badge_text'] ?? '')}
-                    onChange={(e) => updateSiteSetting('guest.limit_modal.badge_text', e.target.value)}
-                  />
-                  <TextField
-                    label="متن دکمه مودال"
-                    value={String(siteSettings.settings['guest.limit_modal.cta'] ?? '')}
-                    onChange={(e) => updateSiteSetting('guest.limit_modal.cta', e.target.value)}
-                  />
-                </FieldGroup>
-                <TextAreaField
-                  label="پیام مودال وقتی مهمان به سقف می‌رسد"
-                  rows={3}
-                  value={String(siteSettings.settings['guest.limit_modal.body'] ?? '')}
-                  onChange={(e) => updateSiteSetting('guest.limit_modal.body', e.target.value)}
-                />
-                <Button className="admin-action-btn" disabled={limitsSaving} onClick={() => void saveGuestLimits()}>
-                  ذخیره لیمیت مهمان
-                </Button>
-              </>
-            ) : (
-              <p className="admin-note">تنظیمات مهمان هنوز بارگذاری نشده است.</p>
-            )}
-          </article>
-
-          <div className="limit-plan-grid">
-            {sortedPlans.map((plan) => {
-              const tone = getLimitTone(plan.dailyMessageLimit, plan.dailyImageLimit, plan.hourlyImageLimit);
-              return (
-                <article className={`limit-rule-card tone-${tone}`} key={plan.id}>
-                  <div className="limit-rule-card__head">
-                    <div>
-                      <span className="limit-rule-card__eyebrow">{plan.id}</span>
-                      <h4>{plan.icon} {plan.name}</h4>
-                      <p>{plan.tagline || 'قوانین مصرف این اشتراک را تنظیم کن.'}</p>
-                    </div>
-                    <strong className={`limit-status-pill tone-${tone}`}>
-                      {tone === 'blocked' ? 'قابلیت بسته' : tone === 'unlimited' ? 'نامحدود' : 'دارای سقف'}
-                    </strong>
-                  </div>
-
-                  <div className="limit-card-summary">
-                    <span>{formatLimitLabel(plan.dailyMessageLimit, 'پیام/روز')}</span>
-                    <span>{formatLimitLabel(plan.dailyImageLimit, 'تصویر/روز')}</span>
-                    <span>{formatLimitLabel(plan.hourlyImageLimit, 'تصویر/ساعت')}</span>
-                  </div>
-
-                  <div className="limit-preset-row">
-                    {LIMIT_PRESETS.map((preset) => (
-                      <button key={preset.id} type="button" onClick={() => applyPlanLimitPreset(plan.id, preset)}>
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <FieldGroup direction="row">
-                    <TextField
-                      label="پیام روزانه"
-                      value={plan.dailyMessageLimit === null ? '' : String(plan.dailyMessageLimit)}
-                      placeholder="خالی = نامحدود"
-                      onChange={(e) => updateLocalPlan(plan.id, { dailyMessageLimit: parseNullableNumberInput(e.target.value) })}
-                    />
-                    <TextField
-                      label="تصویر روزانه"
-                      value={plan.dailyImageLimit === null ? '' : String(plan.dailyImageLimit)}
-                      placeholder="خالی = نامحدود، ۰ = خاموش"
-                      onChange={(e) => updateLocalPlan(plan.id, { dailyImageLimit: parseNullableNumberInput(e.target.value) })}
-                    />
-                    <TextField
-                      label="تصویر ساعتی"
-                      value={plan.hourlyImageLimit === null ? '' : String(plan.hourlyImageLimit)}
-                      placeholder="خالی = نامحدود، ۰ = خاموش"
-                      onChange={(e) => updateLocalPlan(plan.id, { hourlyImageLimit: parseNullableNumberInput(e.target.value) })}
-                    />
-                  </FieldGroup>
-
-                  <FieldGroup direction="row">
-                    <TextField
-                      label="ترتیب نمایش"
-                      type="number"
-                      value={String(plan.sortOrder || 999)}
-                      onChange={(e) => updateLocalPlan(plan.id, { sortOrder: Number(e.target.value) || 999 })}
-                    />
-                    <label className="admin-select-field">
-                      <span>وضعیت پلن</span>
-                      <select
-                        value={plan.isActive ? 'true' : 'false'}
-                        onChange={(e) => updateLocalPlan(plan.id, { isActive: e.target.value === 'true' })}
-                      >
-                        <option value="true">فعال در سایت</option>
-                        <option value="false">غیرفعال</option>
-                      </select>
-                    </label>
-                  </FieldGroup>
-
-                  <Button className="admin-action-btn" disabled={limitsSaving} onClick={() => void saveLimitPlan(plan)}>
-                    ذخیره لیمیت این پلن
-                  </Button>
-                </article>
-              );
-            })}
-          </div>
-
-          {sortedPlans.length === 0 ? (
-            <p className="admin-note">هنوز پلنی برای نمایش وجود ندارد.</p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {tab === 'subscriptions' ? (
-        <div className="admin-section">
-          <div className="admin-section-header">
-            <div>
-              <h3>مدیریت اشتراک‌ها</h3>
-              <p className="admin-note">پلن‌های نمایش داده‌شده در صفحه خرید و اشتراک فعال کاربران را مدیریت کنید.</p>
-            </div>
-            <Button className="admin-action-btn" onClick={() => void loadSubscriptions()}>بروزرسانی</Button>
-          </div>
-
-          {subscriptionMessage ? (
-            <InlineMessage
-              text={subscriptionMessage}
-              variant={subscriptionMessage.includes('موفقیت') || subscriptionMessage.includes('لغو شد') ? 'success' : 'error'}
-            />
-          ) : null}
-
-          <div className="subscription-plan-grid">
-            {(subscriptions?.plans || []).map((plan) => (
-              <article className="subscription-plan-editor" key={plan.id}>
-                <div className="subscription-plan-editor__head">
-                  <strong>{plan.icon} {plan.name}</strong>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={plan.isActive}
-                      onChange={(event) => updateLocalPlan(plan.id, { isActive: event.target.checked })}
-                    />
-                    فعال
-                  </label>
-                </div>
-                <FieldGroup direction="row">
-                  <TextField label="نام پلن" value={plan.name} onChange={(e) => updateLocalPlan(plan.id, { name: e.target.value })} />
-                  <TextField label="آیکن" value={plan.icon} onChange={(e) => updateLocalPlan(plan.id, { icon: e.target.value })} />
-                </FieldGroup>
-                <TextField label="توضیح کوتاه" value={plan.tagline || ''} onChange={(e) => updateLocalPlan(plan.id, { tagline: e.target.value })} />
-                <FieldGroup direction="row">
-                  <TextField label="قیمت ماهانه" type="number" value={String(plan.monthlyPrice || 0)} onChange={(e) => updateLocalPlan(plan.id, { monthlyPrice: Number(e.target.value) })} />
-                  <TextField label="قیمت روزانه" type="number" value={String(plan.dailyPrice || 0)} onChange={(e) => updateLocalPlan(plan.id, { dailyPrice: Number(e.target.value) })} />
-                </FieldGroup>
-                <FieldGroup direction="row">
-                  <TextField
-                    label="سقف پیام روزانه"
-                    value={plan.dailyMessageLimit === null ? '' : String(plan.dailyMessageLimit)}
-                    placeholder="خالی = نامحدود"
-                    onChange={(e) => updateLocalPlan(plan.id, { dailyMessageLimit: e.target.value.trim() ? Number(e.target.value) : null })}
-                  />
-                  <TextField
-                    label="سقف تصویر روزانه"
-                    value={plan.dailyImageLimit === null ? '' : String(plan.dailyImageLimit)}
-                    placeholder="خالی = نامحدود، ۰ = غیرفعال"
-                    helperText="خالی = نامحدود، ۰ = غیرفعال، عدد مثبت = سقف مجاز"
-                    onChange={(e) => updateLocalPlan(plan.id, { dailyImageLimit: parseNullableNumberInput(e.target.value) })}
-                  />
-                  <TextField
-                    label="سقف تصویر ساعتی"
-                    value={plan.hourlyImageLimit === null ? '' : String(plan.hourlyImageLimit)}
-                    placeholder="خالی = نامحدود، ۰ = غیرفعال"
-                    helperText="خالی = نامحدود، ۰ = غیرفعال، عدد مثبت = سقف مجاز"
-                    onChange={(e) => updateLocalPlan(plan.id, { hourlyImageLimit: parseNullableNumberInput(e.target.value) })}
-                  />
-                </FieldGroup>
-                <TextAreaField
-                  label="ویژگی‌ها"
-                  rows={4}
-                  value={plan.features.join('\n')}
-                  onChange={(e) => updateLocalPlan(plan.id, { features: e.target.value.split('\n').map((item) => item.trim()).filter(Boolean) })}
-                  helperText="هر ویژگی در یک خط"
-                />
-                <Button className="admin-action-btn" disabled={subscriptionSaving} onClick={() => void savePlan(plan)}>
-                  ذخیره پلن
-                </Button>
-              </article>
-            ))}
-          </div>
-
-          <div className="subscription-assign-panel">
-            <h3>اختصاص اشتراک به کاربر</h3>
-            <FieldGroup direction="row">
-              <label className="admin-select-field">
-                <span>کاربر</span>
-                <select value={assignForm.userId} onChange={(e) => setAssignForm({ ...assignForm, userId: e.target.value })}>
-                  {(subscriptions?.users || users).map((user) => (
-                    <option key={user.user_id} value={user.user_id}>
-                      {user.name} - {user.phone || user.user_id}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="admin-select-field">
-                <span>پلن</span>
-                <select value={assignForm.planId} onChange={(e) => setAssignForm({ ...assignForm, planId: e.target.value })}>
-                  {(subscriptions?.plans || []).map((plan) => (
-                    <option key={plan.id} value={plan.id}>{plan.name}</option>
-                  ))}
-                </select>
-              </label>
-            </FieldGroup>
-            <FieldGroup direction="row">
-              <TextField
-                label="تاریخ انقضا"
-                type="date"
-                value={assignForm.expiresAt}
-                onChange={(e) => setAssignForm({ ...assignForm, expiresAt: e.target.value })}
-                helperText="خالی بماند یعنی بدون تاریخ انقضا"
-              />
-              <TextField
-                label="یادداشت"
-                value={assignForm.note}
-                onChange={(e) => setAssignForm({ ...assignForm, note: e.target.value })}
-              />
-            </FieldGroup>
-            <Button className="admin-action-btn" disabled={subscriptionSaving} onClick={() => void assignSubscription()}>
-              ثبت اشتراک کاربر
-            </Button>
-          </div>
-
-          <h3>اشتراک‌های فعال</h3>
-          <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr><th>کاربر</th><th>پلن</th><th>وضعیت</th><th>شروع</th><th>انقضا</th><th>عملیات</th></tr>
-            </thead>
-            <tbody>
-              {(subscriptions?.userSubscriptions || []).map((item) => (
-                <tr key={item.userId}>
-                  <td>{item.user?.name || item.userId}</td>
-                  <td>{item.plan?.name || item.planId}</td>
-                  <td>{item.status === 'active' ? 'فعال' : item.status}</td>
-                  <td>{item.assignedAt || '-'}</td>
-                  <td>{item.expiresAt || 'بدون انقضا'}</td>
-                  <td>
-                    <Button variant="danger" size="sm" onClick={() => void cancelSubscription(item.userId)}>
-                      لغو
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {(!subscriptions?.userSubscriptions || subscriptions.userSubscriptions.length === 0) ? (
-                <tr><td colSpan={6}>هنوز اشتراک فعالی ثبت نشده است.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-          </div>
-        </div>
-      ) : null}
-
       {tab === 'siteSettings' ? (
         <div className="admin-section config-panel">
           <h3>تنظیمات سایت</h3>
@@ -2417,60 +1951,6 @@ function AdminPanel() {
 
           {siteSettings ? (
             <>
-              <h4>مهمان</h4>
-              <FieldGroup direction="row">
-                <TextField
-                  label="تعداد پیام مهمان"
-                  type="number"
-                  value={String(siteSettings.settings['guest.message_limit'] ?? 10)}
-                  onChange={(e) => updateSiteSetting('guest.message_limit', Number(e.target.value))}
-                />
-              </FieldGroup>
-              <FieldGroup direction="row">
-                <TextField
-                  label="سقف تصویر روزانه مهمان"
-                  value={siteSettings.settings['guest.image_limit_daily'] === null ? '' : String(siteSettings.settings['guest.image_limit_daily'] ?? '')}
-                  placeholder="خالی = نامحدود، ۰ = غیرفعال"
-                  onChange={(e) => updateSiteSetting('guest.image_limit_daily', parseNullableNumberInput(e.target.value))}
-                />
-                <TextField
-                  label="سقف تصویر ساعتی مهمان"
-                  value={siteSettings.settings['guest.image_limit_hourly'] === null ? '' : String(siteSettings.settings['guest.image_limit_hourly'] ?? '')}
-                  placeholder="خالی = نامحدود، ۰ = غیرفعال"
-                  onChange={(e) => updateSiteSetting('guest.image_limit_hourly', parseNullableNumberInput(e.target.value))}
-                />
-              </FieldGroup>
-              <FieldGroup direction="row">
-                <TextField
-                  label="نشان مودال"
-                  value={String(siteSettings.settings['guest.limit_modal.badge_text'] ?? '')}
-                  onChange={(e) => updateSiteSetting('guest.limit_modal.badge_text', e.target.value)}
-                />
-              </FieldGroup>
-              <FieldGroup direction="row">
-                <TextField
-                  label="عنوان مودال"
-                  value={String(siteSettings.settings['guest.limit_modal.title'] ?? '')}
-                  onChange={(e) => updateSiteSetting('guest.limit_modal.title', e.target.value)}
-                />
-                <TextField
-                  label="تیتر مودال"
-                  value={String(siteSettings.settings['guest.limit_modal.heading'] ?? '')}
-                  onChange={(e) => updateSiteSetting('guest.limit_modal.heading', e.target.value)}
-                />
-              </FieldGroup>
-              <TextAreaField
-                label="متن مودال محدودیت مهمان"
-                rows={3}
-                value={String(siteSettings.settings['guest.limit_modal.body'] ?? '')}
-                onChange={(e) => updateSiteSetting('guest.limit_modal.body', e.target.value)}
-              />
-              <TextField
-                label="متن دکمه مودال"
-                value={String(siteSettings.settings['guest.limit_modal.cta'] ?? '')}
-                onChange={(e) => updateSiteSetting('guest.limit_modal.cta', e.target.value)}
-              />
-
               <h4>آپلود عکس</h4>
               <FieldGroup direction="row">
                 <TextField
@@ -3383,8 +2863,9 @@ function AdminPanel() {
         </div>
       ) : null}
 
+      {tab === 'audit' ? (
       <div className="admin-section admin-report">
-        <h3>Export Report</h3>
+        <h3>دریافت گزارش</h3>
         <FieldGroup direction="row" className="admin-report-options">
           <label className="admin-select-field">
             <span>فرمت خروجی</span>
@@ -3483,6 +2964,10 @@ function AdminPanel() {
         <FieldGroup direction="row" className="admin-report-actions">
           <Button variant="secondary" onClick={downloadReport} disabled={reportUserScope === 'selected' && selectedReportUserIds.length === 0}>دانلود گزارش</Button>
         </FieldGroup>
+      </div>
+      ) : null}
+          </section>
+        </main>
       </div>
     </div>
   );

@@ -3,13 +3,30 @@ const dotenv = require('dotenv');
 const axios = require('axios');
 dotenv.config({ path: path.join(__dirname, '../.env') });
 const { createRepositories } = require('../src/repositories');
+const { createNoaBillingService, createNoaRepository } = require('../src/modules/noa');
 const { createConfiguredVideoWorkerRuntime } = require('../src/modules/video-generation/worker/video-worker.bootstrap');
 let dedicatedSignalHandlersInstalled = false;
 
-async function runDedicatedWorker({ env = process.env, installSignalHandlers = true, repositoriesFactory = createRepositories, runtimeFactory = createConfiguredVideoWorkerRuntime } = {}) {
+async function runDedicatedWorker({
+  env = process.env,
+  installSignalHandlers = true,
+  repositoriesFactory = createRepositories,
+  runtimeFactory = createConfiguredVideoWorkerRuntime,
+  noaBillingServiceFactory = (db) => createNoaBillingService({
+    repository: createNoaRepository(db)
+  })
+} = {}) {
   const repositories = repositoriesFactory();
   await repositories.db.init();
-  const runtime = runtimeFactory({ db: repositories.db, httpClient: axios, env, role: 'dedicated', logger: console });
+  const noaBillingService = noaBillingServiceFactory(repositories.db);
+  const runtime = runtimeFactory({
+    db: repositories.db,
+    httpClient: axios,
+    noaBillingService,
+    env,
+    role: 'dedicated',
+    logger: console
+  });
   await runtime.start();
   let stopping = null;
   const shutdown = async () => {

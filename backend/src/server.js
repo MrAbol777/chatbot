@@ -23,6 +23,7 @@ const { createSmsRouter } = require('./modules/sms/sms.routes');
 const { createSmsService } = require('./modules/sms/sms.service');
 const { createAiRouter } = require('./modules/ai/ai.routes');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
+const { createAuthMiddleware } = require('./modules/image-generation/auth.middleware');
 const { createImageUnderstandingRouter } = require('./modules/image-understanding/image-understanding.routes');
 const { createIntentRouterService } = require('./modules/intent-router/intent-router.service');
 const { createInputOptimizerService } = require('./modules/input-optimizer/input-optimizer.service');
@@ -32,9 +33,19 @@ const { createConversationMemoryWriterService } = require('./modules/conversatio
 const { createConversationContextBuilder } = require('./modules/conversation-memory/conversation-context-builder.service');
 const { createPromptService } = require('./modules/ai/prompt.service');
 const { createAuthModule } = require('./modules/auth/auth.module');
+const { createLocalDevelopmentRouter } = require('./modules/auth/local-development.routes');
 const { createConversationsModule } = require('./modules/conversations');
 const { createRepositories } = require('./repositories');
 const { createConfiguredVideoWorkerRuntime } = require('./modules/video-generation/worker/video-worker.bootstrap');
+const {
+  createNoaAdminRouter,
+  createNoaBillingService,
+  createNoaReceiptService,
+  createNoaReceiptStorage,
+  createNoaRepository,
+  createNoaUserRouter,
+  reconcileExpiredNoaOperations
+} = require('./modules/noa');
 
 const app = express();
 const repositories = createRepositories();
@@ -179,6 +190,24 @@ const {
   systemPromptPath,
   frontendDistPath
 } = loadRuntimeConfig(process.env);
+const noaRepository = createNoaRepository(repositories.db);
+const noaBillingService = createNoaBillingService({ repository: noaRepository });
+const noaReceiptService = createNoaReceiptService({
+  repository: noaRepository,
+  billingService: noaBillingService
+});
+const noaReceiptStorage = createNoaReceiptStorage({
+  rootDirectory: process.env.NOA_RECEIPT_STORAGE_DIR || path.join(uploadsDir, 'noa-receipts')
+});
+const noaUserRouter = createNoaUserRouter({
+  billingService: noaBillingService,
+  receiptService: noaReceiptService,
+  receiptStorage: noaReceiptStorage,
+  authMiddleware: createAuthMiddleware({
+    jwtSecret: authJwtSecret,
+    db: repositories.db
+  })
+});
 try {
   fs.ensureDirSync(ai.image.storageDir);
 } catch (error) {
@@ -251,17 +280,18 @@ app.use((req, res, next) => {
   const requestId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   res.locals.requestId = requestId;
 
+  const safeRequestPath = String(req.originalUrl || '').replace(/\/api\/video-provider-input\/[^/?\s]+/g, '/api/video-provider-input/[REDACTED]');
   log('HTTP', 'request_started', {
     requestId,
     method: req.method,
-    path: req.originalUrl
+    path: safeRequestPath
   });
 
   res.on('finish', () => {
     log('HTTP', 'request_finished', {
       requestId,
       method: req.method,
-      path: req.originalUrl,
+      path: safeRequestPath,
       status: res.statusCode,
       durationMs: Date.now() - startedAt
     });
@@ -398,6 +428,15 @@ const { router: authRouter } = createAuthModule({
   logger: console
 });
 app.use(authRouter);
+app.use(createLocalDevelopmentRouter({
+  enabled: process.env.LOCAL_DEV_SESSION_ENABLED === 'true',
+  usersRepository: repositories.users,
+  noaBillingService,
+  jwt,
+  jwtSecret: authJwtSecret,
+  logger: console
+}));
+app.use('/api/noa', noaUserRouter);
 
 const inputOptimizerService = createInputOptimizerService({
   httpClient: axios,
@@ -424,9 +463,8 @@ const imageGenerationModule = createImageGenerationRouter({
   imageConfig: ai.image,
   chatConfig: ai.chat,
   db: repositories.db,
-  plansRepository: repositories.plans,
+  noaBillingService,
   settingsRepository: repositories.settings,
-  guestsRepository: repositories.guests,
   conversationsRepository: repositories.conversations,
   eventsRepository: repositories.events,
   authJwtSecret,
@@ -440,13 +478,14 @@ const { createVideoGenerationRouter } = require('./modules/video-generation/vide
 const videoGenerationModule = createVideoGenerationRouter({
   httpClient: axios,
   db: repositories.db,
-  plansRepository: repositories.plans,
+  noaBillingService,
   authJwtSecret,
   adminJwtSecret,
   adminCookieName
 });
 app.use('/api/video-generations', videoGenerationModule.router);
 app.use('/api/video-generation', videoGenerationModule.router);
+app.use('/api/video-provider-input', videoGenerationModule.publicInputRouter);
 
 const imageUnderstandingModule = createImageUnderstandingRouter({
   httpClient: axios,
@@ -498,8 +537,7 @@ app.use(createAiRouter({
   conversationsRepository: repositories.conversations,
   chatMessagesRepository: repositories.chatMessages,
   chatTurnsRepository: repositories.chatTurns,
-  guestsRepository: repositories.guests,
-  plansRepository: repositories.plans,
+  noaBillingService,
   jwt,
   jwtSecret: authJwtSecret,
   eventsRepository: repositories.events,
@@ -556,22 +594,13 @@ const { router: conversationRouter } = createConversationsModule({
 });
 app.use('/api/conversations', conversationRouter);
 
-app.get('/api/subscription-plans', async (_req, res) => {
-  try {
-    const plans = await repositories.plans.listPlans({ activeOnly: true });
-    return res.json({ plans, updatedAt: new Date().toISOString() });
-  } catch (error) {
-    return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت پلن‌ها' });
-  }
-});
-
 app.use(createSmsRouter({
   smsService: appSmsService,
   logger: console
 }));
 console.log('[SMS] routes mounted');
 
-const { router: adminRouter } = createAdminRouter({
+const adminModule = createAdminRouter({
   jwtSecret: adminJwtSecret,
   cookieName: adminCookieName,
   onSystemPromptUpdated: invalidateSystemPromptCache,
@@ -585,9 +614,19 @@ const { router: adminRouter } = createAdminRouter({
   intentRouterService,
   inputOptimizerService,
   conversationMemoryService,
-  conversationMemoryWriterService
+  conversationMemoryWriterService,
+  aiRouteResolver: videoGenerationModule.routeResolver,
+  noaBillingService
 });
-app.use('/api/admin', adminRouter);
+app.use('/api/admin/noa', createNoaAdminRouter({
+  billingService: noaBillingService,
+  receiptService: noaReceiptService,
+  receiptStorage: noaReceiptStorage,
+  requireAdminAuth: adminModule.requireAdminAuth,
+  appendAudit: adminModule.appendAudit,
+  logger: console
+}));
+app.use('/api/admin', adminModule.router);
 
 app.use(createHealthRouter({
   httpClient: axios,
@@ -632,11 +671,13 @@ app.use((err, req, res, _next) => {
 // ─── DB-first startup; importing this module never starts HTTP or a worker. ───
 async function startServer({ installSignalHandlers = true } = {}) {
   let server;
+  let noaExpiryTimer = null;
   let shutdownPromise = null;
   const shutdown = async () => {
     if (shutdownPromise) return shutdownPromise;
     shutdownPromise = (async () => {
       await videoWorkerRuntime?.stop?.();
+      if (noaExpiryTimer) clearInterval(noaExpiryTimer);
       if (server) await new Promise((resolve) => server.close(resolve));
       await repositories.db.close();
     })();
@@ -649,8 +690,29 @@ async function startServer({ installSignalHandlers = true } = {}) {
     console.log('[BOOT] Database initialized');
     if (String(process.env.BALE_MONITOR_ENABLED || '0') === '1') initBaleMonitor(app);
     else console.log('[BALE] monitor disabled');
-    videoWorkerRuntime = createConfiguredVideoWorkerRuntime({ db: repositories.db, httpClient: axios, env: process.env, role: 'embedded', logger: console });
+    videoWorkerRuntime = createConfiguredVideoWorkerRuntime({
+      db: repositories.db,
+      httpClient: axios,
+      noaBillingService,
+      env: process.env,
+      role: 'embedded',
+      logger: console
+    });
     await videoWorkerRuntime.start();
+    const sweepExpiredNoaReservations = async () => {
+      const released = await noaBillingService.releaseExpiredReservations({ limit: 250 });
+      const reconciled = await reconcileExpiredNoaOperations(repositories.db);
+      return { released, reconciled };
+    };
+    await sweepExpiredNoaReservations().catch((error) => {
+      console.error('[NOA] Initial reservation cleanup failed:', error.message);
+    });
+    noaExpiryTimer = setInterval(() => {
+      sweepExpiredNoaReservations().catch((error) => {
+        console.error('[NOA] Reservation cleanup failed:', error.message);
+      });
+    }, 60_000);
+    noaExpiryTimer.unref?.();
   } catch (err) {
     console.error('[BOOT] Database initialization failed:', err.message);
     throw err;

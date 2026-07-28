@@ -2,6 +2,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import { deleteGalleryImage, fetchProtectedImageBlobUrl, GalleryImage, getImageGenerationStatus, listGalleryImages, startImageEdit, startImageGeneration } from './services/imageGeneration';
 import ImageViewer from './ImageViewer';
 import Icon from './components/Icon';
+import { formatDecimalFa } from './noa/decimal';
+import { fetchNoaPublicConfig } from './noa/noa.service';
 import './ImageStudio.css';
 
 const ratios = [
@@ -81,6 +83,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
   const [editSource, setEditSource] = useState<GalleryImage | null>(null);
   const [error, setError] = useState('');
   const [galleryError, setGalleryError] = useState('');
+  const [imagePriceNoa, setImagePriceNoa] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [sortOpen, setSortOpen] = useState(false);
   const inFlight = useRef(false);
@@ -115,6 +118,19 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
   };
   useEffect(() => { void load(); }, []);
   useEffect(() => {
+    let active = true;
+    void fetchNoaPublicConfig()
+      .then((config) => {
+        if (!active) return;
+        const price = config.pricingConfigs.find((item) => item.actionKey === 'image_generation' && item.isActive);
+        setImagePriceNoa(price?.unitPrice || '');
+      })
+      .catch(() => {
+        if (active) setImagePriceNoa('');
+      });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
     const editSourceId = editSourceToRestoreRef.current;
     if (!editSourceId) return;
     const matchingItem = items.find((item) => item.id === editSourceId);
@@ -136,6 +152,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
           const result = await getImageGenerationStatus(id);
           if (['QUEUE', 'WAITING', 'RUNNING'].includes(result.status)) hasPending = true;
           if (!stopped) setItems((old) => old.map((x) => x.id === id ? { ...x, ...result, updatedAt: new Date().toISOString() } : x));
+          if (['COMPLETED', 'ERROR'].includes(result.status)) window.dispatchEvent(new Event('noa:wallet-changed'));
         } catch { hasPending = true; }
       }
       if (!stopped && hasPending) { delay = Math.min(8000, Math.round(delay * 1.35)); window.setTimeout(poll, delay); }
@@ -161,6 +178,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
     try {
       const key = requestKey();
       const { taskId } = editSource ? await startImageEdit(editSource.id, value, ratio, key) : await startImageGeneration(value, { aspectRatio: ratio, idempotencyKey: key });
+      window.dispatchEvent(new Event('noa:wallet-changed'));
       const optimistic: GalleryImage = { id: taskId, taskId, originalPrompt: value, refinedPrompt: value, aspectRatio: ratio, operation: editSource ? 'edit' : 'generate', parentImageId: editSource?.id, status: 'QUEUE', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
       setItems((old) => [optimistic, ...old.filter((x) => x.id !== taskId)]); setTab('gallery'); setEditSource(null);
     } catch (e) { setError(e instanceof Error ? e.message : 'درخواست انجام نشد.'); }
@@ -197,7 +215,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
           <svg viewBox="0 0 24 24"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z" /><path d="m18.5 15 .7 2.8L22 18.5l-2.8.7-.7 2.8-.7-2.8-2.8-.7 2.8-.7.7-2.8Z" /></svg>
         </span>
         <span className="studio-brand-copy">
-          <strong>استودیوی تصویر</strong>
+          <h1>استودیوی تصویر</h1>
           <small>ایده‌ات را به تصویر تبدیل کن</small>
         </span>
       </div>
@@ -222,12 +240,27 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
             <div className="studio-textarea-wrap"><Icon name="sparkle" size="1em" className="studio-input-spark" aria-hidden="true" /><textarea ref={promptInputRef} id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, 700)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} maxLength={700} /></div>
             <div className="studio-idea-section">
               <span>برای شروع، یکی را انتخاب کن</span>
-              <div className="studio-ideas" aria-label="ایده‌های پیشنهادی">{(editSource ? editIdeas : promptIdeas).map((idea) => <button type="button" key={idea} onClick={() => setPrompt(idea)} disabled={busy}>{idea}</button>)}</div>
+              <div className="studio-ideas" aria-label="ایده‌های پیشنهادی" aria-describedby="studio-ideas-hint">
+                {(editSource ? editIdeas : promptIdeas).map((idea) => (
+                  <button
+                    type="button"
+                    key={idea}
+                    onClick={() => {
+                      setPrompt(idea);
+                      window.requestAnimationFrame(() => promptInputRef.current?.focus());
+                    }}
+                    disabled={busy}
+                  >
+                    {idea}
+                  </button>
+                ))}
+              </div>
+              <small id="studio-ideas-hint" className="studio-ideas-scroll-hint"><Icon name="chevron-left" size="1em" aria-hidden="true" /> برای دیدن ایده‌های بیشتر، ردیف را حرکت بده.</small>
             </div>
           </div>
           <div className="studio-submit-dock">
             <button className="studio-submit" disabled={busy || prompt.trim().length < 8}><Icon name="sparkle" size={18} className="studio-submit-icon" aria-hidden="true" /><span>{busy ? 'در حال ساخت تصویر...' : editSource ? 'ویرایش تصویر' : 'ساخت تصویر'}</span>{busy && <i aria-hidden="true" />}</button>
-            <small>{editSource ? 'تصویر اصلی شما بدون تغییر باقی می‌ماند.' : 'ساخت تصویر ممکن است چند لحظه زمان ببرد.'}</small>
+            <small>{imagePriceNoa ? `هزینه این عملیات ${formatDecimalFa(imagePriceNoa)} نوآ است؛ قیمت از تنظیم زنده سامانه خوانده می‌شود.` : editSource ? 'تصویر اصلی شما بدون تغییر باقی می‌ماند.' : 'قیمت زنده پیش از ثبت در سرور بررسی می‌شود.'}</small>
           </div>
         </section>
         <aside className="studio-settings-card" aria-label="تنظیمات تصویر">

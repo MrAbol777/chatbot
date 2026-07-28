@@ -1,14 +1,7 @@
 const { GUEST_USER_PREFIX, generateUserId, normalizeUuid } = require('./helpers');
 
-const GUEST_MESSAGE_LIMIT = 10;
-
 const normalizeGuestId = (value) => {
   return normalizeUuid(value);
-};
-
-const normalizeIp = (value) => {
-  const text = typeof value === 'string' ? value.trim() : '';
-  return text.slice(0, 64);
 };
 
 const toGuestUserId = (guestId) => generateUserId({ isGuest: true, uuid: guestId });
@@ -34,38 +27,6 @@ class GuestRepository {
       [userId, timestamp, timestamp]
     );
     return userId;
-  }
-
-  async getCurrentCount({ guestId, ipAddress }) {
-    await this.db.init();
-    const safeGuestId = normalizeGuestId(guestId);
-    const safeIp = normalizeIp(ipAddress);
-    if (!safeGuestId) return 0;
-
-    const [rows] = await this.db.query(
-      `SELECT COALESCE(MAX(message_count), 0) AS count
-       FROM guest_message_counts
-       WHERE guest_id = ? OR (ip_address = ? AND ip_address <> '')`,
-      [safeGuestId, safeIp]
-    );
-    return Number(rows[0]?.count || 0);
-  }
-
-  async incrementCount({ guestId, ipAddress }) {
-    await this.db.init();
-    const safeGuestId = normalizeGuestId(guestId);
-    const safeIp = normalizeIp(ipAddress);
-    if (!safeGuestId) return 0;
-
-    const timestamp = new Date();
-    await this.db.query(
-      `INSERT INTO guest_message_counts (guest_id, ip_address, message_count, created_at, last_message_at)
-       VALUES (?, ?, 1, ?, ?)
-       ON DUPLICATE KEY UPDATE message_count = message_count + 1, last_message_at = VALUES(last_message_at)`,
-      [safeGuestId, safeIp, timestamp, timestamp]
-    );
-
-    return this.getCurrentCount({ guestId: safeGuestId, ipAddress: safeIp });
   }
 
   async migrateGuestToUser({ guestId, userId }) {
@@ -114,7 +75,6 @@ class GuestRepository {
       }
 
       await conn.query('DELETE FROM app_conversations WHERE guest_id = ? OR user_id = ?', [safeGuestId, guestUserId]);
-      await conn.query('DELETE FROM guest_message_counts WHERE guest_id = ?', [safeGuestId]);
       await conn.query('DELETE FROM app_users WHERE user_id = ?', [guestUserId]);
 
       await conn.commit();
@@ -130,7 +90,6 @@ class GuestRepository {
 
 module.exports = {
   GuestRepository,
-  GUEST_MESSAGE_LIMIT,
   GUEST_USER_PREFIX,
   getGuestIdFromUserId,
   isGuestUserId,

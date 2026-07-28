@@ -16,6 +16,8 @@ const { loadVideoStorageConfig } = require('../src/modules/video-generation/stor
 const { VideoStorageError } = require('../src/modules/video-generation/storage/video-storage.errors');
 const { createVideoWorkerRepository } = require('../src/modules/video-generation/worker/video-worker.repository');
 const { loadVideoWorkerConfig } = require('../src/modules/video-generation/worker/video-worker.config');
+const { createNoaRepository } = require('../src/modules/noa/noa.repository');
+const { createNoaBillingService } = require('../src/modules/noa/noa-billing.service');
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
@@ -172,11 +174,11 @@ function createOneShotDownloadProvider({ report, storageConfig, resolver }) {
 
 async function findMatchingJobs(db) {
   const [rows] = await db.query(
-    `SELECT g.*, r.status AS reservation_status, r.period_key AS reservation_period_key,
-            u.video_used, u.video_reserved
+    `SELECT g.*, r.status AS reservation_status,
+            w.available_balance AS noa_available, w.reserved_balance AS noa_reserved
        FROM app_video_generations g
-       LEFT JOIN app_video_quota_reservations r ON r.id=g.quota_reservation_id
-       LEFT JOIN app_video_usage u ON u.user_id=g.user_id AND u.period_key=r.period_key
+       LEFT JOIN app_noa_reservations r ON r.reservation_id=g.noa_reservation_id
+       LEFT JOIN app_noa_wallets w ON w.wallet_id=r.wallet_id
       WHERE g.user_id=? AND g.provider='metis' AND g.model_key=? AND g.provider_model_id_snapshot='kling-v2.5-turbo-pro' AND g.provider_job_id IS NOT NULL
         AND g.provider_job_id LIKE ? AND g.provider_job_id LIKE ?
       ORDER BY g.created_at DESC`,
@@ -196,10 +198,11 @@ async function claimOneShotLease(db, jobId, workerId) {
 async function readSnapshot(db, jobId) {
   const [rows] = await db.query(
     `SELECT g.id, g.user_id, g.status, g.provider_job_id, g.storage_attempts, g.result_storage_key, g.result_mime_type, g.result_size_bytes, g.result_sha256,
-            r.status AS reservation_status, u.video_used, u.video_reserved
+            r.status AS reservation_status,
+            w.available_balance AS noa_available, w.reserved_balance AS noa_reserved
        FROM app_video_generations g
-       LEFT JOIN app_video_quota_reservations r ON r.id=g.quota_reservation_id
-       LEFT JOIN app_video_usage u ON u.user_id=g.user_id AND u.period_key=r.period_key
+       LEFT JOIN app_noa_reservations r ON r.reservation_id=g.noa_reservation_id
+       LEFT JOIN app_noa_wallets w ON w.wallet_id=r.wallet_id
       WHERE g.id=? LIMIT 1`,
     [jobId]
   );
@@ -250,13 +253,16 @@ async function main() {
     report.generationId = mask(job.provider_job_id);
     report.jobStatusBefore = job.status;
     report.reservationStatusBefore = job.reservation_status || null;
-    report.usageBefore = { used: Number(job.video_used || 0), reserved: Number(job.video_reserved || 0) };
+    report.walletBefore = {
+      availableNoa: job.noa_available === null ? null : String(job.noa_available),
+      reservedNoa: job.noa_reserved === null ? null : String(job.noa_reserved)
+    };
     if (matchState === 'terminal') {
       report.outcome = `terminal-${String(job.status || 'unknown').toLowerCase()}`;
       console.log(JSON.stringify(report, null, 2));
       return;
     }
-    if (!job.quota_reservation_id || job.reservation_status !== 'reserved') {
+    if (!job.noa_reservation_id || job.reservation_status !== 'reserved') {
       report.outcome = 'blocked-invalid-existing-job';
       console.log(JSON.stringify(report, null, 2));
       return;
@@ -271,7 +277,12 @@ async function main() {
     claimedJobId = job.id;
     report.workerDuring = 'one-shot-lease-only';
     job = await readSnapshot(db, job.id);
-    const workerRepository = createVideoWorkerRepository(db);
+    const noaBillingService = createNoaBillingService({
+      repository: createNoaRepository(db)
+    });
+    const workerRepository = createVideoWorkerRepository(db, {
+      noaBillingService
+    });
     const provider = createMetisVideoProvider({ httpClient: createCountingStatusClient(report), baseUrl: process.env.METIS_BASE_URL, apiKey: process.env.METIS_API_KEY, resultAllowedHosts: [RESULT_HOST], resultAllowedPorts: [443], resultMaxRedirects: 0 });
     let status;
     try {
@@ -321,7 +332,14 @@ async function main() {
     const after = await readSnapshot(db, job.id);
     report.jobStatusAfter = after?.status || null;
     report.reservationStatusAfter = after?.reservation_status || null;
-    report.usageAfter = { used: Number(after?.video_used || 0), reserved: Number(after?.video_reserved || 0) };
+    report.walletAfter = {
+      availableNoa: after?.noa_available === null || after?.noa_available === undefined
+        ? null
+        : String(after.noa_available),
+      reservedNoa: after?.noa_reserved === null || after?.noa_reserved === undefined
+        ? null
+        : String(after.noa_reserved)
+    };
     report.storageKey = after?.result_storage_key || null;
     report.contentType = report.contentType || after?.result_mime_type || null;
     report.sizeBytes = after?.result_size_bytes === null || after?.result_size_bytes === undefined ? null : Number(after.result_size_bytes);
@@ -335,7 +353,17 @@ async function main() {
     process.exitCode = 1;
   } finally {
     if (pool && leaseClaimed && workerId && claimedJobId) {
-      try { await createVideoWorkerRepository({ query: (...args) => pool.query(...args), getConnection: () => pool.getConnection() }).releaseJobLease({ jobId: claimedJobId, workerId }); } catch (_) {}
+      try {
+        const db = {
+          query: (...args) => pool.query(...args),
+          getConnection: () => pool.getConnection()
+        };
+        const noaBillingService = createNoaBillingService({
+          repository: createNoaRepository(db)
+        });
+        await createVideoWorkerRepository(db, { noaBillingService })
+          .releaseJobLease({ jobId: claimedJobId, workerId });
+      } catch (_) {}
     }
     if (pool) await pool.end();
   }

@@ -3,8 +3,6 @@ const REPORT_SECTIONS = [
   'errors',
   'conversation_summary',
   'messages',
-  'plans_usage',
-  'guest_usage',
   'ai_performance',
   'guest_conversations',
   'supervised_otp_usage'
@@ -15,8 +13,6 @@ const SECTION_LABELS = {
   errors: 'Errors',
   conversation_summary: 'Conversation summary',
   messages: 'Messages',
-  plans_usage: 'Plans usage',
-  guest_usage: 'Guest usage',
   ai_performance: 'AI performance',
   guest_conversations: 'Guest conversations',
   supervised_otp_usage: 'Supervised OTP usage'
@@ -35,7 +31,6 @@ function createAdminAnalyticsService({
   getErrorDistribution,
   getRecentAuditLogs,
   getStats,
-  getPlanSubscriptions,
   getSupervisedOtpUsage
 }) {
   const getLegacyStats = async () => getStats();
@@ -102,12 +97,6 @@ function createAdminAnalyticsService({
     return true;
   };
 
-  const isUsageDateInRange = (value, range) => {
-    if (!value) return !range.from && !range.to;
-    const text = String(value).slice(0, 10);
-    return isInDateRange(`${text}T12:00:00.000`, range);
-  };
-
   const normalizeSections = ({ sections, users, errors, conversations, messages } = {}) => {
     const requested = String(sections || '')
       .split(',')
@@ -172,7 +161,6 @@ function createAdminAnalyticsService({
           ai_response: assistantResponse?.content || '',
           model: assistantResponse?.model || userMessage.model || '',
           response_time_ms: assistantResponse?.response_time_ms || '',
-          limit_status: assistantResponse?.limit_status || userMessage.limit_status || '',
           error_code: assistantResponse?.error_code || userMessage.error_code || '',
           created_at: formatDate(userMessage.created_at),
           ambiguous_user_message: looksAmbiguous(userMessage.content) ? 'yes' : 'no',
@@ -195,19 +183,11 @@ function createAdminAnalyticsService({
       .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
   };
 
-  const buildGuestConversationGroups = ({ users, conversations, messages, guestMessageCounts, filters }) => {
+  const buildGuestConversationGroups = ({ users, conversations, messages, filters }) => {
     const guestMessages = messages.filter((item) => isGuestRecord(item));
     const guestConversations = conversations.filter((item) => isGuestRecord(item) || deriveGuestId(item));
     const guestUsers = users.filter((item) => isGuestUserId(item.user_id));
     const guestTurns = pairMessageTurns(guestMessages);
-
-    const ipByGuest = new Map();
-    for (const item of guestMessageCounts) {
-      const guestId = String(item.guest_id || '').trim();
-      if (!guestId) continue;
-      if (!ipByGuest.has(guestId)) ipByGuest.set(guestId, []);
-      ipByGuest.get(guestId).push(item);
-    }
 
     const userByGuest = new Map(guestUsers.map((item) => [deriveGuestId(item), item]));
     const conversationByGuest = new Map();
@@ -227,7 +207,6 @@ function createAdminAnalyticsService({
     }
 
     const guestIds = new Set([
-      ...ipByGuest.keys(),
       ...userByGuest.keys(),
       ...conversationByGuest.keys(),
       ...turnsByGuest.keys()
@@ -235,10 +214,6 @@ function createAdminAnalyticsService({
 
     const groups = [];
     for (const guestId of guestIds) {
-      const guestIpRows = [...(ipByGuest.get(guestId) || [])].sort(
-        (a, b) => new Date(b.last_message_at || b.created_at || 0).getTime() - new Date(a.last_message_at || a.created_at || 0).getTime()
-      );
-      const ips = [...new Set(guestIpRows.map((item) => String(item.ip_address || '').trim()).filter(Boolean))];
       const guestUser = userByGuest.get(guestId) || null;
       const guestConversationItems = [...(conversationByGuest.get(guestId) || [])];
       const guestTurnItems = [...(turnsByGuest.get(guestId) || [])].sort(
@@ -286,12 +261,9 @@ function createAdminAnalyticsService({
       if (conversationSummaries.length === 0) continue;
 
       const filteredTurnItems = conversationSummaries.flatMap((conversation) => conversation.turns);
-      const lastTurnWithLimit = [...filteredTurnItems].reverse().find((turn) => turn.limit_status);
       const timeCandidates = [
         guestUser?.registered_at,
         guestUser?.last_active,
-        ...guestIpRows.map((item) => item.created_at),
-        ...guestIpRows.map((item) => item.last_message_at),
         ...guestConversationItems.map((item) => item.created_at),
         ...guestConversationItems.map((item) => item.updated_at),
         ...guestTurnItems.map((item) => item.created_at)
@@ -302,12 +274,11 @@ function createAdminAnalyticsService({
 
       groups.push({
         guest_id: guestId,
-        ip_address: ips.join(', '),
+        ip_address: '',
         first_seen: firstSeen,
         last_active: lastActive,
         message_count: baseMessageCount,
         conversation_count: new Set(allConversationItems.map((item) => item.conversation_id)).size || new Set(guestTurnItems.map((item) => item.conversation_id)).size,
-        limit_status: lastTurnWithLimit?.limit_status || '',
         latest_messages: filteredTurnItems.slice(-3),
         conversations: conversationSummaries.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
       });
@@ -334,12 +305,8 @@ function createAdminAnalyticsService({
         errors: [],
         events: [],
         conversations: [],
-        chatMessages: [],
-        plans: [],
-        planDailyUsage: [],
-        guestMessageCounts: []
+        chatMessages: []
       });
-    const planSubscriptions = typeof getPlanSubscriptions === 'function' ? await getPlanSubscriptions() : [];
     const supervisedOtpUsage = typeof getSupervisedOtpUsage === 'function' ? await getSupervisedOtpUsage() : [];
 
     const matchesUser = (item) => {
@@ -358,12 +325,6 @@ function createAdminAnalyticsService({
     const messages = (data.chatMessages || []).filter((item) => matchesUser(item) && isInDateRange(item.created_at, dateRange));
     const events = (data.events || []).filter((item) => matchesUser(item) && isInDateRange(item.created_at, dateRange));
     const errors = (data.errors || []).filter((item) => isInDateRange(item.created_at, dateRange));
-    const planDailyUsage = (data.planDailyUsage || []).filter(
-      (item) => matchesUser(item) && isUsageDateInRange(item.usage_date, dateRange)
-    );
-    const guestMessageCounts = (data.guestMessageCounts || []).filter(
-      (item) => isInDateRange(item.last_message_at || item.created_at, dateRange)
-    );
     const supervisedOtpUsageRows = (supervisedOtpUsage || []).filter(
       (item) => matchesUser(item) && isInDateRange(item.used_at, dateRange)
     );
@@ -373,14 +334,12 @@ function createAdminAnalyticsService({
     const responseTimes = assistantMessages
       .map((item) => Number(item.response_time_ms))
       .filter((item) => Number.isFinite(item) && item >= 0);
-    const limitErrors = errors.filter((item) => /LIMIT/i.test(`${item.error_type || ''} ${item.details || ''}`));
     const ambiguousMessages = messages.filter((item) => item.role === 'user' && looksAmbiguous(item.content));
     const messageTurns = pairMessageTurns(messages);
     const guestConversationGroups = buildGuestConversationGroups({
       users: data.users || [],
       conversations,
       messages,
-      guestMessageCounts,
       filters: guestFilters
     });
     const activeUserIds = new Set(messages.filter((item) => item.user_id).map((item) => String(item.user_id)));
@@ -402,10 +361,6 @@ function createAdminAnalyticsService({
         events,
         conversations,
         messages,
-        plans: data.plans || [],
-        planDailyUsage,
-        planSubscriptions,
-        guestMessageCounts,
         messageTurns,
         guestConversationGroups,
         supervisedOtpUsage: supervisedOtpUsageRows
@@ -420,7 +375,6 @@ function createAdminAnalyticsService({
         guestMessages: messages.filter((item) => item.role === 'user' && isGuestRecord(item)).length,
         registeredUserMessages: messages.filter((item) => item.role === 'user' && item.user_type !== 'guest').length,
         successfulMessages: assistantMessages.filter((item) => !item.error_code).length,
-        limitedMessages: limitErrors.length + messages.filter((item) => /limit/i.test(String(item.limit_status || ''))).length,
         errors: errors.length,
         averageAiResponseMs: responseTimes.length
           ? Math.round(responseTimes.reduce((sum, item) => sum + item, 0) / responseTimes.length)
@@ -496,7 +450,7 @@ function createAdminAnalyticsService({
 
     if (sections.includes('messages')) {
       lines.push('MESSAGES');
-      lines.push('user_id,guest_id,user_type,conversation_id,message_id,created_at,role,content,model,response_time_ms,token_usage,error_code,limit_status');
+      lines.push('user_id,guest_id,user_type,conversation_id,message_id,created_at,role,content,model,response_time_ms,token_usage,error_code');
       for (const item of data.messages) {
         lines.push(
           [
@@ -511,35 +465,8 @@ function createAdminAnalyticsService({
             item.model || '',
             item.response_time_ms || '',
             item.token_usage || '',
-            item.error_code || '',
-            item.limit_status || ''
+            item.error_code || ''
           ]
-            .map(csvEscape)
-            .join(',')
-        );
-      }
-      lines.push('');
-    }
-
-    if (sections.includes('plans_usage')) {
-      lines.push('PLANS_USAGE');
-      lines.push('user_id,usage_date,message_count,image_count,updated_at');
-      for (const item of data.planDailyUsage) {
-        lines.push(
-          [item.user_id || '', item.usage_date || '', item.message_count || 0, item.image_count || 0, item.updated_at || '']
-            .map(csvEscape)
-            .join(',')
-        );
-      }
-      lines.push('');
-    }
-
-    if (sections.includes('guest_usage')) {
-      lines.push('GUEST_USAGE');
-      lines.push('guest_id,ip_address,message_count,created_at,last_message_at');
-      for (const item of data.guestMessageCounts) {
-        lines.push(
-          [item.guest_id || '', item.ip_address || '', item.message_count || 0, item.created_at || '', item.last_message_at || '']
             .map(csvEscape)
             .join(',')
         );
@@ -549,7 +476,7 @@ function createAdminAnalyticsService({
 
     if (sections.includes('guest_conversations')) {
       lines.push('GUEST_CONVERSATIONS');
-      lines.push('guest_id,ip_address,conversation_id,created_at,user_message,ai_response,model,response_time_ms,limit_status,error_code');
+      lines.push('guest_id,ip_address,conversation_id,created_at,user_message,ai_response,model,response_time_ms,error_code');
       for (const guest of data.guestConversationGroups) {
         for (const conversation of guest.conversations) {
           for (const turn of conversation.turns) {
@@ -563,7 +490,6 @@ function createAdminAnalyticsService({
                 turn.ai_response || '',
                 turn.model || '',
                 turn.response_time_ms || '',
-                turn.limit_status || '',
                 turn.error_code || ''
               ]
                 .map(csvEscape)
@@ -595,7 +521,6 @@ function createAdminAnalyticsService({
         ['guest_messages', summary.guestMessages],
         ['registered_user_messages', summary.registeredUserMessages],
         ['average_ai_response_ms', summary.averageAiResponseMs],
-        ['limited_messages', summary.limitedMessages],
         ['successful_messages', summary.successfulMessages],
         ['active_users', summary.activeUsers],
         ['unanswered_conversations', summary.unansweredConversations],
@@ -628,7 +553,6 @@ function createAdminAnalyticsService({
       `guest_messages: ${summary.guestMessages}`,
       `registered_user_messages: ${summary.registeredUserMessages}`,
       `successful_messages: ${summary.successfulMessages}`,
-      `limited_messages: ${summary.limitedMessages}`,
       `errors: ${summary.errors}`,
       `average_ai_response_ms: ${summary.averageAiResponseMs}`,
       `unanswered_conversations: ${summary.unansweredConversations}`,
@@ -692,42 +616,12 @@ function createAdminAnalyticsService({
         lines.push(`  created_at: ${turn.created_at}`);
         lines.push(`  model: ${turn.model}`);
         lines.push(`  response_time_ms: ${turn.response_time_ms}`);
-        lines.push(`  limit_status: ${turn.limit_status}`);
         lines.push(`  error_code: ${turn.error_code}`);
         lines.push(`  ambiguous_user_message: ${turn.ambiguous_user_message}`);
         lines.push('  user_message: |');
         lines.push(...String(turn.user_message || '').split(/\r?\n/).map((line) => `    ${line}`));
         lines.push('  ai_response: |');
         lines.push(...String(turn.ai_response || '').split(/\r?\n/).map((line) => `    ${line}`));
-      }
-    }
-
-    if (sections.includes('plans_usage')) {
-      appendSection(lines, 'PLANS_USAGE');
-      lines.push('plans:');
-      for (const plan of data.plans) {
-        lines.push(`- id: ${plan.id || ''}, name: ${plan.name || ''}, active: ${Boolean(plan.is_active)}, daily_message_limit: ${plan.daily_message_limit ?? ''}, daily_image_limit: ${plan.daily_image_limit ?? ''}, hourly_image_limit: ${plan.hourly_image_limit ?? ''}`);
-      }
-      lines.push('usage:');
-      for (const item of data.planDailyUsage) {
-        lines.push(`- user_id: ${item.user_id || ''}, usage_date: ${String(item.usage_date || '').slice(0, 10)}, messages: ${item.message_count || 0}, images: ${item.image_count || 0}`);
-      }
-      if (data.planSubscriptions.length > 0) {
-        lines.push('subscriptions:');
-        for (const item of data.planSubscriptions) {
-          lines.push(`- user_id: ${item.userId || ''}, plan_id: ${item.planId || ''}, status: ${item.status || ''}, assigned_at: ${item.assignedAt || ''}, expires_at: ${item.expiresAt || ''}`);
-        }
-      }
-    }
-
-    if (sections.includes('guest_usage')) {
-      appendSection(lines, 'GUEST_USAGE');
-      for (const item of data.guestMessageCounts) {
-        lines.push(`- guest_id: ${item.guest_id || ''}`);
-        lines.push(`  ip_address: ${item.ip_address || ''}`);
-        lines.push(`  message_count: ${item.message_count || 0}`);
-        lines.push(`  created_at: ${formatDate(item.created_at)}`);
-        lines.push(`  last_message_at: ${formatDate(item.last_message_at)}`);
       }
     }
 
@@ -740,7 +634,6 @@ function createAdminAnalyticsService({
         lines.push(`  last_active: ${guest.last_active || ''}`);
         lines.push(`  message_count: ${guest.message_count || 0}`);
         lines.push(`  conversation_count: ${guest.conversation_count || 0}`);
-        lines.push(`  limit_status: ${guest.limit_status || ''}`);
         if (guest.latest_messages.length > 0) {
           lines.push('  latest_messages:');
           for (const turn of guest.latest_messages) {
@@ -758,7 +651,6 @@ function createAdminAnalyticsService({
             lines.push(`    - created_at: ${turn.created_at || ''}`);
             lines.push(`      model: ${turn.model || ''}`);
             lines.push(`      response_time_ms: ${turn.response_time_ms || ''}`);
-            lines.push(`      limit_status: ${turn.limit_status || ''}`);
             lines.push(`      error_code: ${turn.error_code || ''}`);
             lines.push(`      ambiguous_user_message: ${turn.ambiguous_user_message || 'no'}`);
             lines.push('      user_message: |');
@@ -786,7 +678,6 @@ function createAdminAnalyticsService({
       lines.push(`guest_messages: ${summary.guestMessages}`);
       lines.push(`registered_user_messages: ${summary.registeredUserMessages}`);
       lines.push(`average_ai_response_ms: ${summary.averageAiResponseMs}`);
-      lines.push(`limited_messages: ${summary.limitedMessages}`);
       lines.push(`successful_messages: ${summary.successfulMessages}`);
       lines.push(`active_users: ${summary.activeUsers}`);
       lines.push(`unanswered_conversations: ${summary.unansweredConversations}`);

@@ -16,10 +16,13 @@ function createVideoGenerationWorker({ repository, processingService, config, wo
         await repository.recoverExpiredLeases();
         const leaseSeconds = Math.ceil(config.leaseMs / 1000);
         const expiredJobs = await repository.claimExpiredJobs({ workerId, leaseSeconds, limit: config.batchSize });
-        const pollableJobs = expiredJobs.length < config.batchSize
-          ? await repository.claimPollableJobs({ workerId, leaseSeconds, limit: config.batchSize - expiredJobs.length })
+        const submittableJobs = expiredJobs.length < config.batchSize && typeof repository.claimSubmittableJobs === 'function'
+          ? await repository.claimSubmittableJobs({ workerId, leaseSeconds, limit: config.batchSize - expiredJobs.length })
           : [];
-        const jobs = [...expiredJobs, ...pollableJobs];
+        const pollableJobs = expiredJobs.length + submittableJobs.length < config.batchSize
+          ? await repository.claimPollableJobs({ workerId, leaseSeconds, limit: config.batchSize - expiredJobs.length - submittableJobs.length })
+          : [];
+        const jobs = [...expiredJobs, ...submittableJobs, ...pollableJobs];
         const results = [];
         for (const job of jobs) {
           try { results.push(await this.processClaimedJob(job)); }

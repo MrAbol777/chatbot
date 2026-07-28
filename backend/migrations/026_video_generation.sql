@@ -13,20 +13,11 @@ CREATE TABLE IF NOT EXISTS app_video_models (
   allowed_qualities JSON NOT NULL,
   max_prompt_length INT NOT NULL,
   max_input_image_bytes BIGINT NULL,
-  quota_units INT NOT NULL,
+  quota_units INT NULL,
   sort_order INT NOT NULL DEFAULT 999,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   INDEX idx_video_models_active_sort (is_active, sort_order)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE IF NOT EXISTS app_video_usage (
-  user_id VARCHAR(191) NOT NULL,
-  period_key VARCHAR(32) NOT NULL,
-  video_used INT NOT NULL DEFAULT 0,
-  video_reserved INT NOT NULL DEFAULT 0,
-  updated_at DATETIME NOT NULL,
-  PRIMARY KEY (user_id, period_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS app_video_generations (
@@ -44,8 +35,8 @@ CREATE TABLE IF NOT EXISTS app_video_generations (
   input_media_reference VARCHAR(191) NULL,
   provider_job_id VARCHAR(191) NULL,
   provider_status VARCHAR(64) NULL,
-  quota_units INT NOT NULL,
-  quota_reservation_id VARCHAR(64) NOT NULL,
+  quota_units INT NULL,
+  quota_reservation_id VARCHAR(64) NULL,
   result_storage_key VARCHAR(255) NULL,
   result_mime_type VARCHAR(100) NULL,
   result_size_bytes BIGINT NULL,
@@ -70,18 +61,4 @@ CREATE TABLE IF NOT EXISTS app_video_generations (
   INDEX idx_video_generations_status_poll (status, next_poll_at),
   INDEX idx_video_generations_provider_job (provider_job_id),
   INDEX idx_video_generations_lease (worker_lease_until)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE IF NOT EXISTS app_video_quota_reservations (
-  id VARCHAR(64) PRIMARY KEY,
-  user_id VARCHAR(191) NOT NULL,
-  period_key VARCHAR(32) NOT NULL,
-  generation_id VARCHAR(64) NOT NULL,
-  quota_units INT NOT NULL,
-  status ENUM('reserved','finalized','released') NOT NULL DEFAULT 'reserved',
-  created_at DATETIME NOT NULL,
-  updated_at DATETIME NOT NULL,
-  UNIQUE KEY uq_video_reservation_generation (generation_id),
-  INDEX idx_video_reservation_status (status),
-  CONSTRAINT fk_video_reservation_generation FOREIGN KEY (generation_id) REFERENCES app_video_generations(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

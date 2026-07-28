@@ -9,7 +9,7 @@ function parseRange(value, size) {
 }
 function resolveContentCookieOwner(req, jwtSecret) {
   try {
-    const token = req.cookies && typeof req.cookies.danao_video_content === 'string' ? req.cookies.danao_video_content : '';
+    const token = req.cookies && typeof req.cookies.danoa_video_content === 'string' ? req.cookies.danoa_video_content : '';
     if (!token || !jwtSecret) return '';
     const payload = jwt.verify(token, jwtSecret);
     if (payload.purpose !== 'video-content' || String(payload.generationId || '') !== String(req.params?.generationId || '') || !payload.sub) return '';
@@ -21,7 +21,9 @@ function createVideoContentController({ service, storage, jwtSecret }) {
     let userId = String(req.user?.id || '');
     if (!userId && !req.videoAdmin) userId = resolveContentCookieOwner(req, jwtSecret);
     if (!userId && !req.videoAdmin) return res.status(401).json({ error: 'VIDEO_GENERATION_LOGIN_REQUIRED' });
-    const job = req.videoAdmin ? await service.getForAdmin(req.params.generationId) : await service.get(req.params.generationId, userId);
+    const job = req.videoAdmin
+      ? await (service.getContentRecordForAdmin || service.getForAdmin)(req.params.generationId)
+      : await (service.getContentRecord || service.get)(req.params.generationId, userId);
     if (!job) return res.status(404).json({ error: 'VIDEO_GENERATION_NOT_FOUND' });
     if (job.status !== 'succeeded' || !job.result_storage_key) return res.status(409).json({ error: 'VIDEO_RESULT_NOT_READY' });
     let stat; try { stat = await storage.stat(job.result_storage_key); } catch (_) { return res.status(404).json({ error: 'VIDEO_RESULT_FILE_MISSING' }); }

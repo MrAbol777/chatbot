@@ -33,6 +33,13 @@ function authHeaders(): Record<string, string> {
   return h;
 }
 
+function createImageIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `image-${crypto.randomUUID()}`;
+  }
+  return `image-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export type ImageTaskStatus = 'QUEUE' | 'RUNNING' | 'WAITING' | 'COMPLETED' | 'ERROR';
 
 interface GenerateImageResponse { success: boolean; taskId: string; error?: string; message?: string; }
@@ -42,8 +49,9 @@ interface ImageStatusResponse {
 }
 
 export async function startImageGeneration(prompt: string, options: { aspectRatio?: string; idempotencyKey?: string; conversationId?: string } = {}): Promise<{ taskId: string }> {
+  const idempotencyKey = options.idempotencyKey || createImageIdempotencyKey();
   const res = await safeFetch(apiUrl('/api/images/generate'), {
-    method: 'POST', headers: { ...authHeaders(), ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}) },
+    method: 'POST', headers: { ...authHeaders(), 'Idempotency-Key': idempotencyKey },
     credentials: 'include', body: JSON.stringify({ prompt, aspectRatio: options.aspectRatio, conversationId: options.conversationId })
   });
   if (!res.ok) {

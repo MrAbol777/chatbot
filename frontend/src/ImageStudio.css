@@ -138,7 +138,8 @@
   min-width: 0;
   gap: 2px;
 }
-.studio-brand-copy strong {
+.studio-brand-copy h1 {
+  margin: 0;
   color: var(--text-main);
   font-size: clamp(.95rem, 2vw, 1.1rem);
   line-height: 1.15;
@@ -146,12 +147,12 @@
 }
 .studio-brand-copy small {
   display: block;
-  color: color-mix(in srgb, var(--text-main) 56%, transparent);
-  font-size: .72rem;
+  color: color-mix(in srgb, var(--text-main) 74%, transparent);
+  font-size: .875rem;
   font-weight: 600;
 }
 .studio-header-back {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 12px 0 8px;
   display: inline-flex;
   align-items: center;
@@ -162,7 +163,7 @@
   color: var(--primary-dark);
   background: color-mix(in srgb, var(--card-bg) 80%, transparent);
   box-shadow: 0 5px 14px color-mix(in srgb, var(--primary) 6%, transparent);
-  font: 800 .78rem inherit;
+  font: 800 .875rem inherit;
   cursor: pointer;
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
@@ -201,7 +202,7 @@
 .studio-tabs {
   position: relative;
   width: min(100%, 380px);
-  height: 44px;
+  height: 52px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 3px;
@@ -219,7 +220,8 @@
   border-radius: 10px;
   color: color-mix(in srgb, var(--text-main) 52%, transparent);
   background: transparent;
-  font: 600 .85rem inherit;
+  min-height: 44px;
+  font: 600 .875rem inherit;
   cursor: pointer;
   transition: color 200ms ease;
 }
@@ -233,7 +235,7 @@
   top: 4px;
   right: 4px;
   width: calc(50% - 5px);
-  height: 34px;
+  height: 42px;
   border-radius: 9px;
   background: var(--card-bg);
   box-shadow: 0 3px 10px color-mix(in srgb, var(--primary) 9%, transparent);
@@ -358,7 +360,7 @@
   transition: border-color 200ms ease, background 200ms ease, box-shadow 200ms ease, transform 200ms ease;
 }
 .studio-create textarea::placeholder {
-  color: color-mix(in srgb, var(--text-main) 42%, transparent);
+  color: color-mix(in srgb, var(--text-main) 68%, transparent);
 }
 .studio-create textarea:hover {
   border-color: color-mix(in srgb, var(--primary) 28%, var(--surface-border));
@@ -379,13 +381,13 @@
 .studio-ideas::-webkit-scrollbar { display: none; }
 .studio-ideas button {
   flex: 0 0 auto;
-  min-height: 34px;
+  min-height: 44px;
   padding: 6px 12px;
   border: 1px solid color-mix(in srgb, var(--primary) 15%, var(--surface-border));
   border-radius: 999px;
   color: color-mix(in srgb, var(--text-main) 72%, transparent);
   background: color-mix(in srgb, var(--primary) 5%, var(--card-bg));
-  font: 500 .75rem inherit;
+  font: 600 .875rem inherit;
   cursor: pointer;
   transition: transform 180ms ease, color 180ms ease, border-color 180ms ease, background 180ms ease;
 }
@@ -394,6 +396,16 @@
   border-color: color-mix(in srgb, var(--primary) 36%, transparent);
   color: var(--primary-dark);
   background: color-mix(in srgb, var(--primary) 9%, var(--card-bg));
+}
+.studio-ideas button:active { transform: scale(.98); }
+.studio-ideas-scroll-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  color: color-mix(in srgb, var(--text-main) 74%, transparent);
+  font-size: .8125rem;
+  font-weight: 650;
 }
 
 /* ====== RATIO PICKER ====== */
@@ -926,7 +938,7 @@
   .studio-brand { gap: 8px; }
   .studio-brand-mark { width: 36px; height: 36px; border-radius: 11px; }
   .studio-brand-mark svg { width: 20px; height: 20px; }
-  .studio-brand-copy strong { font-size: .85rem; }
+  .studio-brand-copy h1 { font-size: .875rem; }
   .studio-brand-copy small { font-size: .66rem; }
   .studio-header-back { width: 36px; min-height: 36px; border-radius: 10px; }
   .studio-tabs { width: 100%; height: 42px; margin-top: 2px; margin-bottom: 18px; border-radius: 12px; }
@@ -1016,8 +1028,8 @@ body.studio-viewer-open .chat-studio-switcher {
 .studio-prompt-block { gap: 10px; }
 .studio-field-help {
   margin: 0 0 4px;
-  color: color-mix(in srgb, var(--text-main) 55%, transparent);
-  font-size: .82rem;
+  color: color-mix(in srgb, var(--text-main) 74%, transparent);
+  font-size: .875rem;
   line-height: 1.7;
 }
 .studio-create textarea {
@@ -1034,16 +1046,16 @@ body.studio-viewer-open .chat-studio-switcher {
   margin-top: 4px;
 }
 .studio-idea-section > span {
-  color: color-mix(in srgb, var(--text-main) 52%, transparent);
-  font-size: .75rem;
+  color: color-mix(in srgb, var(--text-main) 74%, transparent);
+  font-size: .875rem;
   font-weight: 650;
 }
 .studio-ideas { padding-bottom: 4px; }
-.studio-ideas button { min-height: 38px; padding-inline: 14px; }
+.studio-ideas button { min-height: 44px; padding-inline: 14px; }
 .studio-submit-dock { display: grid; gap: 9px; margin-top: 26px; }
 .studio-submit-dock > small {
-  color: color-mix(in srgb, var(--text-main) 48%, transparent);
-  font-size: .74rem;
+  color: color-mix(in srgb, var(--text-main) 74%, transparent);
+  font-size: .875rem;
   text-align: center;
 }
 .studio-submit { min-height: 56px; border-radius: 17px; font-size: .96rem; }
@@ -1066,7 +1078,7 @@ body.studio-viewer-open .chat-studio-switcher {
 .studio-settings-heading h2,
 .studio-settings-heading p { margin: 0; }
 .studio-settings-heading h2 { color: var(--text-main); font-size: .98rem; font-weight: 850; }
-.studio-settings-heading p { margin-top: 3px; color: color-mix(in srgb, var(--text-main) 50%, transparent); font-size: .73rem; }
+.studio-settings-heading p { margin-top: 3px; color: color-mix(in srgb, var(--text-main) 74%, transparent); font-size: .875rem; }
 .ratio-field > legend {
   margin-bottom: 11px;
   color: color-mix(in srgb, var(--text-main) 72%, transparent);
@@ -1104,10 +1116,10 @@ body.studio-viewer-open .chat-studio-switcher {
   border-radius: 16px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 7%, var(--card-bg)), color-mix(in srgb, var(--secondary) 6%, var(--card-bg)));
 }
-.studio-output-summary > span { color: color-mix(in srgb, var(--text-main) 52%, transparent); font-size: .7rem; font-weight: 650; }
+.studio-output-summary > span { color: color-mix(in srgb, var(--text-main) 74%, transparent); font-size: .875rem; font-weight: 650; }
 .studio-output-summary strong { color: var(--text-main); font-size: .9rem; }
 .studio-output-summary strong em { margin-inline-start: 5px; color: var(--primary-dark); font-style: normal; font-size: .78rem; }
-.studio-output-summary p { margin: 0; color: color-mix(in srgb, var(--text-main) 52%, transparent); font-size: .72rem; }
+.studio-output-summary p { margin: 0; color: color-mix(in srgb, var(--text-main) 74%, transparent); font-size: .875rem; }
 
 @media (min-width: 769px) and (max-width: 1099px) {
   .studio-create-grid { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .85fr); gap: 18px; }
@@ -1146,11 +1158,22 @@ body.studio-viewer-open .chat-studio-switcher {
 
 @media (max-width: 420px) {
   .studio-prompt-card, .studio-settings-card { border-radius: 18px; }
+  .studio-header-back { width: 44px; min-width: 44px; height: 44px; min-height: 44px; }
+  .studio-brand-copy small,
+  .studio-tabs button,
+  .studio-prompt-block label small,
+  .studio-field-counter,
+  .ratio-field > legend,
+  .studio-settings-card .ratio-options button { font-size: .875rem; }
+  .studio-tabs { height: 52px; }
+  .studio-tab-indicator { height: 42px; }
   .studio-prompt-card { padding: 16px 12px; }
   .studio-settings-card { padding: 16px 12px; }
   .studio-create textarea { min-height: 140px; }
-  .studio-field-help { font-size: .76rem; }
+  .studio-field-help { font-size: .875rem; }
   .studio-idea-section { gap: 7px; }
-  .studio-ideas button { min-height: 36px; padding-inline: 12px; }
-  .studio-settings-card .ratio-options button { min-height: 90px; font-size: .73rem; }
+  .studio-ideas button { min-height: 44px; padding-inline: 12px; }
+  .studio-settings-card .ratio-options button { min-height: 90px; }
+  .studio-settings-card .ratio-options button small,
+  .studio-output-summary strong em { font-size: .875rem; }
 }

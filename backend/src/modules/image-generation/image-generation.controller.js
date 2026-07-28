@@ -2,12 +2,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
-const {
-  getGuestIdFromUserId,
-  isGuestUserId,
-  normalizeGuestId
-} = require('../../repositories/GuestRepository');
-const { generateUserId } = require('../../repositories/helpers');
+const { NOA_ACTIONS } = require('../noa/noa.constants');
 const { getDefaultSetting } = require('../settings/defaults');
 const {
   DEFAULT_IMAGE_RUNTIME_SETTINGS,
@@ -15,7 +10,6 @@ const {
 } = require('./image-runtime-settings');
 
 const GENERATED_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
-const GUEST_COOKIE_NAME = 'danoa_guest_id';
 const DEFAULT_IMAGE_MODEL = 'gemini-2.5-flash-image';
 const DEFAULT_IMAGE_PROVIDER = 'metis';
 const DEFAULT_IMAGE_BASE_URL = 'https://api.metisai.ir';
@@ -202,11 +196,10 @@ function createImageGenerationController({
   inputOptimizerService,
   conversationTitleService,
   db,
-  plansRepository,
   settingsRepository,
-  guestsRepository,
   conversationsRepository,
   eventsRepository,
+  noaBillingService,
   imageModelFallback,
   imageModelSourceFallback,
   imageProviderFallback,
@@ -214,7 +207,9 @@ function createImageGenerationController({
   imageStorageDirFallback,
   imagePublicBaseUrlFallback,
   imageMaxDownloadMbFallback,
-  imageRuntimeSettingsResolver
+  imageRuntimeSettingsResolver,
+  taskScheduler = setImmediate,
+  saveGeneratedImageOverride = null
 }) {
   const defaultStorageDir = path.join(__dirname, '../../../storage/generated-images');
   const legacyImagesDir = path.join(__dirname, '../../../uploads/images-generated');
@@ -234,36 +229,6 @@ function createImageGenerationController({
     return Math.floor(safeMb * 1024 * 1024);
   };
 
-  const normalizeLimitValue = (value) => {
-    if (value === null || value === undefined || value === '') return null;
-    return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : null;
-  };
-
-  const limitFailureMessage = (reason) => {
-    if (reason === 'daily') return 'سقف ساخت تصویر امروزت تمام شده است.';
-    if (reason === 'hourly') return 'فعلاً کمی صبر کن؛ سقف ساخت تصویر این ساعت پر شده است.';
-    return 'ساخت تصویر برای این پلن غیرفعال است.';
-  };
-
-  const getImageLimitDiagnostics = ({ userId, isGuest, guestId, limitState }) => ({
-    userId,
-    guestId: guestId || getGuestIdFromUserId(userId) || '',
-    planId: limitState?.plan?.id || (isGuest ? 'guest' : null),
-    planName: limitState?.plan?.name || (isGuest ? 'guest' : null),
-    isGuest: Boolean(isGuest),
-    dailyImageLimit: limitState?.limits?.daily ?? null,
-    hourlyImageLimit: limitState?.limits?.hourly ?? null,
-    usedToday: limitState?.usage?.daily?.imageCount ?? null,
-    usedThisHour: limitState?.usage?.hourly?.imageCount ?? null,
-    enabled: Boolean(limitState?.allowed),
-    disabledReason: limitState?.allowed ? null : limitState?.reason || 'unknown',
-    gateSource: limitState?.gateSource || (isGuest ? 'guest.image_limit' : 'plan.image_limit')
-  });
-
-  const logImageLimitDiagnostics = (payload) => {
-    console.info('[image-generation] image limit gate', payload);
-  };
-
   const publicImageErrorMessage = (error) => {
     const message = typeof error === 'string' ? error.trim() : '';
     if (message === PAYMENT_REQUIRED_MESSAGE) return PAYMENT_REQUIRED_MESSAGE;
@@ -274,6 +239,20 @@ function createImageGenerationController({
     if (message === LOCAL_IMAGE_NOT_FOUND_MESSAGE) return LOCAL_IMAGE_NOT_FOUND_MESSAGE;
     if (/did not return image data/i.test(message)) return IMAGE_PROVIDER_EMPTY_RESULT_MESSAGE;
     return 'ساخت تصویر انجام نشد. مشکل از سرویس تصویر بود، نه درخواست تو. دوباره امتحان کن.';
+  };
+
+  const publicImageRequestError = (error, fallback) => {
+    if (error && typeof error === 'object' && String(error.code || '').startsWith('NOA_')) {
+      return {
+        success: false,
+        error: String(error.code),
+        message: error.code === 'NOA_INSUFFICIENT_FUNDS'
+          ? 'موجودی نوآ برای ساخت تصویر کافی نیست.'
+          : 'پرداخت نوآ برای ساخت تصویر انجام نشد.',
+        ...(error.details && typeof error.details === 'object' ? error.details : {})
+      };
+    }
+    return error?.publicPayload || fallback;
   };
 
   const normalizeModelValue = (value) => (typeof value === 'string' ? value.trim() : '');
@@ -391,125 +370,20 @@ function createImageGenerationController({
     };
   };
 
-  const setGuestCookie = (res, guestId) => {
-    res.cookie(GUEST_COOKIE_NAME, guestId, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 365 * 24 * 60 * 60 * 1000
-    });
-  };
-
-  const getGuestImageLimits = async () => {
-    if (!settingsRepository || typeof settingsRepository.get !== 'function') {
-      return { daily: null, hourly: null };
-    }
-    const [daily, hourly] = await Promise.all([
-      settingsRepository.get('guest.image_limit_daily'),
-      settingsRepository.get('guest.image_limit_hourly')
-    ]);
-    return {
-      daily: normalizeLimitValue(daily),
-      hourly: normalizeLimitValue(hourly)
-    };
-  };
-
-  const resolveUserContext = async (req, res) => {
+  const resolveUserContext = async (req) => {
     const authenticatedUserId = typeof req.user?.id === 'string' ? req.user.id.trim() : '';
-    if (authenticatedUserId && !isGuestUserId(authenticatedUserId)) {
-      return { userId: authenticatedUserId, isGuest: false, guestId: '' };
+    if (authenticatedUserId) {
+      return { userId: authenticatedUserId };
     }
-
-    const existingGuestId = normalizeGuestId(req.cookies?.[GUEST_COOKIE_NAME] || getGuestIdFromUserId(authenticatedUserId));
-    const guestId = existingGuestId || getGuestIdFromUserId(generateUserId({ isGuest: true }));
-    if (!existingGuestId) {
-      setGuestCookie(res, guestId);
-    }
-
-    if (!guestsRepository || typeof guestsRepository.ensureGuestUser !== 'function') {
-      return { userId: generateUserId({ isGuest: true, uuid: guestId }), isGuest: true, guestId };
-    }
-
-    const guestUserId = await guestsRepository.ensureGuestUser(guestId);
-    return { userId: guestUserId, isGuest: true, guestId };
-  };
-
-  const checkGuestImageLimits = async (userId) => {
-    const limits = await getGuestImageLimits();
-    if (limits.daily === 0 || limits.hourly === 0) {
-      return {
-        allowed: false,
-        reason: 'disabled',
-        gateSource: limits.daily === 0 ? 'guest.image_limit_daily' : 'guest.image_limit_hourly',
-        plan: null,
-        limits,
-        limit: 0,
-        usage: { daily: null, hourly: null }
-      };
-    }
-    if (!plansRepository) {
-      return { allowed: true, gateSource: 'guest.image_limit', plan: null, limits, limit: null, usage: { daily: null, hourly: null } };
-    }
-
-    const dailyUsage =
-      limits.daily === null || typeof plansRepository.getDailyUsage !== 'function'
-        ? null
-        : await plansRepository.getDailyUsage(userId);
-    if (dailyUsage && Number(dailyUsage.imageCount || 0) >= limits.daily) {
-      return {
-        allowed: false,
-        reason: 'daily',
-        gateSource: 'guest.image_limit_daily',
-        plan: null,
-        limits,
-        limit: limits.daily,
-        usage: { daily: dailyUsage, hourly: null },
-        remaining: 0
-      };
-    }
-
-    const hourlyUsage =
-      limits.hourly === null || typeof plansRepository.getHourlyUsage !== 'function'
-        ? null
-        : await plansRepository.getHourlyUsage(userId);
-    if (hourlyUsage && Number(hourlyUsage.imageCount || 0) >= limits.hourly) {
-      return {
-        allowed: false,
-        reason: 'hourly',
-        gateSource: 'guest.image_limit_hourly',
-        plan: null,
-        limits,
-        limit: limits.hourly,
-        usage: { daily: dailyUsage, hourly: hourlyUsage },
-        remaining: 0
-      };
-    }
-
-    return {
-      allowed: true,
-      gateSource: 'guest.image_limit',
-      plan: null,
-      limits,
-      limit: null,
-      usage: { daily: dailyUsage, hourly: hourlyUsage },
-      remaining: {
-        daily: dailyUsage && limits.daily !== null ? Math.max(0, limits.daily - Number(dailyUsage.imageCount || 0)) : null,
-        hourly: hourlyUsage && limits.hourly !== null ? Math.max(0, limits.hourly - Number(hourlyUsage.imageCount || 0)) : null
-      }
+    const error = new Error('Authentication required.');
+    error.code = 'AUTHENTICATION_REQUIRED';
+    error.statusCode = 401;
+    error.publicPayload = {
+      success: false,
+      error: 'AUTHENTICATION_REQUIRED',
+      message: 'برای استفاده از هوش مصنوعی وارد حساب کاربری شوید.'
     };
-  };
-
-  const resolveImageLimitState = async ({ userId, isGuest }) => {
-    if (isGuest) {
-      return checkGuestImageLimits(userId);
-    }
-    if (plansRepository && typeof plansRepository.checkImageLimits === 'function') {
-      return plansRepository.checkImageLimits(userId);
-    }
-    if (plansRepository && typeof plansRepository.checkLimit === 'function') {
-      return plansRepository.checkLimit(userId, 'image');
-    }
-    return { allowed: true, plan: null, limits: { daily: null, hourly: null }, usage: { daily: null, hourly: null } };
+    throw error;
   };
 
   const normalizeMimeType = (value) => String(value || '').split(';')[0].trim().toLowerCase();
@@ -638,16 +512,88 @@ function createImageGenerationController({
       filename
     };
   };
+  const persistGeneratedImage =
+    typeof saveGeneratedImageOverride === 'function' ? saveGeneratedImageOverride : saveGeneratedImage;
+
+  const requireNoaBillingService = () => {
+    if (
+      !noaBillingService ||
+      typeof noaBillingService.reserve !== 'function' ||
+      typeof noaBillingService.capture !== 'function' ||
+      typeof noaBillingService.release !== 'function'
+    ) {
+      const error = new Error('NOA_BILLING_NOT_CONFIGURED');
+      error.code = 'NOA_BILLING_NOT_CONFIGURED';
+      error.statusCode = 503;
+      error.publicPayload = {
+        success: false,
+        error: error.code,
+        message: 'سرویس پرداخت نوآ موقتاً در دسترس نیست.'
+      };
+      throw error;
+    }
+    return noaBillingService;
+  };
+
+  const hashPayload = (payload) =>
+    crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+
+  const withTransaction = async (callback) => {
+    if (!db || typeof db.getConnection !== 'function') {
+      return callback(db, null);
+    }
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+      const result = await callback(connection, connection);
+      await connection.commit();
+      return result;
+    } catch (error) {
+      await connection.rollback().catch(() => undefined);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  };
+
+  const captureImageNoa = (reservationId, metadata, connection = null) =>
+    requireNoaBillingService().capture(reservationId, {
+      ...(connection ? { connection } : {}),
+      actorType: 'system',
+      metadata
+    });
+
+  const releaseImageNoa = (reservationId, reason, metadata, connection = null) =>
+    requireNoaBillingService().release(reservationId, {
+      ...(connection ? { connection } : {}),
+      reason,
+      actorType: 'system',
+      metadata
+    });
 
   const debugLog = (payload) => {
     if (!DEBUG_IMAGE_PROMPTS()) return;
     console.log('[image-generation][debug]', payload);
   };
 
-  const runGenerationTask = async ({ dbRecordId, prompt, originalPrompt, imageSettings, imageInput, userId, promptRefinerMetadata = null }) => {
+  const runGenerationTask = async ({
+    dbRecordId,
+    prompt,
+    originalPrompt,
+    imageSettings,
+    imageInput,
+    userId,
+    noaReservationId,
+    promptRefinerMetadata = null
+  }) => {
     const imageModel = imageSettings.imageModel;
     try {
-      await db.query(`UPDATE image_generations SET status = 'RUNNING' WHERE id = ?`, [dbRecordId]);
+      const [startResult] = await db.query(
+        `UPDATE image_generations SET status = 'RUNNING'
+         WHERE id = ? AND status = 'QUEUE' AND noa_reservation_id = ?`,
+        [dbRecordId, noaReservationId]
+      );
+      if (Number(startResult?.affectedRows || 0) !== 1) return;
       debugLog({
         taskId: String(dbRecordId),
         status: 'RUNNING',
@@ -685,7 +631,7 @@ function createImageGenerationController({
         taskId: String(dbRecordId),
         maxDownloadBytes: getImageMaxDownloadBytesForSettings(imageSettings)
       });
-      const savedImage = await saveGeneratedImage({
+      const savedImage = await persistGeneratedImage({
         image: {
           ...image,
           maxDownloadBytes: getImageMaxDownloadBytesForSettings(imageSettings)
@@ -712,36 +658,49 @@ function createImageGenerationController({
         fileSize: savedImage.fileSize,
         createdAt: new Date().toISOString(),
         ownerUserId: userId,
-        ownerGuestId: getGuestIdFromUserId(userId) || null
+        noaReservationId
       };
 
-      await db.query(
-        `UPDATE image_generations
-         SET status = 'COMPLETED',
-             image_url = ?,
-             local_file_path = ?,
-             mime_type = ?,
-             file_size = ?,
-             provider = ?,
-             model_admin_value = ?,
-             model_runtime_value = ?,
-             remote_url_host = ?,
-             metadata = ?,
-             error = NULL
-         WHERE id = ?`,
-        [
-          savedImage.localPublicUrl,
-          savedImage.localPath,
-          savedImage.mimeType,
-          savedImage.fileSize,
-          providerName,
-          modelAdminValue,
-          modelRuntimeValue,
-          remoteUrlHost || null,
-          JSON.stringify(metadata),
-          dbRecordId
-        ]
-      );
+      await withTransaction(async (queryable, connection) => {
+        await captureImageNoa(noaReservationId, {
+          taskId: String(dbRecordId),
+          operation: Array.isArray(imageInput) && imageInput.length > 0 ? 'edit' : 'generate',
+          output: 'complete'
+        }, connection);
+        const [completeResult] = await queryable.query(
+          `UPDATE image_generations
+           SET status = 'COMPLETED',
+               image_url = ?,
+               local_file_path = ?,
+               mime_type = ?,
+               file_size = ?,
+               provider = ?,
+               model_admin_value = ?,
+               model_runtime_value = ?,
+               remote_url_host = ?,
+               metadata = ?,
+               error = NULL
+           WHERE id = ? AND status = 'RUNNING' AND noa_reservation_id = ?`,
+          [
+            savedImage.localPublicUrl,
+            savedImage.localPath,
+            savedImage.mimeType,
+            savedImage.fileSize,
+            providerName,
+            modelAdminValue,
+            modelRuntimeValue,
+            remoteUrlHost || null,
+            JSON.stringify(metadata),
+            dbRecordId,
+            noaReservationId
+          ]
+        );
+        if (Number(completeResult?.affectedRows || 0) !== 1) {
+          const error = new Error('IMAGE_TASK_STATE_CONFLICT');
+          error.code = 'IMAGE_TASK_STATE_CONFLICT';
+          throw error;
+        }
+      });
 
       console.log('[image-generation] task completed', {
         dbRecordId,
@@ -801,10 +760,18 @@ function createImageGenerationController({
         errorMessage: message
       });
       try {
-        await db.query(
-          `UPDATE image_generations SET status = 'ERROR', error = ? WHERE id = ?`,
-          [message, dbRecordId]
-        );
+        await withTransaction(async (queryable, connection) => {
+          await releaseImageNoa(noaReservationId, 'image_generation_failed', {
+            taskId: String(dbRecordId),
+            errorCode: String(error?.code || 'IMAGE_GENERATION_FAILED')
+          }, connection);
+          await queryable.query(
+            `UPDATE image_generations
+             SET status = 'ERROR', error = ?
+             WHERE id = ? AND status IN ('QUEUE', 'RUNNING') AND noa_reservation_id = ?`,
+            [message, dbRecordId, noaReservationId]
+          );
+        });
         if (eventsRepository && typeof eventsRepository.logEvent === 'function') {
           await eventsRepository.logEvent(userId, 'image_generation_failed', 'image_generation', {
             taskId: String(dbRecordId),
@@ -820,7 +787,16 @@ function createImageGenerationController({
     }
   };
 
-  const createImageTask = async (req, res, { prompt, originalPrompt = '', optimizerResult = null, enhancedPrompt = '', imageInput = [], conversationId = null, parentImageId = null }) => {
+  const createImageTask = async (req, res, {
+    prompt,
+    originalPrompt = '',
+    optimizerResult = null,
+    enhancedPrompt = '',
+    imageInput = [],
+    conversationId = null,
+    parentImageId = null,
+    idempotencyKey: explicitIdempotencyKey = ''
+  }) => {
     let normalizedPrompt = typeof prompt === 'string' ? prompt.trim() : '';
     const originalUserPrompt = typeof originalPrompt === 'string' && originalPrompt.trim() ? originalPrompt.trim() : normalizedPrompt;
     if (!normalizedPrompt) {
@@ -886,163 +862,256 @@ function createImageGenerationController({
         });
     let finalPrompt = fallbackPrompt;
     let promptRefinerMetadata = null;
-    const { userId, isGuest, guestId } = await resolveUserContext(req, res);
-    if (!userId) {
-      const error = new Error('Authentication required.');
-      error.statusCode = 401;
-      error.publicPayload = { success: false, error: 'Authentication required.' };
-      throw error;
-    }
+    const { userId } = await resolveUserContext(req, res);
 
     const requestedAspectRatio = typeof req.body?.aspectRatio === 'string' ? req.body.aspectRatio.trim() : '';
     const aspectRatio = ['1:1', '9:16', '16:9'].includes(requestedAspectRatio) ? requestedAspectRatio : imageSettings.aspectRatio;
     imageSettings.aspectRatio = aspectRatio;
-    const idempotencyKey = typeof req.headers['idempotency-key'] === 'string'
-      ? req.headers['idempotency-key'].trim().slice(0, 191)
+    const headerIdempotencyKey = typeof req.headers?.['idempotency-key'] === 'string'
+      ? req.headers['idempotency-key'].trim()
       : '';
-    if (idempotencyKey) {
-      const [existing] = await db.query(
-        `SELECT id, task_id, status FROM image_generations
-         WHERE user_id = ? AND idempotency_key = ? AND deleted_at IS NULL LIMIT 1`,
-        [userId, idempotencyKey]
-      );
-      if (existing[0]) {
-        return { userId, isGuest, guestId, taskId: String(existing[0].id), providerTaskId: existing[0].task_id, status: existing[0].status, imageUrl: null, reused: true };
-      }
-    }
-
-    let appliedOptimizerResult = optimizerResult;
-    if (!appliedOptimizerResult && inputOptimizerService && typeof inputOptimizerService.optimizeInput === 'function') {
-      appliedOptimizerResult = await inputOptimizerService.optimizeInput({
-        text: originalUserPrompt,
-        operationId: idempotencyKey || `image:${userId}:${Date.now()}`,
-        operationType: normalizedImageInput.length > 0 ? 'image_edit' : 'image_generation',
-        conversationId,
-        userId,
-        guestId,
-        hasImages: normalizedImageInput.length > 0
-      });
-      if (appliedOptimizerResult.needsClarification) {
-        const error = new Error('INPUT_CLARIFICATION_REQUIRED');
-        error.statusCode = 409;
-        error.publicPayload = {
-          success: false,
-          error: 'INPUT_CLARIFICATION_REQUIRED',
-          needsClarification: true,
-          message: appliedOptimizerResult.clarificationQuestionFa
-        };
-        throw error;
-      }
-      normalizedPrompt = appliedOptimizerResult.optimizedTextEn || normalizedPrompt;
-    }
-
-    if (conversationId && conversationTitleService && typeof conversationTitleService.queue === 'function') {
-      void conversationTitleService.queue({
-        userId,
-        conversationId,
-        originalText: originalUserPrompt,
-        optimizedTextEn: appliedOptimizerResult?.optimizedTextEn || '',
-        intent: hasImageInput ? 'image_edit' : 'image_generation',
-        requestType: hasImageInput ? 'image_edit' : 'image_generation'
-      }).catch(() => undefined);
-    }
-
-    const limitState = await resolveImageLimitState({ userId, isGuest });
-    const limitDiagnostics = getImageLimitDiagnostics({ userId, isGuest, guestId, limitState });
-    logImageLimitDiagnostics(limitDiagnostics);
-    if (!limitState.allowed) {
-      const error = new Error(limitFailureMessage(limitState.reason || 'daily'));
-      error.userId = userId;
-      error.statusCode = isGuest ? 403 : 402;
+    const idempotencyKey = String(explicitIdempotencyKey || headerIdempotencyKey).trim().slice(0, 191);
+    if (idempotencyKey.length < 8) {
+      const error = new Error('IMAGE_IDEMPOTENCY_KEY_REQUIRED');
+      error.code = 'IMAGE_IDEMPOTENCY_KEY_REQUIRED';
+      error.statusCode = 400;
       error.publicPayload = {
         success: false,
-        error: limitState.reason === 'disabled' ? 'IMAGE_GENERATION_DISABLED' : 'IMAGE_LIMIT_REACHED',
-        reason: limitState.reason || 'daily',
-        message: limitFailureMessage(limitState.reason || 'daily'),
-        plan: limitState.plan?.id || null,
-        limits: limitState.limits || null,
-        limit: limitState.limit,
-        usage: limitState.usage,
-        diagnostics: limitDiagnostics
+        error: error.code,
+        message: 'کلید یکتای درخواست تصویر لازم است.'
       };
       throw error;
     }
-
-    if (imagePromptRefinerService && typeof imagePromptRefinerService.refine === 'function') {
-      const imageMode = hasImageInput ? 'image-edit' : 'text-to-image';
-      const refineResult = await imagePromptRefinerService.refine({
-        userPrompt: promptForImageModel,
-        conversationContext: typeof req.body?.conversationContext === 'string' ? req.body.conversationContext : '',
-        imageMode,
-        locale: 'fa',
-        imageSettings
-      });
-      const refinerSettings = typeof imagePromptRefinerService.getSettings === 'function'
-        ? await imagePromptRefinerService.getSettings().catch(() => ({ storeMetadata: true }))
-        : { storeMetadata: true };
-      if (refineResult.ok) {
-        const mergedNegativePrompt = typeof imagePromptRefinerService.mergeNegativePrompts === 'function'
-          ? imagePromptRefinerService.mergeNegativePrompts(imageSettings.defaultNegativePrompt, refineResult.negativePrompt)
-          : [imageSettings.defaultNegativePrompt, refineResult.negativePrompt].filter(Boolean).join(', ');
-        finalPrompt = hasImageInput
-          ? buildFinalImageEditPrompt(refineResult.refinedPrompt, {
-              defaultNegativePrompt: mergedNegativePrompt,
-              referenceCount: normalizedImageInput.length
-            })
-          : typeof imagePromptRefinerService.buildFinalPromptWithNegative === 'function'
-            ? imagePromptRefinerService.buildFinalPromptWithNegative({
-                refinedPrompt: refineResult.refinedPrompt,
-                negativePrompt: mergedNegativePrompt
-              })
-            : `${refineResult.refinedPrompt}\n\nNegative prompt: ${mergedNegativePrompt}`;
-        refineResult.negativePrompt = mergedNegativePrompt;
-      } else {
-        finalPrompt = refineResult.refinedPrompt || fallbackPrompt;
-      }
-      if (refinerSettings.storeMetadata !== false) {
-        promptRefinerMetadata = {
-          originalUserPrompt,
-          inputOptimizer: appliedOptimizerResult ? {
-            status: appliedOptimizerResult.status,
-            fallbackUsed: Boolean(appliedOptimizerResult.fallbackUsed),
-            ambiguityLevel: appliedOptimizerResult.ambiguityLevel || 'none'
-          } : null,
-          refinedPrompt: refineResult.ok ? refineResult.refinedPrompt : finalPrompt,
-          negativePrompt: refineResult.negativePrompt || imageSettings.defaultNegativePrompt || '',
-          promptRefiner: {
-            enabled: refineResult.metadata?.enabled !== false,
-            provider: refineResult.metadata?.provider || undefined,
-            model: refineResult.metadata?.model || undefined,
-            status: refineResult.status || refineResult.metadata?.status || 'fallback',
-            durationMs: refineResult.metadata?.durationMs ?? refineResult.durationMs ?? null,
-            apiKeySource: refineResult.metadata?.apiKeySource || undefined,
-            cache: refineResult.metadata?.cache || undefined
-          },
-          detectedSubject: refineResult.detectedSubject || null,
-          hasHumanSubject: Boolean(refineResult.hasHumanSubject),
-          hasChildSubject: Boolean(refineResult.hasChildSubject),
-          containsTextInImage: Boolean(refineResult.containsTextInImage),
-          textToRender: refineResult.textToRender || null
-        };
-      }
+    const [existing] = await db.query(
+      `SELECT id, task_id, status, noa_reservation_id FROM image_generations
+       WHERE user_id = ? AND idempotency_key = ? AND deleted_at IS NULL LIMIT 1`,
+      [userId, idempotencyKey]
+    );
+    if (existing[0]) {
+      return {
+        userId,
+        taskId: String(existing[0].id),
+        providerTaskId: existing[0].task_id,
+        status: existing[0].status,
+        imageUrl: null,
+        noaReservationId: existing[0].noa_reservation_id || null,
+        reused: true
+      };
     }
 
     const providerTaskId = `image-${uuidv4()}`;
-    const [insertResult] = await db.query(
-      `INSERT INTO image_generations
-       (user_id, task_id, prompt, original_prompt, refined_prompt, aspect_ratio, operation,
-        conversation_id, parent_image_id, idempotency_key, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'QUEUE')`,
-      [userId, providerTaskId, finalPrompt, originalUserPrompt, finalPrompt, aspectRatio,
-       hasImageInput ? 'edit' : 'generate', conversationId, parentImageId, idempotencyKey || null]
-    );
-    const dbRecordId = insertResult.insertId;
-    const taskId = String(dbRecordId);
+    const operation = hasImageInput ? 'edit' : 'generate';
+    const payloadHash = hashPayload({
+      actionKey: NOA_ACTIONS.IMAGE_GENERATION,
+      userId,
+      operation,
+      prompt: originalUserPrompt,
+      aspectRatio,
+      conversationId: conversationId || null,
+      parentImageId: parentImageId || null,
+      imageInputs: normalizedImageInput.map((item) => hashPayload(String(item)))
+    });
 
-    if (plansRepository && typeof plansRepository.incrementUsage === 'function') {
-      await plansRepository.incrementUsage(userId, 'image', 1);
-    } else if (plansRepository && typeof plansRepository.incrementDailyUsage === 'function') {
-      await plansRepository.incrementDailyUsage(userId, 'image', 1);
+    let persisted;
+    try {
+      persisted = await withTransaction(async (queryable, connection) => {
+        const reservation = await requireNoaBillingService().reserve({
+          userId,
+          actionKey: NOA_ACTIONS.IMAGE_GENERATION,
+          quantity: 1,
+          idempotencyKey: `image_generation:${idempotencyKey}`,
+          payloadHash,
+          referenceType: 'image_generation',
+          referenceId: providerTaskId,
+          expiresAt: new Date(Date.now() + (30 * 60 * 1000)),
+          actorType: 'user',
+          metadata: { operation, conversationId: conversationId || null }
+        }, connection ? { connection } : undefined);
+
+        if (reservation.status === 'captured' || reservation.status === 'released') {
+          const error = new Error('NOA_RESERVATION_NOT_EXECUTABLE');
+          error.code = 'NOA_RESERVATION_NOT_EXECUTABLE';
+          error.statusCode = 409;
+          throw error;
+        }
+
+        const [insertResult] = await queryable.query(
+          `INSERT INTO image_generations
+           (user_id, task_id, prompt, original_prompt, refined_prompt, aspect_ratio, operation,
+            conversation_id, parent_image_id, idempotency_key, noa_reservation_id, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'WAITING')`,
+          [
+            userId,
+            providerTaskId,
+            fallbackPrompt,
+            originalUserPrompt,
+            fallbackPrompt,
+            aspectRatio,
+            operation,
+            conversationId,
+            parentImageId,
+            idempotencyKey,
+            reservation.reservationId
+          ]
+        );
+        return { dbRecordId: insertResult.insertId, reservation };
+      });
+    } catch (error) {
+      if (error?.code === 'ER_DUP_ENTRY') {
+        const [replayed] = await db.query(
+          `SELECT id, task_id, status, noa_reservation_id FROM image_generations
+           WHERE user_id = ? AND idempotency_key = ? AND deleted_at IS NULL LIMIT 1`,
+          [userId, idempotencyKey]
+        );
+        if (replayed[0]) {
+          return {
+            userId,
+            taskId: String(replayed[0].id),
+            providerTaskId: replayed[0].task_id,
+            status: replayed[0].status,
+            imageUrl: null,
+            noaReservationId: replayed[0].noa_reservation_id || null,
+            reused: true
+          };
+        }
+      }
+      throw error;
+    }
+
+    const { dbRecordId, reservation } = persisted;
+    const taskId = String(dbRecordId);
+    let appliedOptimizerResult = optimizerResult;
+    try {
+      if (!appliedOptimizerResult && inputOptimizerService && typeof inputOptimizerService.optimizeInput === 'function') {
+        appliedOptimizerResult = await inputOptimizerService.optimizeInput({
+          text: originalUserPrompt,
+          operationId: idempotencyKey || `image:${userId}:${Date.now()}`,
+          operationType: normalizedImageInput.length > 0 ? 'image_edit' : 'image_generation',
+          conversationId,
+          userId,
+          hasImages: normalizedImageInput.length > 0
+        });
+        if (appliedOptimizerResult.needsClarification) {
+          const error = new Error('INPUT_CLARIFICATION_REQUIRED');
+          error.statusCode = 409;
+          error.publicPayload = {
+            success: false,
+            error: 'INPUT_CLARIFICATION_REQUIRED',
+            needsClarification: true,
+            message: appliedOptimizerResult.clarificationQuestionFa
+          };
+          throw error;
+        }
+        normalizedPrompt = appliedOptimizerResult.optimizedTextEn || normalizedPrompt;
+      }
+
+      if (imagePromptRefinerService && typeof imagePromptRefinerService.refine === 'function') {
+        const imageMode = hasImageInput ? 'image-edit' : 'text-to-image';
+        const refineResult = await imagePromptRefinerService.refine({
+          userPrompt: promptForImageModel,
+          conversationContext: typeof req.body?.conversationContext === 'string' ? req.body.conversationContext : '',
+          imageMode,
+          locale: 'fa',
+          imageSettings
+        });
+        const refinerSettings = typeof imagePromptRefinerService.getSettings === 'function'
+          ? await imagePromptRefinerService.getSettings().catch(() => ({ storeMetadata: true }))
+          : { storeMetadata: true };
+        if (refineResult.ok) {
+          const mergedNegativePrompt = typeof imagePromptRefinerService.mergeNegativePrompts === 'function'
+            ? imagePromptRefinerService.mergeNegativePrompts(imageSettings.defaultNegativePrompt, refineResult.negativePrompt)
+            : [imageSettings.defaultNegativePrompt, refineResult.negativePrompt].filter(Boolean).join(', ');
+          finalPrompt = hasImageInput
+            ? buildFinalImageEditPrompt(refineResult.refinedPrompt, {
+                defaultNegativePrompt: mergedNegativePrompt,
+                referenceCount: normalizedImageInput.length
+              })
+            : typeof imagePromptRefinerService.buildFinalPromptWithNegative === 'function'
+              ? imagePromptRefinerService.buildFinalPromptWithNegative({
+                  refinedPrompt: refineResult.refinedPrompt,
+                  negativePrompt: mergedNegativePrompt
+                })
+              : `${refineResult.refinedPrompt}\n\nNegative prompt: ${mergedNegativePrompt}`;
+          refineResult.negativePrompt = mergedNegativePrompt;
+        } else {
+          finalPrompt = refineResult.refinedPrompt || fallbackPrompt;
+        }
+        if (refinerSettings.storeMetadata !== false) {
+          promptRefinerMetadata = {
+            originalUserPrompt,
+            inputOptimizer: appliedOptimizerResult ? {
+              status: appliedOptimizerResult.status,
+              fallbackUsed: Boolean(appliedOptimizerResult.fallbackUsed),
+              ambiguityLevel: appliedOptimizerResult.ambiguityLevel || 'none'
+            } : null,
+            refinedPrompt: refineResult.ok ? refineResult.refinedPrompt : finalPrompt,
+            negativePrompt: refineResult.negativePrompt || imageSettings.defaultNegativePrompt || '',
+            promptRefiner: {
+              enabled: refineResult.metadata?.enabled !== false,
+              provider: refineResult.metadata?.provider || undefined,
+              model: refineResult.metadata?.model || undefined,
+              status: refineResult.status || refineResult.metadata?.status || 'fallback',
+              durationMs: refineResult.metadata?.durationMs ?? refineResult.durationMs ?? null,
+              apiKeySource: refineResult.metadata?.apiKeySource || undefined,
+              cache: refineResult.metadata?.cache || undefined
+            },
+            detectedSubject: refineResult.detectedSubject || null,
+            hasHumanSubject: Boolean(refineResult.hasHumanSubject),
+            hasChildSubject: Boolean(refineResult.hasChildSubject),
+            containsTextInImage: Boolean(refineResult.containsTextInImage),
+            textToRender: refineResult.textToRender || null
+          };
+        }
+      }
+
+      const [readyResult] = await db.query(
+        `UPDATE image_generations
+         SET prompt = ?, refined_prompt = ?, status = 'QUEUE'
+         WHERE id = ? AND user_id = ? AND status = 'WAITING' AND noa_reservation_id = ?`,
+        [finalPrompt, finalPrompt, dbRecordId, userId, reservation.reservationId]
+      );
+      if (Number(readyResult?.affectedRows || 0) !== 1) {
+        const error = new Error('IMAGE_PREPARATION_STATE_CONFLICT');
+        error.code = 'IMAGE_PREPARATION_STATE_CONFLICT';
+        error.statusCode = 409;
+        throw error;
+      }
+      if (conversationId && conversationTitleService && typeof conversationTitleService.queue === 'function') {
+        void conversationTitleService.queue({
+          userId,
+          conversationId,
+          originalText: originalUserPrompt,
+          optimizedTextEn: appliedOptimizerResult?.optimizedTextEn || '',
+          intent: hasImageInput ? 'image_edit' : 'image_generation',
+          requestType: hasImageInput ? 'image_edit' : 'image_generation'
+        }).catch(() => undefined);
+      }
+    } catch (error) {
+      try {
+        await withTransaction(async (queryable, connection) => {
+          await releaseImageNoa(reservation.reservationId, 'image_preparation_failed', {
+            taskId,
+            errorCode: String(error?.code || 'IMAGE_PREPARATION_FAILED')
+          }, connection);
+          await queryable.query(
+            `UPDATE image_generations
+             SET status = 'ERROR', error = ?
+             WHERE id = ? AND user_id = ? AND status = 'WAITING' AND noa_reservation_id = ?`,
+            [
+              error instanceof Error ? error.message : String(error),
+              dbRecordId,
+              userId,
+              reservation.reservationId
+            ]
+          );
+        });
+      } catch (cleanupError) {
+        console.error('[image-generation] failed to release preparation reservation', {
+          taskId,
+          message: cleanupError instanceof Error ? cleanupError.message : String(cleanupError)
+        });
+      }
+      throw error;
     }
 
       console.log('[image-generation] task created', {
@@ -1078,18 +1147,49 @@ function createImageGenerationController({
       finalImagePrompt: finalPrompt
     });
 
-    setImmediate(() => {
-      void runGenerationTask({ dbRecordId, prompt: finalPrompt, originalPrompt: normalizedPrompt, imageSettings, imageInput: normalizedImageInput, userId, promptRefinerMetadata });
-    });
+    try {
+      taskScheduler(() => {
+        void runGenerationTask({
+          dbRecordId,
+          prompt: finalPrompt,
+          originalPrompt: normalizedPrompt,
+          imageSettings,
+          imageInput: normalizedImageInput,
+          userId,
+          noaReservationId: reservation.reservationId,
+          promptRefinerMetadata
+        });
+      });
+    } catch (error) {
+      await withTransaction(async (queryable, connection) => {
+        await releaseImageNoa(reservation.reservationId, 'image_schedule_failed', {
+          taskId,
+          errorCode: String(error?.code || 'IMAGE_SCHEDULE_FAILED')
+        }, connection);
+        await queryable.query(
+          `UPDATE image_generations
+           SET status = 'ERROR', error = ?
+           WHERE id = ? AND user_id = ? AND status = 'QUEUE' AND noa_reservation_id = ?`,
+          [
+            error instanceof Error ? error.message : String(error),
+            dbRecordId,
+            userId,
+            reservation.reservationId
+          ]
+        );
+      });
+      throw error;
+    }
 
     return {
       userId,
-      isGuest,
-      guestId,
       taskId,
       providerTaskId,
       status: 'QUEUE',
-      imageUrl: null
+      imageUrl: null,
+      noaReservationId: reservation.reservationId,
+      costNoa: reservation.amountNoa,
+      unitPriceNoa: reservation.unitPriceNoa
     };
   };
 
@@ -1104,15 +1204,19 @@ function createImageGenerationController({
       return res.status(202).json({
         success: true,
         taskId: task.taskId,
+        noaReservationId: task.noaReservationId,
+        costNoa: task.costNoa,
+        unitPriceNoa: task.unitPriceNoa,
+        replay: Boolean(task.reused),
         message: 'Image generation started.'
       });
     } catch (error) {
       console.error('[image-generation] generateImage failed:', error instanceof Error ? error.message : String(error));
-      return res.status(error?.statusCode || 500).json(error?.publicPayload || {
+      return res.status(error?.statusCode || 500).json(publicImageRequestError(error, {
         success: false,
         error: 'IMAGE_GENERATION_FAILED',
         message: 'ساخت تصویر انجام نشد. لطفاً دوباره تلاش کن.'
-      });
+      }));
     }
   };
 
@@ -1177,10 +1281,25 @@ function createImageGenerationController({
     try {
       const source = await getEditableImageInput(req, res, String(req.body?.sourceImageId || ''));
       if (!source) return res.status(404).json({ success: false, error: 'تصویر مبدا پیدا نشد.' });
-      const task = await createImageTask(req, res, { prompt: req.body?.prompt, imageInput: [source.dataUrl], parentImageId: Number(source.imageId) });
-      return res.status(202).json({ success: true, taskId: task.taskId, status: task.status });
+      const task = await createImageTask(req, res, {
+        prompt: req.body?.prompt,
+        imageInput: [source.dataUrl],
+        parentImageId: Number(source.imageId)
+      });
+      return res.status(202).json({
+        success: true,
+        taskId: task.taskId,
+        status: task.status,
+        noaReservationId: task.noaReservationId,
+        costNoa: task.costNoa,
+        unitPriceNoa: task.unitPriceNoa,
+        replay: Boolean(task.reused)
+      });
     } catch (error) {
-      return res.status(error?.statusCode || 500).json(error?.publicPayload || { success: false, error: 'ویرایش تصویر انجام نشد.' });
+      return res.status(error?.statusCode || 500).json(publicImageRequestError(
+        error,
+        { success: false, error: 'IMAGE_EDIT_FAILED', message: 'ویرایش تصویر انجام نشد.' }
+      ));
     }
   };
 

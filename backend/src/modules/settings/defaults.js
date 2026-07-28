@@ -9,67 +9,6 @@ const { INTENT_ROUTER_SYSTEM_PROMPT } = require('../intent-router/intent-router.
 const { MEMORY_WRITER_SYSTEM_PROMPT } = require('../conversation-memory/conversation-memory.prompt');
 
 const SETTING_DEFINITIONS = {
-  'guest.message_limit': {
-    label: 'تعداد پیام مهمان',
-    type: 'number',
-    category: 'guest',
-    defaultValue: 10,
-    min: 0,
-    adminEditable: true
-  },
-  'guest.image_limit_daily': {
-    label: 'سقف ساخت تصویر مهمان در روز',
-    type: 'number',
-    category: 'guest',
-    defaultValue: 0,
-    nullable: true,
-    min: 0,
-    adminEditable: true
-  },
-  'guest.image_limit_hourly': {
-    label: 'سقف ساخت تصویر مهمان در ساعت',
-    type: 'number',
-    category: 'guest',
-    defaultValue: 0,
-    nullable: true,
-    min: 0,
-    adminEditable: true
-  },
-  'guest.limit_modal.title': {
-    label: 'عنوان مودال محدودیت مهمان',
-    type: 'string',
-    category: 'guest',
-    defaultValue: 'برای ادامه ثبت‌نام کن',
-    adminEditable: true
-  },
-  'guest.limit_modal.heading': {
-    label: 'تیتر مودال محدودیت مهمان',
-    type: 'string',
-    category: 'guest',
-    defaultValue: 'برای ادامه‌ی گفتگو، لطفاً ثبت‌نام کن!',
-    adminEditable: true
-  },
-  'guest.limit_modal.body': {
-    label: 'متن مودال محدودیت مهمان',
-    type: 'string',
-    category: 'guest',
-    defaultValue: 'گفتگوی مهمان به سقف پیام‌ها رسیده و ادامه چت فقط با حساب کاربری انجام می‌شود.',
-    adminEditable: true
-  },
-  'guest.limit_modal.badge_text': {
-    label: 'نشان مودال محدودیت مهمان',
-    type: 'string',
-    category: 'guest',
-    defaultValue: '۱۰',
-    adminEditable: true
-  },
-  'guest.limit_modal.cta': {
-    label: 'دکمه مودال محدودیت مهمان',
-    type: 'string',
-    category: 'guest',
-    defaultValue: 'ثبت‌نام',
-    adminEditable: true
-  },
   'upload.image.max_size_mb': {
     label: 'حداکثر حجم عکس (MB)',
     type: 'number',

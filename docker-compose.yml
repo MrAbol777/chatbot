@@ -4,13 +4,14 @@ services:
     container_name: chatbot-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ""
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-      MYSQL_DATABASE: chatbot
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-chatbot}
+      MYSQL_USER: ${MYSQL_USER:-chatbot}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,59 +23,18 @@ services:
     container_name: chatbot-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - ./.env
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=mysql://root:@mysql:3306/chatbot
-      - PORT=3000
-      - METIS_API_KEY=${METIS_API_KEY}
-      - METIS_CHAT_API_KEY=${METIS_CHAT_API_KEY}
-      - METIS_VISION_API_KEY=${METIS_VISION_API_KEY}
-      - METIS_INTENT_ROUTER_API_KEY=${METIS_INTENT_ROUTER_API_KEY}
-      - METIS_INPUT_OPTIMIZER_API_KEY=${METIS_INPUT_OPTIMIZER_API_KEY}
-      - METIS_CONVERSATION_TITLE_API_KEY=${METIS_CONVERSATION_TITLE_API_KEY}
-      - CONVERSATION_TITLE_ENABLED=${CONVERSATION_TITLE_ENABLED:-true}
-      - CONVERSATION_TITLE_MODEL=${CONVERSATION_TITLE_MODEL:-gemini-2.5-flash-lite}
-      - CONVERSATION_TITLE_TIMEOUT_MS=${CONVERSATION_TITLE_TIMEOUT_MS:-6000}
-      - INPUT_OPTIMIZER_ENABLED=${INPUT_OPTIMIZER_ENABLED:-true}
-      - INPUT_OPTIMIZER_MODEL=${INPUT_OPTIMIZER_MODEL:-gemini-2.5-flash-lite-preview}
-      - INPUT_OPTIMIZER_TIMEOUT_MS=${INPUT_OPTIMIZER_TIMEOUT_MS:-3500}
-      - METIS_CONVERSATION_MEMORY_API_KEY=${METIS_CONVERSATION_MEMORY_API_KEY}
-      - GEMINI_CHAT_API_KEY=${GEMINI_CHAT_API_KEY}
-      - METIS_OPENAI_BASE_URL=${METIS_OPENAI_BASE_URL}
-      - OPENAI_MODEL=${OPENAI_MODEL}
-      - ADMIN_API_KEY=${ADMIN_API_KEY}
-      - IPPANEL_API_KEY=${IPPANEL_API_KEY}
-      - IPPANEL_PATTERN_CODE=${IPPANEL_PATTERN_CODE}
-      - IPPANEL_SENDER=${IPPANEL_SENDER}
-      - OTP_EXPIRE=${OTP_EXPIRE}
-      - BALE_BOT_TOKEN=${BALE_BOT_TOKEN}
-      - BALE_WEBHOOK_PUBLIC_URL=${BALE_WEBHOOK_PUBLIC_URL}
-      - BALE_WEBHOOK_PATH=${BALE_WEBHOOK_PATH}
-      - METIS_IMAGE_API_KEY=${METIS_IMAGE_API_KEY}
-      - GEMINI_IMAGE_API_KEY=${GEMINI_IMAGE_API_KEY}
-      - XAI_IMAGE_API_KEY=${XAI_IMAGE_API_KEY}
-      - IMAGE_PROVIDER=${IMAGE_PROVIDER}
-      - IMAGE_BASE_URL=${IMAGE_BASE_URL}
-      - IMAGE_MODEL=${IMAGE_MODEL}
-      - IMAGE_RESOLUTION=${IMAGE_RESOLUTION}
-      - IMAGE_ASPECT_RATIO=${IMAGE_ASPECT_RATIO}
-      - IMAGE_OUTPUT_FORMAT=${IMAGE_OUTPUT_FORMAT}
-      - IMAGE_SAFETY_FILTER_LEVEL=${IMAGE_SAFETY_FILTER_LEVEL}
-      - IMAGE_STORAGE_DIR=${IMAGE_STORAGE_DIR:-/var/lib/danoa/generated-images}
-      - IMAGE_PUBLIC_BASE_URL=${IMAGE_PUBLIC_BASE_URL:-/api/images/serve}
-      - IMAGE_MAX_DOWNLOAD_MB=${IMAGE_MAX_DOWNLOAD_MB:-10}
-      - CONVERSATION_MEMORY_STORAGE_DIR=${CONVERSATION_MEMORY_STORAGE_DIR:-/var/lib/danoa/conversation-memory}
-      - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL}
-      - METIS_IMAGE_MODEL=${METIS_IMAGE_MODEL}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_BASE_URL=${GEMINI_BASE_URL}
-      - DEBUG_IMAGE_PROMPTS=${DEBUG_IMAGE_PROMPTS}
-      - BACKEND_URL=${BACKEND_URL}
-      - ZARINPAL_MERCHANT_ID=${ZARINPAL_MERCHANT_ID}
-      - ZARINPAL_SANDBOX=${ZARINPAL_SANDBOX}
-      - ZARINPAL_CALLBACK_URL=${ZARINPAL_CALLBACK_URL}
-      - FRONTEND_PAYMENT_RESULT_URL=${FRONTEND_PAYMENT_RESULT_URL}
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      IMAGE_STORAGE_DIR: /var/lib/danoa/generated-images
+      CONVERSATION_MEMORY_STORAGE_DIR: /var/lib/danoa/conversation-memory
+      VIDEO_INPUT_STORAGE_ROOT: /var/lib/danoa/video-inputs
+      VIDEO_STORAGE_ROOT: /var/lib/danoa/video-results
+      VIDEO_STORAGE_TEMP_ROOT: /var/lib/danoa/video-results/.tmp
     depends_on:
       mysql:
         condition: service_healthy
@@ -82,7 +42,11 @@ services:
       - app-uploads:/app/backend/uploads
       - ./data/generated-images:/var/lib/danoa/generated-images
       - ./data/conversation-memory:/var/lib/danoa/conversation-memory
+      - video-inputs:/var/lib/danoa/video-inputs
+      - video-results:/var/lib/danoa/video-results
 
 volumes:
   mysql-data:
   app-uploads:
+  video-inputs:
+  video-results:

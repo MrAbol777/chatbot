@@ -1,16 +1,8 @@
-import { ChangeEvent, FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessage, Conversation, UserProfile } from './types';
-import AdminLogin from './AdminLogin';
-import AdminPanel from './AdminPanel';
-import PaymentSuccessPage from './PaymentSuccessPage';
-import LandingPage from './Landing';
-import NotFound from './NotFound';
-import ImageStudio from './ImageStudio';
 import ChatStudioSwitcher from './ChatStudioSwitcher';
-import StudioPage from './studio/StudioPage';
-import VideoGenerationPage from './video-generation/VideoGenerationPage';
 import defaultBotAvatar from './image.png';
 import {
   fetchProtectedImageBlobUrl,
@@ -22,7 +14,18 @@ import EmptyState from './components/EmptyState';
 import Icon from './components/Icon';
 import type { IconName } from './components/Icon';
 import ProfileForm from './components/ProfileForm';
-import DesignSystemPreview from './design-system/preview/DesignSystemPreview';
+import NoaWalletPanel from './noa/NoaWalletPanel';
+import { formatDecimalFa } from './noa/decimal';
+import { useNoaWallet } from './noa/useNoaWallet';
+
+const AdminLogin = lazy(() => import('./AdminLogin'));
+const AdminPanel = lazy(() => import('./AdminPanel'));
+const LandingPage = lazy(() => import('./Landing'));
+const NotFound = lazy(() => import('./NotFound'));
+const ImageStudio = lazy(() => import('./ImageStudio'));
+const StudioPage = lazy(() => import('./studio/StudioPage'));
+const VideoGenerationPage = lazy(() => import('./video-generation/VideoGenerationPage'));
+const DesignSystemPreview = lazy(() => import('./design-system/preview/DesignSystemPreview'));
 
 const PROFILE_KEY = 'chat_profile';
 const PROFILES_KEY = 'chat_profiles';
@@ -30,7 +33,6 @@ const CONVERSATIONS_KEY = 'chat_conversations';
 const ACTIVE_CONVERSATION_KEY = 'chat_active_conversation_id';
 const THEME_KEY = 'danoa_theme';
 const DEFAULT_TITLE = 'گفتگوی جدید';
-const GUEST_PROFILE_KEY = 'chat_guest_profile';
 const CONVERSATION_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const WAITING_MESSAGES = [
   'در حال یافتن پاسخ',
@@ -42,6 +44,11 @@ const IMAGE_PROMPT_EXAMPLES = [
   'یک ربات مهربان در حال کمک به کودک برای حل تمرین، سبک کارتونی نرم',
   'یک شهر آینده‌نگر رنگی در غروب، پرجزئیات و شاد',
   'پوستر کودکانه درباره مراقبت از زمین، رنگ‌های روشن و فضای امیدبخش'
+];
+const CHAT_STARTER_PROMPTS: Array<{ label: string; prompt: string; icon: IconName }> = [
+  { label: 'کمک درسی', prompt: 'می‌شود این درس را قدم‌به‌قدم و ساده برایم توضیح بدهی؟', icon: 'book' },
+  { label: 'داستان بسازیم', prompt: 'بیا با هم یک داستان کوتاه و خلاقانه بسازیم.', icon: 'story' },
+  { label: 'ایده برای تصویر', prompt: 'برای ساخت یک تصویر بامزه و خلاقانه چند ایده به من بده.', icon: 'studio-image' }
 ];
 const IMAGE_PROMPT_MAX_LENGTH = 700;
 const BOT_AVATAR_FALLBACK_URL = '/image.png';
@@ -71,7 +78,7 @@ const writeSessionValue = (key: string, value: string) => {
 type AppProfile = UserProfile & { id?: number | string };
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
 type LandingStep = 'landing' | 'login' | 'signup' | 'chat';
-type AppView = 'home' | 'chat' | 'studio' | 'images' | 'video' | 'profile';
+type AppView = 'home' | 'chat' | 'studio' | 'images' | 'video' | 'profile' | 'noa';
 type PersonalityProfile = {
   interests: string[];
   preferredStyle: 'formal' | 'casual' | 'playful';
@@ -126,6 +133,7 @@ const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/studio/image' || pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/studio/video') return 'video';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
+  if (pathname === '/noa') return 'noa';
   return 'home';
 };
 const getConversationIdFromPath = (pathname: string) => {
@@ -134,11 +142,6 @@ const getConversationIdFromPath = (pathname: string) => {
 };
 type ApiError = Error & { redirectTo?: AuthMode | null };
 type ChatRequestError = Error & { status?: number; payload?: ApiErrorData };
-type GuestLimitInfo = {
-  limit: number;
-  usage: number;
-  remaining: number;
-};
 type ChatImageIntentResponse = {
   intent?: 'chat' | 'image_generation' | 'image_edit' | 'image_understanding';
   status?: 'QUEUE' | 'WAITING' | 'RUNNING' | 'COMPLETED' | 'ERROR';
@@ -579,14 +582,6 @@ const createApiError = (message: string, redirectTo?: AuthMode | null): ApiError
   return error;
 };
 
-const isGuestProfile = (value: AppProfile | null): boolean => Boolean(value && !value.phone);
-
-const createGuestProfile = (): AppProfile => ({
-  name: 'مهمان',
-  age: 0,
-  personality: createDefaultPersonality()
-});
-
 const normalizeLocalizedDigits = (value: string) =>
   value
     .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
@@ -611,36 +606,9 @@ const createChatRequestError = (message: string, status: number, payload?: ApiEr
   return error;
 };
 
-const isMessageLimitError = (error: unknown): error is ChatRequestError => {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-  const requestError = error as ChatRequestError;
-  const payloadText = [requestError.message, requestError.payload?.error, requestError.payload?.message, requestError.payload?.details]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-  return (
-    requestError.status === 402 ||
-    requestError.payload?.error === 'GUEST_LIMIT_REACHED' ||
-    payloadText.includes('message limit') ||
-    payloadText.includes('limit reached') ||
-    payloadText.includes('daily limit') ||
-    payloadText.includes('quota') ||
-    payloadText.includes('سقف پیام') ||
-    payloadText.includes('محدودیت پیام') ||
-    payloadText.includes('پیام‌های رایگان') ||
-    payloadText.includes('پیام رایگان')
-  );
-};
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_ATTACHMENT_COUNT = 5;
 const PUBLIC_SETTINGS_DEFAULTS = {
-  'guest.limit_modal.title': 'برای ادامه از والد کمک بگیر',
-  'guest.limit_modal.heading': 'برای نگه داشتن گفتگوها، شماره والد لازم است',
-  'guest.limit_modal.body': 'گفتگوی مهمان به سقف پیام‌ها رسیده؛ با کمک والد می‌توانی همین گفتگوها را ذخیره کنی و ادامه بدهی.',
-  'guest.limit_modal.badge_text': '۱۰',
-  'guest.limit_modal.cta': 'ذخیره با کمک والد',
   'upload.image.max_size_mb': 5,
   'upload.image.max_files': 5,
   'upload.image.allowed_types': ['image/jpeg', 'image/png', 'image/webp'],
@@ -701,6 +669,29 @@ const checkPhoneStatus = async (phone: string, mode: AuthMode): Promise<PhoneSta
   }
 
   return (await response.json()) as PhoneStatusResult;
+};
+
+type LocalDevelopmentSession = {
+  success: boolean;
+  userId: string;
+  token: string;
+  profile: AppProfile;
+};
+
+const loadLocalDevelopmentSession = async (): Promise<LocalDevelopmentSession | null> => {
+  if (!import.meta.env.DEV) return null;
+  try {
+    const response = await safeFetch('/api/auth/local-session', {
+      method: 'POST',
+      credentials: 'include'
+    });
+    if (!response.ok) return null;
+    const result = await response.json() as Partial<LocalDevelopmentSession>;
+    if (!result.success || !result.token || !result.userId || !result.profile?.phone) return null;
+    return result as LocalDevelopmentSession;
+  } catch {
+    return null;
+  }
 };
 
 const registerProfile = async (profile: {
@@ -1175,9 +1166,6 @@ function ChatApp() {
  const [waitingTextIndex, setWaitingTextIndex] = useState(0);
  const [isRecording, setIsRecording] = useState(false);
  const [showImageGenModal, setShowImageGenModal] = useState(false);
- const [showMessageLimitModal, setShowMessageLimitModal] = useState(false);
- const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
- const [guestLimitInfo, setGuestLimitInfo] = useState<GuestLimitInfo | null>(null);
  const [returnToChatAfterAuth, setReturnToChatAfterAuth] = useState(false);
  const [imageGenPrompt, setImageGenPrompt] = useState('');
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -1193,6 +1181,7 @@ function ChatApp() {
   const hasAuthToken = (() => {
     try { return !!localStorage.getItem('chat_auth_token'); } catch { return false; }
   })();
+  const noaWallet = useNoaWallet(Boolean(profile?.phone && hasAuthToken));
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -1469,7 +1458,9 @@ function ChatApp() {
             ? '/images'
             : view === 'profile'
               ? '/profile'
-              : '/';
+              : view === 'noa'
+                ? '/noa'
+                : '/';
     if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
       if (mode === 'replace') {
         window.history.replaceState({}, '', nextPath);
@@ -1533,50 +1524,8 @@ function ChatApp() {
     navigateToView('home');
   };
 
-  const handleViewPlans = () => {
-    setShowMessageLimitModal(false);
-    window.location.assign('/landing#plans');
-  };
-
-  const handleRemindMessageLimitLater = () => {
-    setShowMessageLimitModal(false);
-  };
-
-  const handleGuestSignupRequired = () => {
-    setShowGuestLimitModal(false);
-    setReturnToChatAfterAuth(true);
-    beginAuthFlow('signup');
-    setErrors({});
-    setVerificationCode('');
-    setSignupToken('');
-    if (typeof window !== 'undefined') {
-      window.history.replaceState({}, '', '/chat');
-    }
-    setShowSettingsAuthModal(true);
-  };
-
-  const handleOpenGuestAuth = () => {
-    setReturnToChatAfterAuth(true);
-    beginAuthFlow('signup');
-    setErrors({});
-    setVerificationCode('');
-    setSignupToken('');
-    setShowProfileModal(false);
-    setShowSettingsAuthModal(true);
-  };
-
-  const startGuestSession = () => {
-    setReturnToChatAfterAuth(false);
-    const guestProfile = createGuestProfile();
-    setProfile(guestProfile);
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(guestProfile));
-    sessionStorage.setItem(GUEST_PROFILE_KEY, '1');
-    setLandingStep('chat');
-    setCurrentView('chat');
-    setSidebarOpen(false);
-    if (typeof window !== 'undefined') {
-      window.history.replaceState({}, '', '/chat');
-    }
+  const handleOpenNoaWallet = () => {
+    navigateToView('noa');
   };
 
   const beginAuthFlow = (mode: AuthMode) => {
@@ -1589,27 +1538,7 @@ function ChatApp() {
     setSignupToken('');
   };
 
-  const resetAuthFlow = (mode: AuthMode) => {
-    setAuthTransition('forward');
-    setAuthMode(mode);
-    setRegistrationStep(1);
-    setLandingStep(mode);
-    setErrors({});
-    setName('');
-    setAge('');
-    setVerificationCode('');
-    setSignupToken('');
-  };
-
   const handleOpenSettings = () => {
-    if (isGuestProfile(profile)) {
-      setReturnToChatAfterAuth(false);
-      resetAuthFlow('login');
-      setShowProfileModal(false);
-      setShowSettingsAuthModal(true);
-      return;
-    }
-
     navigateToView('profile');
   };
 
@@ -1656,6 +1585,7 @@ function ChatApp() {
       const rawProfiles = localStorage.getItem(PROFILES_KEY);
       const rawConversations = localStorage.getItem(CONVERSATIONS_KEY);
       const routeConversationId = getConversationIdFromPath(window.location.pathname);
+      const storedAuthToken = localStorage.getItem('chat_auth_token');
 
       if (rawProfiles) {
         const parsedProfiles = JSON.parse(rawProfiles) as AppProfile[];
@@ -1676,7 +1606,7 @@ function ChatApp() {
         applyTheme('energy', false);
       }
 
-      if (profileData) {
+      if (profileData?.phone && storedAuthToken) {
         setProfile(profileData);
         setLandingStep('chat');
         setCurrentView(routeView);
@@ -1690,25 +1620,13 @@ function ChatApp() {
         setAuthMode('signup');
         setRegistrationStep(1);
         setLandingStep('signup');
-      } else if (
-        window.location.pathname === '/' || window.location.pathname === '/chat' || /^\/c\/[^/]+$/.test(window.location.pathname) ||
-        window.location.pathname === '/images' ||
-        window.location.pathname === '/generate' ||
-        window.location.pathname === '/photos' ||
-        window.location.pathname === '/profile' ||
-        window.location.pathname === '/settings'
-      ) {
-        const guestProfile = createGuestProfile();
-        setProfile(guestProfile);
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(guestProfile));
-        sessionStorage.setItem(GUEST_PROFILE_KEY, '1');
-        setLandingStep('chat');
-        setCurrentView(routeView);
-        setSidebarOpen(false);
       } else {
         if (window.location.pathname === '/home') {
           window.location.replace('/');
           return;
+        }
+        if (profileData && (!profileData.phone || !storedAuthToken)) {
+          localStorage.removeItem(PROFILE_KEY);
         }
         setLandingStep('landing');
       }
@@ -1739,9 +1657,27 @@ function ChatApp() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void loadLocalDevelopmentSession().then((session) => {
+      if (cancelled || !session) return;
+      const profileData: AppProfile = { ...session.profile, id: session.userId };
+      const routeView = getAppViewFromPath(window.location.pathname);
+      localStorage.setItem('chat_auth_token', session.token);
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profileData));
+      setProfile(profileData);
+      setLandingStep('chat');
+      setCurrentView(routeView);
+      setSidebarOpen(routeView === 'home');
+      setHasSavedAccount(true);
+      setHasHydratedRemoteConversations(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
     const handlePopState = () => {
       const pathname = window.location.pathname;
-      if (pathname === '/' || pathname === '/home' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname) || pathname === '/studio' || pathname === '/studio/image' || pathname === '/studio/video' || pathname === '/images' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings') {
+      if (pathname === '/' || pathname === '/home' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname) || pathname === '/studio' || pathname === '/studio/image' || pathname === '/studio/video' || pathname === '/images' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings' || pathname === '/noa') {
         const nextView = getAppViewFromPath(pathname);
         setCurrentView(nextView);
         setActiveConversationId(getConversationIdFromPath(pathname));
@@ -2218,7 +2154,6 @@ function ChatApp() {
     setHasHydratedRemoteConversations(false);
     setProfile(nextProfile);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
-    sessionStorage.removeItem(GUEST_PROFILE_KEY);
 
     const rawProfiles = localStorage.getItem(PROFILES_KEY);
     const parsedProfiles = rawProfiles ? (JSON.parse(rawProfiles) as AppProfile[]) : [];
@@ -2233,7 +2168,6 @@ function ChatApp() {
     if (returnToChatAfterAuth) {
       setShowSettingsAuthModal(false);
       setReturnToChatAfterAuth(false);
-      setGuestLimitInfo(null);
       navigateToView('chat', 'replace');
       return;
     }
@@ -2808,23 +2742,8 @@ function ChatApp() {
         updatedAt: new Date().toISOString()
       }));
     } catch (error) {
-      if (error instanceof Error && (error as Error & { streamHandled?: boolean }).streamHandled) {
-        pushToast('پاسخ کامل نشد؛ برای تلاش دوباره روی آیکون کنار پیام بزن.', 'warning');
-        return;
-      }
-      if (
-        error instanceof Error &&
-        (error as ChatRequestError).payload?.error === 'GUEST_LIMIT_REACHED'
-      ) {
-        const payload = (error as ChatRequestError).payload || {};
-        const limit = Number(payload.limit);
-        const usage = Number(payload.usage);
-        const remaining = Number(payload.remaining);
-        setGuestLimitInfo({
-          limit: Number.isFinite(limit) && limit > 0 ? limit : Number(PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text']) || 10,
-          usage: Number.isFinite(usage) && usage >= 0 ? usage : Number.isFinite(limit) && limit > 0 ? limit : 10,
-          remaining: Number.isFinite(remaining) && remaining >= 0 ? remaining : 0
-        });
+      const requestError = error as ChatRequestError;
+      if (requestError.status === 402 || requestError.payload?.error === 'NOA_INSUFFICIENT_FUNDS') {
         updateConversation(currentConversation.id, (item) => {
           const remainingMessages = item.messages.filter((message) => message.timestamp !== userMessage.timestamp);
           return {
@@ -2835,12 +2754,22 @@ function ChatApp() {
           };
         });
         setInputValue(content);
-        setShowGuestLimitModal(true);
+        pushToast(requestError.message || 'موجودی نوآ برای این عملیات کافی نیست.', 'warning');
+        void noaWallet.refresh();
+        handleOpenNoaWallet();
         return;
       }
 
-      if (isMessageLimitError(error)) {
-        setShowMessageLimitModal(true);
+      if (error instanceof Error && (error as Error & { streamHandled?: boolean }).streamHandled) {
+        pushToast('پاسخ کامل نشد؛ برای تلاش دوباره روی آیکون کنار پیام بزن.', 'warning');
+        return;
+      }
+
+      if (requestError.status === 401 || requestError.payload?.error === 'AUTHENTICATION_REQUIRED') {
+        setInputValue(content);
+        setReturnToChatAfterAuth(true);
+        beginAuthFlow('login');
+        setShowSettingsAuthModal(true);
         return;
       }
 
@@ -3102,8 +3031,6 @@ function ChatApp() {
     setInputValue('');
     setIsSending(false);
     setIsRecording(false);
-    setShowGuestLimitModal(false);
-    setGuestLimitInfo(null);
     setReturnToChatAfterAuth(false);
     setHasSavedAccount(Boolean(localStorage.getItem(PROFILES_KEY)));
     if (typeof window !== 'undefined') {
@@ -3332,24 +3259,10 @@ function ChatApp() {
               {authActionText}
             </Button>
 
-            <div className="auth-divider" aria-hidden="true">
-              <span />
-              <b>یا</b>
-              <span />
-            </div>
-
-            <div className="auth-landing-actions">
-              <Button
-                type="button"
-                className="landing-btn secondary auth-guest-btn"
-                variant="secondary"
-                onClick={startGuestSession}
-              >
-                ورود به عنوان مهمان
-              </Button>
-            </div>
             <p className="helper onboarding-help">
-              {hasSavedAccount ? 'روی این مرورگر قبلاً حساب ذخیره شده؛ با همان شماره وارد شو.' : 'مهمان می‌تواند شروع کند، اما برای نگه داشتن گفتگوها شماره لازم است.'}
+              {hasSavedAccount
+                ? 'روی این مرورگر قبلاً حساب ذخیره شده؛ با همان شماره وارد شو.'
+                : 'برای استفاده از چت، تصویر و ویدئو باید وارد حساب کاربری شوی.'}
             </p>
           </form>
         ) : registrationStep === 1 ? (
@@ -3525,7 +3438,6 @@ function ChatApp() {
 
   const shouldShowSendAction = inputValue.trim().length > 0 || attachments.length > 0;
   const canSendMessage = !isRecording && !isSending && shouldShowSendAction;
-  const shouldShowGuestAuthCta = isGuestProfile(profile);
   const imagePromptLength = imageGenPrompt.trim().length;
   const canSubmitImagePrompt = imagePromptLength > 0 && !isGeneratingImage;
   const currentPathname = window.location.pathname;
@@ -3582,7 +3494,7 @@ function ChatApp() {
 
       <div className="chat-card">
         {/* Warning banner for users logged in without a JWT token (pre-fix session) */}
-        {!hasAuthToken && !isGuestProfile(profile) && (
+        {!hasAuthToken && (
           <div className="auth-token-warning" style={{
             background: '#fff3cd',
             color: '#856404',
@@ -3618,7 +3530,8 @@ function ChatApp() {
           </div>
         )}
         {currentView === 'chat' ? (
-        <header className={`top-bar${shouldShowGuestAuthCta ? ' has-auth-cta' : ''}`}>
+        <header className="top-bar">
+          <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
           <div className="top-bar-main">
             <button className="menu-btn chat-back-btn" onClick={handleBackToHome} type="button" aria-label="برگشت به گفتگوها" title="برگشت به گفتگوها">
               <svg className="chat-header-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg>
@@ -3641,13 +3554,26 @@ function ChatApp() {
                         if (event.key === 'Escape') { event.preventDefault(); void finishTitleEdit(activeConversation.id, false); }
                       }}
                     />
-                  ) : <strong role="button" tabIndex={0} onClick={() => { if (activeConversation) { setEditingId(activeConversation.id); setEditingTitle(activeConversation.title || DEFAULT_TITLE); } }} onKeyDown={(event) => { if (event.key === 'Enter' && activeConversation) { setEditingId(activeConversation.id); setEditingTitle(activeConversation.title || DEFAULT_TITLE); } }}>{activeConversation?.title || DEFAULT_TITLE}</strong>}<small>دانوآ همراهته</small></span>
+                  ) : (
+                    <button
+                      className="chat-title-edit"
+                      type="button"
+                      onClick={() => {
+                        if (activeConversation) {
+                          setEditingId(activeConversation.id);
+                          setEditingTitle(activeConversation.title || DEFAULT_TITLE);
+                        }
+                      }}
+                      aria-label={`تغییر عنوان گفتگو: ${activeConversation?.title || DEFAULT_TITLE}`}
+                    >
+                      <strong>{activeConversation?.title || DEFAULT_TITLE}</strong>
+                    </button>
+                  )}<small>دستیار هوش‌مصنوعی</small></span>
                 </div>
               </div>
             </div>
           </div>
           <div className="top-bar-actions">
-            {shouldShowGuestAuthCta ? <button className="header-auth-cta" type="button" onClick={handleOpenGuestAuth}>ورود / ثبت‌نام</button> : null}
             <button className="header-action-btn header-action-btn-secondary chat-share-btn" type="button" onClick={handleDownloadActiveConversation} aria-label="اشتراک‌گذاری گفتگو" title="اشتراک‌گذاری گفتگو">
               <svg className="header-action-icon chat-header-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
             </button>
@@ -3874,11 +3800,11 @@ function ChatApp() {
               </svg>
               <span>پروفایل</span>
             </button>
-            <button type="button" className="conversation-nav-item" onClick={handleViewPlans}>
+            <button type="button" className="conversation-nav-item" onClick={handleOpenNoaWallet}>
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
-              <span>اشتراک</span>
+              <span>{noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ` : 'کیف پول'}</span>
             </button>
             <button type="button" className="conversation-nav-fab" onClick={handleCreateConversation} aria-label="شروع گفتگوی جدید">
               +
@@ -4017,9 +3943,7 @@ function ChatApp() {
                 <h1>پروفایل</h1>
               </div>
               <div className="profile-page-header-status">
-                <span className={`profile-status-badge ${profile?.phone ? 'registered' : 'guest'}`}>
-                  {profile?.phone ? 'ثبت نام شده' : 'مهمان'}
-                </span>
+                <span className="profile-status-badge registered">حساب تأییدشده</span>
               </div>
             </header>
 
@@ -4061,8 +3985,8 @@ function ChatApp() {
                           <path d="m8.8 12.2 2.1 2.1 4.5-4.7" />
                         </svg>
                       </span>
-                      <strong>{profile?.phone ? 'امن' : 'محدود'}</strong>
-                      <span>{profile?.phone ? 'حساب امن' : 'حساب مهمان'}</span>
+                      <strong>امن</strong>
+                      <span>حساب تأییدشده</span>
                     </div>
                     <div className="profile-stat-card">
                       <span className="profile-stat-icon profile-stat-icon--age">
@@ -4080,8 +4004,8 @@ function ChatApp() {
                           <path d="m12 4 2.2 4.5 5 .7-3.6 3.5.8 5-4.4-2.4-4.4 2.4.8-5-3.6-3.5 5-.7L12 4Z" />
                         </svg>
                       </span>
-                      <strong>{profile?.phone ? 'رایگان' : 'مهمان'}</strong>
-                      <span>پلن</span>
+                      <strong>{noaWallet.loading && !noaWallet.wallet ? '…' : formatDecimalFa(noaWallet.wallet?.availableBalance)}</strong>
+                      <span>موجودی نوآ</span>
                     </div>
                   </div>
                 </div>
@@ -4090,11 +4014,11 @@ function ChatApp() {
                   <div className="profile-quick-actions-header">
                     <span>دسترسی سریع</span>
                   </div>
-                  <button type="button" className="profile-quick-action-btn" onClick={handleViewPlans}>
+                  <button type="button" className="profile-quick-action-btn" onClick={handleOpenNoaWallet}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
                       <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z" />
                     </svg>
-                    <span>مدیریت اشتراک</span>
+                    <span>افزایش موجودی نوآ</span>
                   </button>
                   <button type="button" className="profile-quick-action-btn" onClick={handleDownloadActiveConversation}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
@@ -4119,6 +4043,31 @@ function ChatApp() {
                 </div>
               </div>
             </section>
+          </main>
+        ) : null}
+        {currentView === 'noa' ? (
+          <main className="noa-page">
+            <header className="noa-page__header">
+              <button
+                className="generate-page-back"
+                type="button"
+                onClick={handleBackToHome}
+                aria-label="بازگشت به گفتگوها"
+                title="بازگشت"
+              >
+                <Icon name="chevron-left" size={24} aria-hidden="true" />
+              </button>
+              <div>
+                <span>مدیریت اعتبار</span>
+                <h1>کیف پول نوآ</h1>
+              </div>
+            </header>
+            <NoaWalletPanel
+              wallet={noaWallet.wallet}
+              walletLoading={noaWallet.loading}
+              walletError={noaWallet.error}
+              onRefreshWallet={noaWallet.refresh}
+            />
           </main>
         ) : null}
         {currentView === 'home' && sidebarOpen ? (
@@ -4169,105 +4118,6 @@ function ChatApp() {
             {renderAuthForm({ includeLanding: false })}
           </Dialog>
         ) : null}
-
-       {showMessageLimitModal ? (
-         <Dialog open={showMessageLimitModal} title="آهووو! به سقف پیام‌ها رسیدی" onClose={() => setShowMessageLimitModal(false)} showFooter={false}>
-           <div className="message-limit-modal">
-              <button
-                type="button"
-                className="message-limit-close"
-                aria-label="بستن"
-                onClick={() => setShowMessageLimitModal(false)}
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              </button>
-
-             <div className="message-limit-hero" aria-hidden="true">
-                <span className="message-limit-glow" />
-                <span className="message-limit-dragon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#7c3aed" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 3.5 19 6v5.4c0 4.1-2.8 7.8-7 9.1-4.2-1.3-7-5-7-9.1V6l7-2.5Z" />
-                    <path d="m8.8 12.2 2.1 2.1 4.5-4.7" />
-                  </svg>
-                </span>
-                <span className="message-limit-tear" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="32" height="32" fill="#7c3aed" stroke="none" opacity="0.6">
-                    <path d="M12 21c-2.8 0-5-2.2-5-5 0-3.3 5-9.5 5-9.5s5 6.2 5 9.5c0 2.8-2.2 5-5 5Z" />
-                  </svg>
-                </span>
-              </div>
-
-             <div className="message-limit-copy">
-               <h2>آهووو! به سقف پیام‌ها رسیدی</h2>
-               <p>برای ادامه چت با دانوآ، یکی از پلن‌های ما رو انتخاب کن</p>
-             </div>
-
-             <div className="message-limit-actions">
-               <Button
-                 type="button"
-                 size="lg"
-                 className="message-limit-primary"
-                 onClick={handleViewPlans}
-                 endIcon={
-                   <svg className="message-limit-medal" viewBox="0 0 24 24" focusable="false">
-                     <path d="M8 3h8l-1.6 4.2a6 6 0 1 1-4.8 0L8 3Z" />
-                     <path d="M12 9.2l.9 1.8 2 .3-1.4 1.4.3 2-1.8-.9-1.8.9.3-2-1.4-1.4 2-.3.9-1.8Z" />
-                     <path d="M9 16.7V22l3-1.8 3 1.8v-5.3" />
-                   </svg>
-                 }
-               >
-                 مشاهده پلن‌ها
-               </Button>
-               <button type="button" className="message-limit-later" onClick={handleRemindMessageLimitLater}>
-                 بعداً یادآوری کن
-               </button>
-             </div>
-           </div>
-         </Dialog>
-       ) : null}
-
-       {showGuestLimitModal ? (
-         <Dialog
-           open={showGuestLimitModal}
-           title={String(publicSettings['guest.limit_modal.title'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.title'])}
-           onClose={() => setShowGuestLimitModal(false)}
-           showFooter={false}
-         >
-           <div className="guest-limit-modal">
-             <div className="guest-limit-hero" aria-hidden="true">
-               <span className="guest-limit-badge">
-                 {guestLimitInfo?.limit ? String(guestLimitInfo.limit) : String(publicSettings['guest.limit_modal.badge_text'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.badge_text'])}
-               </span>
-             </div>
-
-             <div className="guest-limit-copy">
-               <h2>{String(publicSettings['guest.limit_modal.heading'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.heading'])}</h2>
-               <p>{String(publicSettings['guest.limit_modal.body'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.body'])}</p>
-               {guestLimitInfo ? (
-                 <small>
-                   {guestLimitInfo.usage} پیام مهمان از {guestLimitInfo.limit} پیام رایگان استفاده شده است.
-                 </small>
-               ) : null}
-             </div>
-
-             <div className="guest-limit-actions">
-               <Button
-                 type="button"
-                 size="lg"
-                 className="guest-limit-primary"
-                 onClick={handleGuestSignupRequired}
-               >
-                 {String(publicSettings['guest.limit_modal.cta'] || PUBLIC_SETTINGS_DEFAULTS['guest.limit_modal.cta'])}
-               </Button>
-               <button type="button" className="guest-limit-later" onClick={() => setShowGuestLimitModal(false)}>
-                 فعلاً در چت بمانم
-               </button>
-             </div>
-           </div>
-         </Dialog>
-       ) : null}
 
        {showImageGenModal ? (
          <Dialog open={showImageGenModal} title="ساخت تصویر" onClose={handleCloseImageGenerator} showFooter={false}>
@@ -4465,7 +4315,31 @@ function ChatApp() {
                 </svg>
               }
               title="سلام، من دانوآم"
-              description="سؤال بپرس، عکس بفرست یا با هم یک ایده را پیدا کنیم."
+              description="من یک دستیار هوش مصنوعی‌ام؛ سؤال بپرس، عکس بفرست یا با هم یک ایده پیدا کنیم."
+              action={(
+                <div className="chat-starter-area">
+                  <span className="chat-starter-label">برای شروع یکی را انتخاب کن:</span>
+                  <div className="chat-starter-prompts" aria-label="پیشنهادهای شروع گفتگو">
+                    {CHAT_STARTER_PROMPTS.map((starter) => (
+                      <button
+                        key={starter.label}
+                        type="button"
+                        onClick={() => {
+                          setInputValue(starter.prompt);
+                          window.requestAnimationFrame(() => messageInputRef.current?.focus());
+                        }}
+                      >
+                        <Icon name={starter.icon} size="1.1em" aria-hidden="true" />
+                        <span>{starter.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="chat-ai-safety-note">
+                    <Icon name="shield" size="1.1em" aria-hidden="true" />
+                    پاسخ‌ها با هوش مصنوعی ساخته میشود.
+                  </p>
+                </div>
+              )}
             />
           )}
 
@@ -4665,6 +4539,19 @@ function ChatApp() {
   );
 }
 
+function AppRouteFallback() {
+  return (
+    <main className="app-route-loading" role="status" aria-live="polite">
+      <span className="app-route-loading__spinner" aria-hidden="true" />
+      <strong>در حال آماده‌سازی دانوآ…</strong>
+    </main>
+  );
+}
+
+function LazyRoute({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<AppRouteFallback />}>{children}</Suspense>;
+}
+
 function App() {
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
   const adminPath = '/admin-secure-9x7k';
@@ -4680,32 +4567,25 @@ function App() {
   }
 
   if (pathname === '/admin/login') {
-    return <AdminLogin onLoginSuccess={() => { window.location.href = adminPath; }} />;
+    return <LazyRoute><AdminLogin onLoginSuccess={() => { window.location.href = adminPath; }} /></LazyRoute>;
   }
 
   if (pathname === adminPath) {
-    return <AdminPanel />;
+    return <LazyRoute><AdminPanel /></LazyRoute>;
   }
 
   if (pathname === '/design-system-preview') {
-    return (
-      <ToastProvider>
-        <DesignSystemPreview />
-      </ToastProvider>
-    );
+    return <LazyRoute><ToastProvider><DesignSystemPreview /></ToastProvider></LazyRoute>;
   }
 
   if (pathname === '/') {
-    return <ToastProvider><ChatApp /></ToastProvider>;
+    return <LazyRoute><ToastProvider><ChatApp /></ToastProvider></LazyRoute>;
   }
 
   if (pathname === '/landing') {
-    return <LandingPage />;
+    return <LazyRoute><LandingPage /></LazyRoute>;
   }
 
-  if (pathname === '/payment/success' || pathname === '/success') {
-    return <PaymentSuccessPage />;
-  }
 
   if (
     pathname !== '/' && pathname !== '/chat' && !/^\/c\/[^/]+$/.test(pathname) && pathname !== '/studio' && pathname !== '/studio/image' && pathname !== '/studio/video' && pathname !== '/images' &&
@@ -4713,15 +4593,18 @@ function App() {
     pathname !== '/generate' &&
     pathname !== '/photos' &&
     pathname !== '/profile' &&
-    pathname !== '/settings'
+    pathname !== '/settings' &&
+    pathname !== '/noa'
   ) {
-    return <NotFound />;
+    return <LazyRoute><NotFound /></LazyRoute>;
   }
 
   return (
-    <ToastProvider>
-      <ChatApp />
-    </ToastProvider>
+    <LazyRoute>
+      <ToastProvider>
+        <ChatApp />
+      </ToastProvider>
+    </LazyRoute>
   );
 }
 

@@ -99,13 +99,17 @@ function createMetisVideoProvider({ httpClient, baseUrl, apiKey, resultAllowedHo
   // endpoint.  Disabling it makes every outbound HTTP request explicit.
   const requestConfig = (timeout) => ({ headers: headers(), timeout, maxRedirects: 0 });
   const validator = createVideoResultUrlValidator({ allowedHosts: resultAllowedHosts, allowedPorts: resultAllowedPorts, allowedPathPrefixes: resultAllowedPathPrefixes, allowTestLocal: allowTestLocalResult, resolver: dnsResolver });
-  const submit = async (input) => {
+  const validateInput = (input) => {
     if (!root || !apiKey) throw fail('VIDEO_PROVIDER_NOT_CONFIGURED', 'تنظیمات سرویس ساخت ویدیو کامل نیست.', 503);
     if (!['5', '10'].includes(String(input.duration))) throw fail('VIDEO_PROVIDER_INVALID_DURATION', 'مدت انتخاب‌شده برای سرویس ویدیو معتبر نیست.');
     if (!['16:9', '9:16', '1:1'].includes(String(input.aspectRatio))) throw fail('VIDEO_PROVIDER_INVALID_ASPECT_RATIO', 'نسبت تصویر انتخاب‌شده برای سرویس ویدیو معتبر نیست.');
     if (input.mode && input.mode !== 'text-to-video') throw fail('VIDEO_PROVIDER_IMAGE_INPUT_DISABLED', 'ورودی تصویر برای این مدل غیرفعال است.', 409);
     if (input.providerOperation !== 'Video Generation') throw fail('VIDEO_PROVIDER_OPERATION_INVALID', 'عملیات سرویس ویدیو معتبر نیست.', 503);
     if (!input.upstreamVendor || !input.providerModelId) throw fail('VIDEO_PROVIDER_MODEL_INVALID', 'مدل سرویس ویدیو معتبر نیست.', 503);
+    return input;
+  };
+  const submit = async (input) => {
+    validateInput(input);
     const args = { prompt: String(input.prompt || ''), duration: Number(input.duration), aspect_ratio: String(input.aspectRatio) };
     if (input.negativePrompt) args.negative_prompt = String(input.negativePrompt);
     const payload = { model: { name: String(input.upstreamVendor), model: String(input.providerModelId) }, operation: input.providerOperation, args };
@@ -116,6 +120,13 @@ function createMetisVideoProvider({ httpClient, baseUrl, apiKey, resultAllowedHo
     return { providerJobId: String(response.data.id), status: 'submitted' };
   };
   return {
+    getProviderKey: () => 'metis',
+    getAdapterVersion: () => '2.0.0-compatible',
+    getCapabilities: () => ['video.text_to_video'],
+    getMetadata: () => Object.freeze({ idempotency: 'NOT_DOCUMENTED', webhook: false, cancel: false }),
+    validateRequest: validateInput,
+    estimateCost: () => null,
+    submit: (input) => submit(input),
     submitTextToVideo: submit, submitImageToVideo: submit,
     getJobStatus: async (id) => {
       if (!root || !apiKey) throw fail('VIDEO_PROVIDER_NOT_CONFIGURED', 'تنظیمات سرویس ساخت ویدیو کامل نیست.', 503);

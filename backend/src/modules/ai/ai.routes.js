@@ -8,12 +8,9 @@ function createAiRouter(deps) {
   const controller = createAiController({
     aiService,
     errorsRepository: deps.errorsRepository,
-    guestsRepository: deps.guestsRepository,
     usersRepository: deps.usersRepository,
-    plansRepository: deps.plansRepository,
     chatTurnsRepository: deps.chatTurnsRepository,
     conversationsRepository: deps.conversationsRepository,
-    settingsRepository: deps.settingsRepository,
     uploadedImagesRepository: deps.uploadedImagesRepository,
     intentRouterService: deps.intentRouterService,
     inputOptimizerService: deps.inputOptimizerService,
@@ -24,6 +21,7 @@ function createAiRouter(deps) {
     imageGenerationController: deps.imageGenerationController,
     imageGenerationService: deps.imageGenerationService,
     imageUnderstandingService: deps.imageUnderstandingService,
+    noaBillingService: deps.noaBillingService,
     jwt: deps.jwt,
     jwtSecret: deps.jwtSecret
   });
