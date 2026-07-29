@@ -62,7 +62,7 @@ function createNoaUserRouter({
         billingService.getBalance(req.user.id),
         billingService.getConfig()
       ]);
-      return res.json({ ...wallet, exchangeRate: config.exchangeRate });
+      return res.json({ ...wallet, exchangeRate: config.exchangeRate, bankTransferAccount: config.bankTransferAccount });
     } catch (error) {
       return sendNoaError(res, error);
     }
@@ -74,7 +74,7 @@ function createNoaUserRouter({
         billingService.getBalance(req.user.id),
         billingService.getConfig()
       ]);
-      return res.json({ ...wallet, exchangeRate: config.exchangeRate });
+      return res.json({ ...wallet, exchangeRate: config.exchangeRate, bankTransferAccount: config.bankTransferAccount });
     } catch (error) {
       return sendNoaError(res, error);
     }
@@ -83,6 +83,17 @@ function createNoaUserRouter({
   router.get('/transactions', async (req, res) => {
     try {
       const items = await billingService.listTransactions(req.user.id, {
+        limit: req.query?.limit
+      });
+      return res.json({ items });
+    } catch (error) {
+      return sendNoaError(res, error);
+    }
+  });
+
+  router.get('/notifications/pending', async (req, res) => {
+    try {
+      const items = await billingService.takeUserNotifications(req.user.id, {
         limit: req.query?.limit
       });
       return res.json({ items });

@@ -172,6 +172,8 @@ Admin، نیازمند admin auth و نقش `finance|superadmin`:
 - `GET /api/admin/noa/receipts/:receiptId/image`
 - `POST /api/admin/noa/receipts/:receiptId/approve`
 - `POST /api/admin/noa/receipts/:receiptId/reject`
+- `GET /api/admin/noa/users/:userId/wallet`
+- `POST /api/admin/noa/wallet-adjustments` — افزایش/کاهش دستی با `userId`، مقدار decimal، جهت تغییر، یادداشت اختیاری و `Idempotency-Key`.
 
 تغییر price/rate با optimistic `expectedVersion` محافظت و در audit مالی و audit
 ثانویه پنل ثبت می‌شود.
@@ -184,6 +186,10 @@ Admin، نیازمند admin auth و نقش `finance|superadmin`:
 - Image Studio و Video Studio قیمت زنده را از `/api/noa/config` نمایش می‌دهند.
 - پنل «مالی نوآ» فقط برای `finance/superadmin` قابل مشاهده است و نرخ، قیمت‌ها،
   صف receipt، محاسبه خودکار و override مستدل را پوشش می‌دهد.
+- مدیر مالی می‌تواند کاربر را جست‌وجو، موجودی را مشاهده و نوآ را افزایش یا کاهش
+  دهد. موجودی قابل استفاده می‌تواند منفی شود؛ رزروهای درحال‌اجرا همچنان هرگز
+  منفی نمی‌شوند. یادداشت اختیاری عملیات، یک‌بار در ورود بعدی به کاربر نمایش داده
+  می‌شود. همه تغییرات idempotent، ledger-backed و audit‌شده هستند.
 - UIهای plan/subscription/quota قدیمی حذف شده‌اند.
 
 ## Payment gateway

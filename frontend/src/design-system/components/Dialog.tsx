@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useId, useRef } from 'react';
 import Button from './Button';
 
 type Props = {
@@ -14,9 +14,12 @@ type Props = {
 
 function Dialog({ open, title, onClose, children, confirmText, cancelText = 'انصراف', onConfirm, showFooter = true }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
 
   useEffect(() => {
     if (!open) return;
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
       if (event.key === 'Tab' && panelRef.current) {
@@ -34,7 +37,10 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'ا�
       }
     };
     document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previousFocusRef.current?.focus();
+    };
   }, [open, onClose]);
 
   useEffect(() => {
@@ -56,8 +62,11 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'ا�
 
   return (
     <div className="ds-dialog-overlay" role="presentation" onClick={onClose}>
-      <div className="ds-dialog-panel" role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()} ref={panelRef}>
-        <h3>{title}</h3>
+      <div className="ds-dialog-panel" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(event) => event.stopPropagation()} ref={panelRef}>
+        <div className="ds-dialog-header">
+          <h2 id={titleId}>{title}</h2>
+          <Button type="button" variant="ghost" iconOnly className="ds-dialog-close" aria-label="بستن پنجره" onClick={onClose}>×</Button>
+        </div>
         {children}
         {showFooter ? (
           <div className="ds-dialog-actions">

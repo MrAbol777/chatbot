@@ -1,0 +1,26 @@
+{
+  "name": "دانوآ | دستیار هوش مصنوعی کودکان",
+  "short_name": "دانوآ",
+  "description": "همراه هوشمند فارسی برای یادگیری، خلاقیت و گفت‌وگوی امن کودکان و نوجوانان.",
+  "lang": "fa-IR",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f7fb",
+  "theme_color": "#6d28d9",
+  "icons": [
+    {
+      "src": "/brand/danoa-logo-v2-transparent.png",
+      "sizes": "1256x1256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/danoa-avatar.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

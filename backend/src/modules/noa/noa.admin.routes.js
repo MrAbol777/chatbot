@@ -2,9 +2,39 @@
 
 const express = require('express');
 const { FINANCIAL_ADMIN_ROLES } = require('./noa.constants');
-const { sendNoaError } = require('./noa.errors');
+const { noaError, sendNoaError } = require('./noa.errors');
 const { decimalInput } = require('./noa.routes');
 const { receiptDto } = require('./noa-receipt.service');
+const { hashIdempotencyKey } = require('./noa.crypto');
+
+function walletAdjustmentInput(req) {
+  const userId = String(req.body?.userId || '').trim();
+  const amountNoa = decimalInput(req.body?.amountNoa ?? req.body?.amount);
+  const direction = String(req.body?.direction || '').trim().toLowerCase();
+  const note = String(req.body?.note || '').trim();
+  const idempotencyKey = String(req.get?.('Idempotency-Key') || '').trim();
+
+  if (!userId || userId.length > 191) {
+    throw noaError('NOA_MANUAL_CREDIT_USER_REQUIRED', 'کاربر مقصد را انتخاب کنید.', 400);
+  }
+  if (direction !== 'increase' && direction !== 'decrease') {
+    throw noaError('NOA_INVALID_ADJUSTMENT_DIRECTION', 'نوع تغییر موجودی معتبر نیست.', 400);
+  }
+  if (note.length > 500) {
+    throw noaError('NOA_ADMIN_NOTE_TOO_LONG', 'یادداشت حداکثر ۵۰۰ نویسه است.', 400);
+  }
+
+  // The reference is stable but does not expose a client-controlled key in the ledger.
+  const referenceId = `manual-credit:${hashIdempotencyKey(idempotencyKey).toString('hex')}`;
+  return {
+    userId,
+    amountNoa,
+    direction,
+    note,
+    idempotencyKey,
+    referenceId
+  };
+}
 
 function requireFinancialAdmin(req, res, next) {
   const role = String(req.admin?.role || '').trim().toLowerCase();
@@ -32,6 +62,7 @@ function createNoaAdminRouter({
   billingService,
   receiptService,
   receiptStorage,
+  usersRepository,
   requireAdminAuth,
   appendAudit = async () => {},
   logger = console
@@ -121,6 +152,92 @@ function createNoaAdminRouter({
   router.patch('/config', updateRate);
   router.put('/settings/toman-per-noa', updateRate);
   router.patch('/settings/toman-per-noa', updateRate);
+
+  router.get('/bank-account', async (_req, res) => {
+    try {
+      const config = await billingService.getConfig();
+      return res.json({ bankTransferAccount: config.bankTransferAccount });
+    } catch (error) {
+      return sendNoaError(res, error);
+    }
+  });
+
+  async function updateBankTransferAccount(req, res) {
+    try {
+      const result = await billingService.updateBankTransferAccount({
+        cardNumber: req.body?.cardNumber ?? req.body?.card_number,
+        cardHolderName: req.body?.cardHolderName ?? req.body?.card_holder_name,
+        expectedVersion: req.body?.expectedVersion ?? req.body?.version,
+        adminId: adminIdentity(req)
+      });
+      await audit(req, 'noa_bank_transfer_account_updated', 'manual_bank_transfer', {
+        cardNumberLastFour: result.cardNumber.slice(-4),
+        cardHolderName: result.cardHolderName,
+        version: result.version
+      });
+      return res.json({ bankTransferAccount: result });
+    } catch (error) {
+      return sendNoaError(res, error);
+    }
+  }
+  router.put('/bank-account', updateBankTransferAccount);
+  router.patch('/bank-account', updateBankTransferAccount);
+
+  router.get('/users/:userId/wallet', async (req, res) => {
+    try {
+      const userId = String(req.params.userId || '').trim();
+      const user = await usersRepository?.findUserById?.(userId);
+      if (!user) throw noaError('NOA_MANUAL_CREDIT_USER_NOT_FOUND', 'کاربر مقصد پیدا نشد.', 404);
+      const wallet = await billingService.getBalance(userId);
+      return res.json({
+        user: { userId, name: user.name || 'کاربر', phone: user.phone || null },
+        wallet
+      });
+    } catch (error) {
+      return sendNoaError(res, error);
+    }
+  });
+
+  router.post('/wallet-adjustments', async (req, res) => {
+    try {
+      const input = walletAdjustmentInput(req);
+      if (usersRepository?.findUserById) {
+        const user = await usersRepository.findUserById(input.userId);
+        if (!user) throw noaError('NOA_MANUAL_CREDIT_USER_NOT_FOUND', 'کاربر مقصد پیدا نشد.', 404);
+      }
+      const signedAmount = input.direction === 'decrease' ? `-${input.amountNoa}` : input.amountNoa;
+      const result = await billingService.adjustByAdmin({
+        userId: input.userId,
+        deltaNoa: signedAmount,
+        referenceId: input.referenceId,
+        idempotencyKey: input.idempotencyKey,
+        payloadHash: {
+          userId: input.userId,
+          amountNoa: input.amountNoa,
+          direction: input.direction,
+          note: input.note
+        },
+        actorId: adminIdentity(req),
+        note: input.note
+      });
+      await audit(req, 'noa_user_wallet_adjusted', input.userId, {
+        direction: input.direction,
+        amountNoa: result.amountNoa,
+        note: input.note || null,
+        transactionId: result.transactionId,
+        replayed: result.replayed
+      });
+      return res.status(result.replayed ? 200 : 201).json({
+        transactionId: result.transactionId,
+        deltaNoa: result.deltaNoa,
+        amountNoa: result.amountNoa,
+        replayed: result.replayed,
+        wallet: result.wallet
+      });
+    } catch (error) {
+      return sendNoaError(res, error);
+    }
+  });
 
   router.get('/receipts', async (req, res) => {
     try {
@@ -234,5 +351,6 @@ function createNoaAdminRouter({
 module.exports = {
   adminIdentity,
   createNoaAdminRouter,
+  walletAdjustmentInput,
   requireFinancialAdmin
 };

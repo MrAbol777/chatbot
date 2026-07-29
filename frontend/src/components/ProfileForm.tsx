@@ -11,6 +11,7 @@ type ProfileFormProps = {
   onSave: () => void;
   onDeleteAll: () => void;
   onLogout: () => void;
+  showAccountActions?: boolean;
 };
 
 function ProfileForm({
@@ -22,19 +23,26 @@ function ProfileForm({
   onAgeChange,
   onSave,
   onDeleteAll,
-  onLogout
+  onLogout,
+  showAccountActions = true
 }: ProfileFormProps) {
   const initials = String(profileFormName || profile.name || 'ک').trim().charAt(0) || 'ک';
 
   return (
     <div className="profile-form">
-      <div className="profile-form-avatar" aria-hidden="true">
-        <span className="profile-form-avatar-ring" />
-        {initials}
+      <div className="profile-form-heading">
+        <div className="profile-form-avatar" aria-hidden="true">
+          <span className="profile-form-avatar-ring" />
+          {initials}
+        </div>
+        <div>
+          <h2>اطلاعات شخصی</h2>
+          <p>مشخصات حسابت را به‌روز نگه دار.</p>
+        </div>
       </div>
 
       <div className="profile-form-fields">
-        <TextField label="نام" type="text" value={profileFormName} onChange={onNameChange} errorText={profileFormErrors.name} />
+        <TextField label="نام" type="text" autoComplete="name" value={profileFormName} onChange={onNameChange} errorText={profileFormErrors.name} />
         <TextField
           label="سن"
           type="text"
@@ -44,7 +52,7 @@ function ProfileForm({
           onChange={(event) => onAgeChange(event)}
           errorText={profileFormErrors.age}
         />
-        <TextField label="شماره والد" type="text" value={profile.phone || '-'} readOnly helperText="شماره والد هنگام ثبت نام تعیین می‌شود." />
+        <TextField label="شماره والد" type="tel" autoComplete="tel" value={profile.phone || '-'} readOnly helperText="شماره والد هنگام ثبت نام تعیین می‌شود." />
       </div>
 
       <div className="profile-form-id">
@@ -52,16 +60,19 @@ function ProfileForm({
         <code>{String(profile.id ?? '')}</code>
       </div>
 
-      <div className="profile-form-divider" />
-
-      <div className="profile-form-danger">
-        <Button type="button" variant="danger" size="sm" onClick={onDeleteAll}>
-          حذف همه گفتگوها
-        </Button>
-        <Button type="button" variant="danger" size="sm" onClick={onLogout}>
-          خروج از حساب
-        </Button>
-      </div>
+      {showAccountActions ? (
+        <>
+          <div className="profile-form-divider" />
+          <div className="profile-form-danger">
+            <Button type="button" variant="danger" size="sm" onClick={onDeleteAll}>
+              حذف همه گفتگوها
+            </Button>
+            <Button type="button" variant="danger" size="sm" onClick={onLogout}>
+              خروج از حساب
+            </Button>
+          </div>
+        </>
+      ) : null}
 
       <Button type="button" className="profile-form-save" onClick={onSave}>
         ذخیره تغییرات

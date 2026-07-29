@@ -43,6 +43,10 @@ function validateFile(file: File | null): string | undefined {
   return undefined;
 }
 
+function formatCardNumber(cardNumber: string): string {
+  return cardNumber.replace(/(\d{4})(?=\d)/g, '$1-');
+}
+
 function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }: Props) {
   const receiptId = useId();
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -171,6 +175,30 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }:
             </div>
           </div>
 
+          <section className="noa-bank-transfer" aria-labelledby="noa-bank-transfer-title">
+            <div className="noa-bank-transfer__heading">
+              <span className="noa-wallet__section-icon" aria-hidden="true"><Icon name="credit-card" size={20} /></span>
+              <div>
+                <h4 id="noa-bank-transfer-title">کارت مقصد واریز</h4>
+                <p>پس از واریز به این کارت، تصویر رسید را در همین فرم ارسال کنید.</p>
+              </div>
+            </div>
+            {wallet?.bankTransferAccount ? (
+              <dl className="noa-bank-transfer__details">
+                <div>
+                  <dt>شماره کارت</dt>
+                  <dd dir="ltr">{formatCardNumber(wallet.bankTransferAccount.cardNumber)}</dd>
+                </div>
+                <div>
+                  <dt>به نام</dt>
+                  <dd>{wallet.bankTransferAccount.cardHolderName}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="noa-bank-transfer__pending" role="status">اطلاعات کارت واریز هنوز توسط مدیریت ثبت نشده است.</p>
+            )}
+          </section>
+
           <div className="noa-file-field" data-invalid={Boolean(errors.receipt)}>
             <input
               id={receiptId}
@@ -193,7 +221,7 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }:
             {errors.receipt ? <span id={`${receiptId}-error`} role="alert">{errors.receipt}</span> : null}
           </div>
 
-          <Button type="submit" size="lg" disabled={submitting || walletLoading || !wallet}>
+          <Button type="submit" size="lg" disabled={submitting || walletLoading || !wallet || !wallet.bankTransferAccount}>
             {submitting ? <Icon className="noa-spinner" name="spinner" size={20} aria-hidden="true" /> : <Icon name="upload" size={20} aria-hidden="true" />}
             {submitting ? 'در حال ثبت امن رسید…' : 'ثبت رسید برای بررسی'}
           </Button>

@@ -44,6 +44,7 @@ export type IconName =
   | 'studio-video'
   | 'new-chat'
   | 'gallery'
+  | 'more-horizontal'
   | 'pin'
   | 'edit'
   | 'delete'
@@ -200,6 +201,9 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
 
     case 'gallery':
       return <svg {...commonProps}><path d="M4 5.75A1.75 1.75 0 0 1 5.75 4h12.5A1.75 1.75 0 0 1 20 5.75v12.5A1.75 1.75 0 0 1 18.25 20H5.75A1.75 1.75 0 0 1 4 18.25V5.75Z" /><path d="m7 16 3.2-3.2a1.2 1.2 0 0 1 1.7 0l1.45 1.45 1.25-1.25a1.2 1.2 0 0 1 1.7 0L18 14.7M15.5 8.5h.01" /></svg>;
+
+    case 'more-horizontal':
+      return <svg {...commonProps} strokeWidth="2.5"><path d="M5 12h.01M12 12h.01M19 12h.01" /></svg>;
 
     case 'pin':
       return <svg {...commonProps} strokeWidth="1.6"><path d="M15.5 3H9a1 1 0 0 0-1 1v6.5L5.5 14v1h13.5v-1L16.5 10.5V4a1 1 0 0 0-1-1Z" /><path d="M10 3v7.5L7.5 14M14 3v7.5l2.5 3.5" /></svg>;

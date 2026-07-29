@@ -36,8 +36,10 @@ function Button({
     <button
       {...rest}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={`ds-button ds-button--${variant} ds-button--${size} ${isIconOnly ? 'ds-button--icon-only' : ''} ${className}`.trim()}
     >
+      {loading ? <span className="ds-button__spinner" aria-hidden="true" /> : null}
       {startIcon ? <span aria-hidden="true">{startIcon}</span> : null}
       {isIconOnly ? null : <span>{loading ? 'در حال انجام...' : children}</span>}
       {endIcon ? <span aria-hidden="true">{endIcon}</span> : null}

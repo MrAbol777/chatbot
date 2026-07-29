@@ -41,6 +41,12 @@ async function cleanupUser(userId) {
     [userId]
   );
   for (const wallet of wallets) {
+    await db.query(
+      `DELETE n FROM app_noa_user_notifications n
+        INNER JOIN app_noa_transaction_logs l ON l.transaction_id = n.transaction_id
+       WHERE l.wallet_id=?`,
+      [wallet.wallet_id]
+    );
     await db.query('DELETE FROM app_noa_receipts WHERE wallet_id=?', [wallet.wallet_id]);
     await db.query('DELETE FROM app_noa_transaction_logs WHERE wallet_id=?', [wallet.wallet_id]);
     await db.query('DELETE FROM app_noa_reservations WHERE wallet_id=?', [wallet.wallet_id]);
@@ -81,6 +87,26 @@ test('new authenticated users receive independent zero-balance wallets', async (
   assert.equal(firstWallet.reservedNoa, '0.000000');
   assert.equal(secondWallet.availableNoa, '0.000000');
   assert.notEqual(firstWallet.walletId, secondWallet.walletId);
+});
+
+test('admin adjustments can make a balance negative and deliver an optional note once', async () => {
+  const userId = await createUser('noa-admin-adjustment');
+  const adjustment = await billing.adjustByAdmin({
+    userId,
+    deltaNoa: '-300',
+    referenceId: fixtureId('admin-adjustment'),
+    idempotencyKey: fixtureId('admin-adjustment-key'),
+    payloadHash: { userId, deltaNoa: '-300', note: 'موجودی شما توسط مدیریت اصلاح شد.' },
+    actorId: 'finance-admin',
+    note: 'موجودی شما توسط مدیریت اصلاح شد.'
+  });
+  assert.equal(adjustment.deltaNoa, '-300.000000');
+  assert.equal(adjustment.wallet.availableNoa, '-300.000000');
+
+  const firstDelivery = await billing.takeUserNotifications(userId);
+  assert.equal(firstDelivery.length, 1);
+  assert.equal(firstDelivery[0].message, 'موجودی شما توسط مدیریت اصلاح شد.');
+  assert.deepEqual(await billing.takeUserNotifications(userId), []);
 });
 
 test('quotes read the current database price and multiply video seconds exactly', async () => {

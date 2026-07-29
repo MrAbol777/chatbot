@@ -6,10 +6,11 @@ type ToastItem = {
   id: number;
   message: string;
   variant: ToastVariant;
+  title?: string;
 };
 
 type ToastContextType = {
-  pushToast: (message: string, variant?: ToastVariant) => void;
+  pushToast: (message: string, variant?: ToastVariant, title?: string) => void;
 };
 
 const ToastContext = createContext<ToastContextType | null>(null);
@@ -17,12 +18,12 @@ const ToastContext = createContext<ToastContextType | null>(null);
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
 
-  const pushToast = useCallback((message: string, variant: ToastVariant = 'default') => {
+  const pushToast = useCallback((message: string, variant: ToastVariant = 'default', title?: string) => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
-    setItems((prev) => [...prev, { id, message, variant }]);
+    setItems((prev) => [...prev, { id, message, variant, title }]);
     window.setTimeout(() => {
       setItems((prev) => prev.filter((item) => item.id !== id));
-    }, 2800);
+    }, 4000);
   }, []);
 
   const contextValue = useMemo(() => ({ pushToast }), [pushToast]);
@@ -33,7 +34,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="ds-toast-region" aria-live="polite" aria-atomic="true">
         {items.map((item) => (
           <div key={item.id} className="ds-toast" data-variant={item.variant}>
-            {item.message}
+            {item.title ? <strong className="ds-toast__title">{item.title}</strong> : null}
+            <span className="ds-toast__message">{item.message}</span>
           </div>
         ))}
       </div>

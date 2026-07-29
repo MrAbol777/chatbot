@@ -98,7 +98,7 @@ function normalizeExpiry(value) {
 
 function walletDto(row) {
   const available = decimal(String(row.available_balance), 'availableBalance', {
-    allowNegative: false
+    allowNegative: true
   });
   const reserved = decimal(String(row.reserved_balance), 'reservedBalance', {
     allowNegative: false
@@ -131,6 +131,28 @@ function pricingDto(row) {
     updatedByAdminId: row.updated_by_admin_id || null,
     updatedAt: row.updated_at || null
   };
+}
+
+function bankTransferAccountDto(row) {
+  if (!row) return null;
+  return {
+    cardNumber: String(row.card_number),
+    cardHolderName: String(row.card_holder_name),
+    version: Number(row.version),
+    updatedByAdminId: row.updated_by_admin_id || null,
+    updatedAt: row.updated_at || null
+  };
+}
+
+function normalizeCardNumber(value) {
+  const normalized = String(value ?? '')
+    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[\s\-٬,]/g, '');
+  if (!/^\d{16}$/.test(normalized)) {
+    throw noaError('NOA_INVALID_BANK_CARD_NUMBER', 'شماره کارت باید دقیقاً ۱۶ رقم باشد.', 400);
+  }
+  return normalized;
 }
 
 function reservationDto(row, extras = {}) {
@@ -538,11 +560,12 @@ function createNoaBillingService({ repository }) {
   }
 
   async function getConfig(options = {}) {
-    const [rows, rateRow] = await Promise.all([
+    const [rows, rateRow, bankTransferAccount] = await Promise.all([
       repository.listPricing({ connection: options.connection }),
       repository.getSetting(NOA_SETTING_KEYS.TOMAN_PER_NOA, {
         connection: options.connection
-      })
+      }),
+      repository.getBankTransferAccount({ connection: options.connection })
     ]);
     const pricingConfigs = rows.map(pricingDto);
     if (
@@ -577,9 +600,13 @@ function createNoaBillingService({ repository }) {
       pricingConfigs,
       prices,
       topUpMethods: {
-        manualBankTransfer: { enabled: true },
+        manualBankTransfer: {
+          enabled: Boolean(bankTransferAccount),
+          bankTransferAccount: bankTransferAccountDto(bankTransferAccount)
+        },
         paymentGateway: { enabled: PAYMENT_GATEWAY_ENABLED }
       },
+      bankTransferAccount: bankTransferAccountDto(bankTransferAccount),
       paymentGatewayEnabled: PAYMENT_GATEWAY_ENABLED
     };
   }
@@ -664,6 +691,51 @@ function createNoaBillingService({ repository }) {
         updatedByAdminId: adminId,
         updatedAt: new Date()
       };
+    });
+  }
+
+  async function updateBankTransferAccount(input) {
+    const cardNumber = normalizeCardNumber(input?.cardNumber);
+    const cardHolderName = requireText(input?.cardHolderName, 'cardHolderName', 191);
+    const adminId = requireText(input?.adminId, 'adminId');
+    const expectedVersion = parseExpectedVersion(input?.expectedVersion);
+
+    return repository.inTransaction(input?.connection, async (connection) => {
+      const current = await repository.getBankTransferAccount({ connection, forUpdate: true });
+      if (!current) {
+        if (expectedVersion !== null) {
+          throw noaError('NOA_VERSION_CONFLICT', 'حساب واریز توسط مدیر دیگری ثبت شده است؛ صفحه را تازه کنید.', 409);
+        }
+        const created = await repository.createBankTransferAccount({ cardNumber, cardHolderName, adminId }, connection);
+        if (!created) throw noaError('NOA_VERSION_CONFLICT', 'حساب واریز همزمان ثبت شده است.', 409);
+        return bankTransferAccountDto({
+          card_number: cardNumber,
+          card_holder_name: cardHolderName,
+          version: 1,
+          updated_by_admin_id: adminId,
+          updated_at: new Date()
+        });
+      }
+      if (expectedVersion !== null && Number(current.version) !== expectedVersion) {
+        throw noaError('NOA_VERSION_CONFLICT', 'حساب واریز توسط مدیر دیگری تغییر کرده است؛ صفحه را تازه کنید.', 409, {
+          currentVersion: Number(current.version)
+        });
+      }
+      const updated = await repository.updateBankTransferAccount({
+        cardNumber,
+        cardHolderName,
+        adminId,
+        currentVersion: Number(current.version)
+      }, connection);
+      if (!updated) throw noaError('NOA_VERSION_CONFLICT', 'حساب واریز همزمان تغییر کرده است.', 409);
+      return bankTransferAccountDto({
+        ...current,
+        card_number: cardNumber,
+        card_holder_name: cardHolderName,
+        version: Number(current.version) + 1,
+        updated_by_admin_id: adminId,
+        updated_at: new Date()
+      });
     });
   }
 
@@ -773,6 +845,118 @@ function createNoaBillingService({ repository }) {
     });
   }
 
+  async function adjustByAdmin(input, options = {}) {
+    const userId = requireText(input?.userId, 'userId');
+    const delta = decimal(input?.deltaNoa, 'deltaNoa', {
+      allowNegative: true,
+      allowZero: false
+    });
+    const note = input?.note === undefined || input?.note === null
+      ? ''
+      : String(input.note).trim();
+    if (note.length > 500) {
+      throw noaError('NOA_ADMIN_NOTE_TOO_LONG', 'یادداشت حداکثر ۵۰۰ نویسه است.', 400);
+    }
+    const idempotencyHash = hashIdempotencyKey(input?.idempotencyKey);
+    const payloadHash = digestValue(input?.payloadHash, 'payloadHash');
+    const referenceId = requireText(input?.referenceId, 'referenceId');
+    const actorId = requireText(input?.actorId, 'actorId');
+    const amountUnits = delta.units < 0n ? -delta.units : delta.units;
+    const amountNoa = formatFixed(amountUnits, NOA_SCALE);
+    const metadata = normalizeMetadata({
+      note: note || null,
+      source: 'admin_noa_user_management'
+    });
+
+    return repository.inTransaction(options.connection || input?.connection, async (connection) => {
+      await repository.ensureWallet(userId, connection);
+      const wallet = await repository.getWalletByUser(userId, { connection, forUpdate: true });
+      if (!wallet) throw noaError('NOA_WALLET_UNAVAILABLE', 'کیف پول پیدا نشد.', 500);
+      const existing = await repository.findLogByIdempotency(
+        wallet.wallet_id,
+        idempotencyHash,
+        'admin_balance_adjustment',
+        connection
+      );
+      if (existing) {
+        if (
+          !safeEqual(existing.payload_hash, payloadHash) ||
+          String(existing.reference_id) !== referenceId ||
+          decimal(String(existing.available_delta), 'availableDelta', { allowNegative: true }).units !== delta.units
+        ) {
+          throw noaError('NOA_IDEMPOTENCY_CONFLICT', 'این کلید با تغییر موجودی دیگری استفاده شده است.', 409);
+        }
+        return {
+          transactionId: String(existing.transaction_id),
+          deltaNoa: delta.value,
+          amountNoa,
+          replayed: true,
+          wallet: walletDto(wallet)
+        };
+      }
+
+      const availableBefore = decimal(String(wallet.available_balance), 'availableBalance', { allowNegative: true });
+      const reservedBefore = decimal(String(wallet.reserved_balance), 'reservedBalance');
+      const availableAfter = formatFixed(availableBefore.units + delta.units, NOA_SCALE);
+      const changed = await repository.adjustAvailableWallet(wallet.wallet_id, delta.value, connection);
+      if (!changed) throw noaError('NOA_WALLET_UPDATE_FAILED', 'تغییر موجودی انجام نشد.', 500);
+
+      const transactionId = randomUUID();
+      await repository.insertLog({
+        transactionId,
+        walletId: wallet.wallet_id,
+        entryType: 'admin_balance_adjustment',
+        amount: amountNoa,
+        availableDelta: delta.value,
+        reservedDelta: formatFixed(0n, NOA_SCALE),
+        availableBefore: availableBefore.value,
+        availableAfter,
+        reservedBefore: reservedBefore.value,
+        reservedAfter: reservedBefore.value,
+        referenceType: 'admin_balance_adjustment',
+        referenceId,
+        idempotencyHash,
+        payloadHash,
+        actorType: 'admin',
+        actorId,
+        metadata
+      }, connection);
+
+      if (note) {
+        await repository.insertUserNotification({
+          notificationId: randomUUID(),
+          userId,
+          transactionId,
+          message: note
+        }, connection);
+      }
+      return {
+        transactionId,
+        deltaNoa: delta.value,
+        amountNoa,
+        replayed: false,
+        wallet: walletDto({
+          ...wallet,
+          available_balance: availableAfter,
+          version: Number(wallet.version) + 1,
+          updated_at: new Date()
+        })
+      };
+    });
+  }
+
+  async function takeUserNotifications(userIdInput, options = {}) {
+    const userId = requireText(userIdInput, 'userId');
+    return repository.inTransaction(options.connection, async (connection) => {
+      const items = await repository.claimUnreadUserNotifications(userId, { connection, limit: options.limit });
+      return items.map((item) => ({
+        notificationId: String(item.notification_id),
+        message: String(item.message),
+        createdAt: item.created_at
+      }));
+    });
+  }
+
   async function listTransactions(userIdInput, options = {}) {
     const userId = requireText(userIdInput, 'userId');
     const limit = Math.min(100, Math.max(1, Number(options.limit) || 50));
@@ -832,6 +1016,7 @@ function createNoaBillingService({ repository }) {
   }
 
   return {
+    adjustByAdmin,
     capture,
     credit,
     getBalance,
@@ -841,8 +1026,10 @@ function createNoaBillingService({ repository }) {
     release,
     releaseExpiredReservations,
     reserve,
+    takeUserNotifications,
     updatePricing,
-    updateTomanRate
+    updateTomanRate,
+    updateBankTransferAccount
   };
 }
 
@@ -851,5 +1038,6 @@ module.exports = {
   normalizeQuantity,
   pricingDto,
   reservationDto,
-  walletDto
+  walletDto,
+  bankTransferAccountDto
 };

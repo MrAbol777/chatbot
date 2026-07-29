@@ -1,45 +1,5 @@
-@font-face {
-  font-family: 'Sahel';
-  src: url('./assets/fonts/Sahel-Light.woff2') format('woff2');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Sahel';
-  src: url('./assets/fonts/Sahel.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Sahel';
-  src: url('./assets/fonts/Sahel-SemiBold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Sahel';
-  src: url('./assets/fonts/Sahel-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Sahel';
-  src: url('./assets/fonts/Sahel-Black.woff2') format('woff2');
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
-  font-family: 'Sahel', sans-serif;
+  font-family: var(--font-family-base);
   color: #191c1e;
   line-height: 1.5;
   --primary: #630ed4;
@@ -3613,7 +3573,7 @@ textarea {
   outline: none;
   overflow-y: auto;
   resize: none;
-  font-family: 'Sahel', sans-serif;
+  font-family: var(--font-family-base);
   font-size: 1rem;
   color: var(--chat-field-text);
   line-height: 1.55;
@@ -5953,7 +5913,7 @@ select:focus-visible {
   background:
     radial-gradient(circle at 12% 0%, rgba(99, 14, 212, 0.1), transparent 28%),
     linear-gradient(180deg, #fbfbfe 0%, #f4f6fb 48%, #eef3f8 100%);
-  font-family: Vazirmatn, Sahel, IRANSans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-family-base);
 }
 
 .chat-shell.view-chat .bg-blob,
@@ -9006,4 +8966,305 @@ select:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .app-route-loading__spinner { animation-duration: 1.5s; }
+}
+
+/* Composer attachment menu — intentionally data-ready for future attachment types. */
+.chat-shell.view-chat .attachment-box {
+  z-index: 20;
+}
+
+.chat-shell.view-chat .attach-btn.attachment-trigger {
+  border: 1px solid var(--danoa-chat-border);
+  border-radius: 14px;
+  background: var(--danoa-chat-subtle);
+  color: var(--danoa-chat-muted);
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.chat-shell.view-chat .attach-btn.attachment-trigger:hover,
+.chat-shell.view-chat .attach-btn.attachment-trigger.is-open {
+  border-color: color-mix(in srgb, var(--danoa-chat-accent) 36%, var(--danoa-chat-border));
+  background: #f1eaff;
+  color: var(--danoa-chat-accent);
+  box-shadow: 0 3px 10px rgba(109, 40, 217, .12);
+}
+
+.chat-shell.view-chat .attach-btn.attachment-trigger:active {
+  background: #e9ddff;
+  transform: none;
+}
+
+.chat-shell.view-chat .attach-btn.attachment-trigger:focus-visible {
+  outline: 2px solid var(--danoa-chat-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.chat-shell.view-chat .attachment-popup {
+  bottom: calc(100% + 10px);
+  inset-inline-start: 0;
+  width: 228px;
+  padding: 6px;
+  border: 1px solid var(--danoa-chat-border);
+  border-radius: 16px;
+  background: var(--danoa-chat-surface);
+  box-shadow: 0 12px 30px rgba(31, 36, 48, .14);
+  direction: rtl;
+  transform-origin: bottom left;
+  animation: attachmentMenuEnter 180ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.chat-shell.view-chat .attachment-popup button {
+  min-height: 56px;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 12px;
+  text-align: right;
+  color: var(--danoa-chat-text);
+}
+
+.chat-shell.view-chat .attachment-popup button:hover,
+.chat-shell.view-chat .attachment-popup button:focus-visible {
+  background: #f5f0ff;
+  color: var(--danoa-chat-accent);
+  outline: none;
+}
+
+.attachment-popup__icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--danoa-chat-accent);
+  background: #f1eaff;
+}
+
+.attachment-popup__copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.attachment-popup__copy strong {
+  font-size: .875rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.attachment-popup__copy small {
+  color: var(--danoa-chat-muted);
+  font-size: .7rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+@keyframes attachmentMenuEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-shell.view-chat .attachment-popup {
+    animation-duration: 1ms;
+  }
+}
+
+/* Full-viewport product pages ------------------------------------------------
+   Home and chat already use the complete application canvas on larger screens.
+   Keep profile, image generation and wallet pages in the same shell so moving
+   between them never feels like opening a smaller modal inside the product. */
+.chat-shell.view-profile,
+.chat-shell.view-generate,
+.chat-shell.view-noa {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.08), transparent 34%),
+    radial-gradient(circle at 100% 100%, rgba(45, 212, 191, 0.07), transparent 30%),
+    #f8f7fb;
+}
+
+.chat-shell.view-profile .bg-blob,
+.chat-shell.view-generate .bg-blob,
+.chat-shell.view-noa .bg-blob {
+  display: none;
+}
+
+.profile-page,
+.generate-page,
+.noa-page {
+  scrollbar-color: rgba(99, 14, 212, 0.35) transparent;
+}
+
+.profile-page-header,
+.generate-page-header,
+.noa-page__header {
+  width: min(100%, 1440px);
+  margin-inline: auto;
+}
+
+.profile-page-header,
+.generate-page-header {
+  min-height: 72px;
+}
+
+.profile-page-header > div > span,
+.generate-page-header > div > span,
+.noa-page__header > div > span {
+  color: var(--color-primary);
+}
+
+.profile-page-header h1,
+.generate-page-header h1,
+.noa-page__header h1 {
+  color: var(--color-text);
+  letter-spacing: -0.03em;
+}
+
+.profile-page-grid {
+  width: min(100%, 1440px);
+  margin-inline: auto;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: clamp(18px, 2vw, 30px);
+  align-items: stretch;
+}
+
+.profile-page-card {
+  border-color: color-mix(in srgb, var(--color-border) 78%, transparent);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 12px 32px rgba(45, 49, 51, 0.06);
+}
+
+.profile-page-card-main {
+  padding: clamp(22px, 2.2vw, 34px);
+}
+
+.profile-page-card-side {
+  padding: clamp(20px, 2vw, 28px);
+}
+
+.profile-form {
+  gap: 20px;
+}
+
+.profile-form-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+}
+
+.profile-form-heading .profile-form-avatar {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.profile-form-heading h2,
+.profile-form-heading p {
+  margin: 0;
+}
+
+.profile-form-heading h2 {
+  color: var(--color-text);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.profile-form-heading p {
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.profile-form-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+}
+
+.profile-form-fields .ds-field:last-child {
+  grid-column: 1 / -1;
+}
+
+.profile-form-save.ds-button {
+  width: fit-content;
+  min-width: 168px;
+  justify-self: start;
+  padding-inline: 24px;
+}
+
+.profile-quick-action-btn {
+  justify-content: flex-start;
+  border-radius: 14px;
+}
+
+.profile-quick-action-btn:focus-visible,
+.generate-page-back:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (min-width: 1024px) {
+  .app-shell.chat-shell.view-profile,
+  .app-shell.chat-shell.view-generate,
+  .app-shell.chat-shell.view-noa {
+    min-height: 100dvh;
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .chat-shell.view-profile .chat-card,
+  .chat-shell.view-generate .chat-card,
+  .chat-shell.view-noa .chat-card {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    min-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(252, 252, 255, 0.96);
+    box-shadow: none;
+  }
+
+  .profile-page,
+  .generate-page {
+    padding: clamp(28px, 3vw, 48px) clamp(32px, 4vw, 64px);
+  }
+
+  .noa-page {
+    width: min(1440px, calc(100% - clamp(64px, 8vw, 128px)));
+    margin: clamp(28px, 3vw, 48px) auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .profile-form-heading {
+    padding-bottom: 14px;
+  }
+
+  .profile-form-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-form-fields .ds-field:last-child {
+    grid-column: auto;
+  }
+
+  .profile-form-save.ds-button {
+    width: 100%;
+  }
 }

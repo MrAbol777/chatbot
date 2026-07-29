@@ -2,8 +2,7 @@ import { ChangeEvent, FormEvent, lazy, Suspense, useEffect, useLayoutEffect, use
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessage, Conversation, UserProfile } from './types';
-import ChatStudioSwitcher from './ChatStudioSwitcher';
-import defaultBotAvatar from './image.png';
+import { PUBLIC_ASSETS } from './config/publicAssets';
 import {
   fetchProtectedImageBlobUrl,
   getImageGenerationStatusForConversation,
@@ -16,6 +15,7 @@ import type { IconName } from './components/Icon';
 import ProfileForm from './components/ProfileForm';
 import NoaWalletPanel from './noa/NoaWalletPanel';
 import { formatDecimalFa } from './noa/decimal';
+import { fetchPendingNoaNotifications } from './noa/noa.service';
 import { useNoaWallet } from './noa/useNoaWallet';
 
 const AdminLogin = lazy(() => import('./AdminLogin'));
@@ -51,9 +51,23 @@ const CHAT_STARTER_PROMPTS: Array<{ label: string; prompt: string; icon: IconNam
   { label: 'ایده برای تصویر', prompt: 'برای ساخت یک تصویر بامزه و خلاقانه چند ایده به من بده.', icon: 'studio-image' }
 ];
 const IMAGE_PROMPT_MAX_LENGTH = 700;
-const BOT_AVATAR_FALLBACK_URL = '/image.png';
+const BOT_AVATAR_FALLBACK_URL = PUBLIC_ASSETS.botAvatar;
 const CHAT_DRAFT_NEW_KEY = 'danoa:chat-draft:new';
 const LAST_STUDIO_CHAT_PATH_KEY = 'danoa:studio-return-chat-path';
+const ATTACHMENT_MENU_ID = 'chat-attachment-menu';
+const ATTACHMENT_MENU_ITEMS: ReadonlyArray<{
+  id: 'image';
+  label: string;
+  description: string;
+  icon: IconName;
+}> = [
+  {
+    id: 'image',
+    label: 'ارسال عکس',
+    description: 'JPG، PNG یا WebP',
+    icon: 'attach-image'
+  }
+];
 
 const getChatDraftKey = (conversationId: string) =>
   conversationId ? `danoa:chat-draft:${conversationId}` : CHAT_DRAFT_NEW_KEY;
@@ -128,7 +142,7 @@ type PhoneStatusResult = {
 };
 
 const getAppViewFromPath = (pathname: string): AppView => {
-  if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
+  if (pathname === '/' || pathname === '/home' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
   if (pathname === '/studio') return 'studio';
   if (pathname === '/studio/image' || pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/studio/video') return 'video';
@@ -136,6 +150,8 @@ const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/noa') return 'noa';
   return 'home';
 };
+const isDesktopChatLayout = () =>
+  typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
 const getConversationIdFromPath = (pathname: string) => {
   const match = pathname.match(/^\/c\/([^/]+)$/);
   return match ? decodeURIComponent(match[1]) : '';
@@ -1142,11 +1158,13 @@ function ChatApp() {
   const [conversationLoadingId, setConversationLoadingId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.location.pathname === '/home';
+    return isDesktopChatLayout();
   });
-  const [isConversationSearchOpen, setIsConversationSearchOpen] = useState(false);
   const [conversationSearchTerm, setConversationSearchTerm] = useState('');
+  const [conversationSearchOpen, setConversationSearchOpen] = useState(false);
   const conversationSearchInputRef = useRef<HTMLInputElement>(null);
+  const conversationSearchToggleRef = useRef<HTMLButtonElement>(null);
+  const chatSidebarToggleRef = useRef<HTMLButtonElement>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsAuthModal, setShowSettingsAuthModal] = useState(false);
   const [profileFormName, setProfileFormName] = useState('');
@@ -1159,7 +1177,7 @@ function ChatApp() {
     if (typeof window === 'undefined') return '';
     return readSessionValue(getChatDraftKey(getConversationIdFromPath(window.location.pathname)));
   });
-  const [isMobileKeyboardOpen, setIsMobileKeyboardOpen] = useState(false);
+  const [, setIsMobileKeyboardOpen] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
  const [isSending, setIsSending] = useState(false);
@@ -1176,12 +1194,61 @@ function ChatApp() {
 
  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [conversationMenu, setConversationMenu] = useState<{
+    conversationId: string;
+    top: number;
+    left: number;
+  } | null>(null);
 
   // Detect stale session: logged in but missing JWT token (from before the token-save fix)
   const hasAuthToken = (() => {
     try { return !!localStorage.getItem('chat_auth_token'); } catch { return false; }
   })();
   const noaWallet = useNoaWallet(Boolean(profile?.phone && hasAuthToken));
+  const noaNotificationUserRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1024px)');
+    const syncSidebar = (event: MediaQueryListEvent | MediaQueryList) => {
+      setSidebarOpen(event.matches && getAppViewFromPath(window.location.pathname) === 'chat');
+    };
+    media.addEventListener('change', syncSidebar);
+    return () => media.removeEventListener('change', syncSidebar);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarOpen || isDesktopChatLayout() || currentView !== 'chat') return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusFrame = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('#chat-history-sidebar .conversation-new-chat-btn')?.focus();
+    });
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (document.querySelector('#conversation-context-menu')) return;
+        event.preventDefault();
+        setSidebarOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = previousOverflow;
+      chatSidebarToggleRef.current?.focus();
+    };
+  }, [currentView, sidebarOpen]);
+
+  useEffect(() => {
+    const userKey = profile?.phone || '';
+    if (!userKey || !hasAuthToken || noaNotificationUserRef.current === userKey) return;
+    noaNotificationUserRef.current = userKey;
+    void fetchPendingNoaNotifications()
+      .then((items) => items.forEach((item) => pushToast(item.message, 'default', 'مدیریت نوآ')))
+      .catch(() => {
+        // Notifications are supplementary; a temporary failure must not block chat.
+      });
+  }, [hasAuthToken, profile?.phone, pushToast]);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -1204,6 +1271,8 @@ function ChatApp() {
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentBoxRef = useRef<HTMLDivElement | null>(null);
+  const conversationMenuRef = useRef<HTMLDivElement | null>(null);
+  const conversationMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const attachmentUrlsRef = useRef<Set<string>>(new Set());
   const imageTaskPollingRef = useRef<Set<string>>(new Set());
   const preserveDraftDuringSendRef = useRef(false);
@@ -1366,6 +1435,9 @@ function ChatApp() {
         return searchableText.includes(query);
       });
   }, [conversationSearchTerm, orderedConversations]);
+  const conversationMenuTarget = conversationMenu
+    ? conversations.find((conversation) => conversation.id === conversationMenu.conversationId) || null
+    : null;
 
   useEffect(() => {
     if (!activeConversationId) {
@@ -1387,11 +1459,6 @@ function ChatApp() {
     [visibleMessages]
   );
 
-  useEffect(() => {
-    if (!isConversationSearchOpen) return;
-    const frameId = window.requestAnimationFrame(() => conversationSearchInputRef.current?.focus());
-    return () => window.cancelAnimationFrame(frameId);
-  }, [isConversationSearchOpen]);
   const uploadMaxFiles = Number.isFinite(Number(publicSettings['upload.image.max_files']))
     ? Number(publicSettings['upload.image.max_files'])
     : MAX_ATTACHMENT_COUNT;
@@ -1423,7 +1490,7 @@ function ChatApp() {
   const renderBotAvatar = () => (
     <span className="bot-avatar" aria-hidden="true">
       <img
-        src={defaultBotAvatar || BOT_AVATAR_FALLBACK_URL}
+        src={BOT_AVATAR_FALLBACK_URL}
         alt="پروفایل ربات"
         loading="lazy"
         decoding="async"
@@ -1469,7 +1536,7 @@ function ChatApp() {
       }
     }
     setCurrentView(view);
-    setSidebarOpen(view === 'home');
+    setSidebarOpen((current) => view === 'chat' ? (isDesktopChatLayout() || current) : false);
   };
 
   const navigateToConversation = (conversationId: string, mode: 'push' | 'replace' = 'push') => {
@@ -1477,7 +1544,7 @@ function ChatApp() {
     mode === 'replace' ? window.history.replaceState({}, '', nextPath) : window.history.pushState({}, '', nextPath);
     setCurrentView('chat');
     setActiveConversationId(conversationId);
-    setSidebarOpen(false);
+    if (!isDesktopChatLayout()) setSidebarOpen(false);
   };
 
   const openStudioFromChat = () => {
@@ -1521,7 +1588,11 @@ function ChatApp() {
   };
 
   const handleBackToHome = () => {
-    navigateToView('home');
+    if (currentView === 'chat') {
+      setSidebarOpen((open) => !open);
+      return;
+    }
+    navigateToView('chat');
   };
 
   const handleOpenNoaWallet = () => {
@@ -1610,7 +1681,7 @@ function ChatApp() {
         setProfile(profileData);
         setLandingStep('chat');
         setCurrentView(routeView);
-        setSidebarOpen(routeView === 'home');
+        setSidebarOpen(routeView === 'chat' && isDesktopChatLayout());
         setHasSavedAccount(true);
       } else if (requestedAuthMode === 'login') {
         setAuthMode('login');
@@ -1667,7 +1738,7 @@ function ChatApp() {
       setProfile(profileData);
       setLandingStep('chat');
       setCurrentView(routeView);
-      setSidebarOpen(routeView === 'home');
+      setSidebarOpen(routeView === 'chat' && isDesktopChatLayout());
       setHasSavedAccount(true);
       setHasHydratedRemoteConversations(false);
     });
@@ -1681,7 +1752,7 @@ function ChatApp() {
         const nextView = getAppViewFromPath(pathname);
         setCurrentView(nextView);
         setActiveConversationId(getConversationIdFromPath(pathname));
-        setSidebarOpen(nextView === 'home');
+        setSidebarOpen(nextView === 'chat' && isDesktopChatLayout());
         if (!loadProfile() && !new URLSearchParams(window.location.search).get('auth')) {
           window.location.replace('/');
         }
@@ -1812,11 +1883,62 @@ function ChatApp() {
       setAttachmentMenuOpen(false);
     };
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setAttachmentMenuOpen(false);
+      }
+    };
+
     document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
     };
   }, [attachmentMenuOpen]);
+
+  useEffect(() => {
+    if (!conversationMenu) return;
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      conversationMenuRef.current?.querySelector<HTMLButtonElement>('[role^="menuitem"]')?.focus();
+    });
+    const closeMenu = () => setConversationMenu(null);
+    const handleOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        conversationMenuRef.current?.contains(target) ||
+        conversationMenuTriggerRef.current?.contains(target)
+      ) {
+        return;
+      }
+      closeMenu();
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      const trigger = conversationMenuTriggerRef.current;
+      closeMenu();
+      window.setTimeout(() => trigger?.focus(), 0);
+    };
+
+    document.addEventListener('pointerdown', handleOutsidePointer);
+    document.addEventListener('keydown', handleEscape);
+    document.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('pointerdown', handleOutsidePointer);
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [conversationMenu]);
+
+  useEffect(() => {
+    if (sidebarOpen && currentView === 'chat') return;
+    setConversationMenu(null);
+  }, [currentView, sidebarOpen]);
 
   useLayoutEffect(() => {
     const container = messagesContainerRef.current;
@@ -2822,6 +2944,10 @@ function ChatApp() {
     imageInputRef.current?.click();
   };
 
+  const handleAttachmentMenuToggle = () => {
+    setAttachmentMenuOpen((isOpen) => !isOpen);
+  };
+
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = '';
@@ -2929,9 +3055,62 @@ function ChatApp() {
   const handleCreateConversation = async () => {
     setActiveConversationId('');
     localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
-    setSidebarOpen(false);
+    if (!isDesktopChatLayout()) setSidebarOpen(false);
     setInputValue('');
     navigateToConversation('');
+  };
+
+  const handleConversationMenuToggle = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    conversationId: string
+  ) => {
+    event.stopPropagation();
+    if (conversationMenu?.conversationId === conversationId) {
+      setConversationMenu(null);
+      return;
+    }
+
+    const trigger = event.currentTarget;
+    const triggerRect = trigger.getBoundingClientRect();
+    const menuWidth = 208;
+    const menuHeight = 168;
+    const viewportPadding = 12;
+    const preferredLeft = triggerRect.right + 8;
+    const left = Math.min(
+      window.innerWidth - menuWidth - viewportPadding,
+      Math.max(viewportPadding, preferredLeft)
+    );
+    const top = Math.min(
+      window.innerHeight - menuHeight - viewportPadding,
+      Math.max(viewportPadding, triggerRect.top - 4)
+    );
+
+    conversationMenuTriggerRef.current = trigger;
+    setConversationMenu({ conversationId, top, left });
+  };
+
+  const handleConversationMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const items = Array.from(
+      event.currentTarget.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]')
+    );
+    if (items.length === 0) return;
+
+    event.preventDefault();
+    const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === 'Home') {
+      items[0].focus();
+      return;
+    }
+    if (event.key === 'End') {
+      items[items.length - 1].focus();
+      return;
+    }
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    const nextIndex = currentIndex < 0
+      ? 0
+      : (currentIndex + direction + items.length) % items.length;
+    items[nextIndex].focus();
   };
 
   const handleDeleteConversation = (conversationId: string) => {
@@ -3096,13 +3275,6 @@ function ChatApp() {
    recognitionRef.current.stop();
    releaseMicStream();
  };
-
-  const handleGenerateImageClick = () => {
-    setAttachmentMenuOpen(false);
-    setImageGenError('');
-    setImageGenStatus('');
-    openStudioFromChat();
-  };
 
  const handleCloseImageGenerator = () => {
    setShowImageGenModal(false);
@@ -3441,23 +3613,6 @@ function ChatApp() {
   const imagePromptLength = imageGenPrompt.trim().length;
   const canSubmitImagePrompt = imagePromptLength > 0 && !isGeneratingImage;
   const currentPathname = window.location.pathname;
-  const shouldShowChatStudioSwitcher = currentPathname === '/' || currentPathname === '/chat' || /^\/c\/[^/]+$/.test(currentPathname) || currentPathname === '/images';
-  const activeChatStudioView = currentPathname === '/images' ? 'studio' : 'chat';
-  const chatStudioSwitcher = shouldShowChatStudioSwitcher ? (
-    <ChatStudioSwitcher
-      active={activeChatStudioView}
-      isMobileKeyboardOpen={isMobileKeyboardOpen && activeChatStudioView === 'chat'}
-      onChat={() => {
-        if (activeChatStudioView !== 'chat') returnToChatFromStudio();
-      }}
-      onNewChat={() => {
-        void handleCreateConversation();
-      }}
-      onStudio={() => {
-        if (activeChatStudioView !== 'studio') openStudioFromChat();
-      }}
-    />
-  ) : null;
 
   return (
     <div className={`app-shell chat-shell view-${currentView} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
@@ -3465,6 +3620,7 @@ function ChatApp() {
       <div className="bg-blob blob-orange" />
       <div className="bg-blob blob-yellow" />
       <div className="bg-blob blob-purple" />
+      {currentView === 'chat' ? <a className="app-skip-link" href="#chat-messages">رفتن به پیام‌ها</a> : null}
 
       {imagePreview ? (
         <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="پیش‌نمایش تصویر" onClick={() => setImagePreview(null)}>
@@ -3533,13 +3689,22 @@ function ChatApp() {
         <header className="top-bar">
           <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
           <div className="top-bar-main">
-            <button className="menu-btn chat-back-btn" onClick={handleBackToHome} type="button" aria-label="برگشت به گفتگوها" title="برگشت به گفتگوها">
-              <svg className="chat-header-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg>
+            <button
+              ref={chatSidebarToggleRef}
+              className="menu-btn chat-back-btn"
+              onClick={handleBackToHome}
+              type="button"
+              aria-label={sidebarOpen ? 'بستن تاریخچه گفتگوها' : 'باز کردن تاریخچه گفتگوها'}
+              aria-expanded={sidebarOpen}
+              aria-controls="chat-history-sidebar"
+              title={sidebarOpen ? 'بستن سایدبار' : 'باز کردن سایدبار'}
+            >
+              <Icon name="grid" size={22} aria-hidden="true" />
             </button>
             <div className="top-title">
               <div className="top-copy">
                 <div className="top-copy-row chat-title-pill">
-                  <span className="chat-title-icon" aria-hidden="true">د</span>
+                  <span className="chat-title-icon" aria-hidden="true"><img src={PUBLIC_ASSETS.brandMark} alt="" /></span>
                   <span className="chat-title-text">{activeConversation && editingId === activeConversation.id ? (
                     <input
                       autoFocus
@@ -3581,72 +3746,108 @@ function ChatApp() {
         </header>
         ) : null}
 
-        {currentView === 'home' ? (
-        <aside className={`sidebar conversation-home ${sidebarOpen ? 'open' : ''}`}>
+        {currentView === 'chat' ? (
+        <aside
+          id="chat-history-sidebar"
+          className={`sidebar conversation-home chat-history-sidebar ${sidebarOpen ? 'open' : ''}`}
+          aria-label="تاریخچه و ناوبری دانوآ"
+          aria-hidden={!sidebarOpen}
+          ref={(node) => {
+            if (node) node.inert = !sidebarOpen;
+          }}
+        >
           <header className="conversation-home-header">
-            <h3>گفتگوهای من</h3>
-            <div className={`conversation-home-tools ${isConversationSearchOpen ? 'search-open' : ''}`}>
-              {isConversationSearchOpen ? (
-                <div className="conversation-search-panel" role="search">
-                  <input
-                    ref={conversationSearchInputRef}
-                    className="conversation-search-input"
-                    type="search"
-                    dir="rtl"
-                    value={conversationSearchTerm}
-                    onChange={(event) => setConversationSearchTerm(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Escape') {
-                        setConversationSearchTerm('');
-                        setIsConversationSearchOpen(false);
-                      }
-                    }}
-                    placeholder="جستجوی گفتگوها"
-                    aria-label="جستجو در گفتگوها"
-                  />
-                  {conversationSearchTerm ? (
-                    <button
-                      type="button"
-                      className="conversation-search-clear"
-                      onClick={() => {
-                        setConversationSearchTerm('');
-                        conversationSearchInputRef.current?.focus();
-                      }}
-                      aria-label="پاک کردن جستجو"
-                    >
-                      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M18 6 6 18M6 6l12 12" />
-                      </svg>
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="conversation-search-close"
-                    onClick={() => {
-                      setConversationSearchTerm('');
-                      setIsConversationSearchOpen(false);
-                    }}
-                    aria-label="بستن جستجو"
-                    title="بستن"
-                  >
-                    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="conversation-home-icon-btn conversation-home-icon-btn--search"
-                  onClick={() => setIsConversationSearchOpen(true)}
-                  aria-label="جستجو در گفتگوها"
-                  title="جستجو"
-                >
-                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 21l-5.2-5.2m1.7-4.55a6.25 6.25 0 11-12.5 0 6.25 6.25 0 0112.5 0z" /></svg>
-                </button>
-              )}
+            <div className="conversation-home-brand">
+              <span className="conversation-home-brand__mark" aria-hidden="true">د</span>
+              <span>
+                <strong>دانوآ</strong>
+                <small>همراه هوشمند تو</small>
+              </span>
+            </div>
+            <div className="conversation-home-header-actions">
+              <button
+                ref={conversationSearchToggleRef}
+                type="button"
+                className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
+                onClick={() => {
+                  const nextSearchOpen = !conversationSearchOpen;
+                  setConversationSearchOpen(nextSearchOpen);
+                  if (nextSearchOpen) {
+                    window.requestAnimationFrame(() => conversationSearchInputRef.current?.focus());
+                  } else {
+                    setConversationSearchTerm('');
+                  }
+                }}
+                aria-label={conversationSearchOpen ? 'بستن جستجوی گفتگوها' : 'جستجوی گفتگوها'}
+                aria-expanded={conversationSearchOpen}
+                aria-controls="conversation-sidebar-search"
+                title="جستجوی گفتگوها"
+              >
+                <Icon name="search" size={20} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="conversation-home-close"
+                onClick={() => setSidebarOpen(false)}
+                aria-label="بستن سایدبار"
+                title="بستن"
+              >
+                <Icon name="x-close" size={20} aria-hidden="true" />
+              </button>
             </div>
           </header>
+
+          <div className="conversation-home-primary-actions">
+            <button type="button" className="conversation-new-chat-btn" onClick={() => void handleCreateConversation()}>
+              <Icon name="new-chat" size={20} aria-hidden="true" />
+              <span>گفتگوی جدید</span>
+            </button>
+            {conversationSearchOpen ? (
+              <div id="conversation-sidebar-search" className="conversation-search-panel" role="search">
+                <Icon name="search" size={18} aria-hidden="true" />
+                <input
+                  ref={conversationSearchInputRef}
+                  className="conversation-search-input"
+                  type="search"
+                  dir="rtl"
+                  value={conversationSearchTerm}
+                  onChange={(event) => setConversationSearchTerm(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (conversationSearchTerm) {
+                        setConversationSearchTerm('');
+                      } else {
+                        setConversationSearchOpen(false);
+                        conversationSearchToggleRef.current?.focus();
+                      }
+                    }
+                  }}
+                  placeholder="جستجوی گفتگوها"
+                  aria-label="جستجو در گفتگوها"
+                />
+                {conversationSearchTerm ? (
+                  <button
+                    type="button"
+                    className="conversation-search-clear"
+                    onClick={() => {
+                      setConversationSearchTerm('');
+                      conversationSearchInputRef.current?.focus();
+                    }}
+                    aria-label="پاک کردن جستجو"
+                  >
+                    <Icon name="x-close" size={16} aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="conversation-history-heading">
+            <h2>گفتگوهای اخیر</h2>
+            <span>{new Intl.NumberFormat('fa-IR').format(visibleConversations.length)}</span>
+          </div>
 
           <div className="conversation-list conversation-home-list">
             {!hasHydratedRemoteConversations && profile?.phone ? (
@@ -3673,12 +3874,19 @@ function ChatApp() {
                 <div
                   className={`conversation-row conversation-card ${isActive ? 'active' : ''}`}
                   key={conversation.id}
-                  onClick={() => {
-                    setActiveConversationId(conversation.id);
-                    setSidebarOpen(false);
-                    navigateToConversation(conversation.id);
-                  }}
                 >
+                  {!isEditing ? (
+                    <button
+                      type="button"
+                      className="conversation-card-select"
+                      onClick={() => {
+                        setActiveConversationId(conversation.id);
+                        navigateToConversation(conversation.id);
+                      }}
+                      aria-label={`باز کردن گفتگو: ${conversation.title || DEFAULT_TITLE}`}
+                      aria-current={isActive ? 'page' : undefined}
+                    />
+                  ) : null}
                   <div className={`conversation-card-icon conversation-card-icon--${visual.tone}`} aria-hidden="true">
                     <Icon name={conversationVisualIcon(index)} size="1.5em" />
                   </div>
@@ -3705,64 +3913,46 @@ function ChatApp() {
                       </form>
                     ) : (
                       <>
-                        <p>{conversation.title || DEFAULT_TITLE}</p>
-                        <small>{preview}</small>
+                        <div className="conversation-card-title-row">
+                          <p>{conversation.title || DEFAULT_TITLE}</p>
+                          {conversation.pinned ? (
+                            <span className="conversation-card-pinned" title="سنجاق‌شده" aria-label="سنجاق‌شده">
+                              <Icon name="pin" size={13} aria-hidden="true" />
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="conversation-card-preview-row">
+                          <small>{preview}</small>
+                          <time
+                            className="conversation-card-date"
+                            dateTime={conversation.updatedAt || conversation.createdAt}
+                          >
+                            {dateLabel}
+                          </time>
+                        </div>
                       </>
                     )}
                   </div>
 
                   <div className="conversation-card-meta" onClick={(event) => event.stopPropagation()}>
-                    <span className="conversation-card-date">
-                      {conversation.pinned ? <span aria-hidden="true"><Icon name="pin" size="1em" /></span> : null}
-                      {dateLabel}
-                    </span>
-                    <div className="conversation-actions">
-                    <Button
+                    <button
                       type="button"
-                      iconOnly
-                      size="sm"
-                      variant="ghost"
-                      aria-label="سنجاق گفتگو"
-                      title="سنجاق"
-                      className={`conversation-action-btn ${conversation.pinned ? 'pinned' : ''}`}
-                      onClick={() =>
-                        updateConversation(conversation.id, (item) => ({
-                          ...item,
-                          pinned: !item.pinned,
-                          updatedAt: new Date().toISOString()
-                        }))
+                      className={`conversation-more-trigger ${
+                        conversationMenu?.conversationId === conversation.id ? 'is-open' : ''
+                      }`}
+                      aria-label={`گزینه‌های گفتگو: ${conversation.title || DEFAULT_TITLE}`}
+                      aria-haspopup="menu"
+                      aria-expanded={conversationMenu?.conversationId === conversation.id}
+                      aria-controls={
+                        conversationMenu?.conversationId === conversation.id
+                          ? 'conversation-context-menu'
+                          : undefined
                       }
+                      title="گزینه‌های گفتگو"
+                      onClick={(event) => handleConversationMenuToggle(event, conversation.id)}
                     >
-                      <Icon name="pin" size="1.15em" />
-                    </Button>
-                    <Button
-                      type="button"
-                      iconOnly
-                      size="sm"
-                      variant="ghost"
-                      aria-label="تغییر نام گفتگو"
-                      className="conversation-action-btn"
-                      title="تغییر نام"
-                      onClick={() => {
-                        setEditingId(conversation.id);
-                        setEditingTitle(conversation.title);
-                      }}
-                    >
-                      <Icon name="edit" size="1.15em" />
-                    </Button>
-                    <Button
-                      type="button"
-                      iconOnly
-                      size="sm"
-                      variant="ghost"
-                      aria-label="حذف گفتگو"
-                      className="conversation-action-btn"
-                      title="حذف"
-                      onClick={() => handleDeleteConversation(conversation.id)}
-                    >
-                      <Icon name="delete" size="1.15em" />
-                    </Button>
-                    </div>
+                      <Icon name="more-horizontal" size={21} aria-hidden="true" />
+                    </button>
                   </div>
                 </div>
               );
@@ -3792,41 +3982,106 @@ function ChatApp() {
             ) : null}
           </div>
 
-          <nav className="conversation-bottom-nav" aria-label="ناوبری گفتگوها">
-            <button type="button" className="conversation-nav-item" onClick={handleOpenSettings} aria-label="پروفایل">
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" />
-                <path d="M19.4 15a1.7 1.7 0 00.34 1.88l.05.05a2 2 0 01-2.83 2.83l-.05-.05a1.7 1.7 0 00-1.88-.34 1.7 1.7 0 00-1.03 1.56V21a2 2 0 01-4 0v-.07a1.7 1.7 0 00-1.03-1.56 1.7 1.7 0 00-1.88.34l-.05.05a2 2 0 01-2.83-2.83l.05-.05A1.7 1.7 0 004.6 15 1.7 1.7 0 003.04 14H3a2 2 0 010-4h.04A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.88l-.05-.05a2 2 0 012.83-2.83l.05.05A1.7 1.7 0 008.97 4.6 1.7 1.7 0 0010 3.04V3a2 2 0 014 0v.04a1.7 1.7 0 001.03 1.56 1.7 1.7 0 001.88-.34l.05-.05a2 2 0 012.83 2.83l-.05.05A1.7 1.7 0 0019.4 9c.23.63.81 1 1.56 1H21a2 2 0 010 4h-.04A1.7 1.7 0 0019.4 15z" />
-              </svg>
-              <span>پروفایل</span>
+          <nav className="conversation-bottom-nav conversation-sidebar-nav" aria-label="بخش‌های دانوآ">
+            <button type="button" className="conversation-nav-item" onClick={openStudioFromChat}>
+              <Icon name="grid" size={21} aria-hidden="true" />
+              <span>
+                <strong>استودیو</strong>
+                <small>ساخت تصویر و ویدیو</small>
+              </span>
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
             </button>
             <button type="button" className="conversation-nav-item" onClick={handleOpenNoaWallet}>
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-              <span>{noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ` : 'کیف پول'}</span>
+              <Icon name="credit-card" size={21} aria-hidden="true" />
+              <span>
+                <strong>کیف پول نوآ</strong>
+                <small>{noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ موجودی` : 'مدیریت اعتبار'}</small>
+              </span>
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
             </button>
-            <button type="button" className="conversation-nav-fab" onClick={handleCreateConversation} aria-label="شروع گفتگوی جدید">
-              +
-            </button>
-            <button type="button" className="conversation-nav-item" onClick={() => navigateToView('studio')} title="استودیو" aria-label="باز کردن استودیو">
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <rect x="4" y="4" width="16" height="16" rx="3" />
-                <path d="M8 8h3v3H8zM13 8h3v3h-3zM8 13h3v3H8zM13 13h3v3h-3z" />
-              </svg>
-              <span>استودیو</span>
-            </button>
-            <button type="button" className="conversation-nav-item active" onClick={() => navigateToView('chat')}>
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M21 11.5c0 4.14-4.03 7.5-9 7.5a10.5 10.5 0 01-4.52-1L3 19l1.4-3.28A6.76 6.76 0 013 11.5C3 7.36 7.03 4 12 4s9 3.36 9 7.5z" />
-                <path d="M8 11h.01M12 11h.01M16 11h.01" />
-              </svg>
-              <span>چت</span>
+            <button type="button" className="conversation-nav-item conversation-nav-profile" onClick={handleOpenSettings}>
+              <span className="conversation-nav-profile__avatar" aria-hidden="true">
+                {String(profile?.name || 'د').trim().charAt(0)}
+              </span>
+              <span>
+                <strong>{profile?.name || 'پروفایل من'}</strong>
+                <small>تنظیمات حساب کاربری</small>
+              </span>
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
             </button>
           </nav>
         </aside>
         ) : null}
-        {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('home')} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
+        {conversationMenu && conversationMenuTarget ? (
+          <div
+            id="conversation-context-menu"
+            ref={conversationMenuRef}
+            className="conversation-context-menu"
+            role="menu"
+            aria-label={`مدیریت گفتگو: ${conversationMenuTarget.title || DEFAULT_TITLE}`}
+            style={{ top: conversationMenu.top, left: conversationMenu.left }}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={handleConversationMenuKeyDown}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setConversationMenu(null);
+              }
+            }}
+          >
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              aria-checked={conversationMenuTarget.pinned}
+              className={conversationMenuTarget.pinned ? 'is-active' : ''}
+              onClick={() => {
+                const targetId = conversationMenuTarget.id;
+                setConversationMenu(null);
+                updateConversation(targetId, (item) => ({
+                  ...item,
+                  pinned: !item.pinned,
+                  updatedAt: new Date().toISOString()
+                }));
+              }}
+            >
+              <span className="conversation-context-menu__icon" aria-hidden="true">
+                <Icon name="pin" size={18} />
+              </span>
+              <span>{conversationMenuTarget.pinned ? 'برداشتن سنجاق' : 'سنجاق کردن گفتگو'}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                const target = conversationMenuTarget;
+                setConversationMenu(null);
+                setEditingId(target.id);
+                setEditingTitle(target.title || DEFAULT_TITLE);
+              }}
+            >
+              <span className="conversation-context-menu__icon" aria-hidden="true">
+                <Icon name="edit" size={18} />
+              </span>
+              <span>تغییر نام گفتگو</span>
+            </button>
+            <span className="conversation-context-menu__separator" role="separator" />
+            <button
+              type="button"
+              role="menuitem"
+              className="is-danger"
+              onClick={() => {
+                const targetId = conversationMenuTarget.id;
+                setConversationMenu(null);
+                handleDeleteConversation(targetId);
+              }}
+            >
+              <span className="conversation-context-menu__icon" aria-hidden="true">
+                <Icon name="delete" size={18} />
+              </span>
+              <span>حذف گفتگو</span>
+            </button>
+          </div>
+        ) : null}
+        {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
         {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} /> : null}
         {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} /> : null}
         {false ? (
@@ -3959,6 +4214,7 @@ function ChatApp() {
                   onSave={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}
                   onDeleteAll={handleDeleteAllConversations}
                   onLogout={handleLogout}
+                  showAccountActions={false}
                 />
               </div>
 
@@ -4070,11 +4326,11 @@ function ChatApp() {
             />
           </main>
         ) : null}
-        {currentView === 'home' && sidebarOpen ? (
+        {currentView === 'chat' && sidebarOpen ? (
           <button
             className="sidebar-hitbox"
             type="button"
-            aria-label="بستن منو"
+            aria-label="بستن تاریخچه گفتگوها"
             onClick={() => setSidebarOpen(false)}
           />
         ) : null}
@@ -4122,20 +4378,6 @@ function ChatApp() {
        {showImageGenModal ? (
          <Dialog open={showImageGenModal} title="ساخت تصویر" onClose={handleCloseImageGenerator} showFooter={false}>
            <div className="image-gen-modal">
-              <button
-                type="button"
-                className="image-gen-close"
-                aria-label="بستن"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleCloseImageGenerator();
-                }}
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              </button>
-
              <div className="image-gen-hero" aria-hidden="true">
                <span className="image-gen-glow" />
                <span className="image-gen-orb">
@@ -4212,7 +4454,7 @@ function ChatApp() {
        ) : null}
 
        {currentView === 'chat' ? (
-       <main className="messages-area" ref={messagesContainerRef}>
+       <main id="chat-messages" className="messages-area" ref={messagesContainerRef} aria-live="polite" aria-busy={isSending}>
           {visibleMessages.length ? (
             visibleMessages.map((message, index) => (
               <div
@@ -4336,7 +4578,7 @@ function ChatApp() {
                   </div>
                   <p className="chat-ai-safety-note">
                     <Icon name="shield" size="1.1em" aria-hidden="true" />
-                    پاسخ‌ها با هوش مصنوعی ساخته میشود.
+                    پاسخ‌ها با هوش مصنوعی ساخته می‌شوند.
                   </p>
                 </div>
               )}
@@ -4394,38 +4636,30 @@ function ChatApp() {
                 <div className="attachment-rail">
                   <div className="attachment-box attachment-tools" ref={attachmentBoxRef}>
                     <button
-                      className="attach-btn"
+                      className={`attach-btn attachment-trigger ${attachmentMenuOpen ? 'is-open' : ''}`}
                       type="button"
-                      aria-label="ارسال عکس"
-                      title="ارسال عکس"
-                      onClick={handlePickImageClick}
+                      aria-label={attachmentMenuOpen ? 'بستن گزینه‌های پیوست' : 'باز کردن گزینه‌های پیوست'}
+                      title="افزودن پیوست"
+                      aria-haspopup="menu"
+                      aria-expanded={attachmentMenuOpen}
+                      aria-controls={ATTACHMENT_MENU_ID}
+                      onClick={handleAttachmentMenuToggle}
                     >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4 16l4.6-4.6a2 2 0 0 1 2.8 0L16 16m-2-2 1.6-1.6a2 2 0 0 1 2.8 0L20 14" />
-                        <path d="M14 8h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" />
-                      </svg>
+                      <Icon name="plus" size="1.35em" aria-hidden="true" />
                     </button>
                     {attachmentMenuOpen ? (
-                      <div className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
-                       <button type="button" onClick={handlePickImageClick}>
-                         <Icon name="attach-image" size="1.2em" aria-hidden="true" />
-                         ارسال عکس
-                       </button>
-                       <button type="button" onClick={handleGenerateImageClick}>
-                         <Icon name="sparkle" size="1.2em" aria-hidden="true" />
-                         ساخت عکس با هوش مصنوعی
-                       </button>
-                       <button
-                         type="button"
-                         className="menu-item-disabled"
-                          onClick={() => {
-                            setAttachmentMenuOpen(false);
-                            pushToast('به زودی فعال میشه این بخش ...', 'warning');
-                          }}
-                        >
-                          <Icon name="story" size="1.2em" aria-hidden="true" />
-                          ارسال فایل
-                        </button>
+                      <div id={ATTACHMENT_MENU_ID} className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
+                        {ATTACHMENT_MENU_ITEMS.map((item) => (
+                          <button key={item.id} type="button" role="menuitem" onClick={handlePickImageClick}>
+                            <span className="attachment-popup__icon" aria-hidden="true">
+                              <Icon name={item.icon} size="1.2em" />
+                            </span>
+                            <span className="attachment-popup__copy">
+                              <strong>{item.label}</strong>
+                              <small>{item.description}</small>
+                            </span>
+                          </button>
+                        ))}
                       </div>
                     ) : null}
                     <input ref={imageInputRef} type="file" accept={imageAccept} multiple hidden onChange={handleImageSelect} />
@@ -4530,11 +4764,9 @@ function ChatApp() {
               </div>
             </div>
           </div>
-          {chatStudioSwitcher}
         </footer>
         ) : null}
       </div>
-      {currentView === 'images' && chatStudioSwitcher}
     </div>
   );
 }

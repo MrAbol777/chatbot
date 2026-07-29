@@ -1,5 +1,9 @@
 import type {
   AdminIdentity,
+  AdminNoaUserWallet,
+  AdminNoaWalletAdjustment,
+  AdminNoaUser,
+  NoaBankTransferAccount,
   NoaExchangeRate,
   NoaPricingConfig,
   NoaPublicConfig,
@@ -105,6 +109,20 @@ function normalizeExchangeRate(payload: unknown): NoaExchangeRate {
   };
 }
 
+function normalizeBankTransferAccount(payload: unknown): NoaBankTransferAccount | null {
+  const source = asRecord(payload);
+  const cardNumber = asString(pick(source, 'cardNumber', 'card_number')).replace(/\D/g, '');
+  const cardHolderName = asNullableString(pick(source, 'cardHolderName', 'card_holder_name'));
+  if (!/^\d{16}$/.test(cardNumber) || !cardHolderName) return null;
+  return {
+    cardNumber,
+    cardHolderName,
+    version: asString(pick(source, 'version'), '0'),
+    updatedByAdminId: asNullableString(pick(source, 'updatedByAdminId', 'updated_by_admin_id')),
+    updatedAt: asNullableString(pick(source, 'updatedAt', 'updated_at'))
+  };
+}
+
 export function normalizeWallet(payload: unknown): NoaWallet {
   const root = asRecord(payload);
   const source = asRecord(pick(root, 'wallet', 'data') || root);
@@ -131,7 +149,10 @@ export function normalizeWallet(payload: unknown): NoaWallet {
     reservedBalance,
     totalBalance: asString(pick(source, 'totalBalance', 'total_balance', 'totalNoa'), availableBalance),
     updatedAt: asNullableString(pick(source, 'updatedAt', 'updated_at')),
-    exchangeRate: normalizeExchangeRate(pick(source, 'exchangeRate', 'exchange_rate') || pick(root, 'exchangeRate', 'exchange_rate'))
+    exchangeRate: normalizeExchangeRate(pick(source, 'exchangeRate', 'exchange_rate') || pick(root, 'exchangeRate', 'exchange_rate')),
+    bankTransferAccount: normalizeBankTransferAccount(
+      pick(source, 'bankTransferAccount', 'bank_transfer_account') || pick(root, 'bankTransferAccount', 'bank_transfer_account')
+    )
   };
 }
 
@@ -213,6 +234,7 @@ export async function fetchNoaPublicConfig(): Promise<NoaPublicConfig> {
   return {
     exchangeRate: normalizeExchangeRate(payload),
     pricingConfigs: Array.isArray(pricing) ? pricing.map(normalizePricingConfig) : [],
+    bankTransferAccount: normalizeBankTransferAccount(pick(payload, 'bankTransferAccount', 'bank_transfer_account')),
     paymentGatewayEnabled: false
   };
 }
@@ -260,6 +282,99 @@ export async function fetchAdminIdentity(): Promise<AdminIdentity> {
   };
 }
 
+export async function searchAdminNoaUsers(query: string): Promise<AdminNoaUser[]> {
+  const normalizedQuery = query.trim();
+  if (normalizedQuery.length < 2) return [];
+  const params = new URLSearchParams({ q: normalizedQuery, page: '1', pageSize: '6' });
+  const response = await fetch(`/api/admin/users?${params.toString()}`, { credentials: 'include' });
+  const payload = asRecord(await assertOk(response, 'جست‌وجوی کاربر انجام نشد.'));
+  const items = pick(payload, 'items', 'users');
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => {
+    const source = asRecord(item);
+    return {
+      userId: asString(pick(source, 'userId', 'user_id', 'id')).trim(),
+      name: asString(pick(source, 'name'), 'کاربر').trim() || 'کاربر',
+      phone: asNullableString(pick(source, 'phone'))
+    };
+  }).filter((item) => Boolean(item.userId));
+}
+
+function normalizeAdminWallet(payload: unknown): AdminNoaUserWallet['wallet'] {
+  const wallet = asRecord(payload);
+  const availableBalance = asString(pick(wallet, 'availableBalance', 'availableNoa', 'availableBalanceNoa')).trim();
+  if (!availableBalance) throw new NoaApiError('موجودی کیف پول از سرور دریافت نشد.', 502, 'NOA_INVALID_WALLET_RESPONSE');
+  return {
+    availableBalance,
+    reservedBalance: asString(pick(wallet, 'reservedBalance', 'reservedNoa'), '0').trim(),
+    totalBalance: asString(pick(wallet, 'totalBalance', 'totalNoa'), availableBalance).trim(),
+    updatedAt: asNullableString(pick(wallet, 'updatedAt', 'updated_at'))
+  };
+}
+
+export async function fetchAdminNoaUserWallet(userId: string): Promise<AdminNoaUserWallet> {
+  const response = await fetch(`/api/admin/noa/users/${encodeURIComponent(userId)}/wallet`, { credentials: 'include' });
+  const payload = asRecord(await assertOk(response, 'دریافت موجودی کاربر انجام نشد.'));
+  const user = asRecord(pick(payload, 'user'));
+  return {
+    user: {
+      userId: asString(pick(user, 'userId', 'user_id', 'id')).trim(),
+      name: asString(pick(user, 'name'), 'کاربر').trim() || 'کاربر',
+      phone: asNullableString(pick(user, 'phone'))
+    },
+    wallet: normalizeAdminWallet(pick(payload, 'wallet') || payload)
+  };
+}
+
+export async function adjustAdminNoaWallet(input: {
+  userId: string;
+  amountNoa: string;
+  direction: 'increase' | 'decrease';
+  note?: string;
+  idempotencyKey: string;
+}): Promise<AdminNoaWalletAdjustment> {
+  const response = await fetch('/api/admin/noa/wallet-adjustments', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'Idempotency-Key': input.idempotencyKey
+    },
+    body: JSON.stringify({
+      userId: input.userId,
+      amountNoa: input.amountNoa,
+      direction: input.direction,
+      note: input.note || ''
+    })
+  });
+  const payload = asRecord(await assertOk(response, 'شارژ دستی نوآ انجام نشد.'));
+  const source = asRecord(pick(payload, 'credit', 'data') || payload);
+  return {
+    transactionId: asString(pick(source, 'transactionId', 'transaction_id')).trim(),
+    amountNoa: asString(pick(source, 'amountNoa', 'amount_noa')).trim(),
+    replayed: asBoolean(pick(source, 'replayed')),
+    deltaNoa: asString(pick(source, 'deltaNoa', 'delta_noa')).trim(),
+    wallet: normalizeAdminWallet(pick(source, 'wallet') || source)
+  };
+}
+
+export async function fetchPendingNoaNotifications(): Promise<Array<{ notificationId: string; message: string }>> {
+  const response = await fetch('/api/noa/notifications/pending?limit=3', {
+    credentials: 'include',
+    headers: authHeaders()
+  });
+  const payload = asRecord(await assertOk(response, 'دریافت اعلان‌های نوآ انجام نشد.'));
+  const items = pick(payload, 'items');
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => {
+    const source = asRecord(item);
+    return {
+      notificationId: asString(pick(source, 'notificationId', 'notification_id')).trim(),
+      message: asString(pick(source, 'message')).trim()
+    };
+  }).filter((item) => item.notificationId && item.message);
+}
+
 export async function fetchAdminNoaPricing(): Promise<NoaPricingConfig[]> {
   const response = await fetch('/api/admin/noa/pricing', { credentials: 'include' });
   const payload = asRecord(await assertOk(response, 'دریافت قیمت‌های نوآ انجام نشد.'));
@@ -298,6 +413,29 @@ export async function updateAdminNoaConfig(input: {
   });
   const payload = asRecord(await assertOk(response, 'ذخیره نرخ تبدیل نوآ انجام نشد.'));
   return normalizeExchangeRate(pick(payload, 'config', 'data') || payload);
+}
+
+export async function fetchAdminNoaBankTransferAccount(): Promise<NoaBankTransferAccount | null> {
+  const response = await fetch('/api/admin/noa/bank-account', { credentials: 'include' });
+  const payload = asRecord(await assertOk(response, 'دریافت حساب واریز بانکی انجام نشد.'));
+  return normalizeBankTransferAccount(pick(payload, 'bankTransferAccount', 'bank_transfer_account', 'data'));
+}
+
+export async function updateAdminNoaBankTransferAccount(input: {
+  cardNumber: string;
+  cardHolderName: string;
+  expectedVersion: string | null;
+}): Promise<NoaBankTransferAccount> {
+  const response = await fetch('/api/admin/noa/bank-account', {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input)
+  });
+  const payload = asRecord(await assertOk(response, 'ذخیره حساب واریز بانکی انجام نشد.'));
+  const account = normalizeBankTransferAccount(pick(payload, 'bankTransferAccount', 'bank_transfer_account', 'data') || payload);
+  if (!account) throw new NoaApiError('حساب واریز معتبر از سرور دریافت نشد.', 502, 'NOA_INVALID_BANK_ACCOUNT_RESPONSE');
+  return account;
 }
 
 export async function listAdminNoaReceipts(status: NoaReceiptStatus | 'all'): Promise<NoaReceipt[]> {

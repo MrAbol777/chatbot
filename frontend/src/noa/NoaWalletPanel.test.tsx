@@ -10,6 +10,12 @@ const wallet: NoaWallet = {
   reservedBalance: '0.000000',
   totalBalance: '3.000000',
   updatedAt: null,
+  bankTransferAccount: {
+    cardNumber: '6037991234567890',
+    cardHolderName: 'نام دارنده کارت',
+    version: '1',
+    updatedAt: null
+  },
   exchangeRate: {
     fiatCurrency: 'TOMAN',
     tomanPerNoa: '10000.000000',
@@ -60,6 +66,8 @@ describe('NoaWalletPanel', () => {
     );
 
     await screen.findByText('هنوز رسیدی ثبت نشده است');
+    expect(screen.getByText('نام دارنده کارت')).toBeInTheDocument();
+    expect(screen.getByText('6037-9912-3456-7890')).toBeInTheDocument();
     const receipt = new File(['receipt-image'], 'receipt.png', { type: 'image/png' });
     await user.upload(screen.getByLabelText('انتخاب تصویر رسید'), receipt);
     await user.click(screen.getByRole('button', { name: 'ثبت رسید برای بررسی' }));

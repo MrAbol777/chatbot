@@ -17,6 +17,7 @@ import {
 import { Button, FieldGroup, InlineMessage, TextAreaField, TextField } from './design-system/components';
 import Icon, { type IconName } from './components/Icon';
 import AiProviderManagement from './admin/ai-routing/AiProviderManagement';
+import VideoGenerationsAdmin from './admin/video-generations/VideoGenerationsAdmin';
 import VideoPromptProfilesAdmin from './admin/video-prompt-profiles/VideoPromptProfilesAdmin';
 import NoaFinanceAdmin from './admin/noa/NoaFinanceAdmin';
 import { fetchAdminIdentity } from './noa/noa.service';
@@ -282,7 +283,7 @@ type SupervisedOtpConfig = {
 };
 
 const PIE_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'];
-type AdminTab = 'dashboard' | 'users' | 'imageGenerations' | 'noaFinance' | 'aiRouting' | 'videoPromptProfiles' | 'errors' | 'siteSettings' | 'supervisedOtp' | 'config' | 'audit';
+type AdminTab = 'dashboard' | 'users' | 'imageGenerations' | 'videoGenerations' | 'noaFinance' | 'aiRouting' | 'videoPromptProfiles' | 'errors' | 'siteSettings' | 'supervisedOtp' | 'config' | 'audit';
 type ReportUserScope = 'all' | 'selected';
 type ReportFormat = 'csv' | 'txt';
 type ReportSection =
@@ -300,6 +301,7 @@ const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'داشبورد',
   users: 'کاربران',
   imageGenerations: 'خروجی‌های تصویر',
+  videoGenerations: 'خروجی‌های ویدیو',
   noaFinance: 'مالی نوآ',
   aiRouting: 'ارائه‌دهندگان AI',
   videoPromptProfiles: 'پرامپت‌های ویدیو',
@@ -314,6 +316,7 @@ const TAB_ICONS: Record<AdminTab, IconName> = {
   dashboard: 'grid',
   users: 'family',
   imageGenerations: 'studio-image',
+  videoGenerations: 'studio-video',
   noaFinance: 'credit-card',
   aiRouting: 'sparkle',
   videoPromptProfiles: 'studio-video',
@@ -328,6 +331,7 @@ const TAB_DESCRIPTIONS: Record<AdminTab, string> = {
   dashboard: 'شاخص‌های کلیدی، روند استفاده و آخرین فعالیت‌های سامانه',
   users: 'جست‌وجو، بررسی پروفایل و مدیریت دسترسی کاربران',
   imageGenerations: 'پیگیری وضعیت و جزئیات خروجی‌های استودیوی تصویر',
+  videoGenerations: 'مشاهده کاربر، پرامپت، تصویر ورودی و خروجی هر درخواست ویدیو',
   noaFinance: 'مدیریت قیمت‌ها، نرخ تبدیل و رسیدهای واریز بانکی',
   aiRouting: 'کنترل مسیرها، مدل‌ها و وضعیت ارائه‌دهندگان هوش مصنوعی',
   videoPromptProfiles: 'مدیریت نسخه‌ها و قواعد پرامپت‌های ساخت ویدیو',
@@ -340,7 +344,7 @@ const TAB_DESCRIPTIONS: Record<AdminTab, string> = {
 
 const TAB_GROUPS: Array<{ label: string; items: AdminTab[] }> = [
   { label: 'نمای کلی', items: ['dashboard'] },
-  { label: 'محصول و کاربران', items: ['users', 'imageGenerations'] },
+  { label: 'محصول و کاربران', items: ['users', 'imageGenerations', 'videoGenerations'] },
   { label: 'عملیات مالی', items: ['noaFinance'] },
   { label: 'هوش مصنوعی', items: ['aiRouting', 'videoPromptProfiles'] },
   { label: 'سیستم و امنیت', items: ['errors', 'siteSettings', 'supervisedOtp', 'config', 'audit'] }
@@ -1852,6 +1856,7 @@ function AdminPanel() {
       ) : null}
 
       {tab === 'aiRouting' ? <AiProviderManagement /> : null}
+      {tab === 'videoGenerations' ? <VideoGenerationsAdmin /> : null}
       {tab === 'videoPromptProfiles' ? <VideoPromptProfilesAdmin /> : null}
       {tab === 'noaFinance' ? (
         canManageFinance ? (

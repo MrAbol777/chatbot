@@ -12,7 +12,7 @@ function NotFound() {
         gap: '20px',
         padding: '32px 16px',
         textAlign: 'center',
-        fontFamily: "'Sahel', sans-serif",
+        fontFamily: 'var(--font-family-base)',
         color: '#191c1e',
         direction: 'rtl'
       }}

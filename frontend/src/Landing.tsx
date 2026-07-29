@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
 import { Button, Card } from './design-system/components';
+import { PUBLIC_ASSETS } from './config/publicAssets';
 import './Landing.css';
 
 function useScrollProgress() {
@@ -29,30 +30,10 @@ function useScrollReveal(threshold = 0.08) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (typeof window.IntersectionObserver !== 'function') {
-      el.dataset.revealed = 'true';
-      return;
-    }
-    let observer: IntersectionObserver | null = null;
+    // Content must never depend on IntersectionObserver to remain readable.
+    // The decorative reveal is progressive enhancement only.
     el.dataset.revealed = 'true';
-    const revealTimer = setTimeout(() => {
-      if (!el.isConnected) return;
-      el.dataset.revealed = 'false';
-      observer = new window.IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting || entry.boundingClientRect.top < window.innerHeight) {
-            el.dataset.revealed = 'true';
-            observer?.unobserve(el);
-          }
-        },
-        { threshold }
-      );
-      observer.observe(el);
-    }, 300);
-    return () => {
-      clearTimeout(revealTimer);
-      observer?.disconnect();
-    };
+    return undefined;
   }, [threshold]);
   return ref;
 }
@@ -60,7 +41,7 @@ function useScrollReveal(threshold = 0.08) {
 function RevealSection({ children, className = '', threshold = 0.08 }: { children: ReactNode; className?: string; threshold?: number }) {
   const ref = useScrollReveal(threshold);
   return (
-    <div ref={ref} className={`landing-reveal ${className}`} data-revealed="false">
+    <div ref={ref} className={`landing-reveal ${className}`} data-revealed="true">
       {children}
     </div>
   );
@@ -310,7 +291,7 @@ function LandingHeader({ menuOpen, setMenuOpen, scrollTo, menuBtnRef }: { menuOp
     <header className="landing-header">
       <a className="landing-logo" href="/landing" aria-label="دانوآ - صفحه معرفی">
         <span className="landing-logo-mark" aria-hidden="true">
-          <Icon name="spark" />
+          <img src={PUBLIC_ASSETS.brandMark} alt="" />
         </span>
         <span className="landing-logo-text">دانوآ</span>
       </a>
@@ -707,7 +688,7 @@ function LandingFooter() {
       <div className="landing-footer-inner">
         <a className="landing-logo" href="/landing" aria-label="دانوآ - صفحه معرفی">
           <span className="landing-logo-mark" aria-hidden="true">
-            <Icon name="spark" />
+            <img src={PUBLIC_ASSETS.brandMark} alt="" />
           </span>
           <span className="landing-logo-text">دانوآ</span>
         </a>
@@ -731,7 +712,6 @@ function LandingFooter() {
 function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(-1);
-  const [revealReady, setRevealReady] = useState(false);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -774,12 +754,6 @@ function LandingPage() {
     };
   }, [menuOpen]);
 
-  useEffect(() => {
-    if (!('IntersectionObserver' in window)) return;
-    const timer = setTimeout(() => setRevealReady(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
-
   const scrollTo = (href: string) => {
     setMenuOpen(false);
     const el = document.querySelector(href);
@@ -787,7 +761,7 @@ function LandingPage() {
   };
 
   return (
-    <main className={`landing${revealReady ? ' reveal-enabled' : ''}`} dir="rtl">
+    <main className="landing" dir="rtl">
       <ScrollProgress />
       <BackgroundOrbs />
       <a href="#main" className="landing-skip">رفتن به محتوای اصلی</a>

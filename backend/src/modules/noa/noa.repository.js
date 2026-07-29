@@ -89,6 +89,37 @@ function createNoaRepository(db) {
     return result.affectedRows === 1;
   }
 
+  async function getBankTransferAccount({ connection, forUpdate = false } = {}) {
+    const [rows] = await queryTarget(connection, db).query(
+      `SELECT account_id, card_number, card_holder_name, version, updated_by_admin_id, updated_at
+         FROM app_noa_bank_transfer_accounts
+        WHERE account_id = 1
+        LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`
+    );
+    return rows[0] || null;
+  }
+
+  async function createBankTransferAccount({ cardNumber, cardHolderName, adminId }, connection) {
+    const [result] = await connection.query(
+      `INSERT INTO app_noa_bank_transfer_accounts
+        (account_id, card_number, card_holder_name, version, updated_by_admin_id, created_at, updated_at)
+       VALUES (1, ?, ?, 1, ?, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))`,
+      [cardNumber, cardHolderName, adminId]
+    );
+    return result.affectedRows === 1;
+  }
+
+  async function updateBankTransferAccount({ cardNumber, cardHolderName, adminId, currentVersion }, connection) {
+    const [result] = await connection.query(
+      `UPDATE app_noa_bank_transfer_accounts
+          SET card_number = ?, card_holder_name = ?, version = version + 1,
+              updated_by_admin_id = ?, updated_at = CURRENT_TIMESTAMP(6)
+        WHERE account_id = 1 AND version = ?`,
+      [cardNumber, cardHolderName, adminId, currentVersion]
+    );
+    return result.affectedRows === 1;
+  }
+
   async function ensureWallet(userId, connection) {
     try {
       await connection.query(
@@ -243,6 +274,47 @@ function createNoaRepository(db) {
       [amount, walletId]
     );
     return result.affectedRows === 1;
+  }
+
+  async function adjustAvailableWallet(walletId, delta, connection) {
+    const [result] = await connection.query(
+      `UPDATE app_noa_wallets
+          SET available_balance = available_balance + ?, version = version + 1,
+              updated_at = CURRENT_TIMESTAMP(6)
+        WHERE wallet_id = ?`,
+      [delta, walletId]
+    );
+    return result.affectedRows === 1;
+  }
+
+  async function insertUserNotification(record, connection) {
+    await connection.query(
+      `INSERT INTO app_noa_user_notifications
+        (notification_id, user_id, transaction_id, message, created_at)
+       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(6))`,
+      [record.notificationId, record.userId, record.transactionId, record.message]
+    );
+  }
+
+  async function claimUnreadUserNotifications(userId, { connection, limit = 3 } = {}) {
+    const safeLimit = Math.min(10, Math.max(1, Number(limit) || 3));
+    const [rows] = await connection.query(
+      `SELECT notification_id, message, created_at
+         FROM app_noa_user_notifications
+        WHERE user_id = ? AND delivered_at IS NULL
+        ORDER BY created_at ASC, notification_id ASC
+        LIMIT ? FOR UPDATE`,
+      [userId, safeLimit]
+    );
+    if (rows.length > 0) {
+      await connection.query(
+        `UPDATE app_noa_user_notifications
+            SET delivered_at = CURRENT_TIMESTAMP(6)
+          WHERE notification_id IN (${rows.map(() => '?').join(', ')})`,
+        rows.map((row) => row.notification_id)
+      );
+    }
+    return rows;
   }
 
   async function transitionReservation(reservationId, fromStatus, toStatus, reason, connection) {
@@ -484,6 +556,8 @@ function createNoaRepository(db) {
   return {
     approveReceipt,
     captureWallet,
+    adjustAvailableWallet,
+    claimUnreadUserNotifications,
     creditWallet,
     ensureWallet,
     findLogByIdempotency,
@@ -492,12 +566,14 @@ function createNoaRepository(db) {
     findReservationByIdempotency,
     findReservationLocator,
     getPricing,
+    getBankTransferAccount,
     getReceiptById,
     getSetting,
     getWalletById,
     getWalletByUser,
     inTransaction,
     insertLog,
+    insertUserNotification,
     insertReceipt,
     insertReservation,
     listAdminReceipts,
@@ -510,7 +586,9 @@ function createNoaRepository(db) {
     reserveWallet,
     transitionReservation,
     updatePricing,
-    updateSetting
+    updateSetting,
+    createBankTransferAccount,
+    updateBankTransferAccount
   };
 }
 

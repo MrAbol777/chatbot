@@ -3,15 +3,21 @@ import Icon from '../../components/Icon';
 import { Button, InlineMessage } from '../../design-system/components';
 import {
   approveAdminNoaReceipt,
+  adjustAdminNoaWallet,
+  createIdempotencyKey,
+  fetchAdminNoaUserWallet,
+  fetchAdminNoaBankTransferAccount,
   fetchAdminNoaConfig,
   fetchAdminNoaPricing,
   listAdminNoaReceipts,
   rejectAdminNoaReceipt,
+  searchAdminNoaUsers,
   updateAdminNoaConfig,
+  updateAdminNoaBankTransferAccount,
   updateAdminNoaPricing
 } from '../../noa/noa.service';
 import { divideDecimal, formatDecimalFa, formatTomanFa, normalizePositiveDecimal, toAsciiDigits } from '../../noa/decimal';
-import type { NoaExchangeRate, NoaPricingConfig, NoaReceipt, NoaReceiptStatus } from '../../noa/noa.types';
+import type { AdminNoaUser, AdminNoaUserWallet, NoaBankTransferAccount, NoaExchangeRate, NoaPricingConfig, NoaReceipt, NoaReceiptStatus } from '../../noa/noa.types';
 import './NoaFinanceAdmin.css';
 
 type Feedback = { kind: 'success' | 'error'; text: string } | null;
@@ -63,25 +69,41 @@ function NoaFinanceAdmin() {
   const [pricing, setPricing] = useState<NoaPricingConfig[]>([]);
   const [rate, setRate] = useState<NoaExchangeRate | null>(null);
   const [rateInput, setRateInput] = useState('');
+  const [bankTransferAccount, setBankTransferAccount] = useState<NoaBankTransferAccount | null>(null);
+  const [cardNumberInput, setCardNumberInput] = useState('');
+  const [cardHolderNameInput, setCardHolderNameInput] = useState('');
   const [receipts, setReceipts] = useState<NoaReceipt[]>([]);
   const [receiptFilter, setReceiptFilter] = useState<ReceiptFilter>('pending');
   const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState('');
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const [walletFeedback, setWalletFeedback] = useState<Feedback>(null);
+  const [recipientQuery, setRecipientQuery] = useState('');
+  const [recipientResults, setRecipientResults] = useState<AdminNoaUser[]>([]);
+  const [selectedRecipient, setSelectedRecipient] = useState<AdminNoaUser | null>(null);
+  const [selectedWallet, setSelectedWallet] = useState<AdminNoaUserWallet | null>(null);
+  const [adjustmentDirection, setAdjustmentDirection] = useState<'increase' | 'decrease'>('increase');
+  const [adjustmentAmount, setAdjustmentAmount] = useState('');
+  const [adjustmentNote, setAdjustmentNote] = useState('');
+  const [adjustmentKey, setAdjustmentKey] = useState(() => createIdempotencyKey('admin-wallet-adjustment'));
 
   const loadFinanceData = async (filter: ReceiptFilter = receiptFilter) => {
     setLoading(true);
     setFeedback(null);
     try {
-      const [nextPricing, nextRate, nextReceipts] = await Promise.all([
+      const [nextPricing, nextRate, nextBankTransferAccount, nextReceipts] = await Promise.all([
         fetchAdminNoaPricing(),
         fetchAdminNoaConfig(),
+        fetchAdminNoaBankTransferAccount(),
         listAdminNoaReceipts(filter)
       ]);
       setPricing(nextPricing);
       setRate(nextRate);
       setRateInput(nextRate.tomanPerNoa);
+      setBankTransferAccount(nextBankTransferAccount);
+      setCardNumberInput(nextBankTransferAccount?.cardNumber || '');
+      setCardHolderNameInput(nextBankTransferAccount?.cardHolderName || '');
       setReceipts(nextReceipts);
       setDrafts((current) => {
         const next = { ...current };
@@ -103,6 +125,23 @@ function NoaFinanceAdmin() {
   useEffect(() => {
     void loadFinanceData('pending');
   }, []);
+
+  useEffect(() => {
+    if (selectedRecipient || recipientQuery.trim().length < 2) {
+      setRecipientResults([]);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void searchAdminNoaUsers(recipientQuery)
+        .then((items) => { if (active) setRecipientResults(items); })
+        .catch(() => { if (active) setRecipientResults([]); });
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [recipientQuery, selectedRecipient]);
 
   const updatePricingDraft = (actionKey: string, patch: Partial<NoaPricingConfig>) => {
     setPricing((current) => current.map((item) => (
@@ -153,6 +192,37 @@ function NoaFinanceAdmin() {
       setFeedback({ kind: 'success', text: 'نرخ تبدیل تومان به نوآ ذخیره شد.' });
     } catch (cause) {
       setFeedback({ kind: 'error', text: cause instanceof Error ? cause.message : 'ذخیره نرخ تبدیل انجام نشد.' });
+    } finally {
+      setSavingKey('');
+    }
+  };
+
+  const saveBankTransferAccount = async (event: FormEvent) => {
+    event.preventDefault();
+    const cardNumber = toAsciiDigits(cardNumberInput).replace(/\D/g, '');
+    const cardHolderName = cardHolderNameInput.trim();
+    if (!/^\d{16}$/.test(cardNumber)) {
+      setFeedback({ kind: 'error', text: 'شماره کارت باید دقیقاً ۱۶ رقم باشد.' });
+      return;
+    }
+    if (!cardHolderName) {
+      setFeedback({ kind: 'error', text: 'نام مالک کارت را وارد کنید.' });
+      return;
+    }
+    setSavingKey('bank-account');
+    setFeedback(null);
+    try {
+      const saved = await updateAdminNoaBankTransferAccount({
+        cardNumber,
+        cardHolderName,
+        expectedVersion: bankTransferAccount?.version || null
+      });
+      setBankTransferAccount(saved);
+      setCardNumberInput(saved.cardNumber);
+      setCardHolderNameInput(saved.cardHolderName);
+      setFeedback({ kind: 'success', text: 'کارت مقصد واریز بانکی ذخیره شد.' });
+    } catch (cause) {
+      setFeedback({ kind: 'error', text: cause instanceof Error ? cause.message : 'ذخیره کارت مقصد انجام نشد.' });
     } finally {
       setSavingKey('');
     }
@@ -215,6 +285,66 @@ function NoaFinanceAdmin() {
     }
   };
 
+  const selectRecipient = async (user: AdminNoaUser) => {
+    setSelectedRecipient(user);
+    setRecipientResults([]);
+    setSelectedWallet(null);
+    setWalletFeedback(null);
+    setSavingKey('wallet-lookup');
+    try {
+      setSelectedWallet(await fetchAdminNoaUserWallet(user.userId));
+    } catch (cause) {
+      setWalletFeedback({ kind: 'error', text: cause instanceof Error ? cause.message : 'دریافت موجودی کاربر انجام نشد.' });
+    } finally {
+      setSavingKey('');
+    }
+  };
+
+  const submitWalletAdjustment = (event: FormEvent) => {
+    event.preventDefault();
+    const amountNoa = normalizePositiveDecimal(adjustmentAmount, 6);
+    if (!selectedRecipient || !selectedWallet) {
+      setWalletFeedback({ kind: 'error', text: 'ابتدا یک کاربر را انتخاب کنید تا موجودی کیف پول او خوانده شود.' });
+      return;
+    }
+    if (!amountNoa) {
+      setWalletFeedback({ kind: 'error', text: 'مقدار نوآ باید عددی معتبر و بزرگ‌تر از صفر باشد.' });
+      return;
+    }
+    const action = adjustmentDirection === 'increase' ? 'اضافه شود' : 'کسر شود';
+    const confirmation = `آیا ${formatDecimalFa(amountNoa)} نوآ از کیف پول «${selectedRecipient.name}» ${action}؟\n\nموجودی می‌تواند منفی شود و این تراکنش در دفترکل مالی ثبت می‌شود.`;
+    if (!window.confirm(confirmation)) return;
+    void applyWalletAdjustment();
+  };
+
+  const applyWalletAdjustment = async () => {
+    const amountNoa = normalizePositiveDecimal(adjustmentAmount, 6);
+    if (!selectedRecipient || !amountNoa) return;
+    setSavingKey('wallet-adjustment');
+    setWalletFeedback(null);
+    try {
+      const result = await adjustAdminNoaWallet({
+        userId: selectedRecipient.userId,
+        amountNoa,
+        direction: adjustmentDirection,
+        note: adjustmentNote.trim(),
+        idempotencyKey: adjustmentKey
+      });
+      setSelectedWallet((current) => current ? { ...current, wallet: result.wallet } : current);
+      setWalletFeedback({
+        kind: 'success',
+        text: `${formatDecimalFa(result.amountNoa)} نوآ با موفقیت ${adjustmentDirection === 'increase' ? 'اضافه' : 'کسر'} شد.`
+      });
+      setAdjustmentAmount('');
+      setAdjustmentNote('');
+      setAdjustmentKey(createIdempotencyKey('admin-wallet-adjustment'));
+    } catch (cause) {
+      setWalletFeedback({ kind: 'error', text: cause instanceof Error ? cause.message : 'تغییر موجودی نوآ انجام نشد.' });
+    } finally {
+      setSavingKey('');
+    }
+  };
+
   const pendingCount = useMemo(() => receipts.filter((item) => item.status === 'pending').length, [receipts]);
 
   return (
@@ -253,6 +383,93 @@ function NoaFinanceAdmin() {
         </article>
       </div>
 
+      <section className="noa-finance__section noa-manual-credit" aria-labelledby="noa-user-wallet-title">
+        <div className="noa-finance__section-heading">
+          <div>
+            <h4 id="noa-user-wallet-title">مدیریت نوآ کاربران</h4>
+            <p>کاربر را با نام، شماره یا شناسه یکتا پیدا کنید؛ موجودی را ببینید و آن را افزایش یا کاهش دهید.</p>
+          </div>
+        </div>
+        {walletFeedback ? <InlineMessage text={walletFeedback.text} variant={walletFeedback.kind} /> : null}
+        <form className="noa-manual-credit__form" onSubmit={submitWalletAdjustment}>
+          <div className="noa-user-picker">
+            <label htmlFor="noa-wallet-user">
+              <span>کاربر مقصد</span>
+              <input
+                id="noa-wallet-user"
+                type="search"
+                autoComplete="off"
+                placeholder="نام، شماره یا شناسه کاربر را وارد کنید"
+                value={selectedRecipient ? `${selectedRecipient.name}${selectedRecipient.phone ? ` — ${selectedRecipient.phone}` : ''}` : recipientQuery}
+                onChange={(event) => {
+                  setSelectedRecipient(null);
+                  setSelectedWallet(null);
+                  setWalletFeedback(null);
+                  setRecipientQuery(event.target.value);
+                }}
+                disabled={savingKey === 'wallet-adjustment' || savingKey === 'wallet-lookup'}
+                aria-label="کاربر مقصد"
+                aria-describedby="noa-wallet-user-help"
+              />
+              <small id="noa-wallet-user-help">از نتیجه‌ها یک کاربر را انتخاب کنید تا موجودی به‌روز او خوانده شود.</small>
+            </label>
+            {recipientResults.length > 0 ? (
+              <div className="noa-user-picker__results" role="listbox" aria-label="نتایج جست‌وجوی کاربر">
+                {recipientResults.map((user) => (
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selectedRecipient?.userId === user.userId}
+                    key={user.userId}
+                    onClick={() => void selectRecipient(user)}
+                  >
+                    <strong>{user.name}</strong>
+                    <span>{user.phone || user.userId}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {selectedRecipient ? <p className="noa-user-picker__selected">کاربر انتخاب‌شده: <strong>{selectedRecipient.name}</strong> <span>({selectedRecipient.userId})</span></p> : null}
+          </div>
+          <div className="noa-wallet-balance" aria-live="polite">
+            <span>موجودی قابل استفاده</span>
+            <strong>{selectedWallet ? `${formatDecimalFa(selectedWallet.wallet.availableBalance)} نوآ` : savingKey === 'wallet-lookup' ? 'در حال دریافت…' : 'کاربر را انتخاب کنید'}</strong>
+            {selectedWallet ? <small>رزروشده: {formatDecimalFa(selectedWallet.wallet.reservedBalance)} نوآ</small> : null}
+          </div>
+          <div className="noa-adjustment-direction" role="group" aria-label="نوع تغییر موجودی">
+            <button type="button" className={adjustmentDirection === 'increase' ? 'is-active is-increase' : ''} onClick={() => setAdjustmentDirection('increase')} disabled={savingKey === 'wallet-adjustment'}>افزایش</button>
+            <button type="button" className={adjustmentDirection === 'decrease' ? 'is-active is-decrease' : ''} onClick={() => setAdjustmentDirection('decrease')} disabled={savingKey === 'wallet-adjustment'}>کاهش</button>
+          </div>
+          <label htmlFor="noa-wallet-amount">
+            <span>مقدار نوآ</span>
+            <input
+              id="noa-wallet-amount"
+              type="text"
+              inputMode="decimal"
+              placeholder="مثلاً 300"
+              value={adjustmentAmount}
+              onChange={(event) => setAdjustmentAmount(toAsciiDigits(event.target.value).replace(/[^\d.]/g, ''))}
+              disabled={savingKey === 'wallet-adjustment' || !selectedWallet}
+            />
+          </label>
+          <label className="noa-manual-credit__reason" htmlFor="noa-wallet-note">
+            <span>یادداشت برای کاربر <small>(اختیاری)</small></span>
+            <textarea
+              id="noa-wallet-note"
+              rows={2}
+              maxLength={500}
+              placeholder="اگر بنویسید، یک‌بار هنگام ورود به کاربر نمایش داده می‌شود."
+              value={adjustmentNote}
+              onChange={(event) => setAdjustmentNote(event.target.value)}
+              disabled={savingKey === 'wallet-adjustment' || !selectedWallet}
+            />
+          </label>
+          <Button type="submit" loading={savingKey === 'wallet-adjustment'} disabled={savingKey === 'wallet-adjustment' || !selectedWallet}>
+            ثبت تغییر موجودی
+          </Button>
+        </form>
+      </section>
+
       <section className="noa-finance__section" aria-labelledby="noa-rate-title">
         <div className="noa-finance__section-heading">
           <div>
@@ -276,6 +493,47 @@ function NoaFinanceAdmin() {
           </label>
           <Button type="submit" disabled={!rate || savingKey === 'rate'}>
             {savingKey === 'rate' ? 'در حال ذخیره…' : 'ذخیره نرخ'}
+          </Button>
+        </form>
+      </section>
+
+      <section className="noa-finance__section" aria-labelledby="noa-bank-account-title">
+        <div className="noa-finance__section-heading">
+          <div>
+            <h4 id="noa-bank-account-title">کارت مقصد واریز بانکی</h4>
+            <p>شماره کارت و نام مالک در صفحه کیف پول کاربران نمایش داده می‌شود و در کد ثابت نیست.</p>
+          </div>
+        </div>
+        <form className="noa-bank-account-form" onSubmit={saveBankTransferAccount}>
+          <label htmlFor="noa-bank-card-number">
+            <span>شماره کارت</span>
+            <input
+              id="noa-bank-card-number"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={19}
+              placeholder="۱۶ رقم شماره کارت"
+              value={cardNumberInput}
+              onChange={(event) => setCardNumberInput(toAsciiDigits(event.target.value).replace(/\D/g, '').slice(0, 16))}
+              disabled={savingKey === 'bank-account'}
+            />
+          </label>
+          <label htmlFor="noa-bank-card-holder">
+            <span>به نام</span>
+            <input
+              id="noa-bank-card-holder"
+              type="text"
+              autoComplete="off"
+              maxLength={191}
+              placeholder="نام و نام خانوادگی مالک کارت"
+              value={cardHolderNameInput}
+              onChange={(event) => setCardHolderNameInput(event.target.value)}
+              disabled={savingKey === 'bank-account'}
+            />
+          </label>
+          <Button type="submit" disabled={savingKey === 'bank-account'}>
+            {savingKey === 'bank-account' ? 'در حال ذخیره…' : 'ذخیره کارت'}
           </Button>
         </form>
       </section>
@@ -482,6 +740,7 @@ function NoaFinanceAdmin() {
           ) : null}
         </div>
       </section>
+
     </div>
   );
 }

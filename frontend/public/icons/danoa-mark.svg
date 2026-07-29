@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">نشان دانوآ</title>
+  <defs>
+    <linearGradient id="brand" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#5b21b6"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#brand)"/>
+  <path
+    d="M32 12.5 35.7 25l12.8 3.7-12.8 3.7L32 45l-3.7-12.6-12.8-3.7L28.3 25 32 12.5Z"
+    fill="#fff"
+  />
+  <path
+    d="m47.5 41 1.7 5.8 5.8 1.7-5.8 1.7-1.7 5.8-1.7-5.8-5.8-1.7 5.8-1.7 1.7-5.8Z"
+    fill="#ddd6fe"
+  />
+</svg>
+

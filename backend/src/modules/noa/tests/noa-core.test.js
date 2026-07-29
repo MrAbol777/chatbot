@@ -7,7 +7,7 @@ const {
   multiplyFixed,
   parseFixed
 } = require('../fixed-point');
-const { requireFinancialAdmin } = require('../noa.admin.routes');
+const { walletAdjustmentInput, requireFinancialAdmin } = require('../noa.admin.routes');
 const { normalizeQuantity } = require('../noa-billing.service');
 const { PAYMENT_GATEWAY_ENABLED, createPaymentGatewaySkeleton } = require('../payment-gateway');
 const {
@@ -65,6 +65,32 @@ test('financial middleware permits only finance and superadmin roles', () => {
     assert.equal(response.statusCode, 403);
     assert.equal(response.body.error, 'NOA_FINANCE_ROLE_REQUIRED');
   }
+});
+
+test('admin wallet adjustment requires a selected user, direction, and idempotency key', () => {
+  const req = {
+    body: { userId: 'user-1', amountNoa: '300', direction: 'decrease', note: 'کسر آزمایشی' },
+    get(name) { return name === 'Idempotency-Key' ? 'wallet-adjustment-key-1' : ''; }
+  };
+  const input = walletAdjustmentInput(req);
+  assert.equal(input.userId, 'user-1');
+  assert.equal(input.amountNoa, '300');
+  assert.equal(input.direction, 'decrease');
+  assert.equal(input.note, 'کسر آزمایشی');
+  assert.match(input.referenceId, /^manual-credit:[a-f0-9]{64}$/);
+
+  assert.throws(
+    () => walletAdjustmentInput({ body: { amountNoa: '300', direction: 'increase' }, get: () => 'key' }),
+    { code: 'NOA_MANUAL_CREDIT_USER_REQUIRED', status: 400 }
+  );
+  assert.throws(
+    () => walletAdjustmentInput({ body: { userId: 'user-1', amountNoa: '300', direction: 'other' }, get: () => 'key' }),
+    { code: 'NOA_INVALID_ADJUSTMENT_DIRECTION', status: 400 }
+  );
+  assert.throws(
+    () => walletAdjustmentInput({ body: { userId: 'user-1', amountNoa: '300', direction: 'increase' }, get: () => '' }),
+    { code: 'NOA_INVALID_FIELD', status: 400 }
+  );
 });
 
 test('payment gateway skeleton is structurally present and immutably disabled', async () => {

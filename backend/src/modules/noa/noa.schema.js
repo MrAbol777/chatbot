@@ -28,6 +28,19 @@ const NOA_CORE_DDL = Object.freeze([
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `,
   `
+    CREATE TABLE IF NOT EXISTS app_noa_bank_transfer_accounts (
+      account_id TINYINT UNSIGNED PRIMARY KEY,
+      card_number CHAR(16) NOT NULL,
+      card_holder_name VARCHAR(191) NOT NULL,
+      version BIGINT UNSIGNED NOT NULL DEFAULT 1,
+      updated_by_admin_id VARCHAR(191) NULL,
+      created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+      updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+      CONSTRAINT chk_noa_bank_transfer_account_id CHECK (account_id = 1),
+      CONSTRAINT chk_noa_bank_transfer_card_number CHECK (card_number REGEXP '^[0-9]{16}$')
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `,
+  `
     CREATE TABLE IF NOT EXISTS app_noa_wallets (
       wallet_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
       user_id VARCHAR(191) NOT NULL,
@@ -39,7 +52,6 @@ const NOA_CORE_DDL = Object.freeze([
       UNIQUE KEY uq_noa_wallet_user (user_id),
       CONSTRAINT fk_noa_wallet_user
         FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE RESTRICT,
-      CONSTRAINT chk_noa_wallet_available CHECK (available_balance >= 0),
       CONSTRAINT chk_noa_wallet_reserved CHECK (reserved_balance >= 0)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `,
@@ -109,10 +121,24 @@ const NOA_CORE_DDL = Object.freeze([
       CONSTRAINT fk_noa_log_reservation
         FOREIGN KEY (reservation_id) REFERENCES app_noa_reservations(reservation_id) ON DELETE RESTRICT,
       CONSTRAINT chk_noa_log_amount CHECK (amount > 0),
-      CONSTRAINT chk_noa_log_balances CHECK (
-        available_before >= 0 AND available_after >= 0
-        AND reserved_before >= 0 AND reserved_after >= 0
+      CONSTRAINT chk_noa_log_reserved_balances CHECK (
+        reserved_before >= 0 AND reserved_after >= 0
       )
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS app_noa_user_notifications (
+      notification_id CHAR(36) PRIMARY KEY,
+      user_id VARCHAR(191) NOT NULL,
+      transaction_id CHAR(36) NOT NULL,
+      message VARCHAR(500) NOT NULL,
+      delivered_at DATETIME(6) NULL,
+      created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+      INDEX idx_noa_user_notification_pending (user_id, delivered_at, created_at),
+      CONSTRAINT fk_noa_user_notification_user
+        FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE RESTRICT,
+      CONSTRAINT fk_noa_user_notification_transaction
+        FOREIGN KEY (transaction_id) REFERENCES app_noa_transaction_logs(transaction_id) ON DELETE RESTRICT
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `,
   `
@@ -276,6 +302,29 @@ async function ensureImageOnlyReceiptSubmission(db) {
   }
 }
 
+async function constraintExists(db, tableName, constraintName) {
+  const [rows] = await db.query(
+    `SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? LIMIT 1`,
+    [tableName, constraintName]
+  );
+  return rows.length > 0;
+}
+
+async function ensureNegativeAdminBalances(db) {
+  if (await constraintExists(db, 'app_noa_wallets', 'chk_noa_wallet_available')) {
+    await db.query('ALTER TABLE app_noa_wallets DROP CONSTRAINT chk_noa_wallet_available');
+  }
+  if (await constraintExists(db, 'app_noa_transaction_logs', 'chk_noa_log_balances')) {
+    await db.query('ALTER TABLE app_noa_transaction_logs DROP CONSTRAINT chk_noa_log_balances');
+  }
+  if (!(await constraintExists(db, 'app_noa_transaction_logs', 'chk_noa_log_reserved_balances'))) {
+    await db.query(
+      'ALTER TABLE app_noa_transaction_logs ADD CONSTRAINT chk_noa_log_reserved_balances CHECK (reserved_before >= 0 AND reserved_after >= 0)'
+    );
+  }
+}
+
 const LEGACY_RUNTIME_TABLES = Object.freeze([
   'app_plans',
   'app_plan_daily_usage',
@@ -302,6 +351,7 @@ async function ensureNoaSchema(db) {
     await db.query(statement);
   }
   await ensureImageOnlyReceiptSubmission(db);
+  await ensureNegativeAdminBalances(db);
 
   await ensureIntegrationColumn(db, 'app_chat_turns');
   await ensureIntegrationColumn(db, 'image_generations');
@@ -314,5 +364,6 @@ module.exports = {
   NOA_SEED_DML,
   archiveLegacyRuntimeTables,
   ensureImageOnlyReceiptSubmission,
+  ensureNegativeAdminBalances,
   ensureNoaSchema
 };

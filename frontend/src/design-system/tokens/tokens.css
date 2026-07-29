@@ -1,6 +1,6 @@
 :root {
-  --font-family-base: 'Sahel', sans-serif;
-  --font-family-heading: 'Sahel', sans-serif;
+  --font-family-base: 'IRANSansWeb', Tahoma, Arial, sans-serif;
+  --font-family-heading: var(--font-family-base);
 
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -110,7 +110,8 @@
   --color-success: var(--color-secondary);
   --color-warning: var(--color-tertiary);
   --color-danger: var(--color-error);
-  --color-focus-ring: rgba(115, 46, 228, 0.22);
+  --color-focus-ring: #630ed4;
+  --color-focus-ring-soft: rgba(99, 14, 212, 0.18);
 }
 
 [data-theme='energy'] {
@@ -126,7 +127,8 @@
   --color-success: #006a61;
   --color-warning: #7c3d00;
   --color-danger: #ba1a1a;
-  --color-focus-ring: rgba(115, 46, 228, 0.22);
+  --color-focus-ring: #630ed4;
+  --color-focus-ring-soft: rgba(99, 14, 212, 0.18);
 }
 
 [data-theme='calm'] {
@@ -142,5 +144,6 @@
   --color-success: #006a61;
   --color-warning: #7c3d00;
   --color-danger: #ba1a1a;
-  --color-focus-ring: rgba(115, 46, 228, 0.22);
+  --color-focus-ring: #630ed4;
+  --color-focus-ring-soft: rgba(99, 14, 212, 0.18);
 }

@@ -8,6 +8,14 @@ export type NoaExchangeRate = {
   updatedAt?: string | null;
 };
 
+export type NoaBankTransferAccount = {
+  cardNumber: string;
+  cardHolderName: string;
+  version: string;
+  updatedByAdminId?: string | null;
+  updatedAt: string | null;
+};
+
 export type NoaWallet = {
   currency: 'NOA';
   availableBalance: string;
@@ -15,6 +23,7 @@ export type NoaWallet = {
   totalBalance: string;
   updatedAt: string | null;
   exchangeRate: NoaExchangeRate;
+  bankTransferAccount: NoaBankTransferAccount | null;
 };
 
 export type NoaReceipt = {
@@ -54,6 +63,7 @@ export type NoaPricingConfig = {
 export type NoaPublicConfig = {
   exchangeRate: NoaExchangeRate;
   pricingConfigs: NoaPricingConfig[];
+  bankTransferAccount: NoaBankTransferAccount | null;
   paymentGatewayEnabled: false;
 };
 
@@ -61,4 +71,33 @@ export type AdminIdentity = {
   id?: string;
   username?: string;
   role: string;
+};
+
+export type AdminNoaUser = {
+  userId: string;
+  name: string;
+  phone?: string | null;
+};
+
+export type AdminNoaUserWallet = {
+  user: AdminNoaUser;
+  wallet: {
+    availableBalance: string;
+    reservedBalance: string;
+    totalBalance: string;
+    updatedAt: string | null;
+  };
+};
+
+export type AdminNoaWalletAdjustment = {
+  transactionId: string;
+  deltaNoa: string;
+  amountNoa: string;
+  replayed: boolean;
+  wallet: {
+    availableBalance: string;
+    reservedBalance: string;
+    totalBalance: string;
+    updatedAt: string | null;
+  };
 };

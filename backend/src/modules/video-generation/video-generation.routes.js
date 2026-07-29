@@ -158,7 +158,8 @@ function createVideoGenerationRouter(deps) {
     storage,
     routeResolver,
     providerRegistry: registry,
-    promptProfileRepository
+    promptProfileRepository,
+    inputMedia
   };
 }
 

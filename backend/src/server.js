@@ -37,6 +37,7 @@ const { createLocalDevelopmentRouter } = require('./modules/auth/local-developme
 const { createConversationsModule } = require('./modules/conversations');
 const { createRepositories } = require('./repositories');
 const { createConfiguredVideoWorkerRuntime } = require('./modules/video-generation/worker/video-worker.bootstrap');
+const { createVideoGenerationAdminRouter } = require('./modules/video-generation/video-generation.admin.routes');
 const {
   createNoaAdminRouter,
   createNoaBillingService,
@@ -622,8 +623,15 @@ app.use('/api/admin/noa', createNoaAdminRouter({
   billingService: noaBillingService,
   receiptService: noaReceiptService,
   receiptStorage: noaReceiptStorage,
+  usersRepository: repositories.users,
   requireAdminAuth: adminModule.requireAdminAuth,
   appendAudit: adminModule.appendAudit,
+  logger: console
+}));
+app.use('/api/admin/video-generations', createVideoGenerationAdminRouter({
+  db: repositories.db,
+  requireAdminAuth: adminModule.requireAdminAuth,
+  inputMediaStorage: videoGenerationModule.inputMedia.storage,
   logger: console
 }));
 app.use('/api/admin', adminModule.router);

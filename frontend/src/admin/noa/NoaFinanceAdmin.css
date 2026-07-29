@@ -47,7 +47,7 @@
 
 .noa-finance__overview {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -78,17 +78,30 @@
   background: var(--color-surface, #fff);
 }
 
-.noa-rate-form {
+.noa-rate-form,
+.noa-bank-account-form {
   display: flex;
   align-items: end;
   gap: 12px;
   max-width: 620px;
 }
 
+.noa-bank-account-form {
+  max-width: 820px;
+}
+
+.noa-bank-account-form > label {
+  display: grid;
+  flex: 1;
+  gap: 7px;
+  font-weight: 700;
+}
+
 .noa-rate-form > label,
 .noa-pricing-card > label,
 .noa-admin-receipt__review > label,
 .noa-admin-receipt__override label,
+.noa-manual-credit__form > label,
 .noa-filter {
   display: grid;
   gap: 7px;
@@ -171,6 +184,109 @@
 .noa-pricing-card__footer {
   margin-top: auto;
 }
+
+.noa-manual-credit {
+  border-color: color-mix(in srgb, var(--color-primary, #7c3aed) 32%, var(--color-border, #e4e7ec));
+}
+
+.noa-manual-credit__form {
+  display: grid;
+  grid-template-columns: minmax(250px, 1.2fr) minmax(170px, .6fr) minmax(150px, .5fr) minmax(135px, .4fr) minmax(230px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.noa-manual-credit__reason {
+  align-self: stretch;
+}
+
+.noa-wallet-balance {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  align-content: center;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #d0d5dd);
+  border-radius: 12px;
+  background: var(--color-surface-subtle, #f8fafc);
+}
+
+.noa-wallet-balance span,
+.noa-wallet-balance small { color: var(--color-muted, #667085); font-size: .78rem; }
+.noa-wallet-balance strong { font-size: 1rem; }
+
+.noa-adjustment-direction {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  min-height: 44px;
+  border: 1px solid var(--color-border, #d0d5dd);
+  border-radius: 12px;
+}
+
+.noa-adjustment-direction button {
+  border: 0;
+  background: transparent;
+  color: var(--color-muted, #667085);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.noa-adjustment-direction button + button { border-inline-start: 1px solid var(--color-border, #d0d5dd); }
+.noa-adjustment-direction button.is-active.is-increase { background: color-mix(in srgb, var(--color-success, #067647) 16%, transparent); color: var(--color-success, #067647); }
+.noa-adjustment-direction button.is-active.is-decrease { background: color-mix(in srgb, var(--color-danger, #b42318) 13%, transparent); color: var(--color-danger, #b42318); }
+.noa-adjustment-direction button:focus-visible { outline: 3px solid var(--color-focus-ring, rgb(124 58 237 / 25%)); outline-offset: -3px; }
+
+.noa-user-picker {
+  position: relative;
+}
+
+.noa-user-picker > label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.noa-user-picker small {
+  color: var(--color-muted, #667085);
+  font-weight: 500;
+}
+
+.noa-user-picker__results {
+  position: absolute;
+  z-index: 2;
+  inset: calc(100% + 4px) 0 auto;
+  display: grid;
+  overflow: hidden;
+  max-height: 220px;
+  border: 1px solid var(--color-border, #d0d5dd);
+  border-radius: 12px;
+  background: var(--color-surface, #fff);
+  box-shadow: 0 12px 28px rgb(16 24 40 / 14%);
+}
+
+.noa-user-picker__results button {
+  display: grid;
+  gap: 3px;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border, #e4e7ec);
+  background: transparent;
+  color: var(--color-text, #101828);
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+
+.noa-user-picker__results button:last-child { border-bottom: 0; }
+.noa-user-picker__results button:hover,
+.noa-user-picker__results button:focus-visible { background: var(--color-surface-subtle, #f8fafc); outline: none; }
+.noa-user-picker__results span,
+.noa-user-picker__selected { color: var(--color-muted, #667085); font-size: .8rem; }
+.noa-user-picker__selected { margin: 7px 0 0; }
+.noa-user-picker__selected strong { color: var(--color-text, #101828); }
 
 .noa-finance__section-heading--receipts {
   align-items: end;
@@ -325,7 +441,8 @@
   }
 
   .noa-admin-receipt__review,
-  .noa-admin-receipt__override {
+  .noa-admin-receipt__override,
+  .noa-manual-credit__form {
     grid-template-columns: 1fr;
   }
 }
@@ -334,6 +451,7 @@
   .noa-finance__hero,
   .noa-finance__section-heading,
   .noa-rate-form,
+  .noa-bank-account-form,
   .noa-admin-receipt > header,
   .noa-admin-receipt__actions {
     align-items: stretch;
