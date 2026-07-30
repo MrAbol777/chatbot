@@ -2,6 +2,7 @@ import type { SVGAttributes } from 'react';
 
 export type IconName =
   | 'chevron-left'
+  | 'chevron-right'
   | 'x-close'
   | 'chat-bubble'
   | 'chat-dots'
@@ -75,6 +76,9 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
   switch (name) {
     case 'chevron-left':
       return <svg {...commonProps}><path d="M15 18 9 12l6-6" /></svg>;
+
+    case 'chevron-right':
+      return <svg {...commonProps}><path d="m9 18 6-6-6-6" /></svg>;
 
     case 'x-close':
       return <svg {...commonProps}><path d="M18 6 6 18M6 6l12 12" /></svg>;

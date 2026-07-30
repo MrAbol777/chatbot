@@ -5,10 +5,18 @@ const GUEST_COOKIE_NAME = 'danoa_guest_id';
 function createAuthController({ authService, errorsRepository, logger = console }) {
   const sendVerificationCode = async (req, res) => {
     try {
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Pragma', 'no-cache');
       const result = await authService.sendVerificationCode({
         phone: req.body?.phone,
         mode: typeof req.body?.mode === 'string' ? req.body.mode.trim() : ''
       });
+      if (result.statusCode === 429) {
+        const retryAfterSeconds = Number(result.body?.retryAfterSeconds || result.body?.retryAfter);
+        if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+          res.setHeader('Retry-After', String(Math.ceil(retryAfterSeconds)));
+        }
+      }
       return res.status(result.statusCode).json(result.body);
     } catch (error) {
       logger.error?.('[OTP] send-verification-code failed', {

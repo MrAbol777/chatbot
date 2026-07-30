@@ -104,6 +104,24 @@ textarea {
   overflow: hidden;
 }
 
+.auth-shell {
+  min-height: 100svh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding:
+    max(20px, env(safe-area-inset-top, 0px))
+    max(20px, env(safe-area-inset-right, 0px))
+    max(20px, env(safe-area-inset-bottom, 0px))
+    max(20px, env(safe-area-inset-left, 0px));
+  scrollbar-width: none;
+}
+
+.auth-shell::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 .chat-shell {
   height: 100%;
   min-height: 100dvh;
@@ -153,6 +171,20 @@ textarea {
   box-shadow: 0 24px 70px rgba(45, 49, 51, 0.16);
   position: relative;
   z-index: 2;
+}
+
+@media (max-width: 520px) {
+  .auth-shell {
+    align-items: safe center;
+    padding-inline: 14px;
+  }
+
+  .auth-shell .register-card {
+    width: calc(100vw - 28px);
+    max-width: 520px;
+    padding: 24px 16px;
+    border-radius: 26px;
+  }
 }
 
 .auth-card {
@@ -274,6 +306,34 @@ textarea {
 .auth-divider span {
   height: 1px;
   background: rgba(204, 195, 216, 0.82);
+}
+
+.auth-divider b {
+  font: inherit;
+}
+
+.viana-auth-section {
+  display: grid;
+  gap: 12px;
+}
+
+.viana-signin-button.ds-button {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid rgba(99, 14, 212, 0.22);
+  border-radius: 9999px;
+  background: #fff;
+  color: var(--primary-dark);
+  font-weight: 900;
+}
+
+.viana-signin-button.ds-button:hover:not(:disabled) {
+  background: #f8f4ff;
+  border-color: rgba(99, 14, 212, 0.38);
+}
+
+.viana-auth-notice {
+  margin: 0;
 }
 
 .auth-step-row {

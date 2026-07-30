@@ -262,6 +262,11 @@ function createSmsService({
         recipient: normalizedPhone
       };
     } catch (error) {
+      const rawRetryAfter =
+        typeof error.response?.headers?.get === 'function'
+          ? error.response.headers.get('retry-after')
+          : error.response?.headers?.['retry-after'];
+      const retryAfterSeconds = Number.parseInt(String(rawRetryAfter || ''), 10);
       logger.error(`[${now()}] [IPPanel] Error while sending pattern OTP`, {
         'error.message': error.message,
         'error.response?.status': error.response?.status,
@@ -273,6 +278,7 @@ function createSmsService({
         error: error.message,
         details: error.response?.data || null,
         status: error.response?.status || 500,
+        retryAfterSeconds: Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds : undefined,
         recipient: normalizedPhone
       };
     }

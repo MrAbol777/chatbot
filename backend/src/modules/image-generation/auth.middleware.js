@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
+const { createRequirePrincipal } = require('../auth/principal');
 
-function createAuthMiddleware({ jwtSecret, db }) {
+function createAuthMiddleware({ jwtSecret, db, principalResolver }) {
+  if (principalResolver) {
+    return createRequirePrincipal(principalResolver);
+  }
   if (!jwtSecret) {
     throw new Error('jwtSecret is required for auth middleware');
   }

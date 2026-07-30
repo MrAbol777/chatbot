@@ -19,7 +19,8 @@ test('provider input token is opaque, attempt-bound and HMAC authenticated', () 
   assert.equal(claims.jobId, 'job-secret-id');
   assert.equal(claims.attemptId, 'attempt-secret-id');
   assert.equal(claims.filename, 'input.png');
-  assert.throws(() => gateway.verify(`${token.slice(0, -1)}x`), { code: 'VIDEO_INPUT_TOKEN_INVALID' });
+  const replacement = token.endsWith('x') ? 'y' : 'x';
+  assert.throws(() => gateway.verify(`${token.slice(0, -1)}${replacement}`), { code: 'VIDEO_INPUT_TOKEN_INVALID' });
   now += 61_000;
   assert.throws(() => gateway.verify(token), { code: 'VIDEO_INPUT_TOKEN_INVALID' });
 });

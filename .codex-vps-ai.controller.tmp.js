@@ -1,4 +1,9 @@
-const crypto = require('crypto');
+const {
+  GUEST_MESSAGE_LIMIT,
+  getGuestIdFromUserId,
+  normalizeGuestId
+} = require('../../repositories/GuestRepository');
+const { generateUserId } = require('../../repositories/helpers');
 const {
   detectChatIntent,
   getSafeAlternativeMessage,
@@ -6,16 +11,14 @@ const {
 } = require('./intent.service');
 const { publicVisionErrorMessage } = require('../image-understanding/image-understanding.controller');
 
+const GUEST_COOKIE_NAME = 'danoa_guest_id';
 const STREAM_CONTENT_TYPE = 'application/x-ndjson';
 const STREAM_ID_PATTERN = /^[0-9a-zA-Z][0-9a-zA-Z._:-]{7,63}$/;
-const NOA_CHAT_ACTION = 'text_chat';
 
-// Final-action routes stay distinct so billing is applied exactly once by the
-// module that actually performs the requested operation.
+// The chat surface can only answer in text or analyze supplied images. Image
+// creation and editing are intentionally available only through Image Studio.
 const normalizeIntentForChat = (intent) => (
-  ['image_understanding', 'image_generation', 'image_edit', 'video_generation'].includes(intent)
-    ? intent
-    : 'chat'
+  intent === 'image_understanding' ? 'image_understanding' : 'chat'
 );
 const IMAGE_NOUN_PATTERN = /(?:عکس|تصویر|نقاشی|پوستر|بنر|والپیپر|image|photo|picture|poster)/i;
 const IMAGE_CREATE_PATTERN = /(?:بساز(?:ی|ید)?|بکش(?:ی|ید)?|بزن(?:ی|ید)?|طراحی\s*(?:کن|کنید)|تولید\s*(?:کن|کنم|کنید)|درست\s*(?:کن|کنید)|خلق\s*(?:کن|کنید)|make|generate|create|draw|render|paint)/i;
@@ -58,34 +61,23 @@ const openStreamResponse = (res) => {
   if (typeof res.flushHeaders === 'function') res.flushHeaders();
 };
 
+const getRequestIp = (req) => {
+  const forwarded = typeof req.headers?.['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'] : '';
+  return (forwarded.split(',')[0] || req.ip || req.socket?.remoteAddress || '').trim().slice(0, 64);
+};
+
 const getBearerToken = (req) => {
   const authHeader = typeof req.headers?.authorization === 'string' ? req.headers.authorization : '';
   return authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length).trim() : '';
 };
 
-const createPayloadHash = (value) =>
-  crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
-
-const normalizeOperationId = (value) =>
-  (typeof value === 'string' ? value.trim() : '').slice(0, 191);
-
-const createNonStreamTurnId = (turnId, clientMessageId) => {
-  const explicitTurnId = normalizeOperationId(turnId);
-  if (STREAM_ID_PATTERN.test(explicitTurnId)) return explicitTurnId;
-  const clientId = normalizeOperationId(clientMessageId);
-  if (!clientId) return '';
-  return `msg-${crypto.createHash('sha256').update(clientId).digest('hex').slice(0, 48)}`;
-};
-
-const getNoaErrorPayload = (error) => {
-  if (!error || typeof error !== 'object' || !String(error.code || '').startsWith('NOA_')) return null;
-  return {
-    error: String(error.code),
-    message: error.code === 'NOA_INSUFFICIENT_FUNDS' || error.code === 'NOA_INSUFFICIENT_BALANCE'
-      ? 'موجودی نوآ برای انجام این درخواست کافی نیست.'
-      : 'پرداخت نوآ برای این درخواست انجام نشد.',
-    ...(error.details && typeof error.details === 'object' ? error.details : {})
-  };
+const setGuestCookie = (res, guestId) => {
+  res.cookie(GUEST_COOKIE_NAME, guestId, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 365 * 24 * 60 * 60 * 1000
+  });
 };
 
 const getPublicBaseUrl = (req) => {
@@ -241,9 +233,12 @@ const getImageContextForRouting = (imageIds, history) => {
 function createAiController({
   aiService,
   errorsRepository,
+  guestsRepository,
   usersRepository,
+  plansRepository,
   chatTurnsRepository,
   conversationsRepository,
+  settingsRepository,
   intentRouterService,
     inputOptimizerService,
     conversationTitleService,
@@ -349,6 +344,7 @@ function createAiController({
     });
 
   const postChat = async (req, res) => {
+    let guestContext = null;
     let releaseTurnLock = null;
     let titleGenerationTask = null;
     let nonStreamReservation = null;
@@ -373,6 +369,9 @@ function createAiController({
       }
 
       const authenticatedUserId = authContext.userId;
+      // Authentication is mandatory above, so the retained legacy guest branch
+      // must never run for an authenticated chat request.
+      const isGuest = false;
       req.user = { id: authenticatedUserId };
       let effectiveProfile = profile;
 
@@ -420,195 +419,6 @@ function createAiController({
         }
       }
       const rawMessage = typeof message === 'string' ? message.trim() : '';
-      const preliminaryIntentResult = await detectChatIntent({
-        message: rawMessage,
-        hasAttachedImages: routeContext.hasCurrentImageAttachment,
-        hasRecentImage: routeContext.hasPreviousUploadedImage || routeContext.hasPreviousGeneratedImage,
-        classify: null
-      });
-      const preliminaryIntent = normalizeIntentForChat(preliminaryIntentResult.intent);
-      const shouldRedirectToImageStudio =
-        isImageStudioRequest(rawMessage, routeContext) ||
-        preliminaryIntent === 'image_generation' ||
-        preliminaryIntent === 'image_edit';
-      if (!shouldRedirectToImageStudio) {
-        if (!chatTurnsRepository) {
-          return res.status(500).json({
-            error: wantsStream ? 'CHAT_STREAM_NOT_CONFIGURED' : 'CHAT_TURN_STORE_NOT_CONFIGURED'
-          });
-        }
-
-        const operationTurnId = wantsStream
-          ? String(turnId || '').trim()
-          : createNonStreamTurnId(turnId, clientMessageId);
-        if (
-          wantsStream &&
-          (!STREAM_ID_PATTERN.test(operationTurnId) || !STREAM_ID_PATTERN.test(String(attemptId || '')))
-        ) {
-          return res.status(400).json({
-            error: 'INVALID_STREAM_IDS',
-            message: 'turnId و attemptId معتبر نیستند.'
-          });
-        }
-        if (!operationTurnId) {
-          return res.status(400).json({
-            error: 'IDEMPOTENCY_KEY_REQUIRED',
-            message: 'برای درخواست گفتگو turnId یا clientMessageId لازم است.'
-          });
-        }
-
-        const normalizedUserMessage = rawMessage || (
-          preliminaryIntent === 'image_understanding'
-            ? 'لطفاً محتوای عکس را توضیح بده.'
-            : '📷 عکس ارسال شد'
-        );
-        const existingTurn = await chatTurnsRepository.getTurn(operationTurnId);
-        if (existingTurn && String(existingTurn.user_id) !== authenticatedUserId) {
-          return res.status(409).json({ error: 'TURN_ID_CONFLICT' });
-        }
-        if (existingTurn?.status === 'completed') {
-          const replayReply = String(existingTurn.reply || '');
-          if (wantsStream) {
-            openStreamResponse(res);
-            writeStreamEvent(res, {
-              type: 'meta',
-              status: 'streaming',
-              turnId: operationTurnId,
-              attemptId,
-              intent: existingTurn.intent,
-              imageStudioRedirect: false,
-              replay: true
-            });
-            writeStreamEvent(res, {
-              type: 'delta',
-              turnId: operationTurnId,
-              attemptId,
-              delta: replayReply
-            });
-            writeStreamEvent(res, {
-              type: 'done',
-              status: 'completed',
-              turnId: operationTurnId,
-              attemptId,
-              intent: existingTurn.intent,
-              reply: replayReply,
-              conversationId: existingTurn.conversation_id,
-              imageStudioRedirect: false,
-              replay: true
-            });
-            return res.end();
-          }
-          return res.json({
-            intent: existingTurn.intent,
-            reply: replayReply,
-            assistantText: replayReply,
-            conversationId: existingTurn.conversation_id,
-            messages: [],
-            replay: true
-          });
-        }
-        if (existingTurn?.status === 'streaming') {
-          return res.status(409).json({
-            error: 'TURN_IN_PROGRESS',
-            message: 'این پاسخ هنوز در حال تولید است.'
-          });
-        }
-
-        const isTerminalRetry = Boolean(
-          existingTurn &&
-          (existingTurn.status === 'failed' || existingTurn.status === 'cancelled')
-        );
-        if (isTerminalRetry && !STREAM_ID_PATTERN.test(String(attemptId || ''))) {
-          return res.status(409).json({
-            error: 'NEW_ATTEMPT_ID_REQUIRED',
-            message: 'برای تلاش دوباره attemptId جدید لازم است.'
-          });
-        }
-
-        const { turn: preparedTurn, created } = await chatTurnsRepository.beginTurn({
-          turnId: operationTurnId,
-          userId: authenticatedUserId,
-          conversationId,
-          clientMessageId,
-          userMessage: normalizedUserMessage,
-          intent: preliminaryIntent
-        });
-        if (!created) {
-          const claimed = typeof chatTurnsRepository.claimTurnForExecution === 'function'
-            ? await chatTurnsRepository.claimTurnForExecution(operationTurnId)
-            : false;
-          if (!claimed) {
-            return res.status(409).json({
-              error: 'TURN_IN_PROGRESS',
-              message: 'این پاسخ هنوز در حال تولید است.'
-            });
-          }
-        }
-
-        if (wantsStream) {
-          await chatTurnsRepository.beginAttempt({ attemptId, turnId: operationTurnId });
-        }
-
-        const billingOperationId = isTerminalRetry
-          ? `${operationTurnId}:${attemptId}`
-          : operationTurnId;
-        const billingReferenceId = isTerminalRetry ? attemptId : operationTurnId;
-        let reservation;
-        try {
-          reservation = await reserveChatNoa({
-            userId: authenticatedUserId,
-            operationId: billingOperationId,
-            referenceId: billingReferenceId,
-            message: normalizedUserMessage,
-            conversationId,
-            imageIds,
-            intent: preliminaryIntent
-          });
-          if (reservation.status === 'captured' || reservation.status === 'released') {
-            const error = new Error('NOA_RESERVATION_NOT_EXECUTABLE');
-            error.code = 'NOA_RESERVATION_NOT_EXECUTABLE';
-            error.statusCode = 409;
-            throw error;
-          }
-          if (typeof chatTurnsRepository.setNoaReservation === 'function') {
-            await chatTurnsRepository.setNoaReservation(operationTurnId, reservation.reservationId);
-          }
-        } catch (billingError) {
-          if (wantsStream) {
-            await chatTurnsRepository.finishAttempt({
-              attemptId,
-              status: 'failed',
-              errorCode: String(billingError?.code || 'NOA_RESERVE_FAILED')
-            }).catch(() => undefined);
-          }
-          await chatTurnsRepository.markTurn({
-            turnId: operationTurnId,
-            status: 'failed',
-            errorCode: String(billingError?.code || 'NOA_RESERVE_FAILED')
-          }).catch(() => undefined);
-          throw billingError;
-        }
-
-        preparedChatOperation = {
-          turn: preparedTurn,
-          created,
-          isTerminalRetry,
-          turnId: operationTurnId,
-          attemptId: wantsStream ? String(attemptId) : '',
-          normalizedUserMessage,
-          preliminaryIntent,
-          reservation
-        };
-        if (wantsStream) {
-          streamPreflightReservation = reservation;
-          streamPreflightTurnId = operationTurnId;
-          streamPreflightAttemptId = String(attemptId);
-        } else {
-          nonStreamTurnId = operationTurnId;
-          nonStreamReservation = reservation;
-        }
-      }
-
       let optimizedInput = {
         originalText: rawMessage,
         optimizedTextEn: rawMessage,
@@ -617,12 +427,7 @@ function createAiController({
         status: 'skipped',
         fallbackUsed: false
       };
-      if (
-        !shouldRedirectToImageStudio &&
-        rawMessage &&
-        inputOptimizerService &&
-        typeof inputOptimizerService.optimizeInput === 'function'
-      ) {
+      if (rawMessage && inputOptimizerService && typeof inputOptimizerService.optimizeInput === 'function') {
         optimizedInput = await inputOptimizerService.optimizeInput({
           text: rawMessage,
           operationId: String(turnId || clientMessageId || res.locals.requestId),
@@ -636,36 +441,14 @@ function createAiController({
         });
       }
       if (optimizedInput.needsClarification) {
-        const clarificationText = optimizedInput.clarificationQuestionFa;
-        const captured = await captureChatNoa(preparedChatOperation.reservation.reservationId, {
-          turnId: preparedChatOperation.turnId,
-          attemptId: preparedChatOperation.attemptId || null,
-          output: 'clarification'
-        });
-        if (wantsStream) {
-          streamPreflightSettled = captured.status === 'captured';
-          await chatTurnsRepository.finishAttempt({
-            attemptId: preparedChatOperation.attemptId,
-            status: 'completed'
-          });
-        } else {
-          nonStreamOutputProduced = true;
-          nonStreamCaptured = captured.status === 'captured';
-        }
-        await chatTurnsRepository.markTurn({
-          turnId: preparedChatOperation.turnId,
-          status: 'completed',
-          reply: clarificationText,
-          model: null
-        });
         const payload = {
           intent: 'clarification', status: 'CLARIFICATION_REQUIRED', needsClarification: true,
-          assistantText: clarificationText, clarificationQuestionFa: clarificationText
+          assistantText: optimizedInput.clarificationQuestionFa, clarificationQuestionFa: optimizedInput.clarificationQuestionFa
         };
         if (wantsStream) {
           openStreamResponse(res);
           writeStreamEvent(res, { type: 'meta', status: 'clarification_required', turnId: turnId || null, attemptId: attemptId || null, intent: 'clarification' });
-          writeStreamEvent(res, { type: 'done', status: 'clarification_required', turnId: turnId || null, attemptId: attemptId || null, intent: 'clarification', reply: clarificationText });
+          writeStreamEvent(res, { type: 'done', status: 'clarification_required', turnId: turnId || null, attemptId: attemptId || null, intent: 'clarification', reply: optimizedInput.clarificationQuestionFa });
           return res.end();
         }
         return res.json(payload);
@@ -673,6 +456,7 @@ function createAiController({
       const optimizedMessage = optimizedInput.optimizedTextEn || rawMessage;
       let intentResult = null;
       let routeResult = null;
+      const shouldRedirectToImageStudio = isImageStudioRequest(message, routeContext);
       if (!shouldRedirectToImageStudio && intentRouterService && typeof intentRouterService.route === 'function') {
         routeResult = await intentRouterService.route({
           userMessage: optimizedMessage,
@@ -690,13 +474,12 @@ function createAiController({
       }
 
       if (shouldRedirectToImageStudio) {
-        intentResult = await detectChatIntent({
-          message: rawMessage,
-          hasAttachedImages: routeContext.hasCurrentImageAttachment,
-          hasRecentImage: routeContext.hasPreviousUploadedImage || routeContext.hasPreviousGeneratedImage,
-          classify: null
-        });
-        intentResult.metadata = { source: 'deterministic_image_route' };
+        intentResult = {
+          intent: 'chat',
+          confidence: 'high',
+          source: 'image_studio_redirect',
+          metadata: { source: 'image_studio_redirect' }
+        };
       } else if (routeResult?.ok && routeResult.route) {
         intentResult = {
           intent: routeResult.route.intent,
@@ -730,25 +513,11 @@ function createAiController({
         ...intentResult,
         intent: normalizeIntentForChat(intentResult.intent)
       };
-      if (
-        preparedChatOperation &&
-        chatTurnsRepository &&
-        typeof chatTurnsRepository.setIntent === 'function'
-      ) {
-        await chatTurnsRepository.setIntent(preparedChatOperation.turnId, intentResult.intent);
-      }
 
       if (intentResult.intent === 'image_generation' || intentResult.intent === 'image_edit') {
         const trimmedMessage = typeof message === 'string' ? message.trim() : '';
         const prompt = optimizedMessage.replace(/^\/imagine\s+/i, '').trim();
         const isEdit = intentResult.intent === 'image_edit';
-        const finalActionOperationId = normalizeOperationId(turnId || clientMessageId);
-        if (!finalActionOperationId) {
-          return res.status(400).json({
-            error: 'IDEMPOTENCY_KEY_REQUIRED',
-            message: 'برای درخواست تصویر turnId یا clientMessageId لازم است.'
-          });
-        }
         const requestedImageCount = new Set(
           (Array.isArray(imageIds) ? imageIds : [])
             .map((item) => (typeof item === 'string' ? item.trim() : ''))
@@ -831,14 +600,20 @@ function createAiController({
               intentRouter: intentResult.metadata || null
             });
           }
+          const enhancedPrompt =
+            aiService && typeof aiService.enhanceImagePrompt === 'function'
+              ? await aiService.enhanceImagePrompt(prompt, {
+                  requestId: res.locals.requestId,
+                  intent: intentResult.intent
+                })
+              : '';
           const task = await imageGenerationController.createImageTask(req, res, {
             prompt,
             originalPrompt: trimmedMessage || rawMessage,
             optimizerResult: optimizedInput,
-            enhancedPrompt: '',
+            enhancedPrompt,
             imageInput: imageInput.urls,
-            conversationId,
-            idempotencyKey: `chat-image:${finalActionOperationId}`
+            conversationId
           });
           const assistantText = 'باشه، دارم تصویرت رو می‌سازم...';
           const messages = await aiService.persistImageChatTurn({
@@ -865,8 +640,8 @@ function createAiController({
           const payload = imageError?.publicPayload || {};
           const assistantText =
             payload.message ||
-            (imageError?.code === 'NOA_INSUFFICIENT_FUNDS'
-              ? 'موجودی نوآ برای ساخت تصویر کافی نیست.'
+            (payload.error === 'IMAGE_LIMIT_REACHED' || payload.error === 'IMAGE_GENERATION_DISABLED'
+              ? 'محدودیت ساخت تصویر تمام شده است.'
               : 'ساخت تصویر انجام نشد. مشکل از سرویس تصویر بود، نه درخواست تو. دوباره امتحان کن.');
           const userId =
             imageError?.userId ||
@@ -877,11 +652,11 @@ function createAiController({
             errorCode: payload.error || 'IMAGE_TASK_FAILED'
           });
 
-          return res.status(Number(imageError?.statusCode) || 500).json({
+          return res.json({
             intent: intentResult.intent,
             status: 'ERROR',
             assistantText,
-            error: payload.error || imageError?.code || 'IMAGE_TASK_FAILED',
+            error: payload.error || 'IMAGE_TASK_FAILED',
             reason: payload.reason || null,
             messages,
             intentRouter: intentResult.metadata || null
@@ -889,48 +664,81 @@ function createAiController({
         }
       }
 
-      if (intentResult.intent === 'video_generation') {
-        if (preparedChatOperation?.reservation) {
-          await releaseChatNoa(
-            preparedChatOperation.reservation.reservationId,
-            'routed_to_video_studio',
-            { turnId: preparedChatOperation.turnId }
-          ).catch(() => undefined);
-          if (wantsStream && preparedChatOperation.attemptId) {
-            await chatTurnsRepository.finishAttempt({
-              attemptId: preparedChatOperation.attemptId,
-              status: 'cancelled',
-              errorCode: 'VIDEO_FINAL_ACTION_ROUTE_REQUIRED'
-            }).catch(() => undefined);
-            streamPreflightSettled = true;
-          }
-          await chatTurnsRepository.markTurn({
-            turnId: preparedChatOperation.turnId,
-            status: 'cancelled',
-            errorCode: 'VIDEO_FINAL_ACTION_ROUTE_REQUIRED'
-          }).catch(() => undefined);
-          nonStreamReservation = null;
+      if (isGuest) {
+        if (!guestsRepository) {
+          return res.status(500).json({ error: 'GUEST_LIMIT_NOT_CONFIGURED' });
         }
-        return res.status(409).json({
-          error: 'VIDEO_FINAL_ACTION_ROUTE_REQUIRED',
-          message: 'برای ساخت ویدیو، درخواست را در استودیوی ویدیو تکمیل کن.',
-          videoStudioRedirect: true
-        });
+
+        const cookieGuestId = normalizeGuestId(req.cookies?.[GUEST_COOKIE_NAME]);
+        const guestId = cookieGuestId || getGuestIdFromUserId(generateUserId({ isGuest: true }));
+        if (!cookieGuestId) {
+          setGuestCookie(res, guestId);
+        }
+
+        const ipAddress = getRequestIp(req);
+        const guestMessageLimit = await getGuestMessageLimit();
+        const currentCount = await guestsRepository.getCurrentCount({ guestId, ipAddress });
+        if (currentCount >= guestMessageLimit && !wantsStream) {
+          return res.status(403).json({
+            error: 'GUEST_LIMIT_REACHED',
+            message: 'برای ادامه گفتگو، لطفاً با کمک والد گفتگوها را ذخیره کنید.',
+            limit: guestMessageLimit,
+            usage: currentCount,
+            remaining: 0,
+            nextAction: 'guardian_signup'
+          });
+        }
+        if (currentCount >= guestMessageLimit) {
+          guestLimitPayload = {
+            error: 'GUEST_LIMIT_REACHED',
+            message: 'برای ادامه گفتگو، لطفاً با کمک والد گفتگوها را ذخیره کنید.',
+            limit: guestMessageLimit,
+            usage: currentCount,
+            remaining: 0,
+            nextAction: 'guardian_signup'
+          };
+        }
+
+        const guestUserId = await guestsRepository.ensureGuestUser(guestId);
+        limitStatus = 'guest_allowed';
+        effectiveProfile = {
+          ...(profile && typeof profile === 'object' ? profile : {}),
+          id: guestUserId,
+          name: 'مهمان',
+          age: Number(profile?.age || 0) || 0,
+          phone: undefined
+        };
+        guestContext = { guestId, ipAddress };
+      } else if (plansRepository && typeof plansRepository.checkLimit === 'function') {
+        const limitState = await plansRepository.checkLimit(authenticatedUserId, 'message');
+        if (!limitState.allowed && !wantsStream) {
+          return res.status(402).json({
+            error: 'MESSAGE_LIMIT_REACHED',
+            message: 'سقف پیام روزانه پلن شما تمام شده است.',
+            plan: limitState.plan?.id || null,
+            limit: limitState.limit,
+            usage: limitState.usage
+          });
+        }
+        if (!limitState.allowed) {
+          planLimitPayload = {
+            error: 'MESSAGE_LIMIT_REACHED',
+            message: 'سقف پیام روزانه پلن شما تمام شده است.',
+            plan: limitState.plan?.id || null,
+            limit: limitState.limit,
+            usage: limitState.usage
+          };
+        }
+        limitStatus = 'plan_allowed';
       }
 
-      const titleOwnerId = String(authenticatedUserId).trim();
-      const queueTitleGeneration = async () => {
-        if (
-          titleGenerationTask ||
-          !titleOwnerId ||
-          !conversationId ||
-          !conversationTitleService ||
-          typeof conversationTitleService.queue !== 'function' ||
-          (!rawMessage && !routeContext.hasCurrentImageAttachment) ||
-          intentResult.intent === 'image_understanding'
-        ) {
-          return titleGenerationTask;
-        }
+      const titleOwnerId = String(authenticatedUserId || effectiveProfile?.id || '').trim();
+      if (
+        titleOwnerId && conversationId && conversationTitleService && typeof conversationTitleService.queue === 'function' &&
+        (rawMessage || routeContext.hasCurrentImageAttachment) && intentResult.intent !== 'image_understanding'
+      ) {
+        // A conversation row is claimed atomically before the model call. This is deliberately
+        // detached from streaming so title failures can never block a response.
         await conversationsRepository.ensureConversation(titleOwnerId, conversationId, { title: '', messages: [] }).catch(() => null);
         titleGenerationTask = conversationTitleService.queue({
           userId: titleOwnerId,
@@ -941,33 +749,13 @@ function createAiController({
           requestType: intentResult.intent,
           visionSummary: ''
         }).catch(() => ({ status: 'failed', title: null }));
-        return titleGenerationTask;
-      };
+      }
 
       if (wantsStream) {
-        if (!preparedChatOperation?.reservation) {
-          const error = new Error('CHAT_NOA_PREFLIGHT_MISSING');
-          error.code = 'CHAT_NOA_PREFLIGHT_MISSING';
-          error.statusCode = 503;
-          throw error;
+        if (!chatTurnsRepository) return res.status(500).json({ error: 'CHAT_STREAM_NOT_CONFIGURED' });
+        if (!STREAM_ID_PATTERN.test(String(turnId || '')) || !STREAM_ID_PATTERN.test(String(attemptId || ''))) {
+          return res.status(400).json({ error: 'INVALID_STREAM_IDS', message: 'turnId و attemptId معتبر نیستند.' });
         }
-        const normalizedUserMessage = preparedChatOperation.normalizedUserMessage;
-        const streamReservation = preparedChatOperation.reservation;
-
-        await queueTitleGeneration();
-        let streamOutputProduced = false;
-        let streamCaptured = false;
-        const captureStreamOutput = async () => {
-          streamOutputProduced = true;
-          if (streamCaptured) return;
-          const captured = await captureChatNoa(streamReservation.reservationId, {
-            turnId,
-            attemptId,
-            output: 'partial_or_complete'
-          });
-          streamCaptured = captured.status === 'captured';
-          streamPreflightSettled = streamCaptured;
-        };
         const providerAbort = new AbortController();
         const abortOnDisconnect = () => {
           if (!res.writableEnded) providerAbort.abort();
@@ -984,7 +772,59 @@ function createAiController({
           streamSocket.once('error', abortOnDisconnect);
           if (streamSocket.destroyed) providerAbort.abort();
         }
+        const ownerId = String(authenticatedUserId || effectiveProfile?.id || '').trim();
+        const existingTurn = await chatTurnsRepository.getTurn(turnId);
+        if (existingTurn && String(existingTurn.user_id) !== ownerId) {
+          return res.status(409).json({ error: 'TURN_ID_CONFLICT' });
+        }
+        if (!existingTurn && guestLimitPayload) return res.status(403).json(guestLimitPayload);
+        if (!existingTurn && planLimitPayload) return res.status(402).json(planLimitPayload);
+        if (existingTurn?.status === 'streaming') {
+          return res.status(409).json({ error: 'TURN_IN_PROGRESS', message: 'این پاسخ هنوز در حال تولید است.' });
+        }
+
+        const normalizedUserMessage = typeof message === 'string' && message.trim()
+          ? message.trim()
+          : intentResult.intent === 'image_understanding'
+            ? 'لطفاً محتوای عکس را توضیح بده.'
+            : '📷 عکس ارسال شد';
+        const { turn } = await chatTurnsRepository.beginTurn({
+          turnId,
+          userId: ownerId,
+          conversationId,
+          clientMessageId,
+          userMessage: normalizedUserMessage,
+          intent: intentResult.intent
+        });
+        await chatTurnsRepository.beginAttempt({ attemptId, turnId });
         openStreamResponse(res);
+
+        if (turn.status === 'completed') {
+          writeStreamEvent(res, {
+            type: 'meta',
+            status: 'streaming',
+            turnId,
+            attemptId,
+            intent: turn.intent,
+            imageStudioRedirect: shouldRedirectToImageStudio,
+            replay: true
+          });
+          writeStreamEvent(res, { type: 'delta', turnId, attemptId, delta: String(turn.reply || '') });
+          await chatTurnsRepository.finishAttempt({ attemptId, status: 'completed' });
+          writeStreamEvent(res, {
+            type: 'done',
+            status: 'completed',
+            turnId,
+            attemptId,
+            intent: turn.intent,
+            reply: String(turn.reply || ''),
+            conversationId: turn.conversation_id,
+            imageStudioRedirect: shouldRedirectToImageStudio,
+            replay: true
+          });
+          return res.end();
+        }
+
         if (req.aborted || res.destroyed) providerAbort.abort();
         if (!writeStreamEvent(res, {
           type: 'meta',
@@ -1015,7 +855,6 @@ function createAiController({
               requestId: res.locals.requestId,
               signal: providerAbort.signal,
               onDelta: async (delta) => {
-                if (String(delta || '').length > 0) await captureStreamOutput();
                 if (!writeStreamEvent(res, { type: 'delta', turnId, attemptId, delta })) providerAbort.abort();
               }
             });
@@ -1045,6 +884,7 @@ function createAiController({
               clientMessageId,
               imageIds,
               diagnostics: streamResult.diagnostics,
+              limitStatus,
               turnId
             });
             streamResult = { ...streamResult, reply: streamResult.answer };
@@ -1057,10 +897,10 @@ function createAiController({
               conversationId,
               imageIds,
               requestId: res.locals.requestId,
+              limitStatus,
               turnId,
               signal: providerAbort.signal,
               onDelta: async (delta) => {
-                if (String(delta || '').length > 0) await captureStreamOutput();
                 if (!writeStreamEvent(res, { type: 'delta', turnId, attemptId, delta })) providerAbort.abort();
               }
             });
@@ -1072,14 +912,6 @@ function createAiController({
             throw abortError;
           }
 
-          if (String(streamResult.reply || '').length > 0) {
-            await captureStreamOutput();
-          }
-          if (!streamOutputProduced) {
-            const emptyError = new Error('EMPTY_UPSTREAM_REPLY');
-            emptyError.code = 'EMPTY_UPSTREAM_REPLY';
-            throw emptyError;
-          }
           await chatTurnsRepository.markTurn({
             turnId,
             status: 'completed',
@@ -1088,6 +920,16 @@ function createAiController({
             tokenUsage: streamResult.tokenUsage
           });
           await chatTurnsRepository.finishAttempt({ attemptId, status: 'completed' });
+          if (await chatTurnsRepository.claimQuota(turnId)) {
+            try {
+              if (guestContext) await guestsRepository.incrementCount(guestContext);
+              else if (authenticatedUserId && plansRepository?.incrementDailyUsage) {
+                await plansRepository.incrementDailyUsage(authenticatedUserId, 'message', 1);
+              }
+            } catch (quotaError) {
+              await errorsRepository.logError('stream_quota_increment_failed', '/api/chat', null, String(quotaError?.message || quotaError));
+            }
+          }
           writeStreamEvent(res, {
             type: 'done',
             status: 'completed',
@@ -1103,38 +945,6 @@ function createAiController({
           const cancelled = providerAbort.signal.aborted || streamError?.name === 'AbortError' || streamError?.code === 'PROVIDER_REQUEST_ABORTED';
           const status = cancelled ? 'cancelled' : 'failed';
           const errorCode = cancelled ? 'CANCELLED' : String(streamError?.code || 'STREAM_FAILED');
-          if (streamOutputProduced) {
-            await captureChatNoa(streamReservation.reservationId, {
-              turnId,
-              attemptId,
-              output: 'partial',
-              terminalStatus: status
-            }).then((snapshot) => {
-              streamPreflightSettled = snapshot.status === 'captured';
-            }).catch(async (captureError) => {
-              await errorsRepository.logError(
-                'noa_stream_capture_failed',
-                '/api/chat',
-                null,
-                String(captureError?.message || captureError)
-              ).catch(() => undefined);
-            });
-          } else {
-            await releaseChatNoa(streamReservation.reservationId, status, {
-              turnId,
-              attemptId,
-              errorCode
-            }).then((snapshot) => {
-              streamPreflightSettled = snapshot.status === 'released';
-            }).catch(async (releaseError) => {
-              await errorsRepository.logError(
-                'noa_stream_release_failed',
-                '/api/chat',
-                null,
-                String(releaseError?.message || releaseError)
-              ).catch(() => undefined);
-            });
-          }
           if (!cancelled) {
             await errorsRepository.logError(
               'chat_stream_failed',
@@ -1170,14 +980,6 @@ function createAiController({
         }
       }
 
-      if (!preparedChatOperation?.reservation || !nonStreamReservation) {
-        const error = new Error('CHAT_NOA_PREFLIGHT_MISSING');
-        error.code = 'CHAT_NOA_PREFLIGHT_MISSING';
-        error.statusCode = 503;
-        throw error;
-      }
-      await queueTitleGeneration();
-
       if (intentResult.intent === 'image_understanding') {
         try {
           const visionResult = await imageUnderstandingService.analyzeChatImages({
@@ -1209,18 +1011,6 @@ function createAiController({
             requestId: res.locals.requestId
           });
           const finalAssistantText = composedResult.reply;
-          nonStreamOutputProduced = String(finalAssistantText || '').length > 0;
-          if (!nonStreamOutputProduced) {
-            const emptyError = new Error('EMPTY_UPSTREAM_REPLY');
-            emptyError.code = 'EMPTY_UPSTREAM_REPLY';
-            throw emptyError;
-          }
-          const captured = await captureChatNoa(nonStreamReservation.reservationId, {
-            turnId: nonStreamTurnId,
-            output: 'complete',
-            intent: 'image_understanding'
-          });
-          nonStreamCaptured = captured.status === 'captured';
           const persisted = await aiService.persistVisionChatTurn({
             profile: effectiveProfile,
             conversationId,
@@ -1234,15 +1024,15 @@ function createAiController({
               visionModel: visionResult.model || visionResult.diagnostics?.model || null,
               chatModel: composedResult.model || null,
               chatResponseTimeMs: composedResult.responseTimeMs
-            }
+            },
+            limitStatus
           });
 
-          await chatTurnsRepository.markTurn({
-            turnId: nonStreamTurnId,
-            status: 'completed',
-            reply: finalAssistantText,
-            model: composedResult.model || visionResult.model || null
-          });
+          if (guestContext) {
+            await guestsRepository.incrementCount(guestContext);
+          } else if (authenticatedUserId && plansRepository && typeof plansRepository.incrementDailyUsage === 'function') {
+            await plansRepository.incrementDailyUsage(authenticatedUserId, 'message', 1);
+          }
 
           return res.json({
             intent: 'image_understanding',
@@ -1275,19 +1065,9 @@ function createAiController({
             diagnostics: {
               status: 'error',
               errorCode: visionError?.code || 'VISION_ANALYZE_FAILED'
-            }
+            },
+            limitStatus
           }).catch(() => ({ messages: [] }));
-          if (nonStreamReservation && !nonStreamOutputProduced) {
-            await releaseChatNoa(nonStreamReservation.reservationId, 'vision_failed', {
-              turnId: nonStreamTurnId,
-              errorCode: visionError?.code || 'VISION_ANALYZE_FAILED'
-            }).catch(() => undefined);
-          }
-          await chatTurnsRepository.markTurn({
-            turnId: nonStreamTurnId,
-            status: 'failed',
-            errorCode: visionError?.code || 'VISION_ANALYZE_FAILED'
-          }).catch(() => undefined);
           return res.json({
             intent: 'image_understanding',
             status: 'ERROR',
@@ -1307,28 +1087,15 @@ function createAiController({
         history,
         conversationId,
         imageIds,
-        requestId: res.locals.requestId
+        requestId: res.locals.requestId,
+        limitStatus
       });
 
-      nonStreamOutputProduced = String(result?.reply || '').length > 0;
-      if (!nonStreamOutputProduced) {
-        const emptyError = new Error('EMPTY_UPSTREAM_REPLY');
-        emptyError.code = 'EMPTY_UPSTREAM_REPLY';
-        throw emptyError;
+      if (guestContext) {
+        await guestsRepository.incrementCount(guestContext);
+      } else if (authenticatedUserId && plansRepository && typeof plansRepository.incrementDailyUsage === 'function') {
+        await plansRepository.incrementDailyUsage(authenticatedUserId, 'message', 1);
       }
-      const captured = await captureChatNoa(nonStreamReservation.reservationId, {
-        turnId: nonStreamTurnId,
-        output: 'complete',
-        intent: 'chat'
-      });
-      nonStreamCaptured = captured.status === 'captured';
-      await chatTurnsRepository.markTurn({
-        turnId: nonStreamTurnId,
-        status: 'completed',
-        reply: result?.reply || '',
-        model: result?.model || null,
-        tokenUsage: result?.tokenUsage || null
-      });
 
       return res.json({
         ...result,
@@ -1336,77 +1103,6 @@ function createAiController({
         intentRouter: intentResult.metadata || null
       });
     } catch (error) {
-      if (streamPreflightReservation && !streamPreflightSettled) {
-        await releaseChatNoa(streamPreflightReservation.reservationId, 'chat_preflight_failed', {
-          turnId: streamPreflightTurnId,
-          attemptId: streamPreflightAttemptId,
-          errorCode: String(error?.code || 'CHAT_PREFLIGHT_FAILED')
-        }).then((snapshot) => {
-          streamPreflightSettled = snapshot.status === 'released';
-        }).catch(async (releaseError) => {
-          await errorsRepository.logError(
-            'noa_chat_preflight_release_failed',
-            '/api/chat',
-            null,
-            String(releaseError?.message || releaseError)
-          ).catch(() => undefined);
-        });
-        if (chatTurnsRepository) {
-          await chatTurnsRepository.finishAttempt({
-            attemptId: streamPreflightAttemptId,
-            status: 'failed',
-            errorCode: String(error?.code || 'CHAT_PREFLIGHT_FAILED')
-          }).catch(() => undefined);
-          await chatTurnsRepository.markTurn({
-            turnId: streamPreflightTurnId,
-            status: 'failed',
-            errorCode: String(error?.code || 'CHAT_PREFLIGHT_FAILED')
-          }).catch(() => undefined);
-        }
-      }
-      if (nonStreamReservation && !nonStreamCaptured) {
-        if (nonStreamOutputProduced) {
-          await captureChatNoa(nonStreamReservation.reservationId, {
-            turnId: nonStreamTurnId,
-            output: 'produced_before_failure',
-            terminalStatus: 'failed'
-          }).then((snapshot) => {
-            nonStreamCaptured = snapshot.status === 'captured';
-          }).catch(async (captureError) => {
-            await errorsRepository.logError(
-              'noa_chat_capture_failed',
-              '/api/chat',
-              null,
-              String(captureError?.message || captureError)
-            ).catch(() => undefined);
-          });
-        } else {
-          await releaseChatNoa(nonStreamReservation.reservationId, 'chat_failed', {
-            turnId: nonStreamTurnId,
-            errorCode: String(error?.code || 'CHAT_FAILED')
-          }).catch(async (releaseError) => {
-            await errorsRepository.logError(
-              'noa_chat_release_failed',
-              '/api/chat',
-              null,
-              String(releaseError?.message || releaseError)
-            ).catch(() => undefined);
-          });
-        }
-        if (nonStreamTurnId && chatTurnsRepository) {
-          await chatTurnsRepository.markTurn({
-            turnId: nonStreamTurnId,
-            status: 'failed',
-            errorCode: String(error?.code || 'CHAT_FAILED')
-          }).catch(() => undefined);
-        }
-      }
-
-      const noaPayload = getNoaErrorPayload(error);
-      if (noaPayload) {
-        return res.status(Number(error?.statusCode || error?.status) || 500).json(noaPayload);
-      }
-
       if (error && typeof error === 'object' && error.code === 'API_KEY_MISSING') {
         await errorsRepository.logError('api_key_missing', '/api/chat', 500, 'METIS_API_KEY is missing');
         return res.status(500).json({ error: 'کلید API تنظیم نشده است.' });

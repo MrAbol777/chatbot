@@ -1,5 +1,6 @@
 const mysql = require('mysql2/promise');
 const { ensureNoaSchema } = require('../modules/noa/noa.schema');
+const { ensureAuthSessionSchema } = require('../modules/auth/auth.schema');
 
 class DatabaseClient {
   constructor({ databaseUrl }) {
@@ -373,6 +374,7 @@ class DatabaseClient {
       `);
 
       await ensureNoaSchema(this.pool);
+      await ensureAuthSessionSchema(this.pool);
 
       console.log('[DB] Connected to local MySQL');
     })();

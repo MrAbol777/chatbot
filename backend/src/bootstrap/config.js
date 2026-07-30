@@ -1,4 +1,5 @@
 const path = require('path');
+const { loadVianaConfig } = require('../modules/auth/viana.config');
 const crypto = require('crypto');
 
 const normalizePort = (value, fallback = 3000) => {
@@ -103,6 +104,7 @@ function loadRuntimeConfig(env = process.env) {
   const adminJwtSecret = typeof env.ADMIN_JWT_SECRET === 'string' ? env.ADMIN_JWT_SECRET.trim() : 'danoa-admin-secret';
   const authJwtSecret = typeof env.AUTH_JWT_SECRET === 'string' ? env.AUTH_JWT_SECRET.trim() : adminJwtSecret;
   const adminCookieName = env.ADMIN_COOKIE_NAME || 'admin_token';
+  const viana = loadVianaConfig(env);
 
   const adminConfigPath = path.join(__dirname, '../../config.json');
   const systemPromptPath = path.join(__dirname, '../../system-prompt.txt');
@@ -245,7 +247,7 @@ function loadRuntimeConfig(env = process.env) {
       confidenceThreshold: Number.isFinite(Number(env.INTENT_ROUTER_CONFIDENCE_THRESHOLD)) ? Number(env.INTENT_ROUTER_CONFIDENCE_THRESHOLD) : 0.65,
       fallbackToHeuristic: env.INTENT_ROUTER_FALLBACK_TO_HEURISTIC !== 'false',
       allowModelFallback: env.INTENT_ROUTER_ALLOW_MODEL_FALLBACK !== 'false',
-      allowChatKeyFallback: env.INTENT_ROUTER_ALLOW_CHAT_KEY_FALLBACK === 'true',
+      allowChatKeyFallback: env.INTENT_ROUTER_ALLOW_CHAT_KEY_FALLBACK !== 'false',
       storeMetadata: env.INTENT_ROUTER_STORE_METADATA !== 'false',
       modelHealthEnabled: env.INTENT_ROUTER_MODEL_HEALTH_ENABLED !== 'false',
       modelHealthFailureThreshold: Number.isFinite(Number(env.INTENT_ROUTER_MODEL_HEALTH_FAILURE_THRESHOLD)) ? Number(env.INTENT_ROUTER_MODEL_HEALTH_FAILURE_THRESHOLD) : 3,
@@ -315,6 +317,7 @@ function loadRuntimeConfig(env = process.env) {
     adminJwtSecret,
     authJwtSecret,
     adminCookieName,
+    viana,
     adminConfigPath,
     systemPromptPath,
     frontendDistPath

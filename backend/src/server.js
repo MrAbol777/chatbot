@@ -34,6 +34,15 @@ const { createConversationContextBuilder } = require('./modules/conversation-mem
 const { createPromptService } = require('./modules/ai/prompt.service');
 const { createAuthModule } = require('./modules/auth/auth.module');
 const { createLocalDevelopmentRouter } = require('./modules/auth/local-development.routes');
+const { createSessionRepository } = require('./modules/auth/session.repository');
+const {
+  createCookieCsrfProtection,
+  createPrincipalResolver
+} = require('./modules/auth/principal');
+const { createVianaRepository } = require('./modules/auth/viana.repository');
+const { createVianaService } = require('./modules/auth/viana.service');
+const { createVianaRouter } = require('./modules/auth/viana.routes');
+const { createSessionRouter } = require('./modules/auth/session.routes');
 const { createConversationsModule } = require('./modules/conversations');
 const { createRepositories } = require('./repositories');
 const { createConfiguredVideoWorkerRuntime } = require('./modules/video-generation/worker/video-worker.bootstrap');
@@ -187,10 +196,26 @@ const {
   adminJwtSecret,
   authJwtSecret,
   adminCookieName,
+  viana,
   adminConfigPath,
   systemPromptPath,
   frontendDistPath
 } = loadRuntimeConfig(process.env);
+const sessionRepository = createSessionRepository({
+  db: repositories.db,
+  csrfSecret: authJwtSecret,
+  idleTimeoutSeconds: viana.sessionIdleTimeoutSeconds,
+  absoluteTimeoutSeconds: viana.sessionAbsoluteTimeoutSeconds
+});
+const principalResolver = createPrincipalResolver({
+  jwt,
+  jwtSecret: authJwtSecret,
+  usersRepository: repositories.users,
+  sessionRepository,
+  sessionCookieName: viana.sessionCookieName
+});
+const vianaRepository = createVianaRepository({ db: repositories.db });
+const vianaService = viana.enabled ? createVianaService({ config: viana }) : null;
 const noaRepository = createNoaRepository(repositories.db);
 const noaBillingService = createNoaBillingService({ repository: noaRepository });
 const noaReceiptService = createNoaReceiptService({
@@ -206,7 +231,8 @@ const noaUserRouter = createNoaUserRouter({
   receiptStorage: noaReceiptStorage,
   authMiddleware: createAuthMiddleware({
     jwtSecret: authJwtSecret,
-    db: repositories.db
+    db: repositories.db,
+    principalResolver
   })
 });
 try {
@@ -258,7 +284,14 @@ attachProcessErrorLogging();
 
 console.log('[BOOT] DB mode=mysql');
 
-app.use(cors({ origin: true, credentials: true }));
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
+app.use(cors({
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin || viana.allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  }
+}));
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -276,12 +309,27 @@ app.use(compression({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
+app.use(createCookieCsrfProtection({
+  principalResolver,
+  sessionRepository,
+  allowedOrigins: viana.allowedOrigins,
+  shouldProtectRequest: (req) => [
+    '/api/auth/logout',
+    '/api/chat',
+    '/api/conversations',
+    '/api/noa',
+    '/api/images',
+    '/api/uploads/images',
+    '/api/video-generation',
+    '/api/video-generations'
+  ].some((prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`))
+}));
 app.use((req, res, next) => {
   const startedAt = Date.now();
   const requestId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   res.locals.requestId = requestId;
 
-  const safeRequestPath = String(req.originalUrl || '').replace(/\/api\/video-provider-input\/[^/?\s]+/g, '/api/video-provider-input/[REDACTED]');
+  const safeRequestPath = String(req.path || '/').replace(/\/api\/video-provider-input\/[^/?\s]+/g, '/api/video-provider-input/[REDACTED]');
   log('HTTP', 'request_started', {
     requestId,
     method: req.method,
@@ -428,6 +476,21 @@ const { router: authRouter } = createAuthModule({
   },
   logger: console
 });
+app.use(createSessionRouter({
+  config: viana,
+  principalResolver,
+  sessionRepository,
+  jwtSecret: authJwtSecret
+}));
+app.use(createVianaRouter({
+  config: viana,
+  vianaService,
+  vianaRepository,
+  sessionRepository,
+  guestsRepository: repositories.guests,
+  jwtSecret: authJwtSecret,
+  logger: console
+}));
 app.use(authRouter);
 app.use(createLocalDevelopmentRouter({
   enabled: process.env.LOCAL_DEV_SESSION_ENABLED === 'true',
@@ -465,6 +528,7 @@ const imageGenerationModule = createImageGenerationRouter({
   chatConfig: ai.chat,
   db: repositories.db,
   noaBillingService,
+  principalResolver,
   settingsRepository: repositories.settings,
   conversationsRepository: repositories.conversations,
   eventsRepository: repositories.events,
@@ -481,6 +545,7 @@ const videoGenerationModule = createVideoGenerationRouter({
   db: repositories.db,
   noaBillingService,
   authJwtSecret,
+  principalResolver,
   adminJwtSecret,
   adminCookieName
 });
@@ -541,6 +606,7 @@ app.use(createAiRouter({
   noaBillingService,
   jwt,
   jwtSecret: authJwtSecret,
+  principalResolver,
   eventsRepository: repositories.events,
   errorsRepository: repositories.errors,
   uploadedImagesRepository,
@@ -577,16 +643,10 @@ const { router: conversationRouter } = createConversationsModule({
   },
   now,
   resolveOwner: async (req) => {
-    const authorization = String(req.headers?.authorization || '');
-    const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1] || '';
-    if (token) {
-      try {
-        const payload = jwt.verify(token, authJwtSecret);
-        const userId = String(payload?.sub || '').trim();
-        if (userId) return { userId, type: 'authenticated' };
-      } catch (_error) {
-        return null;
-      }
+    const resolution = await principalResolver.resolve(req);
+    if (resolution.error) return { error: resolution.error };
+    if (resolution.principal) {
+      return { userId: resolution.principal.userId, type: 'authenticated' };
     }
     const guestId = String(req.cookies?.danoa_guest_id || '').trim();
     if (!/^[a-zA-Z0-9_-]{8,64}$/.test(guestId)) return null;
@@ -663,7 +723,7 @@ app.use((err, req, res, _next) => {
   console.error(`[ERROR][${requestId}]`, {
     message: err.message,
     stack: err.stack,
-    path: req.originalUrl,
+    path: req.path,
     method: req.method,
     status: err.status || err.statusCode || null,
     code: err.code || null

@@ -24,9 +24,14 @@ function createConversationsService({
     }
     return title;
   };
-  const createConversation = async ({ profile }) => {
+  const resolveUserId = async (userId, profile) => {
+    const explicit = typeof userId === 'string' || typeof userId === 'number' ? String(userId).trim() : '';
+    return explicit || usersRepository.ensureUserExists(profile || {});
+  };
+
+  const createConversation = async ({ userId: ownerUserId, profile }) => {
     const safeProfile = profile || {};
-    const userId = await usersRepository.ensureUserExists(safeProfile);
+    const userId = await resolveUserId(ownerUserId, safeProfile);
     const conversationId =
       conversationMemoryService && typeof conversationMemoryService.generateConversationId === 'function'
         ? conversationMemoryService.generateConversationId()
@@ -56,9 +61,9 @@ function createConversationsService({
     };
   };
 
-  const loadConversations = async ({ profile }) => {
+  const loadConversations = async ({ userId: ownerUserId, profile }) => {
     const safeProfile = profile || {};
-    const userId = await usersRepository.ensureUserExists(safeProfile);
+    const userId = await resolveUserId(ownerUserId, safeProfile);
     const items = await conversationsRepository.getUserConversations(userId);
 
     return {
@@ -68,10 +73,10 @@ function createConversationsService({
     };
   };
 
-  const syncConversations = async ({ profile, items }) => {
+  const syncConversations = async ({ userId: ownerUserId, profile, items }) => {
     const safeProfile = profile || {};
     const rawItems = Array.isArray(items) ? items : [];
-    const userId = await usersRepository.ensureUserExists(safeProfile);
+    const userId = await resolveUserId(ownerUserId, safeProfile);
 
     const normalizedItems = rawItems.map((item) => ({
       conversation_id: typeof item?.id === 'string' ? item.id : String(item?.id || 'default'),

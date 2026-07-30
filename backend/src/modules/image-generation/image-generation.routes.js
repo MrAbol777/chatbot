@@ -11,7 +11,8 @@ function createImageGenerationRouter(deps) {
 
   const authMiddleware = createAuthMiddleware({
     jwtSecret: deps.authJwtSecret,
-    db: deps.db
+    db: deps.db,
+    principalResolver: deps.principalResolver
   });
 
   const imageGenerationService =

@@ -1,7 +1,23 @@
 function createConversationsController({ conversationsService, resolveOwner }) {
+  const requireOwner = async (req, res) => {
+    const owner = await resolveOwner(req, res);
+    if (owner?.error) {
+      res.status(401).json({ error: owner.error });
+      return null;
+    }
+    if (!owner?.userId) {
+      res.status(401).json({ error: 'AUTHENTICATION_REQUIRED' });
+      return null;
+    }
+    return owner;
+  };
+
   const create = async (req, res) => {
     try {
+      const owner = await requireOwner(req, res);
+      if (!owner) return undefined;
       const result = await conversationsService.createConversation({
+        userId: owner.userId,
         profile: req.body?.profile
       });
       return res.status(201).json(result);
@@ -13,7 +29,10 @@ function createConversationsController({ conversationsService, resolveOwner }) {
 
   const load = async (req, res) => {
     try {
+      const owner = await requireOwner(req, res);
+      if (!owner) return undefined;
       const result = await conversationsService.loadConversations({
+        userId: owner.userId,
         profile: req.body?.profile
       });
       return res.json(result);
@@ -25,7 +44,10 @@ function createConversationsController({ conversationsService, resolveOwner }) {
 
   const sync = async (req, res) => {
     try {
+      const owner = await requireOwner(req, res);
+      if (!owner) return undefined;
       const result = await conversationsService.syncConversations({
+        userId: owner.userId,
         profile: req.body?.profile,
         items: req.body?.items
       });
@@ -38,8 +60,8 @@ function createConversationsController({ conversationsService, resolveOwner }) {
 
   const updateTitle = async (req, res) => {
     try {
-      const owner = await resolveOwner(req, res);
-      if (!owner?.userId) return res.status(401).json({ error: 'AUTH_REQUIRED' });
+      const owner = await requireOwner(req, res);
+      if (!owner) return undefined;
       const result = await conversationsService.updateManualTitle({
         userId: owner.userId,
         conversationId: req.params?.conversationId,

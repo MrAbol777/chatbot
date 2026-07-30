@@ -657,7 +657,7 @@ const SETTING_DEFINITIONS = {
     label: 'اجازه fallback به کلید چت',
     type: 'boolean',
     category: 'ai',
-    defaultValue: false,
+    defaultValue: true,
     adminEditable: true
   },
   'ai.intent_router.store_metadata': {

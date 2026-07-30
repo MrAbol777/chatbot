@@ -82,7 +82,12 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="app-route-loading" role="status" aria-live="polite">
+        <span class="app-route-loading__spinner" aria-hidden="true"></span>
+        <strong>در حال آماده‌سازی دانوآ…</strong>
+      </main>
+    </div>
     <div id="modal-root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

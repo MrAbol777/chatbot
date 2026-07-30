@@ -23,7 +23,8 @@ function createAiRouter(deps) {
     imageUnderstandingService: deps.imageUnderstandingService,
     noaBillingService: deps.noaBillingService,
     jwt: deps.jwt,
-    jwtSecret: deps.jwtSecret
+    jwtSecret: deps.jwtSecret,
+    principalResolver: deps.principalResolver
   });
 
   router.post('/api/chat', controller.postChat);

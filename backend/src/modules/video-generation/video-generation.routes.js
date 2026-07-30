@@ -96,7 +96,8 @@ function createVideoGenerationRouter(deps) {
   });
   const userAuth = createAuthMiddleware({
     jwtSecret: deps.authJwtSecret,
-    db: deps.db
+    db: deps.db,
+    principalResolver: deps.principalResolver
   });
   const loadOptionalAdmin = (req, _res, next) => {
     const token = req.cookies?.[deps.adminCookieName || 'admin_token'];
@@ -110,7 +111,7 @@ function createVideoGenerationRouter(deps) {
     next();
   };
   const optionalBearerAuth = (req, res, next) => (
-    String(req.headers.authorization || '').startsWith('Bearer ')
+    String(req.headers.authorization || '').startsWith('Bearer ') || req.cookies?.danoa_auth_session
       ? userAuth(req, res, next)
       : next()
   );

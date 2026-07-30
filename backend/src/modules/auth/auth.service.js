@@ -247,12 +247,14 @@ function createAuthService({
         ? await authRepository.checkAndRecordOtpRequest(phone)
         : { allowed: true };
     if (!requestState.allowed) {
+      const retryAfterSeconds = Math.max(1, Math.ceil(Number(requestState.retryAfterSeconds) || 60));
       return {
         statusCode: 429,
         body: {
           success: false,
-          error: 'برای این شماره بیش از حد کد درخواست شده است. کمی بعد دوباره تلاش کنید.',
-          retryAfter: requestState.retryAfterSeconds
+          error: `برای این شماره درخواست‌های زیادی ثبت شده است. ${retryAfterSeconds} ثانیه دیگر دوباره تلاش کنید.`,
+          retryAfter: retryAfterSeconds,
+          retryAfterSeconds
         }
       };
     }
@@ -266,7 +268,33 @@ function createAuthService({
 
     const smsResult = await smsService.sendVerificationCode(phone, code);
     if (!smsResult?.success) {
-      return { statusCode: smsResult?.status || 500, body: { error: 'ارسال کد با خطا مواجه شد.' } };
+      const providerStatus = Number(smsResult?.status);
+      if (providerStatus === 429) {
+        const retryAfterSeconds = Math.max(1, Math.ceil(Number(smsResult?.retryAfterSeconds) || 60));
+        return {
+          statusCode: 429,
+          body: {
+            success: false,
+            error: `سرویس پیامک موقتاً شلوغ است. ${retryAfterSeconds} ثانیه دیگر دوباره تلاش کنید.`,
+            code: 'OTP_PROVIDER_RATE_LIMITED',
+            retryAfter: retryAfterSeconds,
+            retryAfterSeconds
+          }
+        };
+      }
+
+      logger.warn?.('[OTP] provider unavailable', {
+        phone,
+        providerStatus: Number.isInteger(providerStatus) ? providerStatus : null
+      });
+      return {
+        statusCode: 503,
+        body: {
+          success: false,
+          error: 'سرویس پیامک موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.',
+          code: 'OTP_PROVIDER_UNAVAILABLE'
+        }
+      };
     }
 
     const saved = await authRepository.saveOtp(phone, code);
