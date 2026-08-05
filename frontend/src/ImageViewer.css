@@ -50,8 +50,8 @@
 }
 
 .image-viewer-btn {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, .18);
@@ -66,6 +66,11 @@
 .image-viewer-btn:hover {
   background: rgba(255, 255, 255, .18);
   border-color: rgba(255, 255, 255, .35);
+}
+.image-viewer-btn:focus-visible,
+.image-viewer-error-actions button:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, .92);
+  outline-offset: 2px;
 }
 
 .image-viewer-btn svg {
@@ -165,7 +170,7 @@
 }
 
 .image-viewer-error-actions button {
-  min-height: 36px;
+  min-height: 44px;
   padding: 7px 16px;
   border: 1px solid rgba(255, 255, 255, .25);
   border-radius: 10px;
@@ -204,8 +209,8 @@
   }
 
   .image-viewer-btn {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     border-radius: 9px;
   }
 

@@ -31,7 +31,8 @@ type ReviewDraft = {
 };
 
 const ACTION_LABELS: Record<string, string> = {
-  text_chat: 'گفتگوی متنی و درک تصویر',
+  text_chat: 'گفتگوی متنی',
+  image_understanding: 'تحلیل تصویر',
   image_generation: 'ساخت یا ویرایش تصویر',
   video_generation: 'ساخت ویدیو'
 };

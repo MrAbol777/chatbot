@@ -5,10 +5,11 @@ const {
   isUnsafeImagePrompt
 } = require('./intent.service');
 const { publicVisionErrorMessage } = require('../image-understanding/image-understanding.controller');
+const { NOA_ACTIONS } = require('../noa/noa.constants');
 
 const STREAM_CONTENT_TYPE = 'application/x-ndjson';
 const STREAM_ID_PATTERN = /^[0-9a-zA-Z][0-9a-zA-Z._:-]{7,63}$/;
-const NOA_CHAT_ACTION = 'text_chat';
+const NOA_CHAT_ACTION = NOA_ACTIONS.TEXT_CHAT;
 
 // Final-action routes stay distinct so billing is applied exactly once by the
 // module that actually performs the requested operation.
@@ -319,11 +320,17 @@ function createAiController({
     intent
   }) => requireNoaBillingService().reserve({
     userId,
-    actionKey: NOA_CHAT_ACTION,
-    quantity: 1,
+    actionKey: intent === 'image_understanding'
+      ? NOA_ACTIONS.IMAGE_UNDERSTANDING
+      : NOA_CHAT_ACTION,
+    quantity: intent === 'image_understanding'
+      ? Math.max(1, new Set((Array.isArray(imageIds) ? imageIds : []).map((item) => String(item || '').trim()).filter(Boolean)).size)
+      : 1,
     idempotencyKey: `chat:${normalizeOperationId(operationId)}`,
     payloadHash: createPayloadHash({
-      actionKey: NOA_CHAT_ACTION,
+      actionKey: intent === 'image_understanding'
+        ? NOA_ACTIONS.IMAGE_UNDERSTANDING
+        : NOA_CHAT_ACTION,
       userId,
       message: String(message || ''),
       conversationId: String(conversationId || 'default'),

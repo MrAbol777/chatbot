@@ -26,7 +26,11 @@ function createImageUnderstandingRouter(deps = {}) {
       logger: deps.logger
     });
 
-  const controller = createImageUnderstandingController({ imageUnderstandingService });
+  const controller = createImageUnderstandingController({
+    imageUnderstandingService,
+    noaBillingService: deps.noaBillingService,
+    principalResolver: deps.principalResolver
+  });
 
   router.post('/analyze', upload.array('images', 5), controller.analyze);
   router.post('/analyze-dry-run', express.json({ limit: '1mb' }), controller.dryRun);

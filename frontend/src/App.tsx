@@ -22,6 +22,7 @@ import {
   clearSessionCsrfToken,
   loadDanoaSession,
   loadVianaConfig,
+  loadVianaLinkStatus,
   setSessionCsrfToken,
   type AuthNotice,
   type DanoaSessionResponse
@@ -116,7 +117,7 @@ const removeLegacyLocalDevelopmentCredentials = () => {
 
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
 type LandingStep = 'landing' | 'login' | 'signup' | 'chat';
-type AppView = 'home' | 'chat' | 'studio' | 'images' | 'video' | 'profile' | 'noa';
+type AppView = 'chat' | 'studio' | 'images' | 'video' | 'profile' | 'noa';
 type PersonalityProfile = {
   interests: string[];
   preferredStyle: 'formal' | 'casual' | 'playful';
@@ -168,14 +169,13 @@ type PhoneStatusResult = {
 };
 
 const getAppViewFromPath = (pathname: string): AppView => {
-  if (pathname === '/home') return 'home';
   if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
   if (pathname === '/studio') return 'studio';
   if (pathname === '/studio/image' || pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/studio/video') return 'video';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
   if (pathname === '/noa') return 'noa';
-  return 'home';
+  return 'chat';
 };
 const isDesktopChatLayout = () =>
   typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
@@ -700,6 +700,26 @@ const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void
   }
 };
 
+const sendVianaLinkCode = async (): Promise<void> => {
+  const response = await safeFetch('/api/auth/viana/link/send-code', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: '{}'
+  });
+  if (!response.ok) {
+    const payload = await parseApiError(response);
+    throw createApiError(payload.error?.trim() || 'ارسال کد تأیید انجام نشد.', null, response.status, payload.retryAfterSeconds ?? payload.retryAfter);
+  }
+};
+
+const verifyVianaLink = async (code: string): Promise<void> => {
+  const response = await safeFetch('/api/auth/viana/link/verify', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ code })
+  });
+  if (!response.ok) {
+    const payload = await parseApiError(response);
+    throw createApiError(payload.error?.trim() || 'اتصال حساب انجام نشد.', null, response.status, payload.retryAfterSeconds ?? payload.retryAfter);
+  }
+};
+
 const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<VerifyCodeResult> => {
   const normalizedCode = String(code || '')
     .trim()
@@ -1178,13 +1198,17 @@ function ChatApp() {
   const [profile, setProfile] = useState<AppProfile | null>(() => (typeof window === 'undefined' ? null : loadProfile()));
   const [landingStep, setLandingStep] = useState<LandingStep>('landing');
   const [currentView, setCurrentView] = useState<AppView>(() =>
-    typeof window === 'undefined' ? 'home' : getAppViewFromPath(window.location.pathname)
+    typeof window === 'undefined' ? 'chat' : getAppViewFromPath(window.location.pathname)
   );
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
   const [hasCookieSession, setHasCookieSession] = useState(false);
   const [vianaEnabled, setVianaEnabled] = useState(false);
   const [vianaRedirecting, setVianaRedirecting] = useState(false);
   const [vianaNotice, setVianaNotice] = useState<AuthNotice | undefined>();
+  const [vianaLinkPending, setVianaLinkPending] = useState(false);
+  const [vianaLinkStage, setVianaLinkStage] = useState<'confirm' | 'code'>('confirm');
+  const [vianaLinkCode, setVianaLinkCode] = useState('');
+  const [isVianaLinkSubmitting, setIsVianaLinkSubmitting] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
   const [authTransition, setAuthTransition] = useState<'forward' | 'back'>('forward');
   const [hasSavedAccount, setHasSavedAccount] = useState(false);
@@ -1247,6 +1271,8 @@ function ChatApp() {
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
  const [imageGenError, setImageGenError] = useState<string>('');
  const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
+ const imageLightboxPanelRef = useRef<HTMLDivElement | null>(null);
+ const imageLightboxCloseRef = useRef<HTMLButtonElement | null>(null);
  const [publicSettings, setPublicSettings] = useState<PublicSettings>(PUBLIC_SETTINGS_DEFAULTS);
 
  const [editingId, setEditingId] = useState<string | null>(null);
@@ -1448,6 +1474,10 @@ function ChatApp() {
       return;
     }
 
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.requestAnimationFrame(() => imageLightboxCloseRef.current?.focus());
+
     const images = visibleMessages.reduce<string[]>((acc, msg) => {
       if (Array.isArray(msg.images)) {
         msg.images.forEach((img) => { if (img?.url) acc.push(img.url); });
@@ -1459,6 +1489,24 @@ function ChatApp() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setImagePreview(null);
+        return;
+      }
+      if (event.key === 'Tab') {
+        const panel = imageLightboxPanelRef.current;
+        if (!panel) return;
+        const focusable = Array.from(panel.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'
+        ));
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
         return;
       }
       if (uniqueImages.length < 2) return;
@@ -1478,7 +1526,10 @@ function ChatApp() {
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [imagePreview, visibleMessages]);
 
   const orderedConversations = useMemo(() => sortConversations(conversations), [conversations]);
@@ -1572,9 +1623,7 @@ function ChatApp() {
   };
 
   const navigateToView = (view: AppView, mode: 'push' | 'replace' = 'push') => {
-    const nextPath = view === 'home'
-      ? '/home'
-      : view === 'studio'
+    const nextPath = view === 'studio'
         ? '/studio'
         : view === 'video'
           ? '/studio/video'
@@ -1652,10 +1701,6 @@ function ChatApp() {
     navigateToView('chat');
   };
 
-  const handleGoToHome = () => {
-    navigateToView('home');
-  };
-
   const handleOpenNoaWallet = () => {
     navigateToView('noa');
   };
@@ -1721,12 +1766,14 @@ function ChatApp() {
         const rawConversations = localStorage.getItem(CONVERSATIONS_KEY);
         const routeConversationId = getConversationIdFromPath(window.location.pathname);
         const storedAuthToken = localStorage.getItem('chat_auth_token') || '';
-        const [serverSession, providerConfig] = await Promise.all([
+        const [serverSession, providerConfig, pendingLink] = await Promise.all([
           loadDanoaSession(storedAuthToken).catch(() => ({ authenticated: false } as DanoaSessionResponse)),
-          loadVianaConfig().catch(() => ({ enabled: false, providerLabel: 'Viana' }))
+          loadVianaConfig().catch(() => ({ enabled: false, providerLabel: 'Viana' })),
+          loadVianaLinkStatus().catch(() => ({ pending: false }))
         ]);
         if (cancelled) return;
         setVianaEnabled(providerConfig.enabled);
+        setVianaLinkPending(pendingLink.pending);
         if (serverSession.authNotice) setVianaNotice(serverSession.authNotice);
 
         if (rawProfiles) {
@@ -1774,10 +1821,6 @@ function ChatApp() {
           setRegistrationStep(1);
           setLandingStep('signup');
         } else {
-          if (window.location.pathname === '/home') {
-            window.location.replace('/');
-            return;
-          }
           if (profileData && !storedAuthToken) localStorage.removeItem(PROFILE_KEY);
           setLandingStep('landing');
         }
@@ -1831,7 +1874,11 @@ function ChatApp() {
   useEffect(() => {
     const handlePopState = () => {
       const pathname = window.location.pathname;
-      if (pathname === '/' || pathname === '/home' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname) || pathname === '/studio' || pathname === '/studio/image' || pathname === '/studio/video' || pathname === '/images' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings' || pathname === '/noa') {
+      if (pathname === '/home') {
+        window.location.replace('/');
+        return;
+      }
+      if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname) || pathname === '/studio' || pathname === '/studio/image' || pathname === '/studio/video' || pathname === '/images' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings' || pathname === '/noa') {
         const nextView = getAppViewFromPath(pathname);
         setCurrentView(nextView);
         setActiveConversationId(getConversationIdFromPath(pathname));
@@ -3504,6 +3551,59 @@ function ChatApp() {
           ? `تلاش دوباره تا ${verificationRetrySeconds} ثانیه`
           : 'ادامه با کد تایید';
     const notice = authNoticeMessage(vianaNotice);
+    const handleVianaLinkStart = async () => {
+      setIsVianaLinkSubmitting(true);
+      setErrors({});
+      try {
+        await sendVianaLinkCode();
+        setVianaLinkStage('code');
+      } catch (error) {
+        setErrors({ code: error instanceof Error ? error.message : 'ارسال کد تأیید انجام نشد.' });
+      } finally {
+        setIsVianaLinkSubmitting(false);
+      }
+    };
+    const handleVianaLinkVerify = async (event: FormEvent) => {
+      event.preventDefault();
+      const code = normalizeLocalizedDigits(vianaLinkCode).replace(/\D/g, '');
+      if (!/^[0-9]{4,6}$/.test(code)) {
+        setErrors({ code: 'کد تأیید باید ۴ تا ۶ رقم باشد.' });
+        return;
+      }
+      setIsVianaLinkSubmitting(true);
+      setErrors({});
+      try {
+        await verifyVianaLink(code);
+        window.location.assign('/');
+      } catch (error) {
+        setErrors({ code: error instanceof Error ? error.message : 'اتصال حساب انجام نشد.' });
+      } finally {
+        setIsVianaLinkSubmitting(false);
+      }
+    };
+    if (vianaLinkPending) {
+      return vianaLinkStage === 'confirm' ? (
+        <section className={authCardClass}>
+          <div className="auth-step-row"><span>۱</span><p>اتصال حساب ویانا</p></div>
+          <h1>حساب قبلی پیدا شد</h1>
+          <p className="subtitle">برای اتصال ویانا به حساب دانوا، یک کد تأیید به شمارهٔ ثبت‌شدهٔ همان حساب ارسال می‌کنیم.</p>
+          <Button type="button" className="start-btn" loading={isVianaLinkSubmitting} onClick={() => void handleVianaLinkStart()}>
+            ارسال کد تأیید
+          </Button>
+        </section>
+      ) : (
+        <form className={authCardClass} onSubmit={handleVianaLinkVerify}>
+          <div className="auth-step-row"><span>۲</span><p>تأیید مالکیت</p></div>
+          <h1>کد تأیید را وارد کنید</h1>
+          <p className="subtitle">کد پیامک‌شده به شمارهٔ حساب قبلی را وارد کنید. بعد از تأیید، ورود با ویانا تکمیل می‌شود.</p>
+          <TextField label="کد تأیید" value={vianaLinkCode} onChange={(event) => setVianaLinkCode(filterLocalizedDigits(event.target.value))} placeholder="12345" type="tel" inputMode="numeric" maxLength={6} autoComplete="one-time-code" errorText={errors.code} />
+          <div className="ds-auth-actions">
+            <Button type="button" variant="danger" disabled={isVianaLinkSubmitting} onClick={() => { setVianaLinkStage('confirm'); setVianaLinkCode(''); setErrors({}); }}>بازگشت</Button>
+            <Button type="submit" className="start-btn" disabled={isVianaLinkSubmitting}>{isVianaLinkSubmitting ? 'در حال اتصال...' : 'تأیید و اتصال'}</Button>
+          </div>
+        </form>
+      );
+    }
     const renderVianaAction = () => (
       <div className="viana-auth-section">
         {vianaEnabled ? (
@@ -3776,7 +3876,7 @@ function ChatApp() {
 
       {imagePreview ? (
         <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="پیش‌نمایش تصویر" onClick={() => setImagePreview(null)}>
-          <div className="image-lightbox-panel" onClick={(event) => event.stopPropagation()}>
+          <div ref={imageLightboxPanelRef} className="image-lightbox-panel" onClick={(event) => event.stopPropagation()}>
             <div className="image-lightbox-toolbar">
               <a className="image-lightbox-action" href={imagePreview.src} download={imagePreview.downloadName}>
                 دانلود
@@ -3788,7 +3888,7 @@ function ChatApp() {
                   <path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
                 </svg>
               </a>
-              <button className="image-lightbox-icon" type="button" onClick={() => setImagePreview(null)} aria-label="بستن" title="بستن">
+              <button ref={imageLightboxCloseRef} className="image-lightbox-icon" type="button" onClick={() => setImagePreview(null)} aria-label="بستن" title="بستن">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M18 6 6 18" />
                   <path d="m6 6 12 12" />
@@ -3800,7 +3900,7 @@ function ChatApp() {
         </div>
       ) : null}
 
-      <div className="chat-card">
+      <div className={`chat-card ${currentView === 'chat' && !visibleMessages.length && !conversationLoadingId ? 'chat-card--empty' : ''}`}>
         {/* Warning banner for users logged in without a JWT token (pre-fix session) */}
         {!hasAuthToken && (
           <div className="auth-token-warning" style={{
@@ -3841,18 +3941,6 @@ function ChatApp() {
         <header className="top-bar">
           <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
           <div className="top-bar-main">
-            <button
-              className="chat-conversations-btn"
-              onClick={handleGoToHome}
-              type="button"
-              aria-label="بازگشت به گفتگوهای من"
-              title="بازگشت به گفتگوهای من"
-            >
-              <span className="chat-conversations-icon" aria-hidden="true">
-                <Icon name="chevron-right" size={19} />
-              </span>
-              <span className="chat-conversations-label">گفتگوهای من</span>
-            </button>
             <div className="top-title">
               <div className="top-copy">
                 <div className="top-copy-row chat-title-pill">
@@ -3891,18 +3979,6 @@ function ChatApp() {
             </div>
           </div>
           <div className="top-bar-actions">
-            <button
-              ref={chatSidebarToggleRef}
-              className="header-action-btn header-action-btn-secondary chat-sidebar-btn"
-              onClick={handleBackToHome}
-              type="button"
-              aria-label={sidebarOpen ? 'بستن تاریخچه گفتگوها' : 'باز کردن تاریخچه گفتگوها'}
-              aria-expanded={sidebarOpen}
-              aria-controls="chat-history-sidebar"
-              title={sidebarOpen ? 'بستن سایدبار' : 'باز کردن سایدبار'}
-            >
-              <Icon name="grid" size={21} aria-hidden="true" />
-            </button>
             <button className="header-action-btn header-action-btn-secondary chat-share-btn" type="button" onClick={handleDownloadActiveConversation} aria-label="اشتراک‌گذاری گفتگو" title="اشتراک‌گذاری گفتگو">
               <svg className="header-action-icon chat-header-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
             </button>
@@ -3910,28 +3986,26 @@ function ChatApp() {
         </header>
         ) : null}
 
-        {currentView === 'chat' || currentView === 'home' ? (
+        {currentView === 'chat' ? (
         <aside
           id="chat-history-sidebar"
-          className={`sidebar conversation-home chat-history-sidebar ${sidebarOpen || currentView === 'home' ? 'open' : ''}`}
+          className={`sidebar conversation-home chat-history-sidebar ${sidebarOpen ? 'open' : ''}`}
           aria-label="تاریخچه و ناوبری دانوآ"
-          aria-hidden={currentView === 'chat' && !sidebarOpen}
+          aria-hidden={!sidebarOpen}
           ref={(node) => {
-            if (node) node.inert = currentView === 'chat' && !sidebarOpen;
+            if (node) node.inert = !sidebarOpen;
           }}
         >
           <header className="conversation-home-header">
-            {currentView === 'home' ? (
-              <h1 className="conversation-home-title">گفتگوهای من</h1>
-            ) : (
-              <div className="conversation-home-brand">
-                <span className="conversation-home-brand__mark" aria-hidden="true">د</span>
-                <span>
-                  <strong>دانوآ</strong>
-                  <small>همراه هوشمند تو</small>
-                </span>
-              </div>
-            )}
+            <div className="conversation-home-brand">
+              <span className="conversation-home-brand__mark" aria-hidden="true">
+                <img src={PUBLIC_ASSETS.brandMark} alt="" />
+              </span>
+              <span>
+                <strong>دانوآ</strong>
+                <small>همراه هوشمند تو</small>
+              </span>
+            </div>
             <div className="conversation-home-header-actions">
               <button
                 ref={conversationSearchToggleRef}
@@ -3953,17 +4027,6 @@ function ChatApp() {
               >
                 <Icon name="search" size={20} aria-hidden="true" />
               </button>
-              {currentView === 'chat' ? (
-                <button
-                  type="button"
-                  className="conversation-home-close"
-                  onClick={() => setSidebarOpen(false)}
-                  aria-label="بستن سایدبار"
-                  title="بستن"
-                >
-                  <Icon name="x-close" size={20} aria-hidden="true" />
-                </button>
-              ) : null}
             </div>
           </header>
 
@@ -4181,6 +4244,21 @@ function ChatApp() {
             </button>
           </nav>
         </aside>
+        ) : null}
+        {currentView === 'chat' ? (
+          <button
+            ref={chatSidebarToggleRef}
+            type="button"
+            className="sidebar-edge-dismiss"
+            onClick={handleBackToHome}
+            aria-label={sidebarOpen ? 'بستن سایدبار' : 'باز کردن سایدبار'}
+            aria-expanded={sidebarOpen}
+            aria-controls="chat-history-sidebar"
+            data-tooltip={sidebarOpen ? 'بستن نوار کناری' : 'باز کردن نوار کناری'}
+            title={sidebarOpen ? 'بستن سایدبار' : 'باز کردن سایدبار'}
+          >
+            <Icon name={sidebarOpen ? 'chevron-right' : 'chevron-left'} size={20} aria-hidden="true" />
+          </button>
         ) : null}
         {conversationMenu && conversationMenuTarget ? (
           <div
@@ -4727,10 +4805,9 @@ function ChatApp() {
                 </svg>
               }
               title="سلام، من دانوآم"
-              description="من یک دستیار هوش مصنوعی‌ام؛ سؤال بپرس، عکس بفرست یا با هم یک ایده پیدا کنیم."
+              description="هر چیزی که در ذهنت هست بنویس؛ می‌توانی سؤال بپرسی، عکس بفرستی یا با هم ایده‌پردازی کنیم."
               action={(
                 <div className="chat-starter-area">
-                  <span className="chat-starter-label">برای شروع یکی را انتخاب کن:</span>
                   <div className="chat-starter-prompts" aria-label="پیشنهادهای شروع گفتگو">
                     {CHAT_STARTER_PROMPTS.map((starter) => (
                       <button
@@ -4748,7 +4825,7 @@ function ChatApp() {
                   </div>
                   <p className="chat-ai-safety-note">
                     <Icon name="shield" size="1.1em" aria-hidden="true" />
-                    پاسخ‌ها با هوش مصنوعی ساخته می‌شوند.
+                    دانوآ با هوش مصنوعی پاسخ می‌دهد.
                   </p>
                 </div>
               )}
@@ -4941,11 +5018,34 @@ function ChatApp() {
   );
 }
 
+function DanoaLoaderMark() {
+  return (
+    <svg viewBox="0 0 64 64" focusable="false" aria-hidden="true">
+      <defs>
+        <linearGradient id="danoa-loader-brand" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#8b5cf6" />
+          <stop offset="1" stopColor="#5b21b6" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="18" fill="url(#danoa-loader-brand)" />
+      <path d="M32 12.5 35.7 25l12.8 3.7-12.8 3.7L32 45l-3.7-12.6-12.8-3.7L28.3 25 32 12.5Z" fill="#fff" />
+      <path d="m47.5 41 1.7 5.8 5.8 1.7-5.8 1.7-1.7 5.8-1.7-5.8-5.8-1.7 5.8-1.7 1.7-5.8Z" fill="#ddd6fe" />
+    </svg>
+  );
+}
+
 function AppRouteFallback() {
   return (
     <main className="app-route-loading" role="status" aria-live="polite">
-      <span className="app-route-loading__spinner" aria-hidden="true" />
-      <strong>در حال آماده‌سازی دانوآ…</strong>
+      <div className="app-route-loading__visual" aria-hidden="true">
+        <span className="app-route-loading__orbit" />
+        <DanoaLoaderMark />
+      </div>
+      <div className="app-route-loading__content">
+        <strong>در حال آماده‌سازی دانوآ</strong>
+        <span>چند لحظه با شما هستیم</span>
+        <span className="app-route-loading__progress" />
+      </div>
     </main>
   );
 }
@@ -4961,9 +5061,9 @@ function App() {
     document.documentElement.setAttribute('dir', 'rtl');
   }
 
-  if (pathname === '/plans') {
+  if (pathname === '/home' || pathname === '/plans') {
     if (typeof window !== 'undefined') {
-      window.location.replace('/home');
+      window.location.replace('/');
     }
     return null;
   }
@@ -4991,7 +5091,6 @@ function App() {
 
   if (
     pathname !== '/' && pathname !== '/chat' && !/^\/c\/[^/]+$/.test(pathname) && pathname !== '/studio' && pathname !== '/studio/image' && pathname !== '/studio/video' && pathname !== '/images' &&
-    pathname !== '/home' &&
     pathname !== '/generate' &&
     pathname !== '/photos' &&
     pathname !== '/profile' &&

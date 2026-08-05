@@ -44,6 +44,9 @@ docker compose exec -T mysql healthcheck.sh --connect --innodb_initialized >/dev
 log "Applying additive video migrations"
 docker compose run --rm --no-deps --entrypoint npm app --prefix backend run db:migrate-video-generation
 
+log "Applying Viana sign-in and student-sync migration"
+docker compose run --rm --no-deps --entrypoint npm app --prefix backend run db:migrate-viana
+
 log "Archiving legacy billing and migrating active subscriptions to Noa"
 docker compose run --rm --no-deps --entrypoint npm app --prefix backend run db:migrate-noa
 

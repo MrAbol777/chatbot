@@ -84,6 +84,16 @@ function normalizeQuantity(actionKey, value) {
       400
     );
   }
+  if (
+    actionKey === NOA_ACTIONS.IMAGE_UNDERSTANDING &&
+    quantity.units % (10n ** BigInt(NOA_SCALE)) !== 0n
+  ) {
+    throw noaError(
+      'NOA_INVALID_IMAGE_COUNT',
+      'تعداد تصاویر برای تحلیل باید عدد صحیح باشد.',
+      400
+    );
+  }
   return quantity;
 }
 

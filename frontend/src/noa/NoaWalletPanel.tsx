@@ -118,6 +118,8 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }:
     }
   };
 
+  const bankTransferUnavailable = !walletLoading && wallet?.bankTransferAccount === null;
+
   return (
     <section className="noa-wallet" aria-labelledby="noa-wallet-title">
       <div className="noa-wallet__heading">
@@ -221,7 +223,18 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }:
             {errors.receipt ? <span id={`${receiptId}-error`} role="alert">{errors.receipt}</span> : null}
           </div>
 
-          <Button type="submit" size="lg" disabled={submitting || walletLoading || !wallet || !wallet.bankTransferAccount}>
+          {bankTransferUnavailable ? (
+            <p className="noa-receipt-submit-hint" id={`${receiptId}-bank-transfer-hint`} role="status">
+              برای ثبت رسید، ابتدا باید اطلاعات کارت مقصد توسط مدیریت فعال شود.
+            </p>
+          ) : null}
+
+          <Button
+            type="submit"
+            size="lg"
+            aria-describedby={bankTransferUnavailable ? `${receiptId}-bank-transfer-hint` : undefined}
+            disabled={submitting || walletLoading || !wallet || !wallet.bankTransferAccount}
+          >
             {submitting ? <Icon className="noa-spinner" name="spinner" size={20} aria-hidden="true" /> : <Icon name="upload" size={20} aria-hidden="true" />}
             {submitting ? 'در حال ثبت امن رسید…' : 'ثبت رسید برای بررسی'}
           </Button>

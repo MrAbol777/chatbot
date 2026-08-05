@@ -22,7 +22,7 @@ function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
 
 export default function StudioToolCard({ tool, onOpen }: Props) {
   return (
-    <Card className="studio-tool-card" padding="lg">
+    <Card className="studio-tool-card" padding="md">
       <div className={`studio-tool-card__icon studio-tool-card__icon--${tool.id}`}>
         <ToolIcon toolId={tool.id} />
       </div>

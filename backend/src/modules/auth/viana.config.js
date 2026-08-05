@@ -56,7 +56,7 @@ function loadVianaConfig(env = process.env) {
     enabled,
     environmentKey,
     providerLabel: 'Viana',
-    frontendUrl: trim(env.VIANA_FRONTEND_URL),
+    discoveryUrl: trim(env.VIANA_DISCOVERY_URL) || 'https://vianaland.ir/.well-known/openid-configuration',
     apiUrl: trim(env.VIANA_API_URL).replace(/\/+$/, ''),
     clientId: trim(env.VIANA_CLIENT_ID),
     clientSecret: trim(env.VIANA_CLIENT_SECRET),
@@ -76,6 +76,7 @@ function loadVianaConfig(env = process.env) {
     allowedOrigins,
     sessionCookieName: 'danoa_auth_session',
     flowCookieName: 'danoa_viana_flow',
+    linkCookieName: 'danoa_viana_link',
     noticeCookieName: 'danoa_viana_notice'
   };
 
@@ -89,7 +90,7 @@ function loadVianaConfig(env = process.env) {
   if (!enabled) return config;
 
   const missing = [
-    ['VIANA_FRONTEND_URL', config.frontendUrl],
+    ['VIANA_DISCOVERY_URL', config.discoveryUrl],
     ['VIANA_API_URL', config.apiUrl],
     ['VIANA_CLIENT_ID', config.clientId],
     ['VIANA_CLIENT_SECRET', config.clientSecret],
@@ -99,17 +100,14 @@ function loadVianaConfig(env = process.env) {
     throw new Error(`Viana OAuth is enabled but required values are missing: ${missing.map(([name]) => name).join(', ')}`);
   }
 
-  const frontend = requireAbsoluteUrl(config.frontendUrl, 'VIANA_FRONTEND_URL');
-  if (frontend.origin !== config.frontendUrl.replace(/\/$/, '')) {
-    throw new Error('VIANA_FRONTEND_URL must be an origin without a path.');
-  }
+  const discovery = requireAbsoluteUrl(config.discoveryUrl, 'VIANA_DISCOVERY_URL');
   const api = requireAbsoluteUrl(config.apiUrl, 'VIANA_API_URL');
   const redirect = requireAbsoluteUrl(config.redirectUri, 'VIANA_REDIRECT_URI');
   if (
     nodeEnv === 'production' &&
-    [frontend, api, redirect].some((url) => url.protocol !== 'https:')
+    [discovery, api, redirect].some((url) => url.protocol !== 'https:')
   ) {
-    throw new Error('Viana frontend, API, and redirect URLs must use HTTPS in production.');
+    throw new Error('Viana Discovery, API, and redirect URLs must use HTTPS in production.');
   }
   if (redirect.protocol === 'http:' && redirect.hostname !== 'localhost') {
     throw new Error('HTTP Viana callbacks are allowed only on localhost.');
@@ -117,9 +115,7 @@ function loadVianaConfig(env = process.env) {
 
   return {
     ...config,
-    authorizationUrl: `${frontend.origin}/oauth/continue`,
-    tokenUrl: `${config.apiUrl}/oauth/token`,
-    userInfoUrl: `${config.apiUrl}/oauth/userinfo`
+    studentSelfUrl: `${config.apiUrl}/students/me`
   };
 }
 

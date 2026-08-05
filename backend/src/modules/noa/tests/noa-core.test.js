@@ -26,11 +26,16 @@ test('fixed-point math calculates exact Noa and Toman values without floating po
   assert.equal(divideFixed(toman, rate, 6).value, '2.500000');
 });
 
-test('action quantities reject fractional video durations and multi-charge image/chat inputs', () => {
+test('action quantities reject fractional video/image-analysis durations and multi-charge image/chat inputs', () => {
   assert.equal(normalizeQuantity('video_generation', '12').value, '12.000000');
   assert.throws(
     () => normalizeQuantity('video_generation', '1.5'),
     { code: 'NOA_INVALID_VIDEO_DURATION', status: 400 }
+  );
+  assert.equal(normalizeQuantity('image_understanding', '2').value, '2.000000');
+  assert.throws(
+    () => normalizeQuantity('image_understanding', '1.5'),
+    { code: 'NOA_INVALID_IMAGE_COUNT', status: 400 }
   );
   assert.throws(
     () => normalizeQuantity('image_generation', '2'),

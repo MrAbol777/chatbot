@@ -1,9 +1,10 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteGalleryImage, fetchProtectedImageBlobUrl, GalleryImage, getImageGenerationStatus, listGalleryImages, startImageEdit, startImageGeneration } from './services/imageGeneration';
 import ImageViewer from './ImageViewer';
 import Icon from './components/Icon';
 import { formatDecimalFa } from './noa/decimal';
 import { fetchNoaPublicConfig } from './noa/noa.service';
+import { Dialog } from './design-system/components';
 import './ImageStudio.css';
 
 const ratios = [
@@ -86,9 +87,31 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
   const [imagePriceNoa, setImagePriceNoa] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [sortOpen, setSortOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<GalleryImage | null>(null);
+  const [deletingImageId, setDeletingImageId] = useState('');
   const inFlight = useRef(false);
   const promptInputRef = useRef<HTMLTextAreaElement | null>(null);
   const editSourceToRestoreRef = useRef(savedSession.editSourceId);
+
+  const selectTab = (nextTab: 'create' | 'gallery') => {
+    setTab(nextTab);
+  };
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const tabs: Array<'create' | 'gallery'> = ['create', 'gallery'];
+    const currentIndex = tabs.indexOf(tab);
+    let nextIndex = currentIndex;
+    if (event.key === 'ArrowRight') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'ArrowLeft') nextIndex = (currentIndex + 1) % tabs.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = tabs.length - 1;
+    else return;
+
+    event.preventDefault();
+    const nextTab = tabs[nextIndex];
+    selectTab(nextTab);
+    window.requestAnimationFrame(() => document.getElementById(`image-studio-tab-${nextTab}`)?.focus());
+  };
 
   useEffect(() => {
     if (editSourceToRestoreRef.current && !editSource) return;
@@ -185,7 +208,22 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
     finally { inFlight.current = false; setBusy(false); }
   };
   const reuse = (item: GalleryImage, edit = false) => { setPrompt(edit ? '' : getUserFacingPrompt(item.originalPrompt)); setRatio(item.aspectRatio); setEditSource(edit ? item : null); setSelected(null); setError(''); setTab('create'); };
-  const remove = async (item: GalleryImage) => { if (!confirm('این تصویر از گالری حذف شود؟')) return; try { await deleteGalleryImage(item.id); setItems((old) => old.filter((x) => x.id !== item.id)); setSelected(null); } catch (e) { setError(e instanceof Error ? e.message : 'حذف انجام نشد.'); } };
+  const requestRemove = (item: GalleryImage) => setPendingDelete(item);
+  const confirmRemove = async () => {
+    if (!pendingDelete || deletingImageId) return;
+    const target = pendingDelete;
+    setDeletingImageId(target.id);
+    try {
+      await deleteGalleryImage(target.id);
+      setItems((old) => old.filter((item) => item.id !== target.id));
+      setSelected(null);
+      setPendingDelete(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'حذف انجام نشد.');
+    } finally {
+      setDeletingImageId('');
+    }
+  };
   const download = async (item: GalleryImage) => { if (!item.imageUrl) return; const url = await fetchProtectedImageBlobUrl(item.imageUrl); const a = document.createElement('a'); a.href = url; a.download = `danoa-${item.id}.jpg`; a.click(); if (url.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(url), 0); };
 
   const sortedItems = useMemo(() => {
@@ -204,8 +242,8 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
     else if (action === 'download') void download(item);
     else if (action === 'edit') reuse(item, true);
     else if (action === 'similar') reuse(item);
-    else if (action === 'delete') void remove(item);
-  }, [download, reuse, remove]);
+    else if (action === 'delete') requestRemove(item);
+  }, [download, reuse]);
 
   return <main className="studio" dir="rtl">
     <div className="studio-shell">
@@ -224,9 +262,9 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
         <Icon name="chevron-left" size="1.3em" aria-hidden="true" />
       </button>
     </header>
-    <div className="studio-tabs" role="tablist" aria-label="بخش‌های استودیوی تصویر"><span className={`studio-tab-indicator ${tab === 'gallery' ? 'gallery' : ''}`} aria-hidden="true" /><button type="button" role="tab" aria-selected={tab === 'create'} className={tab === 'create' ? 'active' : ''} onClick={() => setTab('create')}>ساخت تصویر</button><button type="button" role="tab" aria-selected={tab === 'gallery'} className={tab === 'gallery' ? 'active' : ''} onClick={() => setTab('gallery')}>تصاویر من</button></div>
+    <div className="studio-tabs" role="tablist" aria-label="بخش‌های استودیوی تصویر"><span className={`studio-tab-indicator ${tab === 'gallery' ? 'gallery' : ''}`} aria-hidden="true" /><button id="image-studio-tab-create" type="button" role="tab" aria-selected={tab === 'create'} aria-controls={tab === 'create' ? 'image-studio-create-panel' : undefined} tabIndex={tab === 'create' ? 0 : -1} className={tab === 'create' ? 'active' : ''} onClick={() => selectTab('create')} onKeyDown={handleTabKeyDown}>ساخت تصویر</button><button id="image-studio-tab-gallery" type="button" role="tab" aria-selected={tab === 'gallery'} aria-controls={tab === 'gallery' ? 'image-studio-gallery-panel' : undefined} tabIndex={tab === 'gallery' ? 0 : -1} className={tab === 'gallery' ? 'active' : ''} onClick={() => selectTab('gallery')} onKeyDown={handleTabKeyDown}>تصاویر من</button></div>
     {(error || (tab === 'gallery' && galleryError)) && <div className="studio-error" role="alert"><span className="studio-error-icon" aria-hidden="true">!</span><span>{error || galleryError}</span><button type="button" onClick={() => { setError(''); setGalleryError(''); }} aria-label="بستن پیام"><Icon name="x-close" size="1em" /></button></div>}
-    {tab === 'create' ? <form className="studio-create" onSubmit={submit}>
+    {tab === 'create' ? <form id="image-studio-create-panel" className="studio-create" role="tabpanel" aria-labelledby="image-studio-tab-create" onSubmit={submit}>
       {editSource && <section className="studio-edit-workspace" aria-label="تصویر مبدا ویرایش">
         <div className="studio-source-preview">{editSource.imageUrl && <ProtectedImage src={editSource.imageUrl} alt="تصویر مبدا ویرایش" />}<span aria-hidden="true">اصل</span></div>
         <div className="studio-source-copy"><small>ویرایش تصویر</small><strong>یک نسخه‌ی تازه می‌سازیم</strong><p>تصویر اصلی بدون تغییر در گالری می‌ماند.</p></div>
@@ -281,7 +319,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
           </section>
         </aside>
       </div>
-    </form> : <section className="studio-gallery">
+    </form> : <section id="image-studio-gallery-panel" className="studio-gallery" role="tabpanel" aria-labelledby="image-studio-tab-gallery">
       <div className="gallery-panel">
         {loading ? <div className="gallery-grid">{Array.from({ length: 8 }).map((_, i) => <div className="image-card skeleton" key={i} />)}</div> : items.length === 0 ? <div className="studio-empty"><strong>هنوز تصویری نساختی</strong><button type="button" onClick={() => setTab('create')}>اولین تصویر را بساز</button></div> : <>
           <div className="gallery-header">
@@ -308,9 +346,16 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
               )}
             </div>
           </div>
-          <div className="gallery-grid">{sortedItems.map((item) => <button type="button" className={`image-card ${item.status.toLowerCase()}`} style={{ aspectRatio: item.aspectRatio.replace(':', '/') }} key={item.id} onClick={() => item.status === 'COMPLETED' && setSelected(item)}>{item.status === 'COMPLETED' && item.imageUrl ? <>
-            <ProtectedImage src={item.imageUrl} alt={item.originalPrompt} />
-            <div className="card-overlay" aria-hidden="true">
+          <div className="gallery-grid">{sortedItems.map((item) => <article className={`image-card ${item.status.toLowerCase()}`} style={{ aspectRatio: item.aspectRatio.replace(':', '/') }} key={item.id}>{item.status === 'COMPLETED' && item.imageUrl ? <>
+            <button
+              type="button"
+              className="image-card__open"
+              onClick={() => setSelected(item)}
+              aria-label={`مشاهده تصویر: ${getUserFacingPrompt(item.originalPrompt) || 'تصویر ساخته‌شده'}`}
+            >
+              <ProtectedImage src={item.imageUrl} alt={item.originalPrompt} />
+            </button>
+            <div className="card-overlay">
               <div className="card-overlay-actions">
                 <button type="button" onClick={(e) => handleCardAction(e, item, 'view')} aria-label="مشاهده تصویر">مشاهده</button>
                 <button type="button" onClick={(e) => handleCardAction(e, item, 'download')} aria-label="دانلود تصویر">دانلود</button>
@@ -319,13 +364,23 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
                 <button type="button" onClick={(e) => handleCardAction(e, item, 'delete')} aria-label="حذف تصویر">حذف</button>
               </div>
             </div>
-          </> : <><span className="shimmer" /><strong>{item.status === 'ERROR' ? 'ساخت تصویر ناموفق بود' : pendingText[items.indexOf(item) % pendingText.length]}</strong>{item.status === 'ERROR' && <span onClick={(e) => { e.stopPropagation(); reuse(item); }}>تلاش دوباره</span>}</>}</button>)}</div>
+          </> : <><span className="shimmer" /><strong>{item.status === 'ERROR' ? 'ساخت تصویر ناموفق بود' : pendingText[items.indexOf(item) % pendingText.length]}</strong>{item.status === 'ERROR' && <button type="button" className="image-card__retry" onClick={() => reuse(item)}>تلاش دوباره</button>}</>}</article>)}</div>
           {nextCursor !== null && <button className="load-more" type="button" onClick={() => void load(nextCursor)}>نمایش بیشتر</button>}
         </>}
       </div>
     </section>}
     <div className="studio-bottom-spacer" aria-hidden="true" />
     {selected && <ImageViewer item={selected} onClose={() => setSelected(null)} onDownload={download} />}
+    <Dialog
+      open={Boolean(pendingDelete)}
+      title="حذف تصویر؟"
+      onClose={() => { if (!deletingImageId) setPendingDelete(null); }}
+      confirmText={deletingImageId ? 'در حال حذف...' : 'حذف تصویر'}
+      cancelText="نگه‌دار"
+      onConfirm={() => void confirmRemove()}
+    >
+      <p>این تصویر از گالری شما حذف می‌شود و بعداً قابل بازگردانی نیست.</p>
+    </Dialog>
     </div>
   </main>;
 }

@@ -58,7 +58,7 @@ function createVideoGenerationRepository(db, { noaBillingService } = {}) {
       const attemptId = randomUUID();
       return inTransaction(async (connection) => {
         if (job.mediaId) {
-          const [mediaRows] = await connection.query("SELECT * FROM app_video_input_media WHERE id=? AND user_id=? AND status='ready' AND expires_at>NOW() FOR UPDATE", [job.mediaId, job.userId]);
+          const [mediaRows] = await connection.query("SELECT * FROM app_video_input_media WHERE id=? AND user_id=? AND status IN ('ready','bound') AND expires_at>NOW() FOR UPDATE", [job.mediaId, job.userId]);
           if (!mediaRows[0]) { const error = new Error('رسانه ورودی معتبر یا متعلق به این کاربر نیست.'); error.code = 'VIDEO_INPUT_MEDIA_INVALID'; error.status = 409; throw error; }
         }
         const reservation = await reserveNoa(connection, job, reservationInput);
@@ -67,8 +67,8 @@ function createVideoGenerationRepository(db, { noaBillingService } = {}) {
             (id,danoa_request_id,user_id,mode,capability_key,route_id,route_version,route_snapshot,model_key,provider,provider_model_id_snapshot,status,
              prompt,user_prompt,compiled_prompt,compiled_prompt_hash,prompt_profile_id,prompt_profile_version_id,prompt_profile_key,prompt_profile_version,prompt_compiler_version,
              negative_prompt,aspect_ratio,duration,quality,resolution,generate_audio,input_media_reference,input_media_id,provider_attempt_id,
-             noa_reservation_id,idempotency_hash,payload_hash,expires_at,next_poll_at,created_at,updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?)`,
+             noa_reservation_id,idempotency_hash,payload_hash,expires_at,next_poll_at,created_at,updated_at,quota_units,quota_reservation_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?, 0,NULL)`,
           [job.id, job.danoaRequestId, job.userId, job.mode, job.capability, job.routeId, job.routeVersion, JSON.stringify(job.routeSnapshot), job.modelKey,
             job.provider, job.providerModelId, 'queued', job.prompt, job.userPrompt, job.compiledPrompt, job.compiledPromptHash, job.promptProfileId,
             job.promptProfileVersionId, job.promptProfileKey, job.promptProfileVersion, job.promptCompilerVersion, job.negativePrompt, job.aspectRatio, job.duration, job.quality || '', job.resolution,

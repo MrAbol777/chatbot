@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, InlineMessage } from '../design-system/components';
 import { formatDecimalFa, multiplyDecimal } from '../noa/decimal';
 import { ACTIVE_GENERATION_HINT_KEY, POLL_DELAYS_MS } from './video-generation.constants';
@@ -122,7 +122,16 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
     if (localDemoMode) { setDemoComplete(true); return; }
     lastSubmitAtRef.current = Date.now() || 1; submitInFlightRef.current = true; setSubmitting(true); setDetailError('');
     try {
-      const response = await videoGenerationService.createVideoGeneration({ mode: 'image_to_video', styleKey:selectedProfile.profileKey, mediaId:media.mediaId, prompt:prompt.trim(), duration, resolution, aspectRatio }, idempotencyKey.current);
+      const input = { mode: 'image_to_video' as const, styleKey:selectedProfile.profileKey, mediaId:media.mediaId, prompt:prompt.trim(), duration, resolution, aspectRatio };
+      let response;
+      try {
+        response = await videoGenerationService.createVideoGeneration(input, idempotencyKey.current);
+      } catch (error) {
+        if ((error as { code?: string }).code !== 'VIDEO_GENERATION_IDEMPOTENCY_CONFLICT') throw error;
+        // The user changed a previously submitted review. This is a new, explicit request.
+        idempotencyKey.current = newIdempotencyKey();
+        response = await videoGenerationService.createVideoGeneration(input, idempotencyKey.current);
+      }
       window.dispatchEvent(new Event('noa:wallet-changed'));
       idempotencyKey.current = newIdempotencyKey(); saveHint(response.generationId); await loadHistory(); await selectGeneration(response.generationId); setActiveTab('history'); setCreateStep('style');
     } catch (error) { setDetailError(error instanceof Error ? error.message : 'درخواست ثبت نشد. تنظیمات و اینترنت را بررسی کنید و دوباره تلاش کنید.'); }
@@ -144,11 +153,27 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
     mediaUploadSequenceRef.current += 1; replaceMediaPreview(); setMedia(null); setMediaError(''); setMediaUploading(false); setDemoComplete(false); idempotencyKey.current = newIdempotencyKey();
   };
   const change = <T,>(setter: (value: T) => void) => (value: T) => { idempotencyKey.current = newIdempotencyKey(); setDemoComplete(false); setter(value); };
+  const selectActiveTab = (nextTab: 'create' | 'history') => setActiveTab(nextTab);
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const tabs: Array<'create' | 'history'> = ['create', 'history'];
+    const currentIndex = tabs.indexOf(activeTab);
+    let nextIndex = currentIndex;
+    if (event.key === 'ArrowRight') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'ArrowLeft') nextIndex = (currentIndex + 1) % tabs.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = tabs.length - 1;
+    else return;
+
+    event.preventDefault();
+    const nextTab = tabs[nextIndex];
+    selectActiveTab(nextTab);
+    window.requestAnimationFrame(() => document.getElementById(`video-studio-tab-${nextTab}`)?.focus());
+  };
 
   return <main className="video-generation-page" dir="rtl"><div className="video-generation-page__shell">
     <header className="video-generation-page__header"><div className="video-generation-page__brand"><span className="video-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2Zm7 13 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z" /></svg></span><span><h1>استودیوی ویدیو</h1><small>عکست را با حرکت حرفه‌ای زنده کن</small></span></div><Button type="button" variant="ghost" className="video-generation-page__back" onClick={onBack}>بازگشت به استودیو</Button></header>
-    <nav className="video-generation-tabs" role="tablist" aria-label="بخش‌های استودیوی ویدیو"><button type="button" role="tab" aria-selected={activeTab === 'create'} className={activeTab === 'create' ? 'is-active' : ''} onClick={() => setActiveTab('create')}>ساخت ویدیو</button><button type="button" role="tab" aria-selected={activeTab === 'history'} className={activeTab === 'history' ? 'is-active' : ''} onClick={() => setActiveTab('history')}>ویدیوهای من</button></nav>
-    <div className="video-generation-workspace">{detailError ? <InlineMessage variant="error" text={detailError} /> : null}{localDemoMode ? <InlineMessage variant={demoComplete ? 'success' : 'help'} text={demoComplete ? 'تست محلی با موفقیت کامل شد؛ هیچ درخواست خارجی ارسال نشد.' : 'حالت تست محلی فعال است؛ فرم و بازبینی قابل آزمایش‌اند و هیچ اعتبار یا API خارجی مصرف نمی‌شود.'} /> : null}
+    <nav className="video-generation-tabs" role="tablist" aria-label="بخش‌های استودیوی ویدیو"><button id="video-studio-tab-create" type="button" role="tab" aria-selected={activeTab === 'create'} aria-controls={activeTab === 'create' ? 'video-studio-create-panel' : undefined} tabIndex={activeTab === 'create' ? 0 : -1} className={activeTab === 'create' ? 'is-active' : ''} onClick={() => selectActiveTab('create')} onKeyDown={handleTabKeyDown}>ساخت ویدیو</button><button id="video-studio-tab-history" type="button" role="tab" aria-selected={activeTab === 'history'} aria-controls={activeTab === 'history' ? 'video-studio-history-panel' : undefined} tabIndex={activeTab === 'history' ? 0 : -1} className={activeTab === 'history' ? 'is-active' : ''} onClick={() => selectActiveTab('history')} onKeyDown={handleTabKeyDown}>ویدیوهای من</button></nav>
+    <div className="video-generation-workspace" id={activeTab === 'create' ? 'video-studio-create-panel' : 'video-studio-history-panel'} role="tabpanel" aria-labelledby={activeTab === 'create' ? 'video-studio-tab-create' : 'video-studio-tab-history'}>{detailError ? <InlineMessage variant="error" text={detailError} /> : null}{localDemoMode ? <InlineMessage variant={demoComplete ? 'success' : 'help'} text={demoComplete ? 'تست محلی با موفقیت کامل شد؛ هیچ درخواست خارجی ارسال نشد.' : 'حالت تست محلی فعال است؛ فرم و بازبینی قابل آزمایش‌اند و هیچ اعتبار یا API خارجی مصرف نمی‌شود.'} /> : null}
       {activeTab === 'create' ? <>
         {optionsLoading ? <p className="video-loading" role="status">در حال آماده‌سازی استودیو…</p> : optionsError ? <div className="video-form-message"><InlineMessage variant="error" text={optionsError} /><Button variant="secondary" onClick={() => void loadOptions()}>دریافت دوباره</Button></div> : !featureEnabled ? <InlineMessage variant="help" text="پروفایل‌های عمومی ساخت ویدیو هنوز کامل نیستند." /> : createStep === 'style' ? <VideoStyleSelection profiles={profiles} selectedKey={styleKey} onSelect={change(setStyleKey)} onContinue={() => setCreateStep('form')} /> : createStep === 'form' && selectedProfile ? <VideoGenerationForm capability={capability} profile={selectedProfile} featureEnabled={featureEnabled} loading={false} error="" onRetry={() => void loadOptions()} prompt={prompt} setPrompt={change(setPrompt)} aspectRatio={aspectRatio} setAspectRatio={change(setAspectRatio)} duration={duration} setDuration={change(setDuration)} resolution={resolution} setResolution={change(setResolution)} media={media} mediaPreviewUrl={mediaPreviewUrl} mediaFilename={mediaFilename} onMediaFile={(file) => void handleMediaFile(file)} onRemoveMedia={handleRemoveMedia} mediaUploading={mediaUploading} mediaError={mediaError} submitting={submitting} onBack={() => setCreateStep('style')} onReview={() => setCreateStep('review')} /> : selectedProfile && media ? <section className="video-review" aria-labelledby="video-review-title"><span>مرحله ۳ از ۳</span><h2 id="video-review-title">بازبینی درخواست</h2><dl><div><dt>سبک</dt><dd>{selectedProfile.displayName}</dd></div><div><dt>حرکت</dt><dd>{prompt}</dd></div><div><dt>خروجی</dt><dd>{duration} ثانیه · {resolution} · {aspectRatio} · بدون صدا</dd></div><div><dt>هزینه</dt><dd>{localDemoMode ? 'بدون هزینه در تست محلی' : unitPriceNoa ? `${formatDecimalFa(multiplyDecimal(unitPriceNoa, duration))} نوآ` : 'در حال دریافت قیمت'}</dd></div><div><dt>تصویر</dt><dd>{mediaFilename || (localDemoMode ? 'فایل محلی آزمایشی آماده است' : 'فایل خصوصی آماده است')}</dd></div></dl><p>{localDemoMode ? 'این بازبینی فقط برای تست رابط کاربری است و به Provider ارسال نمی‌شود.' : `قیمت هر ثانیه ${formatDecimalFa(unitPriceNoa)} نوآ است و هنگام ثبت از تنظیم زندهٔ پایگاه داده محاسبه می‌شود.`}</p><div><Button variant="secondary" onClick={() => { setDemoComplete(false); setCreateStep('form'); }} disabled={submitting}>ویرایش</Button><Button onClick={() => void handleSubmit()} loading={submitting} disabled={submitting || demoComplete}>{localDemoMode ? demoComplete ? 'تست تکمیل شد' : 'تکمیل تست محلی' : 'ثبت درخواست ساخت ویدیو'}</Button></div></section> : null}
         {active && !isTerminalVideoStatus(active.status) ? <section className="video-active-status" aria-live="polite"><h2>آخرین درخواست</h2><VideoGenerationStatus status={active.status} live /><span className="video-active-status__elapsed">زمان سپری‌شده: {formatElapsed(active.created_at)}</span>{detailLoading ? <span className="video-loading">در حال دریافت جزئیات…</span> : null}</section> : null}

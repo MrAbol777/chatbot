@@ -1,20 +1,60 @@
+.app-shell.chat-shell.view-studio {
+  height: 100dvh;
+  min-height: 100dvh;
+  display: block;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.chat-shell.view-studio .bg-blob {
+  pointer-events: none;
+}
+
 .danoa-studio-page {
   min-height: 100dvh;
   overflow-x: hidden;
-  padding: clamp(16px, 4vw, 40px);
+  padding: clamp(16px, 2.5vw, 32px);
   color: var(--color-text);
 }
 
 .danoa-studio-page__shell {
-  width: min(100%, 1040px);
+  width: min(100%, 1120px);
+  min-height: calc(100dvh - clamp(32px, 5vw, 64px));
   margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  align-content: start;
 }
 
 .danoa-studio-page__header {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  min-height: 56px;
+  padding: 8px 14px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 10% 105%, color-mix(in srgb, var(--color-success) 10%, transparent), transparent 38%),
+    linear-gradient(135deg, color-mix(in srgb, var(--color-surface) 94%, #f0ebff), color-mix(in srgb, var(--color-surface) 92%, #eef8f4));
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--color-primary) 6%, transparent), inset 0 1px rgba(255, 255, 255, .82);
+}
+
+.danoa-studio-page__header::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -56px;
+  left: -18px;
+  width: 94px;
+  height: 94px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
 }
 
 .danoa-studio-page__back svg,
@@ -28,34 +68,88 @@
   stroke-linejoin: round;
 }
 
-.danoa-studio-page__back { min-height: 44px; }
+.danoa-studio-page__back {
+  min-height: 44px;
+  padding-inline: 13px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 19%, var(--color-border));
+  border-radius: 12px;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  font-size: .8rem;
+  font-weight: 800;
+}
+.danoa-studio-page__back:hover:not(:disabled) {
+  transform: translateX(-2px);
+  border-color: color-mix(in srgb, var(--color-primary) 34%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-surface));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+.danoa-studio-page__back:focus-visible {
+  outline: 3px solid var(--color-focus-ring-soft);
+  outline-offset: 2px;
+}
 
 .danoa-studio-page__brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: var(--color-primary);
-  font-size: 1.05rem;
+  gap: 10px;
+  min-width: 0;
+  color: var(--color-text);
 }
 
 .danoa-studio-page__brand > span {
   display: grid;
   width: 40px;
   height: 40px;
+  flex: 0 0 auto;
   place-items: center;
-  border-radius: var(--radius-md);
-  background: var(--color-primary-soft);
+  border-radius: 13px;
+  background: var(--chat-send-gradient, linear-gradient(135deg, var(--color-primary-container), var(--color-primary)));
+  color: var(--color-primary-contrast);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 23%, transparent);
+}
+
+.danoa-studio-page__brand-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.danoa-studio-page__brand-copy h1 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(.95rem, 2vw, 1.1rem);
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.danoa-studio-page__brand-copy p {
+  margin: 2px 0 0;
+  color: var(--color-muted);
+  font-size: .74rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .danoa-studio-page__hero {
-  display: grid;
-  justify-items: center;
-  max-width: 650px;
-  margin: clamp(46px, 9vw, 96px) auto clamp(28px, 5vw, 48px);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin: clamp(18px, 2.5vw, 28px) 4px clamp(18px, 2.5vw, 28px);
+  text-align: start;
 }
 
-.danoa-studio-page__eyebrow,
+.danoa-studio-page__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0;
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
 .studio-tool-card__status {
   display: inline-flex;
   align-items: center;
@@ -68,32 +162,39 @@
   font-weight: 800;
 }
 
-.danoa-studio-page__hero h1 {
-  margin: var(--space-3) 0 var(--space-2);
-  font-size: clamp(2rem, 5vw, 3.15rem);
-  line-height: 1.2;
+.danoa-studio-page__hero p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: clamp(.9rem, 1.8vw, 1rem);
+  line-height: 1.65;
 }
 
-.danoa-studio-page__hero p {
-  max-width: 38rem;
-  margin: 0;
-  color: var(--color-muted);
-  font-size: clamp(1rem, 2.3vw, 1.18rem);
-  line-height: 1.8;
+.danoa-studio-page__tool-count {
+  flex: 0 0 auto;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 16%, var(--color-border));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-primary-soft) 56%, transparent);
+  color: var(--color-primary);
+  font-size: .78rem;
+  font-weight: 800;
 }
 
 .danoa-studio-page__tools {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(16px, 3vw, 24px);
+  align-items: start;
 }
 
 .studio-tool-card.ds-card {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  gap: var(--space-4);
+  gap: clamp(12px, 1.5vw, 16px);
+  min-height: 260px;
   min-width: 0;
-  border: 1px solid var(--color-border);
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
   transition: transform var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), border-color var(--motion-fast) var(--motion-ease-standard);
 }
 
@@ -102,8 +203,8 @@
 
 .studio-tool-card__icon {
   display: grid;
-  width: 58px;
-  height: 58px;
+  width: 52px;
+  height: 52px;
   place-items: center;
   border-radius: var(--radius-lg);
   color: var(--color-primary);
@@ -112,14 +213,20 @@
 
 .studio-tool-card__icon--video { color: var(--color-success); background: color-mix(in srgb, var(--color-success) 13%, transparent); }
 
-.studio-tool-card__icon svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.studio-tool-card__copy h2 { margin: var(--space-2) 0; font-size: var(--font-size-xl); }
-.studio-tool-card__copy p { margin: 0; color: var(--color-muted); line-height: 1.8; }
+.studio-tool-card__icon svg { width: 27px; height: 27px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.studio-tool-card__copy h2 { margin: 8px 0 4px; font-size: clamp(1.12rem, 2vw, 1.32rem); }
+.studio-tool-card__copy p { margin: 0; color: var(--color-muted); font-size: .95rem; line-height: 1.65; }
 .studio-tool-card__action { width: 100%; min-height: 46px; }
 
 @media (max-width: 680px) {
   .danoa-studio-page { padding: 16px; }
+  .danoa-studio-page__shell { min-height: calc(100dvh - 32px); }
+  .danoa-studio-page__header { align-items: center; padding: 10px 12px; }
+  .danoa-studio-page__back { padding-inline: 12px; }
+  .danoa-studio-page__back > span:first-child { display: none; }
+  .danoa-studio-page__hero { align-items: flex-start; flex-direction: column; gap: 6px; text-align: start; }
   .danoa-studio-page__tools { grid-template-columns: 1fr; }
+  .studio-tool-card.ds-card { min-height: 0; }
   .studio-tool-card.ds-card:hover { transform: none; }
 }
 

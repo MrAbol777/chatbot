@@ -38,10 +38,10 @@ function NotFound() {
       <Button
         type="button"
         onClick={() => {
-          window.location.assign('/home');
+          window.location.assign('/');
         }}
       >
-        بازگشت به خانه
+        بازگشت به گفتگو
       </Button>
     </main>
   );

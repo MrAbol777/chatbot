@@ -30,9 +30,10 @@ test('OAuth flow storage supports concurrent tabs, one-time consumption, hashes 
           state_hash: params[0],
           browser_binding_hash: params[1],
           code_verifier: params[2],
-          environment_key: params[3],
-          created_at: params[4],
-          expires_at: params[5]
+          nonce: params[3],
+          environment_key: params[4],
+          created_at: params[5],
+          expires_at: params[6]
         });
       } else if (sql.includes('DELETE FROM app_viana_oauth_flows WHERE expires_at')) {
         for (const [key, row] of records) {
@@ -66,12 +67,14 @@ test('OAuth flow storage supports concurrent tabs, one-time consumption, hashes 
     state: 'tab-one-state',
     browserBinding: 'same-browser',
     codeVerifier: 'verifier-one',
+    nonce: 'nonce-one',
     environmentKey: 'development'
   });
   await repository.saveFlow({
     state: 'tab-two-state',
     browserBinding: 'same-browser',
     codeVerifier: 'verifier-two',
+    nonce: 'nonce-two',
     environmentKey: 'development'
   });
   assert.equal(records.has('tab-one-state'), false);
@@ -83,7 +86,7 @@ test('OAuth flow storage supports concurrent tabs, one-time consumption, hashes 
       browserBinding: 'same-browser',
       environmentKey: 'development'
     }),
-    { valid: true, codeVerifier: 'verifier-one' }
+    { valid: true, codeVerifier: 'verifier-one', nonce: 'nonce-one' }
   );
   assert.equal(
     (await repository.consumeFlow({
@@ -99,13 +102,14 @@ test('OAuth flow storage supports concurrent tabs, one-time consumption, hashes 
       browserBinding: 'same-browser',
       environmentKey: 'development'
     }),
-    { valid: true, codeVerifier: 'verifier-two' }
+    { valid: true, codeVerifier: 'verifier-two', nonce: 'nonce-two' }
   );
 
   await repository.saveFlow({
     state: 'expired-state',
     browserBinding: 'same-browser',
     codeVerifier: 'expired-verifier',
+    nonce: 'expired-nonce',
     environmentKey: 'development',
     ttlMs: 1000
   });

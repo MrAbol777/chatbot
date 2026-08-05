@@ -459,7 +459,7 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
 });
 
 
-const { router: authRouter } = createAuthModule({
+const authModule = createAuthModule({
   userRepository: repositories.users,
   guestsRepository: repositories.guests,
   smsService: appSmsService,
@@ -476,6 +476,7 @@ const { router: authRouter } = createAuthModule({
   },
   logger: console
 });
+const authRouter = authModule.router;
 app.use(createSessionRouter({
   config: viana,
   principalResolver,
@@ -488,6 +489,7 @@ app.use(createVianaRouter({
   vianaRepository,
   sessionRepository,
   guestsRepository: repositories.guests,
+  authService: authModule.authService,
   jwtSecret: authJwtSecret,
   logger: console
 }));
@@ -560,6 +562,8 @@ const imageUnderstandingModule = createImageUnderstandingRouter({
   chatConfig: ai.chat,
   uploadedImagesRepository,
   imageGenerationController: imageGenerationModule.controller,
+  noaBillingService,
+  principalResolver,
   db: repositories.db,
   logger: {
     log

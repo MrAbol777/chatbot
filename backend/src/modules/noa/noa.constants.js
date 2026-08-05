@@ -2,6 +2,7 @@
 
 const NOA_ACTIONS = Object.freeze({
   TEXT_CHAT: 'text_chat',
+  IMAGE_UNDERSTANDING: 'image_understanding',
   IMAGE_GENERATION: 'image_generation',
   VIDEO_GENERATION: 'video_generation'
 });

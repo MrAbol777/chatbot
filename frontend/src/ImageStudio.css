@@ -721,7 +721,6 @@
   color: color-mix(in srgb, var(--text-main) 68%, transparent);
   background: color-mix(in srgb, var(--primary) 4%, var(--surface-soft));
   box-shadow: 0 6px 20px rgba(25, 28, 30, .05);
-  cursor: pointer;
   transition: transform 240ms cubic-bezier(.22, 1, .36, 1), box-shadow 240ms ease;
 }
 .image-card:hover {
@@ -735,6 +734,22 @@
   object-fit: cover;
   animation: image-reveal 520ms ease both;
 }
+.image-card__open {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: zoom-in;
+}
+.image-card__open:focus-visible {
+  position: relative;
+  z-index: 2;
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
+}
 .image-card.completed .card-overlay {
   position: absolute;
   inset: 0;
@@ -744,10 +759,12 @@
   padding: 16px;
   background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, .45) 85%, rgba(0, 0, 0, .58));
   opacity: 0;
+  pointer-events: none;
   transition: opacity 220ms ease;
 }
 @media (hover: hover) and (pointer: fine) {
-  .image-card.completed:hover .card-overlay { opacity: 1; }
+  .image-card.completed:hover .card-overlay,
+  .image-card.completed:focus-within .card-overlay { opacity: 1; pointer-events: auto; }
 }
 .card-overlay-actions {
   display: flex;
@@ -756,8 +773,8 @@
   justify-content: center;
 }
 .card-overlay-actions button {
-  min-height: 32px;
-  padding: 5px 10px;
+  min-height: 44px;
+  padding: 7px 11px;
   border: 1px solid rgba(255, 255, 255, .35);
   border-radius: 9px;
   color: #fff;
@@ -796,6 +813,21 @@
   padding: 6px 10px; border-radius: 999px;
   background: rgba(255, 255, 255, .82); font-size: .72rem;
 }
+.image-card__retry {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  left: 12px;
+  min-height: 44px;
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
+  border-radius: 999px;
+  color: var(--primary-dark);
+  background: rgba(255, 255, 255, .92);
+  font: 700 .75rem inherit;
+  cursor: pointer;
+}
+.image-card__retry:hover { background: #fff; }
 
 /* ---- SHIMMER / SKELETON ---- */
 .shimmer,
@@ -897,7 +929,7 @@
   box-shadow: var(--chat-focus-ring);
 }
 .studio-tabs button:focus-visible { box-shadow: 0 0 0 2px var(--primary); }
-.image-card:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 40%, transparent); }
+.image-card:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 40%, transparent); }
 
 /* ====== KEYFRAMES ====== */
 @keyframes studio-enter { from { opacity: 0; transform: translateY(10px); } }
@@ -924,7 +956,7 @@
   .gallery-panel { padding: clamp(14px, 3vw, 24px); border-radius: 22px; }
   .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
   .image-card { border-radius: 16px; }
-  .card-overlay-actions button { min-height: 28px; padding: 4px 8px; font-size: .66rem; }
+  .card-overlay-actions button { min-height: 44px; padding: 6px 9px; font-size: .7rem; }
   .gallery-header { margin-bottom: 12px; }
   .gallery-header-info h2 { font-size: 1rem; }
 }

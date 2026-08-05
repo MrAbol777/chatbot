@@ -15,6 +15,7 @@
     "db:migrate-image-studio": "node scripts/apply-image-studio-migration.js",
     "db:migrate-video-generation": "node scripts/apply-video-generation-migration.js",
     "db:migrate-noa": "node scripts/apply-noa-migration.js",
+    "db:migrate-viana": "node scripts/apply-viana-migration.js",
     "video-worker": "node scripts/run-video-worker.js",
     "worker:video-generation": "node scripts/run-video-worker.js",
     "video-input-gateway": "node scripts/run-video-provider-input-gateway.js",

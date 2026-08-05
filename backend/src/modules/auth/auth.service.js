@@ -403,6 +403,26 @@ function createAuthService({
     return completeVerifiedPhone({ phone, mode, guestId, verifiedBy: 'sms_otp' });
   };
 
+  const verifyExistingPhoneOwnership = async ({ phone: rawPhone, code: rawCode, expectedUserId }) => {
+    const phone = normalizeIranMobileToLocal(rawPhone);
+    const code = normalizeOtpCode(rawCode);
+    if (!isValidIranMobileLocal(phone) || !/^[0-9]{4,6}$/.test(code)) {
+      return { statusCode: 400, body: { success: false, error: 'کد منقضی شده یا نامعتبر است' } };
+    }
+    const verification = await authRepository.verifyOtp(phone, code);
+    if (!verification.valid) {
+      if (verification.reason === 'too_many_attempts') return { statusCode: 429, body: { success: false, error: 'تعداد تلاش ناموفق بیش از حد مجاز است.', retryAfter: verification.retryAfterSeconds } };
+      if (verification.reason === 'invalid_code') return { statusCode: 400, body: { success: false, error: 'کد نادرست است', remainingAttempts: verification.remainingAttempts } };
+      if (verification.reason === 'expired') return { statusCode: 410, body: { success: false, error: 'کد منقضی شده است. دوباره درخواست کد بدهید.' } };
+      return { statusCode: 400, body: { success: false, error: 'کد منقضی شده یا نامعتبر است' } };
+    }
+    const user = await authRepository.findUserByPhone(phone);
+    if (!user || user.isBanned || String(user.user_id) !== String(expectedUserId)) {
+      return { statusCode: 403, body: { success: false, error: 'تأیید مالکیت این حساب ممکن نشد.' } };
+    }
+    return { statusCode: 200, body: { success: true, userId: String(user.user_id) } };
+  };
+
   const registerProfile = async ({ name, age, phone: rawPhone, id, mode, guestId, signupToken }) => {
     const inputName = typeof name === 'string' ? name.trim() : '';
     const rawName = inputName || 'کاربر';
@@ -518,6 +538,7 @@ function createAuthService({
     checkPhoneStatus,
     sendVerificationCode,
     verifyCode,
+    verifyExistingPhoneOwnership,
     registerProfile,
     createToken
   };

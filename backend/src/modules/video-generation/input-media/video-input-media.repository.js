@@ -11,7 +11,7 @@ function createVideoInputMediaRepository(db) {
     getForProvider: async ({ mediaId, jobId, attemptId }) => {
       const [rows] = await db.query(
         `SELECT m.* FROM app_video_input_media m
-         JOIN app_video_generations g ON g.id=m.bound_generation_id AND g.input_media_id=m.id
+         JOIN app_video_generations g ON g.input_media_id=m.id
          JOIN app_ai_provider_attempts a ON a.attempt_id=g.provider_attempt_id AND a.job_id=g.id
          WHERE m.id=? AND g.id=? AND a.attempt_id=? AND m.status='bound' AND m.expires_at>NOW()
            AND g.status IN ('submitting','submitted','processing') AND a.state IN ('submitting','accepted','processing')
@@ -23,7 +23,7 @@ function createVideoInputMediaRepository(db) {
     getForSubmissionUpload: async ({ mediaId, jobId, attemptId, userId }) => {
       const [rows] = await db.query(
         `SELECT m.* FROM app_video_input_media m
-         JOIN app_video_generations g ON g.id=m.bound_generation_id AND g.input_media_id=m.id
+         JOIN app_video_generations g ON g.input_media_id=m.id
          JOIN app_ai_provider_attempts a ON a.attempt_id=g.provider_attempt_id AND a.job_id=g.id
          WHERE m.id=? AND g.id=? AND a.attempt_id=? AND m.user_id=?
            AND m.status='bound' AND m.expires_at>NOW()

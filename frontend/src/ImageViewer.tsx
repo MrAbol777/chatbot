@@ -22,6 +22,8 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
 
   const imgRef = useRef<HTMLImageElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const translateStart = useRef({ x: 0, y: 0 });
@@ -67,6 +69,10 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
       }
     };
   }, [item.id, item.imageUrl]);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
 
   const handleImageLoad = useCallback(() => {
     setLoading(false);
@@ -133,7 +139,7 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
     isDragging.current = true;
     dragStart.current = { x: e.clientX, y: e.clientY };
     translateStart.current = { ...translate };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
   }, [scale, translate]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -148,7 +154,9 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     isDragging.current = false;
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
   }, []);
 
   const getTouchDistance = (touches: React.TouchList) => {
@@ -226,6 +234,23 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      if (e.key === 'Tab') {
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+        const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+        ));
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
       if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn(); }
       if (e.key === '-') { e.preventDefault(); zoomOut(); }
       if (e.key === '0') { e.preventDefault(); resetZoom(); }
@@ -239,7 +264,7 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
   return createPortal(
     <div className="image-viewer-root" role="dialog" aria-modal="true" aria-label="نمایش تصویر" onMouseDown={handleBackdropClick}>
       <div className="image-viewer-backdrop" />
-      <div className="image-viewer-dialog">
+      <div ref={dialogRef} className="image-viewer-dialog">
         <div className="image-viewer-toolbar">
           <button className="image-viewer-btn" type="button" onClick={zoomIn} aria-label="بزرگنمایی" title="بزرگنمایی">
             <svg viewBox="0 0 24 24"><path d="M11 5v6H5v2h6v6h2v-6h6v-2h-6V5h-2Z" /></svg>
@@ -254,7 +279,7 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
           <button className="image-viewer-btn" type="button" onClick={() => { onDownload(item); }} aria-label="دانلود تصویر" title="دانلود">
             <svg viewBox="0 0 24 24"><path d="M12 15l-4-4h3V4h2v7h3l-4 4Zm-7 4v2h14v-2H5Z" /></svg>
           </button>
-          <button className="image-viewer-btn image-viewer-close" type="button" onClick={onClose} aria-label="بستن" title="بستن">×</button>
+          <button ref={closeButtonRef} className="image-viewer-btn image-viewer-close" type="button" onClick={onClose} aria-label="بستن" title="بستن">×</button>
         </div>
         <div
           ref={stageRef}
@@ -270,7 +295,7 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
           onTouchEnd={handleTouchEnd}
         >
           {loading && (
-            <div className="image-viewer-loading" aria-label="در حال بارگذاری تصویر">
+            <div className="image-viewer-loading" role="status" aria-live="polite" aria-label="در حال بارگذاری تصویر">
               <span className="image-viewer-spinner" />
               <span>در حال بارگذاری...</span>
             </div>
