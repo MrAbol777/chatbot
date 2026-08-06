@@ -9,7 +9,8 @@ class AiRouteResolutionError extends Error {
 
 const supportsCapability = (model, capability) => capability === 'video.text_to_video'
   ? Boolean(model?.supports_text_to_video)
-  : capability === 'video.image_to_video' ? Boolean(model?.supports_image_to_video) : false;
+  : capability === 'video.image_to_video' ? Boolean(model?.supports_image_to_video)
+  : capability === 'video.image_to_video_multi' ? Boolean(model?.supports_image_to_video_multi) : false;
 
 function createAiCapabilityRouteResolver({ repository, registry, env = process.env, cacheTtlMs = 30_000, clock = () => Date.now() }) {
   const cache = new Map();
