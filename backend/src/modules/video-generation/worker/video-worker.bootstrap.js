@@ -6,6 +6,7 @@ const { loadVideoWorkerConfig } = require('./video-worker.config');
 const { createFakeVideoProvider } = require('../providers/fake-video.provider');
 const { createMetisVideoProvider } = require('../providers/metis-video.provider');
 const { createBananaAiVideoProvider } = require('../providers/bananaai-video.provider');
+const { createOpenRouterVideoProvider } = require('../providers/openrouter-video.provider');
 const { loadVideoStorageConfig } = require('../storage/video-storage.config');
 const { createLocalVideoStorage } = require('../storage/local-video.storage');
 const { createVideoResultOrchestrator } = require('../storage/video-result-orchestrator');
@@ -20,10 +21,20 @@ const splitList = (value) => String(value || '').split(',').map((item) => item.t
 
 function createVideoWorkerProviderRegistry({ httpClient, env = process.env, storageConfig = null }) {
   if (env.NODE_ENV === 'test') return { fake: createFakeVideoProvider(), test: createFakeVideoProvider() };
-  return {
+  const registry = {
     metis: createMetisVideoProvider({ httpClient, baseUrl: env.METIS_BASE_URL || env.METIS_VIDEO_BASE_URL, apiKey: env.METIS_API_KEY || env.METIS_VIDEO_API_KEY, requestTimeoutMs: Number(env.METIS_REQUEST_TIMEOUT_MS || 120000), statusTimeoutMs: Number(env.METIS_STATUS_TIMEOUT_MS || 30000), resultAllowedHosts: storageConfig?.allowedHosts || [], resultAllowedPorts: storageConfig?.allowedPorts || [443], resultAllowedPathPrefixes: storageConfig?.allowedPathPrefixes || ['/'], resultTimeoutMs: storageConfig?.timeoutMs, resultMaxBytes: storageConfig?.maxBytes, resultMaxRedirects: storageConfig?.maxRedirects }),
     bananaai: createBananaAiVideoProvider({ httpClient, baseUrl: env.BANANAAI_BASE_URL || 'https://bananaai.ir', apiKey: env.BANANAAI_API_KEY, requestTimeoutMs: Number(env.BANANAAI_REQUEST_TIMEOUT_MS || 120000), statusTimeoutMs: Number(env.BANANAAI_STATUS_TIMEOUT_MS || 30000), resultAllowedHosts: splitList(env.BANANAAI_VIDEO_RESULT_ALLOWED_HOSTS), resultAllowedPorts: storageConfig?.allowedPorts || [443], resultAllowedPathPrefixes: splitList(env.BANANAAI_VIDEO_RESULT_ALLOWED_PATH_PREFIXES), resultTimeoutMs: storageConfig?.timeoutMs, resultMaxBytes: storageConfig?.maxBytes, resultMaxRedirects: storageConfig?.maxRedirects })
   };
+  if (String(env.OPENROUTER_API_KEY || '').trim()) {
+    registry.openrouter = createOpenRouterVideoProvider({
+      httpClient, baseUrl: env.OPENROUTER_BASE_URL || 'https://openrouter.ai', apiKey: env.OPENROUTER_API_KEY,
+      requestTimeoutMs: Number(env.OPENROUTER_REQUEST_TIMEOUT_MS || 120000), statusTimeoutMs: Number(env.OPENROUTER_STATUS_TIMEOUT_MS || 30000),
+      resultAllowedHosts: splitList(env.OPENROUTER_VIDEO_RESULT_ALLOWED_HOSTS), resultAllowedPorts: storageConfig?.allowedPorts || [443],
+      resultAllowedPathPrefixes: splitList(env.OPENROUTER_VIDEO_RESULT_ALLOWED_PATH_PREFIXES),
+      resultTimeoutMs: storageConfig?.timeoutMs, resultMaxBytes: storageConfig?.maxBytes, resultMaxRedirects: storageConfig?.maxRedirects
+    });
+  }
+  return registry;
 }
 
 function createConfiguredVideoWorkerRuntime({ db, httpClient, noaBillingService, env = process.env, role = 'embedded', logger = console, timers, clock }) {

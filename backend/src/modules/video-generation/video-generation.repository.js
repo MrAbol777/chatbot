@@ -54,10 +54,17 @@ function createVideoGenerationRepository(db, { noaBillingService } = {}) {
         noaReservation: reservation
       };
     }),
-    createRoutedWithReservation: async ({ job, reservationInput }) => {
+    createRoutedWithReservation: async ({ job, reservationInput, mediaIds = null }) => {
       const attemptId = randomUUID();
+      const isMulti = Array.isArray(mediaIds) && mediaIds.length >= 2;
       return inTransaction(async (connection) => {
-        if (job.mediaId) {
+        if (isMulti) {
+          for (const mediaId of mediaIds) {
+            const [mediaRows] = await connection.query("SELECT * FROM app_video_input_media WHERE id=? AND user_id=? AND status IN ('ready','bound') AND expires_at>NOW() FOR UPDATE", [mediaId, job.userId]);
+            if (!mediaRows[0]) { const error = new Error('رسانه ورودی معتبر یا متعلق به این کاربر نیست.'); error.code = 'VIDEO_INPUT_MEDIA_INVALID'; error.status = 409; throw error; }
+            if (mediaRows[0].status !== 'ready') { const error = new Error('رسانه ورودی قبلاً استفاده شده است.'); error.code = 'VIDEO_MEDIA_ALREADY_BOUND'; error.status = 409; throw error; }
+          }
+        } else if (job.mediaId) {
           const [mediaRows] = await connection.query("SELECT * FROM app_video_input_media WHERE id=? AND user_id=? AND status IN ('ready','bound') AND expires_at>NOW() FOR UPDATE", [job.mediaId, job.userId]);
           if (!mediaRows[0]) { const error = new Error('رسانه ورودی معتبر یا متعلق به این کاربر نیست.'); error.code = 'VIDEO_INPUT_MEDIA_INVALID'; error.status = 409; throw error; }
         }
@@ -72,7 +79,7 @@ function createVideoGenerationRepository(db, { noaBillingService } = {}) {
           [job.id, job.danoaRequestId, job.userId, job.mode, job.capability, job.routeId, job.routeVersion, JSON.stringify(job.routeSnapshot), job.modelKey,
             job.provider, job.providerModelId, 'queued', job.prompt, job.userPrompt, job.compiledPrompt, job.compiledPromptHash, job.promptProfileId,
             job.promptProfileVersionId, job.promptProfileKey, job.promptProfileVersion, job.promptCompilerVersion, job.negativePrompt, job.aspectRatio, job.duration, job.quality || '', job.resolution,
-            Number(job.generateAudio), job.mediaId, job.mediaId, attemptId, reservation.reservationId, job.idempotencyHash, job.payloadHash,
+            Number(job.generateAudio), job.mediaId || null, job.mediaId || null, attemptId, reservation.reservationId, job.idempotencyHash, job.payloadHash,
             job.expiresAt, job.nextPollAt, job.now, job.now]
         );
         await connection.query(
@@ -81,7 +88,15 @@ function createVideoGenerationRepository(db, { noaBillingService } = {}) {
            VALUES (?,?,?,?,?,?,?,?,?,?, 'planned',?,NOW(),NOW())`,
           [attemptId, job.danoaRequestId, job.id, job.capability, job.routeId, job.routeVersion, job.provider, job.providerModelId, job.modelKey, 1, job.estimatedCost]
         );
-        if (job.mediaId) await connection.query("UPDATE app_video_input_media SET status='bound',bound_generation_id=?,updated_at=NOW() WHERE id=? AND user_id=? AND status='ready'", [job.id, job.mediaId, job.userId]);
+        if (isMulti) {
+          for (let pos = 0; pos < mediaIds.length; pos += 1) {
+            await connection.query("INSERT INTO app_video_generation_inputs (id,generation_id,media_id,position,created_at,updated_at) VALUES (?,?,?,?,NOW(),NOW())", [randomUUID(), job.id, mediaIds[pos], pos + 1]);
+            const [updateResult] = await connection.query("UPDATE app_video_input_media SET status='bound',bound_generation_id=?,updated_at=NOW() WHERE id=? AND user_id=? AND status='ready'", [job.id, mediaIds[pos], job.userId]);
+            if (updateResult.affectedRows !== 1) throw new Error('VIDEO_MEDIA_BINDING_FAILED');
+          }
+        } else if (job.mediaId) {
+          await connection.query("UPDATE app_video_input_media SET status='bound',bound_generation_id=?,updated_at=NOW() WHERE id=? AND user_id=? AND status='ready'", [job.id, job.mediaId, job.userId]);
+        }
         return {
           ...job,
           status: 'queued',
@@ -90,6 +105,16 @@ function createVideoGenerationRepository(db, { noaBillingService } = {}) {
           attemptId
         };
       });
+    },
+    listInputsForGeneration: async (generationId) => {
+      const [rows] = await db.query(
+        `SELECT gi.position, gi.media_id AS id, m.user_id, m.mime_type, m.storage_key, m.original_filename, m.size_bytes
+         FROM app_video_generation_inputs gi
+         JOIN app_video_input_media m ON m.id = gi.media_id
+         WHERE gi.generation_id = ? ORDER BY gi.position`,
+        [generationId]
+      );
+      return rows;
     },
     updateSubmission: async (id, providerJobId) => db.query('UPDATE app_video_generations SET provider_job_id=?, status=?, submitted_at=NOW(), updated_at=NOW() WHERE id=?', [providerJobId, 'submitted', id]),
     markSubmitFailed: async (id, errorCode, errorMessage) => db.query("UPDATE app_video_generations SET status='failed', safe_error_code=?, safe_error_message=?, failed_at=NOW(), updated_at=NOW() WHERE id=? AND status='queued'", [errorCode, errorMessage, id]),

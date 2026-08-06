@@ -11,6 +11,7 @@ const { createVideoContentController } = require('./video-content.controller');
 const { createVideoContentAuthController } = require('./video-content-auth.controller');
 const { createMetisVideoProvider } = require('./providers/metis-video.provider');
 const { createBananaAiVideoProvider } = require('./providers/bananaai-video.provider');
+const { createOpenRouterVideoProvider } = require('./providers/openrouter-video.provider');
 const { createFakeVideoProvider } = require('./providers/fake-video.provider');
 const { loadVideoStorageConfig } = require('./storage/video-storage.config');
 const { createLocalVideoStorage } = require('./storage/local-video.storage');
@@ -66,6 +67,19 @@ function createVideoGenerationRouter(deps) {
       resultMaxBytes: storageConfig.maxBytes,
       resultMaxRedirects: storageConfig.maxRedirects
     }));
+    if (String(env.OPENROUTER_API_KEY || '').trim()) {
+      registry.register(createOpenRouterVideoProvider({
+        httpClient: deps.httpClient,
+        baseUrl: env.OPENROUTER_BASE_URL || 'https://openrouter.ai',
+        apiKey: env.OPENROUTER_API_KEY,
+        resultAllowedHosts: splitList(env.OPENROUTER_VIDEO_RESULT_ALLOWED_HOSTS),
+        resultAllowedPorts: storageConfig.allowedPorts,
+        resultAllowedPathPrefixes: splitList(env.OPENROUTER_VIDEO_RESULT_ALLOWED_PATH_PREFIXES),
+        resultTimeoutMs: storageConfig.timeoutMs,
+        resultMaxBytes: storageConfig.maxBytes,
+        resultMaxRedirects: storageConfig.maxRedirects
+      }));
+    }
   }
   const routeResolver = String(env.AI_VIDEO_ROUTING_ENABLED || '1') === '1'
     ? createAiCapabilityRouteResolver({

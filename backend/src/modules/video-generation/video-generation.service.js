@@ -4,7 +4,7 @@ const { validateSubmit } = require('./video-generation.schemas');
 const { BANANAAI_IMAGE_TO_VIDEO_MODEL_ID } = require('./video-model.registry');
 function hash(value) { return createHash('sha256').update(value).digest('hex'); }
 function jsonArray(value) { if (Array.isArray(value)) return value; try { const parsed = JSON.parse(value || '[]'); return Array.isArray(parsed) ? parsed : []; } catch (_) { return []; } }
-function modelDto(model) { return { internalKey:model.internal_key, displayNameFa:model.display_name_fa, displayName:model.display_name || null, descriptionFa:model.description_fa, supportsTextToVideo:Boolean(model.supports_text_to_video), supportsImageToVideo:Boolean(model.supports_image_to_video), supportsNegativePrompt:Boolean(model.supports_negative_prompt), supportsAudio:Boolean(model.supports_audio), allowedAspectRatios:jsonArray(model.allowed_aspect_ratios), allowedDurations:jsonArray(model.allowed_durations).map(String), allowedQualities:jsonArray(model.allowed_qualities), allowedResolutions:jsonArray(model.allowed_resolutions), maxPromptLength:model.max_prompt_length == null ? null : Number(model.max_prompt_length) }; }
+function modelDto(model) { return { internalKey:model.internal_key, displayNameFa:model.display_name_fa, displayName:model.display_name || null, descriptionFa:model.description_fa, supportsTextToVideo:Boolean(model.supports_text_to_video), supportsImageToVideo:Boolean(model.supports_image_to_video), supportsImageToVideoMulti:Boolean(model.supports_image_to_video_multi), supportsNegativePrompt:Boolean(model.supports_negative_prompt), supportsAudio:Boolean(model.supports_audio), allowedAspectRatios:jsonArray(model.allowed_aspect_ratios), allowedDurations:jsonArray(model.allowed_durations).map(String), allowedQualities:jsonArray(model.allowed_qualities), allowedResolutions:jsonArray(model.allowed_resolutions), maxPromptLength:model.max_prompt_length == null ? null : Number(model.max_prompt_length) }; }
 function jobDto(job) {
   if (!job) return null;
   const succeeded = job.status === 'succeeded' && job.result_storage_key;
@@ -64,12 +64,12 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
       if (!isFeatureEnabled()) return { enabled: false, models: [], pricing };
       if (!routeResolver) return { enabled: true, models: (await repository.listModels()).map(modelDto), pricing };
       const capabilities = {};
-      for (const capability of ['video.text_to_video', 'video.image_to_video']) {
+      for (const capability of ['video.text_to_video', 'video.image_to_video', 'video.image_to_video_multi']) {
         try {
           const model = await routeResolver.publicModelFor(capability);
           if (model) {
             const dto = modelDto(model);
-            capabilities[capability] = {
+            const cap = {
               allowedAspectRatios: dto.allowedAspectRatios,
               allowedDurations: dto.allowedDurations,
               allowedQualities: dto.allowedQualities,
@@ -78,11 +78,18 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
               supportsNegativePrompt: dto.supportsNegativePrompt,
               supportsAudio: dto.supportsAudio
             };
+            if (capability === 'video.image_to_video_multi') {
+              cap.maxReferences = 7;
+              cap.minReferences = 2;
+              cap.supportsImageToVideoMulti = Boolean(model.supports_image_to_video_multi);
+            }
+            capabilities[capability] = cap;
           }
         } catch (_) {}
       }
       const promptProfiles = promptProfileRepository ? await promptProfileRepository.listPublic() : [];
-      return { enabled: Boolean(capabilities['video.image_to_video']), models: [], capabilities, promptProfiles, pricing };
+      const multiPricing = noaBillingService.quote ? await noaBillingService.quote({ actionKey: 'video_multi_image_generation', quantity: '1' }).catch(() => null) : null;
+      return { enabled: Boolean(capabilities['video.image_to_video']), models: [], capabilities, promptProfiles, pricing, multiPricing };
     },
     list: async (userId) => (await repository.listForUser(userId)).map(jobDto),
     get: async (id,userId) => jobDto(await repository.getForUser(id,userId)),
@@ -95,9 +102,12 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
       const data=validateSubmit(input, { modelKeyRequired: !routeResolver }); const payloadHash=hash(JSON.stringify(data)); const keyHash=hash(idempotencyKey); const prior=await repository.findIdempotent(userId,keyHash);
       if (prior) { if (prior.payload_hash !== payloadHash) throw fail('VIDEO_GENERATION_IDEMPOTENCY_CONFLICT','کلید درخواست با محتوای دیگری استفاده شده است.',409); return prior; }
       if (routeResolver) {
-        const capability = data.mode === 'image-to-video' ? 'video.image_to_video' : 'video.text_to_video';
-        if (data.mode === 'text-to-video' && data.mediaId) throw fail('VIDEO_GENERATION_IMAGE_INPUT_DISABLED','ورودی تصویر برای این حالت مجاز نیست.',409);
-        if (data.mode === 'image-to-video' && !data.mediaId) throw fail('VIDEO_INPUT_MEDIA_REQUIRED','تصویر ورودی الزامی است.',409);
+        const hasMediaIds = Array.isArray(data.mediaIds) && data.mediaIds.length >= 2;
+        const capability = data.mode === 'image-to-video'
+          ? (hasMediaIds ? 'video.image_to_video_multi' : 'video.image_to_video')
+          : 'video.text_to_video';
+        if (data.mode === 'text-to-video' && (data.mediaId || data.mediaIds)) throw fail('VIDEO_GENERATION_IMAGE_INPUT_DISABLED','ورودی تصویر برای این حالت مجاز نیست.',409);
+        if (data.mode === 'image-to-video' && !data.mediaId && !hasMediaIds) throw fail('VIDEO_INPUT_MEDIA_REQUIRED','تصویر ورودی الزامی است.',409);
         const snapshot = await routeResolver.resolve(capability, { input: data });
         if (capability === 'video.image_to_video' && (snapshot.providerKey !== 'bananaai' || snapshot.providerModelId !== BANANAAI_IMAGE_TO_VIDEO_MODEL_ID)) throw fail('VIDEO_GENERATION_MODEL_UNAVAILABLE','مسیر ساخت ویدیو از تصویر باید روی مدل Grok تنظیم شود.',503);
         if (data.modelKey && data.modelKey !== snapshot.internalModelKey) throw fail('VIDEO_GENERATION_MODEL_ROUTE_MISMATCH','مدل انتخاب‌شده با مسیر فعال سازگار نیست.',409);
@@ -105,7 +115,7 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
         if (!model) throw fail('VIDEO_GENERATION_MODEL_UNAVAILABLE','مدل انتخاب‌شده فعال نیست.',409);
         validateModelOptions(model, data, { routed: true });
         let promptSnapshot = null;
-        if (capability === 'video.image_to_video') {
+        if (capability === 'video.image_to_video' || capability === 'video.image_to_video_multi') {
           if (!data.styleKey || !promptProfileRepository || !promptCompiler) throw fail('VIDEO_PROMPT_PROFILE_REQUIRED','سبک ساخت ویدیو الزامی است.',409);
           const profile = await promptProfileRepository.getCurrentByKey(data.styleKey, { publicOnly: true });
           if (!profile) throw fail('VIDEO_PROMPT_PROFILE_UNAVAILABLE','سبک ساخت ویدیو فعال یا عمومی نیست.',409);
@@ -126,7 +136,7 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
           capability,
           routeId: snapshot.routeId,
           routeVersion: snapshot.routeVersion,
-          routeSnapshot: { ...snapshot, mode: data.mode, modelConstraints: { maxPromptLength: model.max_prompt_length == null ? 2000 : Math.min(2000, Number(model.max_prompt_length)) }, request: { duration: data.duration, resolution: data.resolution, aspectRatio: data.aspectRatio, generateAudio: data.generateAudio, hasNegativePrompt: Boolean(data.negativePrompt), mediaId: data.mediaId } },
+          routeSnapshot: { ...snapshot, mode: data.mode, modelConstraints: { maxPromptLength: model.max_prompt_length == null ? 2000 : Math.min(2000, Number(model.max_prompt_length)) }, request: { duration: data.duration, resolution: data.resolution, aspectRatio: data.aspectRatio, generateAudio: data.generateAudio, hasNegativePrompt: Boolean(data.negativePrompt), mediaId: data.mediaId, mediaIds: data.mediaIds || null } },
           estimatedCost: null,
           promptProfileId: promptSnapshot?.profileId || null,
           promptProfileVersionId: promptSnapshot?.profileVersionId || null,
@@ -142,14 +152,21 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
           nextPollAt: now,
           now
         };
-        const reservationInput = reservationInputFor({
+        const actionKey = hasMediaIds ? 'video_multi_image_generation' : 'video_generation';
+        const reservationInput = {
           userId,
-          data,
-          job,
-          idempotencyKey: keyHash,
-          payloadHash
-        });
-        try { return await repository.createRoutedWithReservation({ job, reservationInput }); }
+          actionKey,
+          quantity: String(data.duration),
+          idempotencyKey: `${actionKey}:${keyHash}`,
+          payloadHash,
+          referenceType: 'video_generation',
+          referenceId: job.id,
+          expiresAt: job.expiresAt,
+          actorType: 'user',
+          actorId: userId,
+          metadata: { generationId: job.id, mode: data.mode, durationSeconds: String(data.duration) }
+        };
+        try { return await repository.createRoutedWithReservation({ job, reservationInput, mediaIds: data.mediaIds || null }); }
         catch (error) {
           if (error?.code !== 'ER_DUP_ENTRY') throw error;
           const concurrent = await repository.findIdempotent(userId, keyHash);

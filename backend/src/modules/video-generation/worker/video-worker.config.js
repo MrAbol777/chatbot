@@ -9,7 +9,10 @@ const DEFAULTS = Object.freeze({
   jobTimeoutMinutes: 30,
   maxPollAttempts: 20,
   pollBaseDelayMs: 5_000,
-  pollMaxDelayMs: 60_000
+  pollMaxDelayMs: 60_000,
+  maxSubmitRetries: 3,
+  submitRetryBaseDelayMs: 5_000,
+  submitRetryMaxDelayMs: 60_000
 });
 
 function positiveInteger(value, name) {
@@ -48,11 +51,18 @@ function loadVideoWorkerConfig(env = process.env) {
     jobTimeoutMinutes: positiveInteger(env.VIDEO_JOB_TIMEOUT_MINUTES || DEFAULTS.jobTimeoutMinutes, 'VIDEO_JOB_TIMEOUT_MINUTES'),
     maxPollAttempts: positiveInteger(env.VIDEO_GENERATION_WORKER_MAX_ATTEMPTS || env.VIDEO_MAX_POLL_ATTEMPTS || DEFAULTS.maxPollAttempts, 'VIDEO_GENERATION_WORKER_MAX_ATTEMPTS'),
     pollBaseDelayMs: positiveInteger(env.VIDEO_POLL_BASE_DELAY_MS || DEFAULTS.pollBaseDelayMs, 'VIDEO_POLL_BASE_DELAY_MS'),
-    pollMaxDelayMs: positiveInteger(env.VIDEO_POLL_MAX_DELAY_MS || DEFAULTS.pollMaxDelayMs, 'VIDEO_POLL_MAX_DELAY_MS')
+    pollMaxDelayMs: positiveInteger(env.VIDEO_POLL_MAX_DELAY_MS || DEFAULTS.pollMaxDelayMs, 'VIDEO_POLL_MAX_DELAY_MS'),
+    maxSubmitRetries: positiveInteger(env.VIDEO_SUBMIT_RETRY_MAX || DEFAULTS.maxSubmitRetries, 'VIDEO_SUBMIT_RETRY_MAX'),
+    submitRetryBaseDelayMs: positiveInteger(env.VIDEO_SUBMIT_RETRY_BASE_DELAY_MS || DEFAULTS.submitRetryBaseDelayMs, 'VIDEO_SUBMIT_RETRY_BASE_DELAY_MS'),
+    submitRetryMaxDelayMs: positiveInteger(env.VIDEO_SUBMIT_RETRY_MAX_DELAY_MS || DEFAULTS.submitRetryMaxDelayMs, 'VIDEO_SUBMIT_RETRY_MAX_DELAY_MS')
   };
   if (config.pollMaxDelayMs < config.pollBaseDelayMs) {
     throw new Error('VIDEO_POLL_MAX_DELAY_MS must be greater than or equal to VIDEO_POLL_BASE_DELAY_MS.');
   }
+  if (config.submitRetryMaxDelayMs < config.submitRetryBaseDelayMs) {
+    throw new Error('VIDEO_SUBMIT_RETRY_MAX_DELAY_MS must be greater than or equal to VIDEO_SUBMIT_RETRY_BASE_DELAY_MS.');
+  }
+  if (config.maxSubmitRetries > 10) throw new Error('VIDEO_SUBMIT_RETRY_MAX must not exceed 10.');
   if (config.batchSize > 100) throw new Error('VIDEO_WORKER_BATCH_SIZE must not exceed 100.');
   if (config.enabled && config.processMode !== 'disabled' && config.leaseMs < config.intervalMs) throw new Error('VIDEO_WORKER_LEASE_MS must be greater than or equal to VIDEO_WORKER_INTERVAL_MS.');
   if (config.shutdownTimeoutMs > 120_000) throw new Error('VIDEO_WORKER_SHUTDOWN_TIMEOUT_MS must not exceed 120000.');

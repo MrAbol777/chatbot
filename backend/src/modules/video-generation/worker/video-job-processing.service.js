@@ -59,7 +59,8 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
         let submitStartedAt = 0;
         try {
           provider = resolveProvider(providerRegistry, job.provider);
-          if ((job.capability_key === 'video.image_to_video' || job.mode === 'image-to-video') && !String(job.compiled_prompt || '').trim()) {
+          // Safe compile guard for any I2V/multi path
+          if ((job.capability_key === 'video.image_to_video' || job.capability_key === 'video.image_to_video_multi' || job.mode === 'image-to-video') && !String(job.compiled_prompt || '').trim()) {
             throw Object.assign(new Error('Compiled prompt snapshot is required for image-to-video.'), { code: 'VIDEO_COMPILED_PROMPT_REQUIRED', submissionOutcome: 'not_submitted' });
           }
           let snapshot = {};
@@ -81,6 +82,18 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
           if (!Number.isSafeInteger(promptLimit) || promptLimit < 256 || String(submitInput.prompt || '').length > promptLimit) {
             throw Object.assign(new Error('Compiled prompt exceeds the provider model limit.'), { code: 'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG', submissionOutcome: 'not_submitted', details: { promptLength: String(submitInput.prompt || '').length, promptLimit } });
           }
+          if (submitInput.capability === 'video.image_to_video_multi') {
+            if (!providerInputGateway || typeof providerInputGateway.createUrl !== 'function') throw Object.assign(new Error('Provider input gateway is not configured.'), { code: 'VIDEO_INPUT_GATEWAY_NOT_CONFIGURED', submissionOutcome: 'not_submitted' });
+            if (typeof repository.listInputsForGeneration !== 'function') throw Object.assign(new Error('Multi-input repository is not available.'), { code: 'VIDEO_MULTI_INPUT_NOT_SUPPORTED', submissionOutcome: 'not_submitted' });
+            const inputs = await repository.listInputsForGeneration(job.id);
+            if (!Array.isArray(inputs) || inputs.length < 2 || inputs.length > 7) throw Object.assign(new Error('Ordered input media records are missing or invalid.'), { code: 'VIDEO_INPUT_MEDIA_INVALID', submissionOutcome: 'not_submitted' });
+            const references = [];
+            for (const input of inputs) {
+              const url = await providerInputGateway.createUrl({ jobId: job.id, attemptId: job.provider_attempt_id, mediaId: input.id, userId: input.user_id || job.user_id, mimeType: input.mime_type });
+              references.push({ url });
+            }
+            submitInput.inputReferences = references;
+          }
           if (submitInput.capability === 'video.image_to_video') {
             if (!providerInputGateway || typeof providerInputGateway.createUrl !== 'function') throw Object.assign(new Error('Provider input gateway is not configured.'), { code: 'VIDEO_INPUT_GATEWAY_NOT_CONFIGURED', submissionOutcome: 'not_submitted' });
             submitInput.providerInputUrl = await providerInputGateway.createUrl({ jobId: job.id, attemptId: job.provider_attempt_id, mediaId: job.input_media_id, userId: job.user_id, mimeType: job.input_media_mime_type });
@@ -99,6 +112,16 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
           const code = error?.code || 'VIDEO_PROVIDER_STATUS_UNKNOWN';
           const providerStatus = Number(error?.details?.status || 0) || null;
           const providerCode = typeof error?.details?.providerCode === 'string' ? error.details.providerCode.slice(0, 80) : null;
+          if (error?.submissionOutcome === 'retryable_rejected' && typeof repository.requeueSubmission === 'function') {
+            const retry = await repository.requeueSubmission({ jobId: job.id, workerId, errorCode: code, maxRetries: config.maxSubmitRetries || 3, baseDelayMs: config.submitRetryBaseDelayMs || 5000, maxDelayMs: config.submitRetryMaxDelayMs || 60000 });
+            if (retry.exhausted) {
+              await observeProviderOutcome({ providerKey: job.provider, capabilityKey: job.capability_key, success: false });
+              log('video_submit_retries_exhausted', job, { errorCode: code });
+              return { action: 'failed-rejected', errorCode: code };
+            }
+            log('video_submit_retry_queued', job, { errorCode: code, attempt: retry.nextAttempt });
+            return { action: 'retry-queued', errorCode: code };
+          }
           if (submissionStarted && error?.submissionOutcome !== 'confirmed_rejected' && error?.submissionOutcome !== 'not_submitted') {
             await repository.markSubmissionAmbiguous({ jobId: job.id, workerId, errorCode: code });
             await observeProviderOutcome({ providerKey: job.provider, capabilityKey: job.capability_key, success: false, latencyMs: submitStartedAt ? Date.now() - submitStartedAt : null });
