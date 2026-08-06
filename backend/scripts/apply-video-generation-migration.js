@@ -251,6 +251,22 @@ async function applyGrokImageToVideoOptionsMigration(connection) {
   await connection.query(sql);
 }
 
+async function applyVideoMultiImageSchemaMigration(connection) {
+  const sql = fs.readFileSync(path.join(__dirname, '../migrations/044_video_generation_inputs.sql'), 'utf8');
+  await connection.query(sql);
+  await ensureColumn(connection, 'app_video_models', 'supports_image_to_video_multi', 'TINYINT(1) NOT NULL DEFAULT 0 AFTER supports_image_to_video');
+  const oldUniqueIndex = 'uq_video_input_bound_generation';
+  const newIndex = 'idx_video_input_bound_generation';
+  if (await hasIndex(connection, 'app_video_input_media', oldUniqueIndex)) {
+    if (await hasForeignKey(connection, 'app_video_input_media', 'fk_video_input_generation')) {
+      await connection.query('ALTER TABLE `app_video_input_media` DROP FOREIGN KEY `fk_video_input_generation`');
+    }
+    await connection.query(`ALTER TABLE \`app_video_input_media\` DROP INDEX \`${oldUniqueIndex}\``);
+  }
+  await ensureIndex(connection, 'app_video_input_media', newIndex, '`bound_generation_id`');
+  await ensureForeignKey(connection, 'app_video_input_media', 'fk_video_input_generation', 'FOREIGN KEY (`bound_generation_id`) REFERENCES `app_video_generations` (`id`) ON DELETE SET NULL');
+}
+
 async function main() {
   const value = String(process.env.DATABASE_URL || '').trim();
   if (!value.startsWith('mysql://')) throw new Error('DATABASE_URL must point to local MySQL.');
@@ -268,7 +284,8 @@ async function main() {
     await applyVideoPromptProfilesMigration(connection);
     await applyGrokImageToVideoPinMigration(connection);
     await applyGrokImageToVideoOptionsMigration(connection);
-    console.log('Video generation migrations 026 through 037 applied locally.');
+    await applyVideoMultiImageSchemaMigration(connection);
+    console.log('Video generation migrations 026 through 044 applied locally.');
   } finally { await connection.end(); }
 }
 if (require.main === module) {
@@ -286,5 +303,7 @@ module.exports = {
   applyAiRoutingSeedMigration,
   applyVideoPromptProfilesMigration,
   applyGrokImageToVideoPinMigration,
+  applyGrokImageToVideoOptionsMigration,
+  applyVideoMultiImageSchemaMigration,
   main
 };
