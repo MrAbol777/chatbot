@@ -22,7 +22,7 @@ describe('VideoGenerationPage submit, polling, resume, and cleanup', () => {
     const user = userEvent.setup(); const create = vi.spyOn(videoGenerationService, 'createVideoGeneration').mockResolvedValue({ generationId: 'job-1', status: 'queued', noaReservationId:'reservation-1', costNoa:'4.000000', unitPriceNoa:'0.800000', durationSeconds:'5', createdAt: '2026-07-20T10:00:00Z' });
     const list = vi.spyOn(videoGenerationService, 'listVideoGenerations').mockResolvedValue({ items: [] }); render(<VideoGenerationPage onBack={vi.fn()} />);
     await screen.findByRole('heading',{name:'سبک ویدیوت را انتخاب کن'}); await user.click(screen.getByRole('radio',{name:/واقعی و سینمایی/})); await user.click(screen.getByRole('button',{name:'ادامه با این سبک'}));
-    const file=new File([new Uint8Array(12)],'input.jpg',{type:'image/jpeg'}); await user.upload(screen.getByLabelText(/تصویر ورودی خصوصی/),file); await user.type(screen.getByLabelText(/توضیح حرکت/),'یک متن معتبر'); await user.click(screen.getByRole('button',{name:'ادامه و بازبینی'})); await user.dblClick(screen.getByRole('button',{name:'ثبت درخواست ساخت ویدیو'}));
+    const file=new File([new Uint8Array(12)],'input.jpg',{type:'image/jpeg'});     await user.upload(screen.getByLabelText(/تصاویر ورودی خصوصی/),file); await user.type(screen.getByLabelText(/توضیح حرکت/),'یک متن معتبر'); await user.click(screen.getByRole('button',{name:'ادامه و بازبینی'})); await user.dblClick(screen.getByRole('button',{name:'تایید و ساخت ویدیو'}));
     await waitFor(() => expect(create).toHaveBeenCalledOnce()); expect(create.mock.calls[0][1]).toMatch(/^[0-9a-f-]{36}$/i); expect(list).toHaveBeenCalledTimes(2); expect(screen.queryByText(create.mock.calls[0][1])).toBeNull();
   });
 
@@ -82,7 +82,7 @@ describe('VideoGenerationPage submit, polling, resume, and cleanup', () => {
     fireEvent.change(durationSlider, { target: { value: '15' } });
     await user.click(screen.getByRole('button', { name: 'وضوح 480p' }));
 
-    await user.upload(screen.getByLabelText(/تصویر ورودی خصوصی/), new File([new Uint8Array(12)], 'demo.jpg', { type: 'image/jpeg' }));
+    await user.upload(screen.getByLabelText(/تصاویر ورودی خصوصی/), new File([new Uint8Array(12)], 'demo.jpg', { type: 'image/jpeg' }));
     await user.type(screen.getByLabelText(/توضیح حرکت/), 'حرکت آرام دوربین');
     await user.click(screen.getByRole('button', { name: 'ادامه و بازبینی' }));
     expect(screen.getByRole('heading', { name: 'بازبینی درخواست' })).toBeInTheDocument();

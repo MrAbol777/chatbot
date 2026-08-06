@@ -26,10 +26,13 @@ export type VideoCapabilityOption = {
   maxPromptLength: number | null;
   supportsNegativePrompt?: boolean;
   supportsAudio?: boolean;
+  maxReferences?: number;
+  minReferences?: number;
+  supportsImageToVideoMulti?: boolean;
 };
 export type VideoPromptProfile = { id: string; profileKey: 'cinematic' | 'animation' | string; displayName: string; publicDescription: string; visualKey: string; displayOrder: number; currentVersion: number | null; checksum?: string | null };
 export type VideoNoaPricing = { actionKey: 'video_generation'; unit: 'second'; quantity: string; unitPriceNoa: string; amountNoa: string; pricingVersion: number };
-export type VideoGenerationOptions = { models?: VideoGenerationOption[]; enabled?: boolean; capabilities?: Record<string, VideoCapabilityOption>; promptProfiles?: VideoPromptProfile[]; pricing?: VideoNoaPricing };
+export type VideoGenerationOptions = { models?: VideoGenerationOption[]; enabled?: boolean; capabilities?: Record<string, VideoCapabilityOption>; promptProfiles?: VideoPromptProfile[]; pricing?: VideoNoaPricing; multiPricing?: VideoNoaPricing | null };
 export type VideoGenerationResult = { contentUrl: string; downloadUrl: string; mimeType?: string | null; sizeBytes?: number | null; storedAt?: string | null };
 export type VideoGenerationListItem = {
   id: string; mode: VideoGenerationMode; model_key?: string; status: VideoGenerationStatus | string;
@@ -39,7 +42,27 @@ export type VideoGenerationListItem = {
 };
 export type VideoGenerationDetail = VideoGenerationListItem & { result_storage_key?: never; provider_job_id?: never; provider?: never };
 export type VideoGenerationPagination = { nextCursor: string | null };
-export type VideoSubmitInput = { mode: VideoGenerationMode | 'image_to_video'; styleKey: string; mediaId: string; prompt: string; aspectRatio: string; duration: string; resolution: string };
+export type MultiImageState = {
+  localId: string;
+  file?: File | null;
+  previewUrl?: string | null;
+  fileName: string;
+  uploadStatus: 'pending' | 'uploading' | 'ready' | 'error';
+  mediaId?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  uploadError?: string | null;
+};
+export type VideoSubmitInput = {
+  mode: VideoGenerationMode | 'image_to_video';
+  styleKey: string;
+  mediaId?: string | null;
+  mediaIds?: string[] | null;
+  prompt: string;
+  aspectRatio: string;
+  duration: string;
+  resolution: string;
+};
 export type VideoInputMedia = { mediaId: string; mimeType: string; sizeBytes: number };
 export type VideoGenerationErrorCode =
   | 'VIDEO_GENERATION_DISABLED' | 'VIDEO_MODEL_NOT_AVAILABLE' | 'VIDEO_GENERATION_MODEL_UNAVAILABLE'
@@ -49,6 +72,7 @@ export type VideoGenerationErrorCode =
   | 'VIDEO_PROVIDER_RATE_LIMITED' | 'VIDEO_PROVIDER_AUTH_FAILED' | 'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG' | 'VIDEO_GENERATION_FAILED'
   | 'VIDEO_GENERATION_NOT_FOUND' | 'VIDEO_RESULT_NOT_READY' | 'VIDEO_RESULT_FILE_MISSING'
   | 'VIDEO_INPUT_MEDIA_REQUIRED' | 'VIDEO_INPUT_MEDIA_INVALID' | 'VIDEO_INPUT_MEDIA_UPLOAD_FAILED' | 'VIDEO_PROVIDER_STATUS_UNKNOWN'
-  | 'VIDEO_GENERATION_LOGIN_REQUIRED' | 'NETWORK_ERROR' | 'UNKNOWN_ERROR';
+  | 'VIDEO_GENERATION_LOGIN_REQUIRED' | 'NETWORK_ERROR' | 'UNKNOWN_ERROR'
+  | 'VIDEO_GENERATION_INVALID_MEDIA_IDS' | 'VIDEO_GENERATION_TOO_MANY_MEDIA' | 'VIDEO_GENERATION_DUPLICATE_MEDIA' | 'VIDEO_GENERATION_INVALID_MEDIA';
 export type VideoGenerationError = Error & { code: VideoGenerationErrorCode; status?: number };
 export type VideoSubmitResult = { generationId: string; status: VideoGenerationStatus | string; noaReservationId: string; costNoa: string; unitPriceNoa: string; durationSeconds: string; createdAt: string };
