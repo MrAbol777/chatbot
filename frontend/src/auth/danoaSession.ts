@@ -1,4 +1,4 @@
-export type AuthNotice = 'success' | 'denied' | 'invalid_or_expired' | 'temporary_error' | 'failed' | 'disabled' | 'link_confirmation_required' | 'link_conflict';
+export type AuthNotice = 'success' | 'denied' | 'invalid_or_expired' | 'temporary_error' | 'failed' | 'disabled';
 
 export type DanoaSessionResponse = {
   authenticated: boolean;
@@ -97,13 +97,6 @@ export async function loadVianaConfig(): Promise<{ enabled: boolean; providerLab
   };
 }
 
-export async function loadVianaLinkStatus(): Promise<{ pending: boolean }> {
-  const response = await fetch('/api/auth/viana/link', { credentials: 'include' });
-  if (!response.ok) return { pending: false };
-  const body = await response.json();
-  return { pending: body?.pending === true };
-}
-
 export const authNoticeMessage = (notice?: AuthNotice) => {
   if (notice === 'denied') return { variant: 'help' as const, text: 'ورود با Viana لغو شد؛ حساب فعلی شما تغییری نکرد.' };
   if (notice === 'invalid_or_expired') {
@@ -114,7 +107,5 @@ export const authNoticeMessage = (notice?: AuthNotice) => {
   }
   if (notice === 'failed') return { variant: 'error' as const, text: 'ورود با Viana کامل نشد. لطفاً دوباره تلاش کنید.' };
   if (notice === 'disabled') return { variant: 'help' as const, text: 'ورود با Viana فعلاً فعال نیست.' };
-  if (notice === 'link_confirmation_required') return { variant: 'help' as const, text: 'برای اتصال امن حساب قبلی، مالکیت شماره را تأیید کنید.' };
-  if (notice === 'link_conflict') return { variant: 'error' as const, text: 'چند حساب با این اطلاعات یافت شد؛ اتصال خودکار انجام نشد.' };
   return null;
 };

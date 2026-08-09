@@ -12,7 +12,6 @@ const config = {
   sessionAbsoluteTimeoutSeconds: 2592000,
   sessionCookieName: 'danoa_auth_session',
   flowCookieName: 'danoa_viana_flow',
-  linkCookieName: 'danoa_viana_link',
   noticeCookieName: 'danoa_viana_notice'
 };
 
@@ -71,26 +70,25 @@ const createRouter = (overrides = {}) =>
     vianaService: {
       generateAuthorizationRequest: () => ({
         state: 'state-one',
-        nonce: 'nonce-one',
         codeVerifier: 'verifier-one',
         authorizationUrl:
           'http://localhost:3000/oauth/continue?response_type=code&client_id=development-client&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Fapi%2Fauth%2Fviana%2Fcallback&state=state-one&code_challenge=challenge&code_challenge_method=S256&scope=profile'
       }),
       exchangeCode: async () => 'opaque-viana-access-token',
       fetchUserInfo: async () => ({
-        sub: 'subject'
-      }),
-      fetchCurrentStudent: async () => ({
-        id: 'subject', firstName: 'First', lastName: 'Last', dateOfBirth: '2010-01-01', grade: null,
-        gender: null, studentPhone: null, guardianPhone: null, points: null
+        sub: 'subject',
+        firstName: 'First',
+        lastName: 'Last',
+        dateOfBirth: '2010-01-01',
+        grade: null,
+        gender: null
       }),
       prepareLocalProfile: () => ({ displayName: 'First Last', age: 16 })
     },
     vianaRepository: {
       saveFlow: async () => {},
       consumeFlow: async () => ({ valid: true, codeVerifier: 'verifier-one' }),
-      resolveIdentity: async () => ({ kind: 'linked', userId: 'local-user', isNewUser: true }),
-      getLinkRequest: async () => null
+      findOrCreateIdentity: async () => ({ userId: 'local-user', isNewUser: true })
     },
     sessionRepository: {
       create: async () => ({ rawToken: 'local-session', csrfToken: 'csrf' })
@@ -109,7 +107,7 @@ test('start persists browser-bound state and redirects with no-store without tou
         saved = value;
       },
       consumeFlow: async () => ({ valid: false }),
-      resolveIdentity: async () => {
+      findOrCreateIdentity: async () => {
         throw new Error('not called');
       }
     }
@@ -192,7 +190,7 @@ test('successful callback maps identity, creates only a Danoa session, and never
   const router = createRouter({
     vianaRepository: {
       consumeFlow: async () => ({ valid: true, codeVerifier: 'verifier-one' }),
-      resolveIdentity: async (value) => {
+      findOrCreateIdentity: async (value) => {
         observed.identity = value;
         return { userId: 'local-user', isNewUser: true };
       }
@@ -249,43 +247,4 @@ test('local logout is idempotent and explicitly does not revoke Bearer or global
     vianaGlobalLogout: false
   });
   assert.equal(res.output.cleared[0].name, 'danoa_auth_session');
-});
-
-test('existing account is linked only after its OTP ownership check succeeds', async () => {
-  const observed = { sentTo: null, verified: null, completed: null, session: null };
-  const router = createRouter({
-    authService: {
-      sendVerificationCode: async ({ phone }) => {
-        observed.sentTo = phone;
-        return { statusCode: 200, body: { success: true } };
-      },
-      verifyExistingPhoneOwnership: async (value) => {
-        observed.verified = value;
-        return { statusCode: 200, body: { success: true } };
-      }
-    },
-    vianaRepository: {
-      getLinkRequest: async () => ({ candidateUserId: 'existing-user', phone: '09120000000' }),
-      completeLinkRequest: async (value) => {
-        observed.completed = value;
-        return { valid: true, userId: 'existing-user' };
-      }
-    },
-    sessionRepository: {
-      create: async (value) => {
-        observed.session = value;
-        return { rawToken: 'new-session', csrfToken: 'csrf' };
-      }
-    }
-  });
-  const send = routeHandler(router, 'POST', '/api/auth/viana/link/send-code');
-  const verify = routeHandler(router, 'POST', '/api/auth/viana/link/verify');
-  await send({ cookies: { danoa_viana_link: 'opaque-link' }, body: {} }, responseRecorder(), assert.fail);
-  assert.equal(observed.sentTo, '09120000000');
-  const res = responseRecorder();
-  await verify({ cookies: { danoa_viana_link: 'opaque-link' }, body: { code: '12345' } }, res, assert.fail);
-  assert.deepEqual(observed.verified, { phone: '09120000000', code: '12345', expectedUserId: 'existing-user' });
-  assert.equal(observed.completed.rawToken, 'opaque-link');
-  assert.deepEqual(observed.session, { userId: 'existing-user', provider: 'viana', previousRawToken: '' });
-  assert.deepEqual(res.output.body, { success: true });
 });

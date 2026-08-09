@@ -8,8 +8,7 @@ const ROUTING_POLICIES = Object.freeze({
 
 const VIDEO_CAPABILITIES = Object.freeze({
   TEXT_TO_VIDEO: 'video.text_to_video',
-  IMAGE_TO_VIDEO: 'video.image_to_video',
-  IMAGE_TO_VIDEO_MULTI: 'video.image_to_video_multi'
+  IMAGE_TO_VIDEO: 'video.image_to_video'
 });
 
 function assertCapabilityKey(value) {

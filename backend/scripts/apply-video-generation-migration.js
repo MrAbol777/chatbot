@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const {
-  OPENROUTER_GROK_IMAGINE_VIDEO,
   METIS_KLING_V25_TURBO_PRO,
   VIDEO_MODEL_REGISTRATIONS
 } = require('../src/modules/video-generation/video-model.registry');
@@ -159,16 +158,16 @@ async function seedVideoModel(connection, model) {
   await connection.query(
     `INSERT IGNORE INTO app_video_models
       (internal_key,provider,upstream_vendor,provider_model_id,upstream_operation,display_name_fa,display_name,description_fa,is_active,is_public,
-       supports_text_to_video,supports_image_to_video,supports_image_to_video_multi,upstream_supports_image_to_video,upstream_supports_start_image,supports_negative_prompt,
+       supports_text_to_video,supports_image_to_video,upstream_supports_image_to_video,upstream_supports_start_image,supports_negative_prompt,
        supports_audio,supports_first_frame,supports_last_frame,supports_idempotency,supports_webhook,
        allowed_aspect_ratios,allowed_durations,allowed_qualities,allowed_resolutions,capability_config,max_prompt_length,max_input_image_bytes,
        cost_config,provider_config,sort_order,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())`,
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())`,
     [
       model.internalKey, model.provider, model.upstreamVendor || null, model.providerModelId, model.upstreamOperation || null,
       model.displayNameFa, model.displayName, model.descriptionFa, Number(Boolean(model.isActive)), Number(Boolean(model.isPublic)),
-      Number(Boolean(model.supportsTextToVideo)), Number(Boolean(model.supportsImageToVideo)), Number(Boolean(model.supportsImageToVideoMulti ?? false)),
-      Number(Boolean(model.upstreamSupportsImageToVideo)), Number(Boolean(model.upstreamSupportsStartImage)), Number(Boolean(model.supportsNegativePrompt)), Number(Boolean(model.supportsAudio)),
+      Number(Boolean(model.supportsTextToVideo)), Number(Boolean(model.supportsImageToVideo)), Number(Boolean(model.upstreamSupportsImageToVideo)),
+      Number(Boolean(model.upstreamSupportsStartImage)), Number(Boolean(model.supportsNegativePrompt)), Number(Boolean(model.supportsAudio)),
       Number(Boolean(model.supportsFirstFrame)), Number(Boolean(model.supportsLastFrame)), Number(Boolean(model.supportsIdempotency)), Number(Boolean(model.supportsWebhook)),
       JSON.stringify(model.allowedAspectRatios || []), JSON.stringify(model.allowedDurations || []), JSON.stringify(model.allowedQualities || []),
       JSON.stringify(model.allowedResolutions || []), JSON.stringify(model.capabilityConfig || {}), model.maxPromptLength,
@@ -252,43 +251,6 @@ async function applyGrokImageToVideoOptionsMigration(connection) {
   await connection.query(sql);
 }
 
-async function applyVideoMultiImageSchemaMigration(connection) {
-  const sql = fs.readFileSync(path.join(__dirname, '../migrations/044_video_generation_inputs.sql'), 'utf8');
-  await connection.query(sql);
-  await ensureColumn(connection, 'app_video_models', 'supports_image_to_video_multi', 'TINYINT(1) NOT NULL DEFAULT 0 AFTER supports_image_to_video');
-  const oldUniqueIndex = 'uq_video_input_bound_generation';
-  const newIndex = 'idx_video_input_bound_generation';
-  if (await hasIndex(connection, 'app_video_input_media', oldUniqueIndex)) {
-    if (await hasForeignKey(connection, 'app_video_input_media', 'fk_video_input_generation')) {
-      await connection.query('ALTER TABLE `app_video_input_media` DROP FOREIGN KEY `fk_video_input_generation`');
-    }
-    await connection.query(`ALTER TABLE \`app_video_input_media\` DROP INDEX \`${oldUniqueIndex}\``);
-  }
-  await ensureIndex(connection, 'app_video_input_media', newIndex, '`bound_generation_id`');
-  await ensureForeignKey(connection, 'app_video_input_media', 'fk_video_input_generation', 'FOREIGN KEY (`bound_generation_id`) REFERENCES `app_video_generations` (`id`) ON DELETE SET NULL');
-}
-
-async function applyOpenRouterRoutingSeedMigration(connection) {
-  await connection.query(
-    `INSERT IGNORE INTO app_ai_providers
-      (provider_key,display_name,enabled,base_url,api_key_env_name,max_concurrency,daily_cost_limit,config_json,created_at,updated_at)
-     VALUES (?,?,?,?,?,NULL,NULL,?,NOW(),NOW())`,
-    ['openrouter', 'OpenRouter', 0, 'https://openrouter.ai', 'OPENROUTER_API_KEY', JSON.stringify({ readiness: 'BLOCKED', adapter: 'openrouter' })]
-  );
-  await connection.query(
-    `INSERT IGNORE INTO app_ai_capability_routes
-      (route_id,capability_key,primary_provider_key,primary_model_key,fallback_provider_key,fallback_model_key,routing_policy,enabled,version,max_concurrency,daily_cost_limit,config_json,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,1,NULL,NULL,?,NOW(),NOW())`,
-    ['video-i2v-multi', 'video.image_to_video_multi', 'openrouter', OPENROUTER_GROK_IMAGINE_VIDEO.internalKey, null, null, 'PRIMARY_ONLY', 0, JSON.stringify({ readiness: 'BLOCKED' })]
-  );
-  await connection.query(
-    `INSERT IGNORE INTO app_ai_provider_health
-      (provider_key,capability_key,circuit_state,failure_threshold,cooldown_seconds,half_open_max_attempts,half_open_attempts,consecutive_failures,success_count,failure_count,updated_at)
-     VALUES (?,?,'CLOSED',5,300,1,0,0,0,0,NOW())`,
-    ['openrouter', 'video.image_to_video_multi']
-  );
-}
-
 async function main() {
   const value = String(process.env.DATABASE_URL || '').trim();
   if (!value.startsWith('mysql://')) throw new Error('DATABASE_URL must point to local MySQL.');
@@ -306,9 +268,7 @@ async function main() {
     await applyVideoPromptProfilesMigration(connection);
     await applyGrokImageToVideoPinMigration(connection);
     await applyGrokImageToVideoOptionsMigration(connection);
-    await applyVideoMultiImageSchemaMigration(connection);
-    await applyOpenRouterRoutingSeedMigration(connection);
-    console.log('Video generation migrations 026 through 044 applied locally.');
+    console.log('Video generation migrations 026 through 037 applied locally.');
   } finally { await connection.end(); }
 }
 if (require.main === module) {
@@ -326,8 +286,5 @@ module.exports = {
   applyAiRoutingSeedMigration,
   applyVideoPromptProfilesMigration,
   applyGrokImageToVideoPinMigration,
-  applyGrokImageToVideoOptionsMigration,
-  applyVideoMultiImageSchemaMigration,
-  applyOpenRouterRoutingSeedMigration,
   main
 };

@@ -75,7 +75,7 @@ function normalizeQuantity(actionKey, value) {
   }
 
   if (
-    (actionKey === NOA_ACTIONS.VIDEO_GENERATION || actionKey === NOA_ACTIONS.VIDEO_MULTI_IMAGE_GENERATION) &&
+    actionKey === NOA_ACTIONS.VIDEO_GENERATION &&
     quantity.units % (10n ** BigInt(NOA_SCALE)) !== 0n
   ) {
     throw noaError(

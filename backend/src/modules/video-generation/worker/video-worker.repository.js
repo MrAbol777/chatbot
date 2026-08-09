@@ -255,30 +255,6 @@ function createVideoWorkerRepository(db, { faultInjector, claimProvider = null, 
       await connection.query("UPDATE app_video_generations SET status='failed',safe_error_code=?,safe_error_message=?,failed_at=NOW(),worker_lease_owner=NULL,worker_lease_until=NULL,updated_at=NOW() WHERE id=?", [safeText(errorCode, 100), safeText(errorMessage, 500), job.id]);
       return { action: 'failed-rejected' };
     }),
-    requeueSubmission: async ({ jobId, workerId, errorCode, maxRetries = 3, baseDelayMs = 5000, maxDelayMs = 60000 }) => inTransaction(async (connection) => {
-      const job = await getLockedJob(connection, jobId);
-      await ensureExpectedLease(job, workerId);
-      const attempt = await getLockedAttempt(connection, job.provider_attempt_id);
-      if (!['queued', 'routing', 'submitting'].includes(job.status) || !['planned', 'submitting'].includes(attempt.state)) throw new VideoWorkerRepositoryError('VIDEO_SUBMIT_STATE_CONFLICT');
-      await connection.query("UPDATE app_ai_provider_attempts SET state='rejected',error_code=?,safe_error_summary='درخواست به دلیل محدودیت نرخ Provider برگشت خورد.',submit_finished_at=NOW(),updated_at=NOW() WHERE attempt_id=?", [safeText(errorCode, 100), attempt.attempt_id]);
-      const nextAttemptNumber = Number(attempt.attempt_number) + 1;
-      if (nextAttemptNumber > Number(maxRetries)) {
-        await noaBillingService.release(getNoaReservationId(job), { connection, reason: 'max_retries_exhausted', actorType: 'system', actorId: 'video-worker', metadata: { generationId: job.id, errorCode } });
-        await connection.query("UPDATE app_video_generations SET status='failed',safe_error_code=?,safe_error_message='بیشترین تلاش مجدد برای ارسال انجام شد.',failed_at=NOW(),worker_lease_owner=NULL,worker_lease_until=NULL,updated_at=NOW() WHERE id=?", [safeText(errorCode, 100), job.id]);
-        return { exhausted: true, nextAttempt: nextAttemptNumber };
-      }
-      const delayMs = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, nextAttemptNumber - 1));
-      const nextPollAt = new Date(Date.now() + delayMs);
-      const nextAttemptId = require('crypto').randomUUID();
-      await connection.query(
-        `INSERT INTO app_ai_provider_attempts
-          (attempt_id,internal_request_id,job_id,capability_key,route_id,route_version,provider_key,provider_model_id,internal_model_key,attempt_number,state,created_at,updated_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?, 'planned',NOW(),NOW())`,
-        [nextAttemptId, job.danoa_request_id, job.id, job.capability_key, job.route_id, job.route_version, job.provider, job.provider_model_id_snapshot, job.model_key, nextAttemptNumber]
-      );
-      await connection.query("UPDATE app_video_generations SET status='queued',provider_attempt_id=?,next_poll_at=?,worker_lease_owner=NULL,worker_lease_until=NULL,safe_error_code=NULL,safe_error_message=NULL,updated_at=NOW() WHERE id=?", [nextAttemptId, nextPollAt, job.id]);
-      return { exhausted: false, nextAttempt: nextAttemptNumber, nextPollAt };
-    }),
     claimExpiredJobs: async ({ workerId, leaseSeconds = 60, limit = 1 }) => {
       const owner = safeText(workerId, 191);
       const seconds = asPositiveInteger(leaseSeconds, 'leaseSeconds');

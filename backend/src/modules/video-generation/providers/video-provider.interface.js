@@ -10,7 +10,7 @@ function assertVideoProvider(provider) {
   normalized.getCapabilities = typeof provider.getCapabilities === 'function' ? provider.getCapabilities.bind(provider) : () => ['video.text_to_video', 'video.image_to_video'];
   normalized.submit = typeof provider.submit === 'function' ? provider.submit.bind(provider) : (input) => input?.capability === 'video.image_to_video' ? provider.submitImageToVideo(input) : provider.submitTextToVideo(input);
   const capabilities = normalized.getCapabilities();
-  if (!Array.isArray(capabilities) || capabilities.some((value) => !['video.text_to_video', 'video.image_to_video', 'video.image_to_video_multi'].includes(value))) {
+  if (!Array.isArray(capabilities) || capabilities.some((value) => !['video.text_to_video', 'video.image_to_video'].includes(value))) {
     throw new Error('Video provider capabilities are invalid.');
   }
   return normalized;

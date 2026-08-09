@@ -459,7 +459,7 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
 });
 
 
-const authModule = createAuthModule({
+const { router: authRouter } = createAuthModule({
   userRepository: repositories.users,
   guestsRepository: repositories.guests,
   smsService: appSmsService,
@@ -476,7 +476,6 @@ const authModule = createAuthModule({
   },
   logger: console
 });
-const authRouter = authModule.router;
 app.use(createSessionRouter({
   config: viana,
   principalResolver,
@@ -489,7 +488,6 @@ app.use(createVianaRouter({
   vianaRepository,
   sessionRepository,
   guestsRepository: repositories.guests,
-  authService: authModule.authService,
   jwtSecret: authJwtSecret,
   logger: console
 }));

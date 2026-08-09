@@ -36,22 +36,7 @@ async function request<T>(url: string, validator: Validator<T>, init: RequestIni
 
 export const videoGenerationService = {
   getVideoOptions: (signal?: AbortSignal) => request('/api/video-generation/options', isOptions, { signal }),
-  createVideoGeneration: (input: VideoSubmitInput, idempotencyKey: string, signal?: AbortSignal) => {
-    const hasMediaId = Boolean(input.mediaId);
-    const hasMediaIds = Array.isArray(input.mediaIds) && input.mediaIds.length >= 1;
-    if (hasMediaId && hasMediaIds) throw createVideoGenerationError('VIDEO_GENERATION_INVALID_MEDIA');
-    if (hasMediaIds && input.mediaIds!.length > 7) throw createVideoGenerationError('VIDEO_GENERATION_TOO_MANY_MEDIA');
-    if (hasMediaIds) {
-      if (input.mediaIds!.some((id) => !id || typeof id !== 'string' || !id.trim())) throw createVideoGenerationError('VIDEO_GENERATION_INVALID_MEDIA_IDS');
-      const unique = new Set(input.mediaIds);
-      if (unique.size !== input.mediaIds!.length) throw createVideoGenerationError('VIDEO_GENERATION_DUPLICATE_MEDIA');
-    }
-    if (!hasMediaId && !hasMediaIds) throw createVideoGenerationError('VIDEO_INPUT_MEDIA_REQUIRED');
-    const payload: Record<string, unknown> = { mode: input.mode, styleKey: input.styleKey, prompt: input.prompt, duration: input.duration, resolution: input.resolution, aspectRatio: input.aspectRatio };
-    if (hasMediaIds && input.mediaIds!.length >= 2) payload.mediaIds = input.mediaIds;
-    else payload.mediaId = hasMediaIds ? input.mediaIds![0] : input.mediaId;
-    return request('/api/video-generations', isSubmit, { method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(payload) });
-  },
+  createVideoGeneration: (input: VideoSubmitInput, idempotencyKey: string, signal?: AbortSignal) => request('/api/video-generations', isSubmit, { method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }),
   uploadInputMedia: (file: File, signal?: AbortSignal) => { const body = new FormData(); body.append('file', file); return request('/api/video-generations/input-media', isInputMedia, { method: 'POST', signal, body }); },
   listVideoGenerations: (signal?: AbortSignal) => request('/api/video-generations', isList, { signal }),
   getVideoGeneration: (generationId: string, signal?: AbortSignal) => request(`/api/video-generations/${encodeURIComponent(generationId)}`, isDetail, { signal }),

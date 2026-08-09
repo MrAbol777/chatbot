@@ -23,7 +23,7 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'Ø§Ù
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
       if (event.key === 'Tab' && panelRef.current) {
-        const focusables = panelRef.current.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])');
+        const focusables = panelRef.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
         if (!focusables.length) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
@@ -45,7 +45,7 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'Ø§Ù
 
   useEffect(() => {
     if (!open || !panelRef.current) return;
-    const firstFocusable = panelRef.current.querySelector<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href]');
+    const firstFocusable = panelRef.current.querySelector<HTMLElement>('button, input, select, textarea, [href]');
     firstFocusable?.focus();
   }, [open]);
 

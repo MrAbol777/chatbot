@@ -1,8 +1,7 @@
-import { type FormEvent } from 'react';
+import { useState, type DragEvent, type FormEvent } from 'react';
 import { Button, InlineMessage } from '../design-system/components';
 import Icon from '../components/Icon';
-import MultiImageUploader from './MultiImageUploader';
-import type { MultiImageState, VideoCapabilityOption, VideoInputMedia, VideoPromptProfile } from './video-generation.types';
+import type { VideoCapabilityOption, VideoInputMedia, VideoPromptProfile } from './video-generation.types';
 
 type Props = {
   capability: VideoCapabilityOption | null;
@@ -22,14 +21,7 @@ type Props = {
   media: VideoInputMedia | null;
   mediaPreviewUrl?: string;
   mediaFilename?: string;
-  images: MultiImageState[];
-  imagesUploading: boolean;
-  multiAvailable: boolean;
-  onFilesAdded: (files: File[]) => void;
   onMediaFile: (file: File) => void;
-  onRemoveImage: (localId: string) => void;
-  onRetryImage: (localId: string) => void;
-  onReorder: (localId: string, direction: -1 | 1) => void;
   onRemoveMedia: () => void;
   mediaUploading: boolean;
   mediaError: string;
@@ -42,16 +34,13 @@ const ratioClass = (ratio: string) => `video-ratio-shape video-ratio-shape--${ra
 const faNumber = (value: number | string) => Number(value).toLocaleString('fa-IR');
 
 export default function VideoGenerationForm(props: Props) {
+  const [dragActive, setDragActive] = useState(false);
   const maxPromptLength = props.capability?.maxPromptLength ?? 2000;
   const promptError = !props.prompt.trim() ? 'حرکت موردنظر را توضیح دهید.' : props.prompt.trim().length < 3 ? 'توضیح حرکت باید حداقل ۳ کاراکتر باشد.' : props.prompt.length > maxPromptLength ? `حداکثر ${maxPromptLength} کاراکتر مجاز است.` : '';
-  const readyCount = props.images.filter((img) => img.uploadStatus === 'ready').length;
-  const hasAnyUploading = props.imagesUploading || props.images.some((img) => img.uploadStatus === 'pending' || img.uploadStatus === 'uploading');
-  const hasAnyError = props.images.some((img) => img.uploadStatus === 'error');
-  const mediaReady = !hasAnyUploading && !hasAnyError && readyCount >= 1;
+  const mediaMissing = !props.media;
   const submit = (event: FormEvent) => { event.preventDefault(); props.onReview(); };
   const ratioTitle = (ratio: string) => ratio === '16:9' ? 'افقی' : ratio === '9:16' ? 'عمودی' : 'مربع';
   const disabled = props.mediaUploading || props.submitting;
-  const maxRefs = props.capability?.maxReferences || 7;
   const durationValues = [...new Set((props.capability?.allowedDurations || []).map(Number).filter(Number.isInteger))].sort((a, b) => a - b);
   const durationMin = durationValues[0] ?? 1;
   const durationMax = durationValues[durationValues.length - 1] ?? 15;
@@ -61,29 +50,41 @@ export default function VideoGenerationForm(props: Props) {
     const numericValue = Math.max(durationMin, Math.min(durationMax, Math.round(Number(rawValue))));
     if (durationValues.includes(numericValue)) props.setDuration(String(numericValue));
   };
-  return <form className="video-studio-create" onSubmit={submit} noValidate aria-busy={props.submitting || props.imagesUploading}>
+  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setDragActive(false);
+    if (disabled) return;
+    const file = event.dataTransfer.files?.[0];
+    if (file) props.onMediaFile(file);
+  };
+
+  return <form className="video-studio-create" onSubmit={submit} noValidate aria-busy={props.submitting || props.mediaUploading}>
     {props.loading ? <p className="video-loading" role="status">در حال دریافت تنظیمات معتبر…</p> : props.error ? <div className="video-form-message"><p className="video-error" role="alert">{props.error}</p><Button type="button" variant="secondary" onClick={props.onRetry}>دریافت دوباره</Button></div> : props.featureEnabled === false || !props.capability ? <InlineMessage variant="help" text="ساخت ویدیو از تصویر فعلاً توسط مدیر سامانه فعال نشده است." /> : <div className="video-studio-create__grid">
       <section className="video-prompt-card" aria-labelledby="video-prompt-heading">
         <div className="video-selected-style"><span aria-hidden="true"><Icon name="sparkle" size="1em" /></span><div><small>سبک انتخاب‌شده</small><strong>{props.profile.displayName}</strong></div><button type="button" onClick={props.onBack}>تغییر سبک</button></div>
         <div className="video-prompt-card__heading"><div><span className="video-step-kicker">مرحله ۲ از ۳</span><h2 id="video-prompt-heading">عکس را چطور زنده کنیم؟</h2><p>حرکت سوژه، دوربین و فضای صحنه را روشن و کوتاه توضیح دهید.</p></div><Icon name="sparkle" size="1em" className="video-spark" aria-hidden="true" /></div>
 
-        <MultiImageUploader
-          images={props.images}
-          uploading={props.imagesUploading}
-          onFilesAdded={props.onFilesAdded}
-          onRemove={props.onRemoveImage}
-          onRetry={props.onRetryImage}
-          onReorder={props.onReorder}
-          disabled={disabled}
-          maxCount={maxRefs}
-        />
-
-        {!props.multiAvailable && readyCount >= 2 ? <InlineMessage variant="help" text="ساخت ویدیو با چند تصویر در حال حاضر فعال نیست." /> : null}
+        <div className="video-media-field">
+          <div className="video-media-field__heading"><label htmlFor="video-input-media">تصویر ورودی خصوصی <b aria-hidden="true">*</b></label><span>اولین فریم ویدیو</span></div>
+          <input className="video-upload-input" id="video-input-media" type="file" required accept="image/jpeg,image/png,image/webp" disabled={disabled} aria-describedby="video-media-help" onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ''; if (file) props.onMediaFile(file); }} />
+          {!props.media ? <label htmlFor="video-input-media" className={`video-upload-dropzone${dragActive ? ' is-dragging' : ''}${disabled ? ' is-disabled' : ''}`} aria-disabled={disabled} onDragEnter={(event) => { event.preventDefault(); if (!disabled) setDragActive(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragActive(false); }} onDrop={handleDrop}>
+            <span className="video-upload-dropzone__icon" aria-hidden="true"><Icon name="upload" size="1.6em" /></span>
+            <strong>{props.mediaUploading ? 'در حال آماده‌سازی تصویر…' : 'تصویر را اینجا رها کنید'}</strong>
+            <span>{props.mediaUploading ? 'چند لحظه صبر کنید' : 'یا برای انتخاب فایل کلیک کنید'}</span>
+            <span className="video-upload-dropzone__formats"><b>JPG</b><b>PNG</b><b>WEBP</b><small>حداکثر ۵ مگابایت</small></span>
+          </label> : <div className="video-media-preview">
+            <div className="video-media-preview__visual">{props.mediaPreviewUrl ? <img src={props.mediaPreviewUrl} alt={`پیش‌نمایش ${props.mediaFilename || 'تصویر ورودی'}`} /> : <Icon name="studio-image" size="2.4em" aria-hidden="true" />}<span aria-hidden="true"><Icon name="check" size="1em" /></span></div>
+            <div className="video-media-preview__copy"><strong title={props.mediaFilename}>{props.mediaFilename || 'تصویر ورودی آماده است'}</strong><small>{(props.media.sizeBytes / 1024).toLocaleString('fa-IR', { maximumFractionDigits: 0 })} کیلوبایت · آماده برای ساخت ویدیو</small></div>
+            <div className="video-media-preview__actions"><label htmlFor="video-input-media" aria-disabled={disabled}><Icon name="edit" size="1em" aria-hidden="true" /> تعویض تصویر</label><button type="button" onClick={props.onRemoveMedia} disabled={disabled}><Icon name="delete" size="1em" aria-hidden="true" /> حذف</button></div>
+          </div>}
+          <small id="video-media-help" className="video-media-field__help">فایل فقط برای ساخت همین ویدیو استفاده می‌شود؛ JPEG، PNG یا WebP.</small>
+          {props.mediaError ? <p role="alert" className="video-prompt-error">{props.mediaError}</p> : null}
+        </div>
 
         <label className="video-prompt-label" htmlFor="video-prompt"><span>توضیح حرکت <b aria-hidden="true">*</b></span><small>{props.prompt.length}/{maxPromptLength}</small></label>
         <div className="video-textarea-wrap"><Icon name="sparkle" size="1em" className="video-textarea-spark" aria-hidden="true" /><textarea id="video-prompt" value={props.prompt} onChange={(event) => props.setPrompt(event.target.value)} placeholder="مثلاً شخص آرام سرش را برگرداند و لبخند بزند؛ دوربین کمی نزدیک شود…" rows={6} maxLength={maxPromptLength} required aria-invalid={Boolean(promptError)} aria-describedby={promptError ? 'video-prompt-error' : 'video-prompt-help'} /></div>
         {promptError ? <p id="video-prompt-error" className="video-prompt-error" role="alert">{promptError}</p> : <p id="video-prompt-help" className="video-prompt-help">قواعد حفظ هویت و سبک به‌صورت امن در سرور اعمال می‌شوند.</p>}
-        <div className="video-submit-dock video-submit-dock--split"><Button type="button" variant="secondary" onClick={props.onBack}>بازگشت</Button><Button type="submit" className="video-generation-form__submit" disabled={Boolean(promptError) || !mediaReady || props.mediaUploading || props.submitting}>ادامه و بازبینی</Button></div>
+        <div className="video-submit-dock video-submit-dock--split"><Button type="button" variant="secondary" onClick={props.onBack}>بازگشت</Button><Button type="submit" className="video-generation-form__submit" disabled={Boolean(promptError) || mediaMissing || props.mediaUploading || props.submitting}>ادامه و بازبینی</Button></div>
       </section>
 
       <aside className="video-settings-card" aria-label="تنظیمات ویدیو">

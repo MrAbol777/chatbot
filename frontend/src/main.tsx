@@ -7,9 +7,7 @@ import './design-system/styles/base.css';
 import './design-system/styles/components.css';
 import './styles.css';
 import './ChatExperience.css';
-import './styles/color-theme.css';
 import './components/AppShellState.css';
-import './styles/responsive-guardrails.css';
 import { installAuthenticatedFetch } from './auth/danoaSession';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 

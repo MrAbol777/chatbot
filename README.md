@@ -1,429 +1,309 @@
-# دانوآ — چت‌بات فارسی کودک و نوجوان
+دانوآ (چت‌بات فارسی کودک و نوجوان)
+ 
+یک چت‌بات امن و دوستانه برای سنین ۸ تا ۱۸ سال با `React + TypeScript + Vite` در فرانت‌اند و `Node.js + Express` در بک‌اند.
 
-دانوآ یک چت‌بات فارسی، راست‌به‌چپ (RTL) و ایمن برای گروه سنی ۸ تا ۱۸ سال است. پروژه شامل یک فرانت‌اند React (TypeScript + Vite) و یک API مبتنی بر Express.js (CommonJS) می‌باشد.
+## وضعیت فعلی Design System (خرداد ۱۴۰۵)
 
-> این مخزن فقط شامل کد منبع و نمونه‌تنظیمات است. کلیدهای مخفی، فایل‌های `.env`، دادهٔ کاربران، مکالمه‌ها، رسانه‌های تولیدشده، گزارش‌ها و cacheها هرگز commit نشوند.
+- وضعیت کلی: **Foundation پایدار است، ولی هنوز Full Adoption کامل نشده است**.
+- مسیر DS: `frontend/src/design-system/`
+- Primitiveهای موجود:
+  - `Button`
+  - `TextField`
+  - `TextAreaField`
+  - `Card`
+  - `FieldGroup`
+  - `InlineMessage`
+  - `Dialog`
+  - `Toast` 
+- Adoption انجام‌شده:
+  - `AdminLogin` با DS هماهنگ شده است.
+  - بخش‌هایی از `AdminPanel` (از جمله Config و برخی actionها) مهاجرت شده‌اند.
+  - بخشی از `App` (quick chips) به DS Button/FieldGroup مهاجرت شده است.
+- کارهای باقی‌مانده برای Full Adoption:
+  - جایگزینی کنترل‌های raw باقی‌مانده در `App.tsx` (composer controls، textarea، برخی buttonها)
+  - جایگزینی کنترل‌های raw در `AdminPanel.tsx` (checkbox/select)
+  - استانداردسازی کامل message/help/error rendering روی DS
 
----
+## Guardrailهای فرانت/DS (Stage 5)
 
-## قابلیت‌ها
+- برای UI جدید یا تغییر UI، ابتدا از primitiveهای موجود DS استفاده شود.
+- اگر primitive مناسب وجود ندارد، در PR جداگانه پیشنهاد شود (نیاز + API + A11y).
+- migrationها باید behavior-preserving باشند (بدون تغییر API/state/business logic).
+- CSS تغییرات باید scoped باشد و از leak روی legacy DOM جلوگیری شود.
+- برای هر PR فرانت:
+  - `frontend: npm run build` پاس شود.
+  - یک manual test checklist ارائه شود.
 
-### چت و مکالمه
-- گفت‌وگوی فارسی با streaming (NDJSON) و پشتیبانی از قطع و وصل
-- حافظهٔ بلندمدت مکالمه با ذخیره‌سازی سندی و بازسازی خودکار
-- عنوان‌گذاری خودکار مکالمه‌ها با مدل هوش مصنوعی
-- بهینه‌سازی خودکار ورودی کاربر (input optimizer)
-- مسیریابی هوشمند intent (intent router) برای تشخیص نوع درخواست
-- مکالمه‌های چندگانه: ایجاد، بارگذاری، همگام‌سازی، تغییر عنوان و سنجاق‌کردن
-- پیوست تصویر در چت و تحلیل تصویر (image understanding)
+## امکانات اصلی
 
-### احراز هویت
-- ورود و ثبت‌نام با شمارهٔ موبایل و کد یک‌بارمصرف (OTP) از طریق IPPanel
-- ورود با Viana (OAuth 2.0 / OpenID Connect) مخصوص دانش‌آموزان
-- تشخیص کاربر جدید/قدیمی و انتقال گفت‌وگوی مهمان پس از ثبت‌نام
-- محدودسازی نرخ درخواست OTP، انقضا و مصرف یک‌بارهٔ کد
-- نشست‌های امن با JWT در HttpOnly Cookie و محافظت CSRF
+- ورود/ثبت‌نام یکپارچه با شماره موبایل و کد تأیید
+- تشخیص خودکار `login` یا `signup` بعد از تأیید OTP
+- تکمیل پروفایل فقط برای کاربر جدید (نام و سن)
+- انتقال خودکار تاریخچه مهمان به حساب کاربری بعد از ثبت‌نام موفق
+- ذخیره پروفایل، مکالمه‌ها و تنظیمات در `localStorage`
+- مدیریت مکالمه‌ها (گفتگوی جدید، سنجاق، تغییر نام، حذف)
+- ورودی صوتی فارسی با Web Speech API (`fa-IR`)
+- پشتیبانی از انتخاب تم (`energy` و `calm`)
+- امکان انتخاب تصویر از UI چت (پیش‌نمایش و حذف قبل از ارسال)
+- رابط RTL واکنش‌گرا با طراحی مناسب کودک/نوجوان
 
-### تصویر
-- تولید تصویر هوش مصنوعی با Metis و Gemini
-- ویرایش تصویر (image-to-image)
-- گالری و نمایش تصاویر تولیدشده با Studio اختصاصی
-- پالایش خودکار prompt تصویر
-- محدودیت نوع و تعداد فایل، محدودیت نرخ ساعتی
+## تغییرات جدید
 
-### ویدئو
-- تولید ویدئو (text-to-video و image-to-video) با Metis و BananaAI
-- صف پردازش با worker مستقل، سهمیهٔ پلن و health check اختصاصی
-- مسیریابی هوشمند مدل ویدئو (AI video routing)
-- پروفایل‌های prompt ویدئو برای سبک‌های مختلف
-- ذخیره‌سازی خصوصی نتایج، کنترل دسترسی با signed URL
-- آپلود و مدیریت media ورودی (تصویر برای image-to-video)
-
-### سیستم اعتباری نوآ (Noa)
-- کیف پول کاربری با موجودی ریالی
-- ثبت تراکنش‌ها، رسید پرداخت و اعلان‌ها
-- تسویه‌حساب و مدیریت مالی در پنل ادمین
-
-### پنل مدیریت
-- مدیریت کاربران (مشاهده، مسدودسازی، حذف)
-- آمار و نمودارهای تحلیلی (Recharts)
-- مدیریت تنظیمات مدل‌های هوش مصنوعی (چت، تصویر، بینایی، intent router)
-- مدیریت مسیریابی AI (فعال/غیرفعال‌سازی providerها)
-- پنل مدیریت ویدئو (مشاهده، جستجو، جزئیات)
-- پنل مدیریت پروفایل‌های prompt ویدئو
-- مدیریت مالی نوآ (تنظیم کیف پول، تراکنش‌ها)
-- لاگ‌های audit و مدیریت سیستم
-
-### سایر
-- ورودی صوتی فارسی با Web Speech API در فرانت‌اند
-- اجرا با Docker Compose و MariaDB 10.11
-- PM2 process manager برای production
-- health checkهای استاندارد (`/healthz` و `/api/health`)
-- پایش و webhook سرویس Bale (در صورت تنظیم)
-
----
+- مهاجرت سرویس مدل از GapGPT به Gemini (از طریق `GEMINI_BASE_URL`)
+- افزودن و تثبیت اولیه Design System و migration مرحله‌ای UIها
+- تکمیل فلو احراز هویت پیامکی در بک‌اند:
+  - `POST /api/send-verification-code`
+  - `POST /api/verify-code`
+  - `POST /api/register-profile`
+- افزودن rate limit برای OTP:
+  - حداکثر `3` درخواست کد در `10` دقیقه برای هر شماره
+  - حداکثر `5` تلاش ناموفق برای تأیید هر کد
+- پاک‌سازی OTP بعد از تأیید موفق یا انقضا
+- پشتیبانی از ارقام فارسی/عربی برای شماره موبایل، سن و کد OTP
+- پشتیبانی از `OTP_DEV_MOCK=true` برای توسعه محلی بدون ارسال SMS واقعی
+- اضافه شدن `GET /api/admin/stats` با `ADMIN_API_KEY`
+- اضافه شدن اسکریپت توسعه با لاگ فایل (`logs/terminal.txt`)
 
 ## ساختار پروژه
 
 ```text
-frontend/                     React 18 + TypeScript + Vite 5
-  src/
-    design-system/             کامپوننت‌های پایه UI (Button, Card, Dialog, Toast, ...)
-    studio/                    هاب استودیو (تصویر و ویدئو)
-    video-generation/          رابط تولید، پخش، گالری و تاریخچهٔ ویدئو
-    admin/                     پنل‌های ادمین (ai-routing, video, profiles, noa)
-    noa/                       کیف پول و مدیریت اعتبار نوآ
-    components/                کامپوننت‌های اشتراکی (ErrorBoundary, Icon, ...)
-    auth/                      مدیریت نشست و Viana OAuth
-    services/                  کلاینت API تصویر
-    config/                    تنظیمات public assets
-    styles/                    فونت (Vazirmatn, Sahel)، تم رنگی، ریسپانسیو
-    test/                      setup تست و fixtureها
-
-backend/                      Express.js (CommonJS)
-  src/
-    server.js                  composition root: ساخت وابستگی‌ها و mount routeها
-    adminRoutes.js            router مرکزی ادمین
-    modules/                   ۲۰ ماژول دامنه:
-      admin/                   سرویس‌های ادمین (analytics, logs, settings, system)
-      ai/                      چت و streaming
-      ai-routing/              مسیریابی هوشمند providerها
-      auth/                    احراز هویت OTP، Viana OAuth و نشست
-      bale_monitor/            پایش ربات Bale
-      conversation-memory/     حافظهٔ بلندمدت مکالمه
-      conversation-title/      عنوان‌گذاری خودکار
-      conversations/           CRUD مکالمه‌ها
-      health/                  health checkها
-      image-generation/        تولید و ویرایش تصویر
-      image-understanding/     تحلیل و فهم تصویر
-      input-optimizer/         بهینه‌سازی ورودی کاربر
-      intent-router/           مسیریابی intent
-      noa/                     سیستم اعتباری نوآ
-      settings/                تنظیمات پیش‌فرض
-      sms/                     پیامک IPPanel
-      testimage-generator/     تولید تصویر تست
-      video-generation/        تولید ویدئو (providers, storage, worker, input-media)
-      video-prompt-profiles/   پروفایل‌های prompt ویدئو
-    repositories/               دسترسی متمرکز به پایگاه‌داده (۱۶ فایل)
-    routes/                     routeیارهای کمکی
-    services/                   سرویس‌های اشتراکی
-    shared/                     ابزارهای اشتراکی
-  migrations/                  ۴۳ فایل migration SQL
-  scripts/                     worker، migration، ابزارهای مدیریتی و تست
-  system-prompt.txt            system prompt هوش مصنوعی
-
-deploy/                       پیکربندی Nginx، اسکریپت deployment، env نمونهٔ production
-docs/                         مستندات معماری، runbookها و راهنماها
-scripts/                      اسکریپت‌های ریشهٔ پروژه
-uptime/                       پایشگر uptime ربات Bale (Python)
-VM/                           فونت‌های TTF/WOFF2
-data/                         داده‌های runtime (تصاویر، حافظهٔ مکالمه)
-logs/                         لاگ‌های برنامه
+project-root/
+├── frontend/
+├── backend/
+├── logs/
+├── scripts/
+├── package.json
+└── README.md
 ```
-
----
 
 ## پیش‌نیازها
 
-- **Node.js** 20 LTS یا جدیدتر (در Docker از node:20-alpine استفاده می‌شود)
-- **npm** 10 یا جدیدتر
-- **MySQL 8** / **MariaDB 10.11** (محلی یا از طریق Docker)
-- کلید API سرویس‌های موردنیاز: Metis, Gemini, IPPanel, BananaAI, Viana و Zarinpal (اختیاری)
+- `Node.js` نسخه ۱۸ یا بالاتر
+- `npm`
 
----
+## راه‌اندازی
 
-## راه‌اندازی سریع محلی
-
-### ۱. نصب وابستگی‌ها
+1) نصب وابستگی‌ها از ریشه پروژه:
 
 ```bash
 npm run install-all
 ```
 
-### ۲. تنظیم متغیرهای محیطی
+2) ساخت فایل محیطی بک‌اند:
 
 ```bash
-# Linux / macOS
 cp backend/.env.example backend/.env
 ```
 
-```powershell
-# Windows PowerShell
-Copy-Item backend/.env.example backend/.env
+3) تنظیم `backend/.env`:
+
+```env
+GEMINI_API_KEY=your_metis_key
+GEMINI_BASE_URL=https://api.metisai.ir
+GEMINI_MODEL=gemini-2.0-flash
+GAPGPT_TIMEOUT_MS=30000
+ADMIN_API_KEY=your-secret-key
+PORT=3000
+DATABASE_URL=mysql://root:@localhost:3306/chatbot
+AUTH_JWT_SECRET=change-me
+IPPANEL_API_KEY=your-ippanel-api-key
+IPPANEL_PATTERN_CODE=your-pattern-code
+IPPANEL_SENDER=3000505
+OTP_EXPIRE=120
+OTP_DEV_MOCK=true
 ```
 
-مقادیر لازم را در `backend/.env` وارد کنید. **این فایل را هرگز commit نکنید.**
+- اگر `OTP_DEV_MOCK=true` باشد، کد OTP در لاگ بک‌اند چاپ می‌شود و درخواست واقعی به IPPanel ارسال نمی‌شود.
 
-### ۳. راه‌اندازی پایگاه‌داده و migrationها
-
-پایگاه داده را ایجاد کرده و migrationهای موردنیاز را اجرا کنید:
+4) اجرای همزمان فرانت و بک‌اند:
 
 ```bash
-cd backend
-npm run db:migrate-image-studio
-npm run db:migrate-video-generation
-npm run db:migrate-noa
-npm run db:migrate-viana
-```
-
-### ۴. اجرای سرویس‌ها
-
-```bash
-# از ریشهٔ پروژه
 npm run dev
 ```
 
-- **فرانت‌اند**: `http://localhost:5173` (Vite dev server با proxy API به `localhost:4000`)
-- **API بک‌اند**: `http://localhost:4000` (پورت پیش‌فرض در `.env.example`)
-
----
-
-## متغیرهای محیطی
-
-مرجع کامل در [`backend/.env.example`](backend/.env.example) قرار دارد. برای production از [`deploy/env.production.example`](deploy/env.production.example) استفاده کنید.
-
-| گروه | متغیرهای کلیدی |
-| --- | --- |
-| **پایگاه‌داده و سرور** | `PORT`، `DATABASE_URL` |
-| **مدل گفت‌وگو** | `METIS_API_KEY`، `METIS_OPENAI_BASE_URL`، `OPENAI_MODEL`، `GEMINI_API_KEY` |
-| **احراز هویت** | `AUTH_JWT_SECRET`، `VIANA_OAUTH_ENABLED`، `VIANA_CLIENT_ID`، `VIANA_CLIENT_SECRET` |
-| **ادمین** | `ADMIN_API_KEY`، `ADMIN_JWT_SECRET`، `ADMIN_PANEL_PATH` |
-| **پیامک** | `IPPANEL_API_KEY`، `IPPANEL_PATTERN_CODE`، `IPPANEL_SENDER`، `OTP_EXPIRE` |
-| **تصویر** | `GEMINI_IMAGE_MODEL` (مدل‌های تصویر از طریق پنل ادمین مدیریت می‌شوند) |
-| **تحلیل تصویر** | `GEMINI_API_KEY` (تنظیمات vision از طریق پنل ادمین) |
-| **ویدئو** | `VIDEO_GENERATION_ENABLED`، `VIDEO_WORKER_ENABLED`، `VIDEO_STORAGE_ROOT`، `BANANAAI_API_KEY`، `VIDEO_RESULT_*` |
-| **بهینه‌ساز و عنوان** | `INPUT_OPTIMIZER_ENABLED`، `CONVERSATION_TITLE_ENABLED`، کلیدهای Metis جداگانه |
-| **نوآ و پرداخت** | `ZARINPAL_MERCHANT_ID` (در production) |
-| **نشست** | `DANOA_SESSION_TTL_SECONDS`، `DANOA_SESSION_ABSOLUTE_TIMEOUT_SECONDS` |
-| **توسعهٔ محلی** | `LOCAL_DEV_SESSION_ENABLED` (فقط localhost) |
-
-برای توسعهٔ بدون ارسال پیامک واقعی، مقدار `LOCAL_DEV_SESSION_ENABLED=true` را فقط در محیط محلی تنظیم کنید. **هرگز در production فعال نکنید.**
-
----
-
-## اجرا با Docker
-
-یک فایل `.env` در کنار `docker-compose.yml` بسازید (از روی `deploy/env.production.example`) و سپس:
-
-```bash
-docker compose up --build
-```
-
-سرویس‌ها:
-- **MariaDB 10.11** روی volume `mysql-data`
-- **برنامه** روی `http://127.0.0.1:3000` (Nginx روی production پروکسی می‌کند)
-- volumeهای پایدار برای آپلود تصاویر، حافظهٔ مکالمه، ورودی و خروجی ویدئو
-
-برای استقرار کامل production شامل Nginx، SSL، اجرای migrationها و فعال‌سازی مسیرهای ویدئو، اسکریپت [`deploy/deploy.sh`](deploy/deploy.sh) را مطالعه و اجرا کنید.
-
----
+- فرانت‌اند: `http://localhost:5173`
+- بک‌اند: `http://localhost:3000`
 
 ## اسکریپت‌ها
 
-### ریشهٔ پروژه
+### ریشه پروژه
 
-| دستور | کاربرد |
-| --- | --- |
-| `npm run install-all` | نصب وابستگی‌های frontend و backend |
-| `npm run dev` | اجرای هم‌زمان frontend و backend با ذخیرهٔ لاگ در `logs/terminal.txt` |
+- `npm run install-all`: نصب وابستگی‌های `frontend` و `backend`
+- `npm run dev`: اجرای همزمان دو سرویس + ثبت لاگ در `logs/terminal.txt`
 
-### فرانت‌اند
+### frontend
 
-| دستور | کاربرد |
-| --- | --- |
-| `npm run dev` | Vite dev server (پورت 5173) |
-| `npm run build` | TypeScript compile + Vite build |
-| `npm run preview` | پیش‌نمایش build |
-| `npm test` | اجرای تمام تست‌ها با Vitest |
-| `npm run test:video-generation` | تست‌های ماژول ویدئو |
-| `npm run test:video-generation-coverage` | تست ویدئو با coverage |
+- `npm run dev`
+- `npm run build`
+- `npm run preview`
 
-### بک‌اند
+## چک سریع کیفیت (قبل از Merge)
 
-| دستور | کاربرد |
-| --- | --- |
-| `npm run dev` | nodemon با hot reload |
-| `npm start` | اجرای production |
-| `npm run test:auth` | تست‌های احراز هویت |
-| `npm run test:stream` | تست‌های streaming (چت، vision، عنوان، intent) |
-| `npm run test:noa` | تست‌های سیستم اعتباری نوآ |
-| `npm run test:title` | تست‌های عنوان‌گذاری مکالمه |
-| `npm run db:migrate-image-studio` | migration تصویر |
-| `npm run db:migrate-video-generation` | migration ویدئو |
-| `npm run db:migrate-noa` | migration نوآ |
-| `npm run db:migrate-viana` | migration Viana OAuth |
-| `npm run video-worker` | اجرای worker تولید ویدئو |
-| `npm run video-input-gateway` | اجرای gateway ورودی ویدئو |
-| `npm run check:video-generation-readiness` | بررسی آمادگی تولید ویدئو |
-| `npm run test:video-generation` | مجموعه کامل تست ویدئو |
-| `npm run test:video-generation-integration` | تست یکپارچگی ویدئو |
-| `npm run test:video-generation-security` | تست‌های امنیتی ویدئو (SSRF، hardening) |
-| `npm run admin:enable-video-model` | فعال‌سازی مدل ویدئو |
-| `npm run admin:activate-bananaai-video` | فعال‌سازی مسیر BananaAI |
+برای تغییرات فرانت‌اند/Design System:
 
-تمامی اسکریپت‌های بک‌اند در [`backend/package.json`](backend/package.json) فهرست شده‌اند.
-
----
-
-## APIهای کلیدی
-
-### احراز هویت
-| متد | مسیر | توضیح |
-| --- | --- | --- |
-| `POST` | `/api/send-verification-code` | ارسال کد تأیید |
-| `POST` | `/api/auth/phone-status` | بررسی وضعیت شماره |
-| `POST` | `/api/verify-code` | تأیید کد |
-| `POST` | `/api/register-profile` | تکمیل پروفایل |
-| `GET` | `/api/auth/session` | دریافت نشست جاری |
-| `POST` | `/api/auth/logout` | خروج |
-| `GET` | `/api/auth/viana/config` | تنظیمات Viana OAuth |
-| `GET` | `/api/auth/viana/start` | شروع فرآیند Viana |
-| `GET` | `/api/auth/viana/callback` | callback Viana |
-
-### چت و مکالمه
-| متد | مسیر | توضیح |
-| --- | --- | --- |
-| `POST` | `/api/chat` | ارسال پیام (streaming NDJSON) |
-| `POST` | `/api/conversations` | ایجاد مکالمه |
-| `POST` | `/api/conversations/load` | بارگذاری مکالمه‌ها |
-| `POST` | `/api/conversations/sync` | همگام‌سازی |
-| `PATCH` | `/api/conversations/:id/title` | ویرایش عنوان |
-
-### تصویر
-| متد | مسیر | توضیح |
-| --- | --- | --- |
-| `POST` | `/api/images/generate` | تولید تصویر |
-| `GET` | `/api/images/status/:taskId` | وضعیت تولید |
-| `GET` | `/api/images/result/:taskId` | نتیجهٔ تولید |
-| `GET` | `/api/images/serve/:taskId` | دریافت فایل تصویر |
-| `POST` | `/api/vision/analyze` | تحلیل تصویر |
-| `POST` | `/api/uploads/images` | آپلود تصویر |
-
-### ویدئو
-| متد | مسیر | توضیح |
-| --- | --- | --- |
-| `POST` | `/api/video-generations` | ثبت درخواست تولید |
-| `GET` | `/api/video-generations` | لیست تولیدات کاربر |
-| `GET` | `/api/video-generations/options` | گزینه‌های مدل‌های ویدئو |
-| `GET` | `/api/video-generations/:id` | جزئیات یک تولید |
-| `GET` | `/api/video-generations/:id/content` | دریافت فایل ویدئو |
-| `POST` | `/api/video-generations/input-media` | آپلود media ورودی |
-| `GET` | `/api/video-generations/prompt-profiles` | پروفایل‌های prompt |
-
-### نوآ (اعتبار)
-| متد | مسیر | توضیح |
-| --- | --- | --- |
-| `GET` | `/api/noa/config` | تنظیمات عمومی (نرخ‌ها) |
-| `GET` | `/api/noa/wallet` | کیف پول کاربر |
-| `GET` | `/api/noa/balance` | موجودی |
-| `GET` | `/api/noa/transactions` | تراکنش‌ها |
-| `POST` | `/api/noa/receipts` | ثبت رسید پرداخت |
-| `GET` | `/api/noa/notifications/pending` | اعلان‌های در انتظار |
-
-### سلامت
-| متد | مسیر | توضیح |
-| --- | --- | --- |
-| `GET` | `/healthz` | liveness probe |
-| `GET` | `/health` | health check |
-| `GET` | `/api/health` | وضعیت تفصیلی |
-| `GET` | `/api/health/video-generation` | سلامت سرویس ویدئو |
-
-### ادمین
-تمامی مسیرهای ادمین زیر `/api/admin/*` با احراز هویت JWT محافظت می‌شوند. مسیر دقیق پنل با `ADMIN_PANEL_PATH` تنظیم می‌شود. حوزه‌های اصلی:
-
-- **کاربران**: `/api/admin/users`
-- **تصاویر**: `/api/admin/image-settings`, `/api/admin/image-generations`
-- **تحلیل تصویر**: `/api/admin/vision-settings`
-- **مسیریابی AI**: `/api/admin/ai-routing/providers`
-- **حافظهٔ مکالمه**: `/api/admin/conversations/:id/memory`
-- **ویدئو**: `/api/admin/video-generations`
-- **پروفایل‌های prompt**: `/api/admin/video-prompt-profiles`
-- **نوآ**: `/api/admin/noa/*`
-- **آمار و لاگ**: `/api/admin/analytics/*`, `/api/admin/logs/*`
-- **تنظیمات سیستم**: `/api/admin/settings/*`, `/api/admin/system/*`
-
----
-
-## تست‌ها
-
-### فرانت‌اند (Vitest + jsdom)
 ```bash
 cd frontend
-npm test                          # تمام تست‌ها
-npm run test:video-generation     # فقط تست‌های ویدئو
-npm run test:watch                # watch mode
+npm run build
 ```
 
-### بک‌اند (Node.js native test runner)
-```bash
-cd backend
-npm run test:stream                                           # تست‌های streaming
-npm run test:auth                                              # تست‌های احراز هویت
-npm run test:noa                                               # تست‌های نوآ
-npm run test:video-generation                                  # مجموعه کامل تست ویدئو
-npm run test:video-generation-security                         # تست‌های امنیتی
-npm run test:video-generation-integration                      # تست یکپارچگی
-```
+چک دستی پیشنهادی:
 
----
+- از لندینگ، دکمه‌های `شروع رایگان` و `ورود به حساب` کاربر را واقعاً به `/chat` ببرند.
+- فلو auth به ترتیب `شماره موبایل -> کد تایید -> تکمیل پروفایل برای کاربر جدید` کار کند.
+- برای کاربر قدیمی بعد از OTP، ورود مستقیم انجام شود و فرم نام/سن نمایش داده نشود.
+- در سناریوی مهمان، بعد از رسیدن به سقف پیام و ثبت‌نام موفق، تاریخچه گفتگو منتقل شود.
+- در `AdminPanel` دکمه‌های `پروفایل` / `مسدود-رفع مسدود` / `حذف` فعال باشند.
+- در چت، quick chips همچنان پیام صحیح ارسال کنند.
+- ناوبری کیبورد (Tab/Enter/Space) روی کنترل‌های جدید درست عمل کند.
+- روی موبایل و دسکتاپ شکست CSS نداشته باشیم.
 
-## Production
+### backend
 
-### PM2
-برای مدیریت فرآیندها در production از PM2 با پیکربندی [`ecosystem.config.cjs`](ecosystem.config.cjs) استفاده می‌شود که شامل دو app است:
-- `danoa-api` — سرور Express (fork mode، پورت 3000)
-- `danoa-video-worker` — worker تولید ویدئو (fork mode)
+- `npm run dev`
+- `npm run start`
 
-### Docker
-برای استقرار containerized از [`deploy/deploy.sh`](deploy/deploy.sh) استفاده کنید که مراحل build، راه‌اندازی MariaDB، اجرای migrationها، فعال‌سازی مسیرهای ویدئو و health check را خودکار می‌کند.
+## نکات
 
-### Nginx
-پیکربندی production Nginx با SSL در [`deploy/nginx.conf`](deploy/nginx.conf) آماده است. برای راه‌اندازی اولیهٔ Let's Encrypt از [`deploy/nginx.bootstrap.conf`](deploy/nginx.bootstrap.conf) استفاده کنید.
+- فرانت‌اند هیچ API Key نگه نمی‌دارد و فقط به API بک‌اند درخواست می‌فرستد.
+- بک‌اند برای هر پیام، پرامپت پویا بر اساس پروفایل و تاریخچه می‌سازد.
+- برای ورودی صوتی، مرورگر باید دسترسی میکروفون داشته باشد.
 
----
+## ماژول‌های بک‌اند (ریزبه‌ریز)
 
-## نکات امنیتی و عملیاتی
+بک‌اند در مسیر `backend/src` ماژولار شده و هر بخش مسئولیت مشخص خودش را دارد:
 
-- `.env`، backupهای تنظیمات، tokenها، دادهٔ کاربران، رسانه‌های آپلودی/تولیدی، coverage و لاگ‌ها را commit نکنید.
-- در صورت افشای هر کلید (حتی در commit محلی)، فوراً آن را rotate کنید.
-- در production، secretها را در متغیرهای محیطی سیستم یا secret manager نگه دارید، نه فایل `.env` داخل image.
-- `ADMIN_JWT_SECRET` و `ADMIN_API_KEY` باید تصادفی، بلند و یکتا باشند.
-- `LOCAL_DEV_SESSION_ENABLED` و debug logging را در production غیرفعال کنید.
-- ذخیره‌سازی ویدئو باید خارج از public web root، با allowlist دقیق host و path انجام شود.
-- پیش از فعال‌سازی تولید ویدئو، migration، مسیر storage، سهمیه و health check را طبق [runbook ویدئو](docs/video-generation-deployment.md) بررسی کنید.
-- CORS فقط به `APP_ALLOWED_ORIGINS` تنظیم‌شده محدود است.
+### 1) هسته اجرا (`backend/src/server.js`)
 
----
+- نقطه شروع برنامه و بالا آوردن سرور `Express`
+- بارگذاری متغیرهای محیطی از `backend/.env`
+- اعمال Middlewareهای اصلی: `cors`، `helmet`، `compression`، `cookie-parser` و `express.json`
+- ساخت و تزریق Dependencyها به ماژول‌ها (Repositoryها، سرویس AI، سرویس SMS و...)
+- رجیستر کردن تمام Routeها:
+  - `auth`
+  - `ai/chat`
+  - `conversations`
+  - `sms`
+  - `admin`
+  - `health`
+- اجرای `bale_monitor` و سرو فایل استاتیک خروجی فرانت
 
-## مستندات تکمیلی
+### 2) لایه Repository (`backend/src/repositories`)
 
-| مستند | توضیح |
-| --- | --- |
-| [`docs/architecture.md`](docs/architecture.md) | معماری کلی سیستم |
-| [`docs/viana-signin.md`](docs/viana-signin.md) | راهنمای یکپارچگی Viana OAuth |
-| [`docs/video-generation-deployment.md`](docs/video-generation-deployment.md) | runbook استقرار تولید ویدئو |
-| [`docs/video-worker-operations.md`](docs/video-worker-operations.md) | راهنمای عملیات worker ویدئو |
-| [`docs/video-result-storage.md`](docs/video-result-storage.md) | ذخیره‌سازی و تحویل نتایج ویدئو |
-| [`docs/metis-video-integration.md`](docs/metis-video-integration.md) | یکپارچگی با Metis ویدئو |
-| [`docs/danoa-vps-video-deployment.md`](docs/danoa-vps-video-deployment.md) | راهنمای استقرار روی VPS |
-| [`docs/noa-credit-system-design.md`](docs/noa-credit-system-design.md) | طراحی سیستم اعتباری نوآ |
-| [`docs/ai-routing/`](docs/ai-routing/) | معماری و راهنمای مسیریابی AI |
-| [`docs/video-prompts/`](docs/video-prompts/) | قالب‌های prompt ویدئو |
-| [`docs/video-prompt-profiles/`](docs/video-prompt-profiles/) | معماری پروفایل‌های prompt |
+این لایه دسترسی به دیتا را متمرکز می‌کند تا بقیه ماژول‌ها مستقیم به DB وصل نشوند:
 
----
+- `DatabaseClient.js`: مدیریت اتصال و اجرای Query
+- `UserRepository.js`: عملیات کاربران (ثبت، یافتن، اطمینان از وجود کاربر)
+- `ConversationRepository.js`: عملیات مکالمه‌ها
+- `EventRepository.js`: ثبت رویدادها (مثل پیام ارسال‌شده)
+- `ErrorRepository.js`: ثبت خطاهای سیستمی/API
+- `AnalyticsRepository.js`: خواندن داده خام برای آمار و گزارش
+- `helpers.js` و `index.js`: ابزارهای مشترک و Factory ساخت Repositoryها
+- `GuestRepository.js`: مدیریت guest user، شمارش پیام مهمان، و migration گفتگوها از `guest_id` به `user_id`
 
-## بررسی پیش از انتشار
+### 3) ماژول احراز هویت (`backend/src/modules/auth`)
 
-```bash
-cd frontend && npm run build && npm test
-cd ../backend && npm run test:stream && npm run test:video-generation
-```
+مسئول چرخه کامل OTP و مدیریت کاربر:
 
-همچنین `git status` را بررسی کنید تا فایل env، دادهٔ کاربری، خروجی تولیدی یا لاگ runtime وارد commit نشده باشد.
+- `auth.routes.js`: تعریف endpointهای احراز هویت
+- `auth.controller.js`: دریافت Request و تبدیل خطا/خروجی به Response استاندارد
+- `auth.service.js`: منطق اصلی:
+  - ارسال کد تایید برای شماره موبایل
+  - تشخیص کاربر قدیمی/جدید بعد از verify
+  - ورود مستقیم کاربر قدیمی با JWT
+  - صدور `signupToken` کوتاه‌عمر برای تکمیل پروفایل کاربر جدید
+  - ثبت/تکمیل پروفایل و migration مهمان به کاربر
+  - صدور JWT نهایی
+- `auth.repository.js`: دسترسی داده‌ای اختصاصی auth
+  - جدول `app_auth_otps` برای نگهداری OTP
+  - جدول `app_auth_otp_request_limits` برای rate limit درخواست کد
+  - محدودیت تلاش اشتباه و invalidate کردن کد پس از مصرف/انقضا
+- `auth.module.js`: Compose کردن Route + Service + Repository برای تزریق در `server.js`
 
----
+### 4) ماژول SMS (`backend/src/modules/sms`)
 
-## مجوز
+مسئول ارتباط با IPPanel برای ارسال OTP:
 
-مجوز پروژه در حال حاضر در این مخزن اعلام نشده است. پیش از استفاده یا انتشار، با مالک مخزن هماهنگ کنید.
+- `sms.routes.js`: مسیرهای API پیامک (ارسال/وضعیت)
+- `sms.controller.js`: کنترل ورودی و خروجی HTTP
+- `sms.service.js`: منطق ارسال Pattern OTP به IPPanel، مدیریت timeout و خطا
+  - پشتیبانی از `IPPANEL_API_KEY`، `IPPANEL_PATTERN_CODE` و `IPPANEL_SENDER`
+  - پشتیبانی از `OTP_DEV_MOCK=true` برای توسعه محلی
+- `sms.module.js`: سیم‌کشی وابستگی‌ها برای مصرف در سرور
+
+> نکته: در `backend/src/services` چند فایل قدیمی/آزمایشی SMS هم هست (`smsService.js`، `sms.service.ts`، `testSMS.js`) که مسیر اصلی اجرای فعلی نیستند؛ مسیر عملیاتی اصلی پروژه، `modules/sms` است.
+
+### 5) ماژول هوش مصنوعی (`backend/src/modules/ai`)
+
+مسئول پردازش پیام چت و ارتباط با مدل:
+
+- `ai.routes.js`: تعریف `POST /api/chat`
+- `ai.controller.js`: اعتبارسنجی ورودی، مدیریت error codeها و پاسخ HTTP
+- `ai.service.js`: منطق اصلی:
+  - نرمال‌سازی history
+  - ساخت payload استاندارد چت
+  - فراخوانی مدل با timeout
+  - استخراج پاسخ متنی
+  - حذف greeting اضافی در پیام‌های غیرابتدایی
+  - دسته‌بندی موضوع پیام (academic/emotional/creative/general)
+  - ثبت event/خطا/ذخیره در مکالمه‌ها
+- `prompt.service.js`: مدیریت system prompt و config مدل (همراه با cache و invalidation)
+
+### 6) ماژول مکالمه‌ها (`backend/src/modules/conversations`)
+
+مسئول CRUD مکالمات کاربر:
+
+- `routes.js`: endpointهای لیست/ذخیره مکالمه
+- `controller.js`: مدیریت ورودی/خروجی API
+- `service.js`: منطق اعمال روی مکالمات (خواندن، جایگزینی، اعتبارسنجی)
+- `index.js`: ساخت ماژول و تزریق dependency
+
+### 7) ماژول Health (`backend/src/modules/health`)
+
+پایش سلامت سرویس:
+
+- `health.routes.js`: مسیرهای health check
+- `health.controller.js`: پاسخ‌دهی وضعیت سرویس
+- `health.service.js`: چک داخلی سرور و چک اتصال به سرویس مدل
+
+### 8) ماژول ادمین (`backend/src/adminRoutes.js` + `backend/src/modules/admin`)
+
+مسئول پنل مدیریت، تنظیمات و گزارش‌ها:
+
+- `adminRoutes.js`:
+  - لاگین ادمین، صدور/بررسی JWT و cookie
+  - محافظت مسیرها با `requireAdminAuth`
+  - bootstrap فایل‌های `admin.json`، `config.json`، `audit.log`
+  - mount زیرماژول‌های admin
+- زیرماژول‌ها:
+  - `modules/admin/analytics`:
+    - آمار داشبورد
+    - خروجی CSV گزارش
+    - پشتیبانی از `GET /api/admin/stats` (legacy key-based)
+  - `modules/admin/system`:
+    - مشاهده/ویرایش config
+    - مشاهده/ویرایش system prompt
+    - ثبت audit برای تغییرات مهم
+  - `modules/admin/logs`:
+    - مشاهده خطاها با فیلتر تاریخ/نوع
+    - صفحه‌بندی audit log
+
+### 9) ماژول مانیتورینگ Bale (`backend/src/modules/bale_monitor`)
+
+ماژول زمان‌بندی‌شده برای مانیتورینگ یک منبع Bale:
+
+- `scheduler.js`: اجرای دوره‌ای Job
+- `checker.js`: منطق چک داده/وضعیت
+- `baleClient.js`: ارتباط با endpoint منبع
+- `parser.js`: تبدیل داده خام به ساختار قابل استفاده
+- `storage.js`: ذخیره snapshot و state مانیتورینگ
+- `config.js`: تنظیمات ماژول
+- `index.js`: راه‌اندازی (`initBaleMonitor`)
+
+### 10) ابزارهای مشترک (`backend/src/shared`)
+
+- `shared/validators/phone.validator.js`:
+  - نرمال‌سازی شماره موبایل ایران (local/international)
+  - پشتیبانی از ارقام فارسی و عربی
+  - اعتبارسنجی موبایل
+  - نرمال‌سازی کد OTP (اعداد فارسی/عربی به انگلیسی)
+  - تولید variantهای شماره برای تطبیق بهتر

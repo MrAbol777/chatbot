@@ -21,40 +21,6 @@ const METIS_KLING_V25_TURBO_PRO = Object.freeze({
   sortOrder: 999
 });
 
-const OPENROUTER_GROK_IMAGINE_VIDEO = Object.freeze({
-  internalKey: 'openrouter_grok_imagine_video',
-  provider: 'openrouter',
-  upstreamVendor: null,
-  providerModelId: 'x-ai/grok-imagine-video',
-  upstreamOperation: 'Video Generation',
-  displayNameFa: 'Grok Imagine Video (OpenRouter)',
-  displayName: 'Grok Imagine Video (OpenRouter)',
-  descriptionFa: 'مدل چندتصویری OpenRouter برای ساخت ویدیو از تصاویر مرجع. حداکثر ۷ تصویر ورودی پشتیبانی می‌شود.',
-  isActive: false,
-  isPublic: false,
-  supportsTextToVideo: false,
-  supportsImageToVideo: false,
-  supportsImageToVideoMulti: true,
-  upstreamSupportsImageToVideo: false,
-  upstreamSupportsStartImage: false,
-  supportsNegativePrompt: false,
-  supportsAudio: false,
-  supportsFirstFrame: false,
-  supportsLastFrame: false,
-  supportsIdempotency: false,
-  supportsWebhook: false,
-  allowedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-  allowedAspectRatios: ['16:9', '9:16', '1:1', '4:3', '3:4', '3:2', '2:3'],
-  allowedResolutions: ['480p', '720p'],
-  allowedQualities: [],
-  maxPromptLength: 2000,
-  maxInputBytes: null,
-  costConfig: { estimate: null, status: 'NOT_DOCUMENTED' },
-  capabilityConfig: { contractSource: 'openrouter_official_docs', readiness: 'BLOCKED', productRole: 'image_to_video_multi_primary', maxReferences: 7 },
-  providerConfig: { readiness: 'BLOCKED', adapter: 'openrouter' },
-  sortOrder: 1200
-});
-
 const BANANAAI_MODEL_IDS = Object.freeze([
   'kling-v3-turbo',
   'seedance-2',
@@ -137,35 +103,12 @@ function validateBananaAiVideoModelRegistration(model) {
   return model;
 }
 
-function validateOpenRouterVideoModelRegistration(model) {
-  if (!model || model.provider !== 'openrouter' || model.providerModelId !== 'x-ai/grok-imagine-video') throw new Error('OpenRouter model must use the verified provider and model identifiers.');
-  if (model.internalKey !== 'openrouter_grok_imagine_video') throw new Error('OpenRouter model must use the verified internal key.');
-  if (Boolean(model.isActive) || Boolean(model.isPublic)) throw new Error('OpenRouter multi-image model must remain inactive and private.');
-  if (Boolean(model.supportsTextToVideo) || Boolean(model.supportsImageToVideo)) throw new Error('OpenRouter multi-image model must not claim single-image or text-to-video support.');
-  if (!Boolean(model.supportsImageToVideoMulti)) throw new Error('OpenRouter model must declare multi-image support.');
-  if (Boolean(model.supportsNegativePrompt) || Boolean(model.supportsAudio) || Boolean(model.supportsFirstFrame) || Boolean(model.supportsLastFrame) || Boolean(model.supportsIdempotency) || Boolean(model.supportsWebhook)) throw new Error('Undocumented OpenRouter per-model capabilities must remain disabled.');
-  if (model.upstreamSupportsImageToVideo || model.upstreamSupportsStartImage) throw new Error('OpenRouter upstream image-to-video metadata must not be enabled before verification.');
-  if (model.maxInputBytes !== null || model.costConfig?.estimate !== null) throw new Error('Undocumented OpenRouter input limits and cost estimates must remain null.');
-  const expectedDurations = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-  if (JSON.stringify(model.allowedDurations) !== JSON.stringify(expectedDurations)) throw new Error('OpenRouter Grok durations must match the verified product metadata.');
-  const expectedRatios = ['16:9', '9:16', '1:1', '4:3', '3:4', '3:2', '2:3'];
-  if (JSON.stringify(model.allowedAspectRatios) !== JSON.stringify(expectedRatios)) throw new Error('OpenRouter Grok aspect ratios must match the verified product metadata.');
-  const expectedResolutions = ['480p', '720p'];
-  if (JSON.stringify(model.allowedResolutions) !== JSON.stringify(expectedResolutions)) throw new Error('OpenRouter Grok resolutions must match the verified product metadata.');
-  if (model.maxPromptLength !== 2000) throw new Error('OpenRouter Grok max prompt length must match the verified product metadata.');
-  if (model.allowedQualities.length) throw new Error('OpenRouter Grok qualities must remain empty.');
-  if (!model.capabilityConfig || model.capabilityConfig.maxReferences !== 7) throw new Error('OpenRouter Grok max references must match the verified product metadata.');
-  return model;
-}
-
 const VIDEO_MODEL_REGISTRATIONS = Object.freeze([
   validateVideoModelRegistration(METIS_KLING_V25_TURBO_PRO),
-  ...BANANAAI_VIDEO_MODEL_REGISTRATIONS.map(validateBananaAiVideoModelRegistration),
-  validateOpenRouterVideoModelRegistration(OPENROUTER_GROK_IMAGINE_VIDEO)
+  ...BANANAAI_VIDEO_MODEL_REGISTRATIONS.map(validateBananaAiVideoModelRegistration)
 ]);
 
 module.exports = {
-  OPENROUTER_GROK_IMAGINE_VIDEO,
   METIS_KLING_V25_TURBO_PRO,
   BANANAAI_MODEL_IDS,
   BANANAAI_IMAGE_TO_VIDEO_MODEL_ID,
@@ -176,6 +119,5 @@ module.exports = {
   BANANAAI_VIDEO_MODEL_REGISTRATIONS,
   VIDEO_MODEL_REGISTRATIONS,
   validateVideoModelRegistration,
-  validateBananaAiVideoModelRegistration,
-  validateOpenRouterVideoModelRegistration
+  validateBananaAiVideoModelRegistration
 };
