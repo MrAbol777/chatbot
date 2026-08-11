@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NoaFinanceAdmin from '../admin/noa/NoaFinanceAdmin';
+import { ToastProvider } from '../design-system/components';
 
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -10,7 +11,6 @@ const response = (body: unknown, status = 200) => new Response(JSON.stringify(bo
 
 describe('NoaFinanceAdmin user wallet management', () => {
   beforeEach(() => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === '/api/admin/noa/pricing') return response({ items: [] });
@@ -50,7 +50,7 @@ describe('NoaFinanceAdmin user wallet management', () => {
 
   it('shows balance then submits a selected user adjustment', async () => {
     const user = userEvent.setup();
-    render(<NoaFinanceAdmin />);
+    render(<ToastProvider><NoaFinanceAdmin /></ToastProvider>);
 
     await screen.findByRole('heading', { name: 'مدیریت نوآ کاربران' });
     await user.type(screen.getByLabelText('کاربر مقصد'), 'کار');
@@ -62,14 +62,17 @@ describe('NoaFinanceAdmin user wallet management', () => {
     await user.type(screen.getByLabelText(/یادداشت برای کاربر/), 'یادداشت آزمایشی');
     await user.click(screen.getByRole('button', { name: 'ثبت تغییر موجودی' }));
 
-    expect(window.confirm).toHaveBeenCalledTimes(1);
+    const approveBtn = await screen.findByRole('button', { name: 'کسر موجودی' });
+    await user.click(approveBtn);
+    expect(document.querySelector('.ds-confirm')).not.toBeInTheDocument();
+
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url) === '/api/admin/noa/wallet-adjustments')).toBe(true));
     expect(screen.getByText(/با موفقیت کسر شد/)).toBeInTheDocument();
   });
 
   it('saves the destination card and owner name through the admin API', async () => {
     const user = userEvent.setup();
-    render(<NoaFinanceAdmin />);
+    render(<ToastProvider><NoaFinanceAdmin /></ToastProvider>);
 
     await screen.findByRole('heading', { name: 'کارت مقصد واریز بانکی' });
     await user.type(screen.getByLabelText('شماره کارت'), '۶۰۳۷۹۹۱۲۳۴۵۶۷۸۹۰');

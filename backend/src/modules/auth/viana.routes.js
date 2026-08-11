@@ -1,6 +1,5 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const { normalizeGuestId } = require('../../repositories/GuestRepository');
 const { randomToken } = require('./session.repository');
 
 const noStore = (res) => {
@@ -14,7 +13,6 @@ function createVianaRouter({
   vianaService,
   vianaRepository,
   sessionRepository,
-  guestsRepository,
   jwtSecret,
   logger = console
 }) {
@@ -127,12 +125,6 @@ function createVianaRouter({
         profile,
         ...localProfile
       });
-
-      const guestId = normalizeGuestId(req.cookies?.danoa_guest_id);
-      if (guestId) {
-        await guestsRepository?.migrateGuestToUser?.({ guestId, userId: identity.userId });
-        res.clearCookie('danoa_guest_id', { httpOnly: true, sameSite: 'lax', secure });
-      }
 
       phase = 'session';
       const previousRawToken = String(req.cookies?.[config.sessionCookieName] || '');

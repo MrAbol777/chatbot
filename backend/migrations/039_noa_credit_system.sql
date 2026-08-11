@@ -194,7 +194,10 @@ ALTER TABLE image_generations
 ALTER TABLE app_video_generations
   ADD COLUMN IF NOT EXISTS noa_reservation_id CHAR(36) NULL,
   ADD INDEX IF NOT EXISTS idx_app_video_generations_noa_reservation (noa_reservation_id),
-  MODIFY COLUMN quota_units INT NULL,
+  -- Video jobs created through the routed flow do not consume the legacy
+  -- quota system.  Keep this non-null with an explicit default so both the
+  -- routed and legacy insert paths remain valid.
+  MODIFY COLUMN quota_units INT NOT NULL DEFAULT 0,
   MODIFY COLUMN quota_reservation_id VARCHAR(64) NULL;
 
 -- One-time read-only-by-convention snapshots. Runtime code must not import these tables.

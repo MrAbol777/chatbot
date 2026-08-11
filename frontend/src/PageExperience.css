@@ -1,0 +1,165 @@
+:root {
+  --danoa-page-max-width: 1120px;
+  --danoa-header-radius: 18px;
+  --danoa-surface-radius: 22px;
+  --danoa-surface-border: color-mix(in srgb, var(--color-border) 74%, transparent);
+  --danoa-surface-shadow: 0 8px 24px color-mix(in srgb, var(--color-primary) 7%, transparent);
+  --danoa-route-duration: 220ms;
+  --danoa-route-easing: cubic-bezier(.22, 1, .36, 1);
+}
+
+/* Route changes feel continuous without replacing the product's existing visual language. */
+.app-shell.view-chat { animation: danoa-route-enter-chat var(--danoa-route-duration) var(--danoa-route-easing); }
+.app-shell.view-studio { animation: danoa-route-enter-studio var(--danoa-route-duration) var(--danoa-route-easing); }
+.app-shell.view-images { animation: danoa-route-enter-images var(--danoa-route-duration) var(--danoa-route-easing); }
+.app-shell.view-video { animation: danoa-route-enter-video var(--danoa-route-duration) var(--danoa-route-easing); }
+.app-shell.view-profile { animation: danoa-route-enter-profile var(--danoa-route-duration) var(--danoa-route-easing); }
+.app-shell.view-noa { animation: danoa-route-enter-noa var(--danoa-route-duration) var(--danoa-route-easing); }
+
+.landing,
+.admin-panel,
+.studio,
+.danoa-studio-page,
+.video-generation-page,
+.app-route-loading {
+  animation: danoa-surface-enter var(--danoa-route-duration) var(--danoa-route-easing) both;
+}
+
+/* Do not translate the viewport-sized app shell: its temporary visual overflow
+   makes the browser show a scrollbar while switching routes. */
+@keyframes danoa-route-enter-chat { from { opacity: .72; } }
+@keyframes danoa-route-enter-studio { from { opacity: .72; } }
+@keyframes danoa-route-enter-images { from { opacity: .72; } }
+@keyframes danoa-route-enter-video { from { opacity: .72; } }
+@keyframes danoa-route-enter-profile { from { opacity: .72; } }
+@keyframes danoa-route-enter-noa { from { opacity: .72; } }
+@keyframes danoa-surface-enter { from { opacity: .64; transform: translateY(10px); } }
+
+/* Shared page frame for the user settings view. The Noa wallet owns the
+   viewport itself, like a first-class route rather than a page inside a card. */
+.chat-shell.view-profile .profile-page {
+  width: min(100% - 32px, var(--danoa-page-max-width));
+  margin: 20px auto 40px;
+}
+
+.chat-shell.view-profile .profile-page-header {
+  min-height: 64px;
+  margin-bottom: 18px;
+  padding: 9px 14px;
+  border: 1px solid var(--danoa-surface-border);
+  border-radius: var(--danoa-header-radius);
+  background: color-mix(in srgb, var(--color-surface-2) 94%, white);
+  box-shadow: var(--danoa-surface-shadow);
+}
+
+.chat-shell.view-profile .profile-page-card {
+  border-color: var(--danoa-surface-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-shell.view-profile .generate-page-back {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+/* Admin keeps its own information density, but receives the same entrance rhythm. */
+.admin-panel .admin-panel__header,
+.admin-panel .admin-section {
+  border-color: var(--danoa-surface-border);
+}
+
+.admin-panel .admin-content > * {
+  animation: danoa-content-enter 180ms var(--danoa-route-easing) both;
+}
+
+@keyframes danoa-content-enter { from { opacity: .7; transform: translateY(6px); } }
+
+.admin-login-page,
+.not-found-page {
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding: 24px 16px;
+  background: var(--color-bg);
+  animation: danoa-surface-enter var(--danoa-route-duration) var(--danoa-route-easing) both;
+}
+
+.admin-login-page {
+  display: grid;
+  place-items: center;
+}
+
+.admin-login-card.ds-card {
+  width: min(100%, 420px);
+  margin: 0;
+  border-color: var(--danoa-surface-border);
+  border-radius: var(--danoa-surface-radius);
+  box-shadow: var(--danoa-surface-shadow);
+}
+
+@media (max-width: 680px) {
+  .chat-shell.view-profile .profile-page {
+    width: min(100% - 24px, var(--danoa-page-max-width));
+    margin-top: 12px;
+  }
+
+  .chat-shell.view-profile .profile-page-header {
+    min-height: 60px;
+    padding: 8px 10px;
+    border-radius: 16px;
+  }
+}
+
+/* Noa is a full-screen working surface, not a centered document/modal. */
+.app-shell.chat-shell.view-noa {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  padding: 0;
+  overflow: hidden;
+  align-items: stretch;
+  justify-content: stretch;
+  background: var(--color-bg);
+}
+
+.chat-shell.view-noa .noa-page {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  margin: 0;
+}
+
+@media (max-width: 1023px), (min-width: 1024px) and (max-height: 680px) {
+  .app-shell.chat-shell.view-noa {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .chat-shell.view-noa .noa-page {
+    height: auto;
+    min-height: 100dvh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.view-chat,
+  .app-shell.view-studio,
+  .app-shell.view-images,
+  .app-shell.view-video,
+  .app-shell.view-profile,
+  .app-shell.view-noa,
+  .landing,
+  .admin-panel,
+  .studio,
+  .danoa-studio-page,
+  .video-generation-page,
+  .app-route-loading,
+  .admin-login-page,
+  .not-found-page,
+  .admin-panel .admin-content > * {
+    animation: none;
+  }
+}

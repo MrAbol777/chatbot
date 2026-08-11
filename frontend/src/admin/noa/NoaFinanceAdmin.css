@@ -401,6 +401,417 @@
   margin: 0 0 4px;
 }
 
+.noa-admin-receipt.is-pending {
+  border-color: color-mix(in srgb, var(--color-primary, #7c3aed) 36%, var(--color-border, #e4e7ec));
+  box-shadow: 0 12px 28px rgb(91 33 182 / 7%);
+}
+
+.noa-admin-receipt__header {
+  align-items: flex-start;
+}
+
+.noa-admin-receipt__identity {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+
+.noa-admin-receipt__identity > div {
+  display: grid;
+  gap: 3px;
+}
+
+.noa-admin-receipt__avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--color-primary, #7c3aed) 13%, transparent);
+  color: var(--color-primary, #7c3aed) !important;
+  font-weight: 900;
+}
+
+.noa-admin-receipt__image {
+  justify-content: center;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.noa-admin-receipt__image:hover,
+.noa-admin-receipt__image:focus-visible {
+  background: color-mix(in srgb, var(--color-primary, #7c3aed) 8%, transparent);
+  outline: none;
+}
+
+.noa-admin-receipt__review {
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-primary, #7c3aed) 17%, var(--color-border, #e4e7ec));
+  border-radius: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary, #7c3aed) 6%, transparent), transparent 45%);
+}
+
+.noa-admin-receipt__review-heading,
+.noa-admin-receipt__review-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.noa-admin-receipt__review-heading {
+  justify-content: space-between;
+}
+
+.noa-admin-receipt__review-heading small,
+.noa-admin-receipt__reason small,
+.noa-admin-receipt__calculation small {
+  color: var(--color-muted, #667085);
+  font-weight: 500;
+}
+
+.noa-admin-receipt__step {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary, #7c3aed) 14%, transparent);
+  color: var(--color-primary, #7c3aed);
+  font-size: .75rem;
+  font-weight: 900;
+}
+
+.noa-admin-receipt__review-grid {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  gap: 12px;
+}
+
+.noa-admin-receipt__review-grid > label,
+.noa-admin-receipt__reason,
+.noa-admin-receipt__override label {
+  display: grid;
+  gap: 7px;
+  font-weight: 800;
+}
+
+.noa-admin-receipt__review-grid label span,
+.noa-admin-receipt__reason > span,
+.noa-admin-receipt__override label > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.noa-admin-receipt__review-grid em {
+  color: var(--color-muted, #667085);
+  font-size: .78rem;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.noa-admin-receipt__override b {
+  color: var(--color-danger, #b42318);
+}
+
+.noa-admin-receipt__calculation {
+  min-height: 82px;
+  border: 1px solid color-mix(in srgb, var(--color-primary, #7c3aed) 22%, transparent);
+  background: color-mix(in srgb, var(--color-primary, #7c3aed) 9%, transparent);
+}
+
+.noa-admin-receipt__calculation strong {
+  color: var(--color-primary, #7c3aed);
+  font-size: 1.06rem;
+}
+
+.noa-override-toggle,
+.noa-admin-receipt__override,
+.noa-admin-receipt__actions {
+  grid-column: auto;
+}
+
+.noa-override-toggle {
+  width: fit-content;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--color-surface, #fff);
+}
+
+.noa-admin-receipt__reason textarea {
+  min-height: 78px;
+}
+
+.noa-admin-receipt__error {
+  margin: -3px 0 0;
+  color: var(--color-danger, #b42318);
+  font-size: .83rem;
+  font-weight: 800;
+}
+
+.noa-admin-receipt__actions {
+  align-items: center;
+  padding-top: 3px;
+}
+
+.noa-admin-receipt__actions .ds-button:first-child {
+  min-width: 190px;
+}
+
+.noa-admin-receipt__result {
+  display: grid;
+  gap: 5px;
+  border-inline-start: 3px solid var(--color-primary, #7c3aed);
+}
+
+.noa-admin-image-preview {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: 4px 0 16px;
+}
+
+.noa-admin-image-preview > p {
+  color: var(--color-muted, #667085);
+}
+
+.noa-admin-image-preview img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: min(68vh, 700px);
+  border-radius: 14px;
+  object-fit: contain;
+  box-shadow: 0 12px 32px rgb(16 24 40 / 18%);
+}
+
+/* This viewer is portalled to document.body so the admin layout cannot hide it. */
+.noa-admin-receipt-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 64%);
+  backdrop-filter: blur(5px);
+}
+
+.noa-admin-receipt-viewer__panel {
+  width: min(960px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgb(15 23 42 / 38%);
+}
+
+.noa-admin-receipt-viewer__panel > header {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px 10px 20px;
+  border-bottom: 1px solid var(--color-border, #e4e7ec);
+  color: var(--color-text, #101828);
+}
+
+.noa-admin-receipt-viewer__panel > header .ds-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.noa-admin-receipt-viewer .noa-admin-image-preview {
+  max-height: calc(100dvh - 112px);
+}
+
+@media (max-width: 600px) {
+  .noa-admin-receipt-viewer { padding: 8px; }
+  .noa-admin-receipt-viewer__panel {
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px;
+  }
+  .noa-admin-receipt-viewer .noa-admin-image-preview { max-height: calc(100dvh - 80px); }
+}
+
+/* Receipt images need a dedicated, viewport-aware dialog.  The general
+   dialog is intentionally compact for confirmations, while a bank receipt
+   must stay legible without allowing it to escape the viewport. */
+.ds-dialog-overlay:has(.noa-admin-image-preview) {
+  z-index: 1200;
+  padding: clamp(12px, 3vw, 32px);
+  background: rgb(15 23 42 / 62%);
+  backdrop-filter: blur(5px);
+}
+
+.ds-dialog-panel:has(.noa-admin-image-preview) {
+  width: min(960px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 68%);
+  border-radius: 20px;
+  background: var(--color-surface-container-lowest, #fff);
+  box-shadow: 0 28px 80px rgb(15 23 42 / 36%);
+}
+
+.ds-dialog-panel:has(.noa-admin-image-preview) .ds-dialog-header {
+  min-height: 68px;
+  margin: 0;
+  padding: 12px 16px 12px 20px;
+  border-bottom: 1px solid var(--color-border, #e4e7ec);
+  background: var(--color-surface-container-lowest, #fff);
+}
+
+.ds-dialog-panel:has(.noa-admin-image-preview) .ds-dialog-header h2 {
+  font-size: clamp(1rem, 2vw, 1.18rem);
+}
+
+.ds-dialog-panel:has(.noa-admin-image-preview) .ds-dialog-close {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.noa-admin-image-preview {
+  min-height: min(360px, calc(100dvh - 116px));
+  max-height: calc(100dvh - 92px);
+  overflow: auto;
+  padding: clamp(12px, 2vw, 24px);
+  background:
+    linear-gradient(45deg, rgb(99 102 241 / 5%) 25%, transparent 25%) 0 0 / 20px 20px,
+    linear-gradient(-45deg, rgb(99 102 241 / 5%) 25%, transparent 25%) 0 0 / 20px 20px,
+    var(--color-surface-container, #f8fafc);
+}
+
+.noa-admin-image-preview img {
+  width: auto;
+  max-width: 100%;
+  max-height: calc(100dvh - 148px);
+  margin: auto;
+  border: 1px solid rgb(16 24 40 / 10%);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 18px 46px rgb(15 23 42 / 18%);
+}
+
+/* Do not rely on :has() for the actual panel placement.  The receipt dialog
+   is mounted inside the admin shell, which creates stacking contexts. */
+.ds-dialog-panel.noa-admin-image-dialog {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  z-index: 1201;
+  display: block;
+  visibility: visible;
+  width: min(960px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  transform: translate(-50%, -50%);
+}
+
+@media (max-width: 600px) {
+  .ds-dialog-panel.noa-admin-image-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+}
+
+@media (max-width: 600px) {
+  .ds-dialog-overlay:has(.noa-admin-image-preview) {
+    padding: 8px;
+  }
+
+  .ds-dialog-panel:has(.noa-admin-image-preview) {
+    width: 100%;
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px;
+  }
+
+  .noa-admin-image-preview {
+    min-height: 220px;
+    max-height: calc(100dvh - 84px);
+    padding: 12px;
+  }
+
+  .noa-admin-image-preview img {
+    max-height: calc(100dvh - 132px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-dialog-overlay:has(.noa-admin-image-preview) {
+    backdrop-filter: none;
+  }
+}
+
+.noa-admin-decision {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 4px;
+}
+
+.noa-admin-decision__icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-success, #067647) 13%, transparent);
+  color: var(--color-success, #067647);
+}
+
+.noa-admin-decision--reject .noa-admin-decision__icon {
+  background: color-mix(in srgb, var(--color-danger, #b42318) 12%, transparent);
+  color: var(--color-danger, #b42318);
+}
+
+.noa-admin-decision > p {
+  margin: 0;
+  color: var(--color-muted, #667085);
+  line-height: 1.9;
+}
+
+.noa-admin-decision__summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.noa-admin-decision__summary div {
+  display: grid;
+  gap: 5px;
+  padding: 11px;
+  border-radius: 12px;
+  background: var(--color-surface-subtle, #f8fafc);
+}
+
+.noa-admin-decision__summary .is-full {
+  grid-column: 1 / -1;
+}
+
+.noa-admin-decision__summary dt {
+  color: var(--color-muted, #667085);
+  font-size: .78rem;
+}
+
+.noa-admin-decision__summary dd {
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.75;
+}
+
+.noa-admin-decision__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .noa-admin-receipts__empty {
   display: grid;
   place-items: center;
@@ -442,6 +853,7 @@
 
   .noa-admin-receipt__review,
   .noa-admin-receipt__override,
+  .noa-admin-receipt__review-grid,
   .noa-manual-credit__form {
     grid-template-columns: 1fr;
   }
@@ -453,7 +865,8 @@
   .noa-rate-form,
   .noa-bank-account-form,
   .noa-admin-receipt > header,
-  .noa-admin-receipt__actions {
+  .noa-admin-receipt__actions,
+  .noa-admin-decision__actions {
     align-items: stretch;
     flex-direction: column;
   }
@@ -464,5 +877,16 @@
 
   .noa-filter {
     width: 100%;
+  }
+
+  .noa-admin-receipt__review-heading,
+  .noa-admin-decision__summary {
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .noa-admin-decision__summary .is-full {
+    grid-column: auto;
   }
 }

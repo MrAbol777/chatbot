@@ -38,6 +38,12 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
       if (!job?.id || !workerId || job.worker_lease_owner !== workerId) return { action: 'ignored-lease-mismatch' };
       if (isTerminalJobStatus(job.status) || !ACTIVE_STATUSES.has(job.status)) return { action: 'ignored-terminal' };
       const now = clock();
+      const createdAt = new Date(job.created_at);
+      if (config.providerDeadlineSeconds > 0 && Number.isFinite(createdAt.getTime()) && now.getTime() - createdAt.getTime() >= config.providerDeadlineSeconds * 1000) {
+        await repository.failAndReleaseJob({ jobId: job.id, workerId, errorCode: 'VIDEO_PROVIDER_DEADLINE_EXCEEDED', errorMessage: 'ساخت ویدیو در مهلت مجاز تکمیل نشد.', releaseReason: 'provider_deadline_exceeded' });
+        log('video_job_failed', job, { errorCode: 'VIDEO_PROVIDER_DEADLINE_EXCEEDED' });
+        return { action: 'failed', errorCode: 'VIDEO_PROVIDER_DEADLINE_EXCEEDED' };
+      }
       const expiresAt = new Date(job.expires_at);
       if (!Number.isFinite(expiresAt.getTime()) || expiresAt <= now) {
         await repository.expireAndReleaseJob({ jobId: job.id, workerId, releaseReason: 'job_timeout', errorCode: 'VIDEO_JOB_TIMEOUT' });

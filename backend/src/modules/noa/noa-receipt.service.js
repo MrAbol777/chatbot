@@ -7,11 +7,12 @@ const {
   NOA_SETTING_KEYS,
   TOMAN_SCALE
 } = require('./noa.constants');
-const { divideFixed, parseFixed } = require('./fixed-point');
+const { divideFixed, formatFixed, parseFixed } = require('./fixed-point');
 const {
   canonicalJson,
   digestValue,
   hashIdempotencyKey,
+  normalizeMetadata,
   requireText,
   safeEqual,
   sha256
@@ -87,6 +88,66 @@ function createNoaReceiptService({ repository, billingService }) {
     return sha256(Buffer.from(canonicalJson({
       fileSha256: Buffer.from(fileSha256).toString('hex')
     }), 'utf8'));
+  }
+
+  async function createUserReviewNotification({
+    receipt,
+    adminId,
+    status,
+    message,
+    transactionId,
+    connection
+  }) {
+    let notificationTransactionId = transactionId;
+
+    // Notifications are intentionally tied to the financial ledger. A rejected
+    // receipt has no credit transaction, so we create a zero-delta audit entry
+    // rather than changing the user's balance or dropping the notification.
+    if (!notificationTransactionId) {
+      const wallet = await repository.getWalletById(receipt.wallet_id, {
+        connection,
+        forUpdate: true
+      });
+      if (!wallet) throw noaError('NOA_WALLET_UNAVAILABLE', 'کیف پول پیدا نشد.', 500);
+      const zero = formatFixed(0n, NOA_SCALE);
+      notificationTransactionId = randomUUID();
+      await repository.insertLog({
+        transactionId: notificationTransactionId,
+        walletId: wallet.wallet_id,
+        reservationId: null,
+        entryType: 'receipt_review_notice',
+        amount: zero,
+        availableDelta: zero,
+        reservedDelta: zero,
+        availableBefore: String(wallet.available_balance),
+        availableAfter: String(wallet.available_balance),
+        reservedBefore: String(wallet.reserved_balance),
+        reservedAfter: String(wallet.reserved_balance),
+        actionKey: null,
+        referenceType: 'manual_receipt',
+        referenceId: String(receipt.receipt_id),
+        idempotencyHash: hashIdempotencyKey(`noa:receipt-review-notice:${receipt.receipt_id}:${status}`),
+        payloadHash: digestValue(canonicalJson({
+          receiptId: String(receipt.receipt_id),
+          status,
+          message
+        })),
+        actorType: 'admin',
+        actorId: adminId,
+        metadata: normalizeMetadata({
+          receiptId: String(receipt.receipt_id),
+          status,
+          source: 'receipt_review_notification'
+        })
+      }, connection);
+    }
+
+    await repository.insertUserNotification({
+      notificationId: randomUUID(),
+      userId: String(receipt.user_id),
+      transactionId: notificationTransactionId,
+      message
+    }, connection);
   }
 
   async function findSubmission({ userId, idempotencyKey, payloadHash }) {
@@ -371,6 +432,14 @@ function createNoaReceiptService({ repository, billingService }) {
       if (!updated) {
         throw noaError('NOA_RECEIPT_REVIEW_RACE', 'وضعیت رسید همزمان تغییر کرده است.', 409);
       }
+      await createUserReviewNotification({
+        receipt,
+        adminId,
+        status: 'approved',
+        transactionId: credit.transactionId,
+        message: `رسید واریز شما تأیید شد و ${approvedNoa.value} نوآ به کیف پولتان اضافه شد.`,
+        connection
+      });
       return {
         ...receiptDto({
           ...receipt,
@@ -395,7 +464,9 @@ function createNoaReceiptService({ repository, billingService }) {
   async function reject(input) {
     const receiptId = requireText(input?.receiptId, 'receiptId', 64);
     const adminId = requireText(input?.adminId, 'adminId');
-    const reason = requireText(input?.reason, 'reason', 500);
+    // Keep enough room for the explanatory prefix in the 500-character
+    // user-notification payload while preserving a useful rejection reason.
+    const reason = requireText(input?.reason, 'reason', 420);
     return repository.inTransaction(input?.connection, async (connection) => {
       const receipt = await repository.getReceiptById(receiptId, {
         connection,
@@ -420,6 +491,13 @@ function createNoaReceiptService({ repository, billingService }) {
       if (!updated) {
         throw noaError('NOA_RECEIPT_REVIEW_RACE', 'وضعیت رسید همزمان تغییر کرده است.', 409);
       }
+      await createUserReviewNotification({
+        receipt,
+        adminId,
+        status: 'rejected',
+        message: `رسید واریز شما رد شد. دلیل بررسی: ${reason}`,
+        connection
+      });
       return receiptDto({
         ...receipt,
         status: 'rejected',

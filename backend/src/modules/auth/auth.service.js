@@ -6,7 +6,6 @@ const {
 
 function createAuthService({
   authRepository,
-  guestsRepository,
   smsService,
   jwt,
   jwtSecret,
@@ -119,7 +118,7 @@ function createAuthService({
     }
   };
 
-  const completeVerifiedPhone = async ({ phone, mode, guestId, verifiedBy = 'sms_otp' }) => {
+  const completeVerifiedPhone = async ({ phone, mode, verifiedBy = 'sms_otp' }) => {
     const isSupervised = verifiedBy === 'supervised_otp';
     let existingUser = await authRepository.findUserByPhone(phone);
     if (existingUser?.isBanned) {
@@ -135,14 +134,6 @@ function createAuthService({
           phone
         });
         existingUser = (await authRepository.findUserByPhone(phone)) || existingUser;
-      }
-
-      let guestMigration = null;
-      if (guestsRepository && typeof guestsRepository.migrateGuestToUser === 'function' && guestId) {
-        guestMigration = await guestsRepository.migrateGuestToUser({
-          guestId,
-          userId: String(existingUser.user_id)
-        });
       }
 
       if (isSupervised) {
@@ -180,7 +171,6 @@ function createAuthService({
             phone
           },
           ...family,
-          ...(guestMigration ? { guestMigration } : {}),
           ...(token ? { token } : {})
         }
       };
@@ -309,7 +299,7 @@ function createAuthService({
     return { statusCode: 200, body: { success: true, expiresIn: saved.expiresIn } };
   };
 
-  const verifyCode = async ({ phone: rawPhone, code: rawCode, mode, guestId }) => {
+  const verifyCode = async ({ phone: rawPhone, code: rawCode, mode }) => {
     const phone = normalizeIranMobileToLocal(rawPhone);
     const code = normalizeOtpCode(rawCode);
     const canCheckSupervisedOtp = (reason) => ['invalid_code', 'expired'].includes(reason);
@@ -351,7 +341,7 @@ function createAuthService({
             mode,
             verifiedAt: now()
           });
-          return completeVerifiedPhone({ phone, mode, guestId, verifiedBy: 'supervised_otp' });
+          return completeVerifiedPhone({ phone, mode, verifiedBy: 'supervised_otp' });
         }
       } else {
         logger.log?.('[OTP] supervised fallback debug', {
@@ -400,10 +390,10 @@ function createAuthService({
       return { statusCode: 400, body: { success: false, error: 'کد منقضی شده یا نامعتبر است' } };
     }
 
-    return completeVerifiedPhone({ phone, mode, guestId, verifiedBy: 'sms_otp' });
+    return completeVerifiedPhone({ phone, mode, verifiedBy: 'sms_otp' });
   };
 
-  const registerProfile = async ({ name, age, phone: rawPhone, id, mode, guestId, signupToken }) => {
+  const registerProfile = async ({ name, age, phone: rawPhone, id, mode, signupToken }) => {
     const inputName = typeof name === 'string' ? name.trim() : '';
     const rawName = inputName || 'کاربر';
     const phone = normalizeIranMobileToLocal(rawPhone);
@@ -475,14 +465,6 @@ function createAuthService({
       });
     }
 
-    let guestMigration = null;
-    if (guestsRepository && typeof guestsRepository.migrateGuestToUser === 'function' && guestId) {
-      guestMigration = await guestsRepository.migrateGuestToUser({
-        guestId,
-        userId: String(userId)
-      });
-    }
-
     const token = createToken({
       sub: String(userId),
       phone,
@@ -508,7 +490,6 @@ function createAuthService({
           phone
         },
         ...family,
-        ...(guestMigration ? { guestMigration } : {}),
         ...(token ? { token } : {})
       }
     };

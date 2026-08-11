@@ -65,14 +65,23 @@ describe('NoaWalletPanel', () => {
       />
     );
 
-    await screen.findByText('هنوز رسیدی ثبت نشده است');
+    await user.click(await screen.findByRole('button', { name: 'مشاهده رسیدها' }));
+    expect(await screen.findAllByText('هنوز رسیدی ثبت نشده است')).toHaveLength(2);
+    await user.click(screen.getByRole('button', { name: 'بستن پیگیری' }));
+    expect(document.getElementById('noa-receipts-content')).toHaveAttribute('aria-hidden', 'true');
+    await user.click(screen.getByRole('button', { name: 'مشاهده رسیدها' }));
+    expect(document.getElementById('noa-receipts-content')).toHaveAttribute('aria-hidden', 'false');
     expect(screen.getByText('نام دارنده کارت')).toBeInTheDocument();
     expect(screen.getByText('6037-9912-3456-7890')).toBeInTheDocument();
     const receipt = new File(['receipt-image'], 'receipt.png', { type: 'image/png' });
     await user.upload(screen.getByLabelText('انتخاب تصویر رسید'), receipt);
+    await user.click(screen.getByRole('button', { name: 'ادامه و بررسی رسید' }));
+    expect(screen.getByRole('dialog', { name: 'تأیید ثبت رسید' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'ثبت رسید برای بررسی' }));
 
-    await waitFor(() => expect(screen.getByText('رسید با موفقیت ثبت شد و پس از بررسی واحد مالی، نوآ به کیف پول اضافه می‌شود.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('status', { name: 'ثبت موفق رسید' })).toBeInTheDocument());
+    expect(screen.getByText('رسید با موفقیت ثبت شد')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'مشاهده وضعیت رسید' })).toBeInTheDocument();
     const postCall = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST');
     expect(postCall).toBeDefined();
     const body = postCall?.[1]?.body as FormData;
@@ -81,5 +90,54 @@ describe('NoaWalletPanel', () => {
     expect(body.get('transferReference')).toBeNull();
     expect(body.get('paidAmount')).toBeNull();
     expect(refreshWallet).toHaveBeenCalledTimes(1);
+  });
+
+  it('previews a receipt inside a dialog without navigating away from the wallet', async () => {
+    const user = userEvent.setup();
+    const createObjectUrl = vi.fn(() => 'blob:receipt-preview');
+    const revokeObjectUrl = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectUrl });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectUrl });
+
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url === '/api/noa/receipts' && (!init?.method || init.method === 'GET')) {
+        return json({
+          items: [{
+            receiptId: 'receipt-1',
+            status: 'pending',
+            submittedAt: '2026-08-09T10:00:00.000Z',
+            verifiedToman: null,
+            approvedNoa: null,
+            calculatedNoa: null
+          }]
+        });
+      }
+      if (url === '/api/noa/receipts/receipt-1/image') {
+        return new Response(new Blob(['image-bytes'], { type: 'image/png' }), {
+          headers: { 'Content-Type': 'image/png' }
+        });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    render(
+      <NoaWalletPanel
+        wallet={wallet}
+        walletLoading={false}
+        walletError=""
+        onRefreshWallet={async () => wallet}
+      />
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'مشاهده رسیدها' }));
+    await user.click(await screen.findByRole('button', { name: 'مشاهده تصویر رسید' }));
+
+    expect(screen.getByRole('dialog', { name: 'تصویر رسید واریز' })).toBeInTheDocument();
+    expect(await screen.findByRole('img', { name: /تصویر رسید ثبت‌شده/ })).toHaveAttribute('src', 'blob:receipt-preview');
+    expect(fetchMock).toHaveBeenCalledWith('/api/noa/receipts/receipt-1/image', expect.objectContaining({
+      credentials: 'include'
+    }));
   });
 });

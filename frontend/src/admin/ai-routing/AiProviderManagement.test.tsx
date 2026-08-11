@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AiProviderManagement from './AiProviderManagement';
+import { ToastProvider } from '../../design-system/components';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const provider = { providerKey: 'metis', displayName: 'Metis Video', enabled: true, keyConfigured: false, maxConcurrency: null, dailyCostLimit: null, readiness: 'READY', version: 1 };
@@ -18,10 +19,10 @@ describe('AiProviderManagement', () => {
     return Promise.resolve(json({ items: [] }));
   });
 
-  beforeEach(() => { fetchMock.mockClear(); vi.stubGlobal('fetch', fetchMock); vi.spyOn(window, 'confirm').mockReturnValue(true); });
+  beforeEach(() => { fetchMock.mockClear(); vi.stubGlobal('fetch', fetchMock); });
 
   it('renders six accessible tabs and never displays secrets or provider endpoints', async () => {
-    render(<AiProviderManagement />);
+    render(<ToastProvider><AiProviderManagement /></ToastProvider>);
     expect(await screen.findByRole('heading', { name: 'مدیریت ارائه‌دهندگان هوش مصنوعی' })).toBeInTheDocument();
     expect(screen.getAllByRole('tab')).toHaveLength(6);
     expect(screen.getByText(/Fallback فقط پیش از Submit/)).toBeInTheDocument();
@@ -29,10 +30,16 @@ describe('AiProviderManagement', () => {
   });
 
   it('requires a reason and confirmation before an optimistic route write', async () => {
-    const user = userEvent.setup(); render(<AiProviderManagement />);
+    const user = userEvent.setup();
+    render(<ToastProvider><AiProviderManagement /></ToastProvider>);
     const save = await screen.findByRole('button', { name: 'ثبت Route' }); expect(save).toBeDisabled();
     await user.type(screen.getByLabelText('دلیل تغییر'), 'تغییر کنترل‌شده مسیر'); expect(save).toBeEnabled(); await user.click(save);
+
+    const confirmBtn = await screen.findByRole('button', { name: 'ثبت' });
+    await user.click(confirmBtn);
+
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/admin/ai-routing/routes/video.text_to_video', expect.objectContaining({ method: 'PATCH' })));
-    expect(window.confirm).toHaveBeenCalledOnce();
+    const dialog = document.querySelector('.ds-confirm');
+    expect(dialog).not.toBeInTheDocument();
   });
 });

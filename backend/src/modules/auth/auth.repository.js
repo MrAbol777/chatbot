@@ -333,7 +333,8 @@ function createAuthRepository({
 
     if (dbPool && typeof dbPool.query === 'function') {
       const timestamp = new Date();
-      const userId = generateUserId({ isGuest: !profile.phone });
+    if (!profile.phone) throw new Error('PHONE_REQUIRED_FOR_USER');
+    const userId = generateUserId();
       await dbPool.query(
         `INSERT INTO app_users (user_id, name, age, phone, is_banned, registered_at, last_active)
          VALUES (?, ?, ?, ?, 0, ?, ?)

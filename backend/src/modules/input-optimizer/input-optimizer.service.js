@@ -76,8 +76,8 @@ function createInputOptimizerService({ httpClient, settingsRepository, optimizat
     }
   };
   const fromStored = (row) => ({ originalText: row.original_input, optimizedTextEn: row.optimized_input || row.original_input, needsClarification: Boolean(row.needs_clarification), clarificationQuestionFa: row.clarification_question_fa || null, ambiguityLevel: row.ambiguity_level || 'none', status: row.status, fallbackUsed: Boolean(row.fallback_used), metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || '{}') : row.metadata || {} });
-  const optimizeInput = async ({ text, operationId, operationType = 'chat', conversationId, turnId, attemptId, imageGenerationId, userId, guestId, signal, hasImages = false } = {}) => {
-    const originalText = normalizeString(text); const context = { operationId: normalizeString(operationId), operationType: normalizeString(operationType, 'chat'), conversationId, turnId, attemptId, imageGenerationId, userId, guestId, hasImages };
+  const optimizeInput = async ({ text, operationId, operationType = 'chat', conversationId, turnId, attemptId, imageGenerationId, userId, signal, hasImages = false } = {}) => {
+    const originalText = normalizeString(text); const context = { operationId: normalizeString(operationId), operationType: normalizeString(operationType, 'chat'), conversationId, turnId, attemptId, imageGenerationId, userId, hasImages };
     if (!originalText) return { originalText: '', optimizedTextEn: '', needsClarification: false, clarificationQuestionFa: null, ambiguityLevel: 'none', status: 'skipped', fallbackUsed: false, metadata: { reason: 'empty' } };
     let existing = null;
     if (context.operationId && optimizationRepository && typeof optimizationRepository.findByOperation === 'function') {

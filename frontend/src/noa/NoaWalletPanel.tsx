@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '../components/Icon';
-import { Button, InlineMessage } from '../design-system/components';
+import { Button, Dialog, InlineMessage } from '../design-system/components';
 import { formatDecimalFa, formatTomanFa } from './decimal';
-import { createIdempotencyKey, listNoaReceipts, submitNoaReceipt } from './noa.service';
+import { createIdempotencyKey, fetchNoaReceiptImage, listNoaReceipts, submitNoaReceipt } from './noa.service';
 import type { NoaReceipt, NoaWallet } from './noa.types';
 import './NoaWalletPanel.css';
 
@@ -14,6 +15,7 @@ type Props = {
   walletLoading: boolean;
   walletError: string;
   onRefreshWallet: () => Promise<NoaWallet | null>;
+  refreshVersion?: number;
 };
 
 type FormErrors = {
@@ -47,16 +49,24 @@ function formatCardNumber(cardNumber: string): string {
   return cardNumber.replace(/(\d{4})(?=\d)/g, '$1-');
 }
 
-function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }: Props) {
+function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet, refreshVersion = 0 }: Props) {
   const receiptId = useId();
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [receipts, setReceipts] = useState<NoaReceipt[]>([]);
   const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [receiptsError, setReceiptsError] = useState('');
+  const [receiptsOpen, setReceiptsOpen] = useState(false);
+  const [cardCopied, setCardCopied] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [previewReceipt, setPreviewReceipt] = useState<NoaReceipt | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewImageError, setPreviewImageError] = useState('');
+  const [previewImageLoading, setPreviewImageLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
   const idempotencyRef = useRef<{ signature: string; key: string } | null>(null);
+  const receiptsContentRef = useRef<HTMLDivElement>(null);
 
   const refreshReceipts = async () => {
     setReceiptsLoading(true);
@@ -74,6 +84,74 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }:
     void refreshReceipts();
   }, []);
 
+  useEffect(() => {
+    if (refreshVersion > 0) void refreshReceipts();
+  }, [refreshVersion]);
+
+  useEffect(() => {
+    if (feedback?.kind !== 'success') return;
+    const timeoutId = window.setTimeout(() => setFeedback(null), 6500);
+    return () => window.clearTimeout(timeoutId);
+  }, [feedback?.kind]);
+
+  useEffect(() => {
+    const content = receiptsContentRef.current as (HTMLDivElement & { inert?: boolean }) | null;
+    if (content) content.inert = !receiptsOpen;
+  }, [receiptsOpen]);
+
+  useEffect(() => {
+    if (!previewReceipt) return;
+    let active = true;
+    let objectUrl = '';
+    setPreviewImageLoading(true);
+    setPreviewImageError('');
+
+    void fetchNoaReceiptImage(previewReceipt.receiptId)
+      .then((image) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(image);
+        setPreviewImageUrl(objectUrl);
+      })
+      .catch((cause) => {
+        if (!active) return;
+        setPreviewImageError(cause instanceof Error ? cause.message : 'نمایش تصویر رسید انجام نشد.');
+      })
+      .finally(() => {
+        if (active) setPreviewImageLoading(false);
+      });
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [previewReceipt]);
+
+  const openReceiptPreview = (receipt: NoaReceipt) => {
+    setPreviewImageUrl(null);
+    setPreviewImageError('');
+    setPreviewImageLoading(true);
+    setPreviewReceipt(receipt);
+  };
+
+  const closeReceiptPreview = () => {
+    setPreviewReceipt(null);
+    setPreviewImageUrl(null);
+    setPreviewImageError('');
+    setPreviewImageLoading(false);
+  };
+
+  const copyCardNumber = async () => {
+    const cardNumber = wallet?.bankTransferAccount?.cardNumber;
+    if (!cardNumber) return;
+    try {
+      await navigator.clipboard.writeText(cardNumber);
+      setCardCopied(true);
+      window.setTimeout(() => setCardCopied(false), 2200);
+    } catch {
+      setFeedback({ text: 'کپی شماره کارت انجام نشد. لطفاً شماره را دستی کپی کنید.', kind: 'error' });
+    }
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const fileError = validateFile(receiptFile);
@@ -83,6 +161,7 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }:
     setErrors(nextErrors);
     setFeedback(null);
     if (Object.values(nextErrors).some(Boolean) || !receiptFile) return;
+    setReviewOpen(false);
 
     const signature = [
       receiptFile.name,
@@ -121,107 +200,165 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }:
   const bankTransferUnavailable = !walletLoading && wallet?.bankTransferAccount === null;
 
   return (
-    <section className="noa-wallet" aria-labelledby="noa-wallet-title">
-      <div className="noa-wallet__heading">
-        <div>
-          <span className="noa-wallet__eyebrow">اعتبار هوش مصنوعی</span>
-          <h2 id="noa-wallet-title">کیف پول نوآ</h2>
-          <p>موجودی و رسیدهای واریز بانکی خود را از این بخش مدیریت کنید.</p>
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => void Promise.all([onRefreshWallet(), refreshReceipts()])}
-          disabled={walletLoading || receiptsLoading}
-        >
-          <Icon name="retry" size={18} aria-hidden="true" />
-          {walletLoading || receiptsLoading ? 'در حال بروزرسانی' : 'بروزرسانی'}
-        </Button>
-      </div>
-
+    <section className="noa-wallet" aria-label="مدیریت اعتبار نوآ">
       <div className="noa-wallet__balance" aria-busy={walletLoading}>
         <span className="noa-wallet__balance-icon" aria-hidden="true">
           <Icon name="credit-card" size={26} />
         </span>
         <div className="noa-wallet__balance-main">
-          <span>موجودی قابل استفاده</span>
+          <span>موجودی قابل استفاده شما</span>
           <strong>{walletLoading && !wallet ? 'در حال دریافت…' : `${formatDecimalFa(wallet?.availableBalance)} نوآ`}</strong>
         </div>
         {wallet ? (
           <dl className="noa-wallet__balance-meta">
             <div>
-              <dt>رزرو شده</dt>
-              <dd>{formatDecimalFa(wallet.reservedBalance)} نوآ</dd>
+              <dt>نرخ تبدیل فعلی</dt>
+              <dd>هر نوآ {formatTomanFa(wallet.exchangeRate.tomanPerNoa)}</dd>
             </div>
             <div>
-              <dt>نرخ فعلی</dt>
-              <dd>هر نوآ {formatTomanFa(wallet.exchangeRate.tomanPerNoa)}</dd>
+              <dt>اعتبار رزروشده</dt>
+              <dd>{formatDecimalFa(wallet.reservedBalance)} نوآ</dd>
             </div>
           </dl>
         ) : null}
       </div>
 
-      <div className="noa-wallet__live" role="status" aria-live="polite">
+      {feedback?.kind === 'success' && typeof document !== 'undefined' ? createPortal(
+        <section className="noa-success-notice" role="status" aria-live="polite" aria-label="ثبت موفق رسید">
+          <span className="noa-success-notice__icon" aria-hidden="true"><Icon name="check-circle" size={24} /></span>
+          <div className="noa-success-notice__content">
+            <div className="noa-success-notice__meta"><span>کیف پول نوآ</span><time>اکنون</time></div>
+            <strong>رسید با موفقیت ثبت شد</strong>
+            <p>رسید شما در صف بررسی مالی است؛ پس از تأیید، نوآ به کیف پول اضافه می‌شود.</p>
+          </div>
+          <Button
+            className="noa-success-notice__dismiss"
+            type="button"
+            variant="ghost"
+            iconOnly
+            startIcon={<Icon name="x-close" size={18} aria-hidden="true" />}
+            aria-label="بستن پیام ثبت موفق رسید"
+            onClick={() => setFeedback(null)}
+          />
+          <Button
+            className="noa-success-notice__action"
+            type="button"
+            variant="secondary"
+            size="sm"
+            startIcon={<Icon name="book" size={17} aria-hidden="true" />}
+            onClick={() => {
+              setReceiptsOpen(true);
+              setFeedback(null);
+            }}
+          >
+            مشاهده وضعیت رسید
+          </Button>
+        </section>,
+        document.body
+      ) : null}
+
+      <div className="noa-wallet__live">
         {walletError ? <InlineMessage text={walletError} variant="error" /> : null}
-        {feedback ? <InlineMessage text={feedback.text} variant={feedback.kind} /> : null}
+        {feedback?.kind === 'error' ? <InlineMessage text={feedback.text} variant="error" /> : null}
       </div>
 
       <div className="noa-wallet__grid">
-        <form className="noa-receipt-form" onSubmit={handleSubmit} noValidate>
-          <div className="noa-wallet__section-title">
-            <span className="noa-wallet__section-icon" aria-hidden="true"><Icon name="upload" size={20} /></span>
-            <div>
-              <h3>ثبت رسید واریز بانکی</h3>
-              <p>فقط تصویر رسید را ارسال کنید؛ مبلغ و اعتبار نهایی پس از بررسی مالی ثبت می‌شود.</p>
+        <form id="noa-receipt-form" className="noa-receipt-form" onSubmit={handleSubmit} noValidate>
+          <header className="noa-receipt-form__header">
+            <div className="noa-wallet__section-title">
+              <span className="noa-wallet__section-icon" aria-hidden="true"><Icon name="upload" size={20} /></span>
+              <div>
+                <h2>افزایش موجودی نوآ</h2>
+                <p>دو گام کوتاه تا ثبت درخواست واریز</p>
+              </div>
             </div>
-          </div>
+            <span className="noa-receipt-form__steps" aria-label="فرآیند دو مرحله‌ای">۲ گام</span>
+          </header>
 
           <section className="noa-bank-transfer" aria-labelledby="noa-bank-transfer-title">
             <div className="noa-bank-transfer__heading">
-              <span className="noa-wallet__section-icon" aria-hidden="true"><Icon name="credit-card" size={20} /></span>
+              <span className="noa-workflow-step" aria-hidden="true">۱</span>
               <div>
                 <h4 id="noa-bank-transfer-title">کارت مقصد واریز</h4>
-                <p>پس از واریز به این کارت، تصویر رسید را در همین فرم ارسال کنید.</p>
+                <p>به این کارت واریز کنید؛ هر نوآ با نرخ نمایش‌داده‌شده در بالا محاسبه می‌شود.</p>
               </div>
             </div>
             {wallet?.bankTransferAccount ? (
-              <dl className="noa-bank-transfer__details">
-                <div>
-                  <dt>شماره کارت</dt>
-                  <dd dir="ltr">{formatCardNumber(wallet.bankTransferAccount.cardNumber)}</dd>
+                <div className="noa-bank-transfer__details">
+                  <dl>
+                    <div className="noa-card-number">
+                      <button
+                        className="noa-card-number__copy"
+                        type="button"
+                        onClick={() => void copyCardNumber()}
+                        aria-label={cardCopied ? 'شماره کارت کپی شد' : `کپی شماره کارت ${formatCardNumber(wallet.bankTransferAccount.cardNumber)}`}
+                        title={cardCopied ? 'شماره کارت کپی شد' : 'برای کپی شماره کارت بزنید'}
+                      >
+                        <span className="noa-card-number__label">شماره کارت</span>
+                        <span className="noa-card-number__value" dir="ltr">
+                          {formatCardNumber(wallet.bankTransferAccount.cardNumber)}
+                          <Icon name={cardCopied ? 'check' : 'copy'} size={19} aria-hidden="true" />
+                        </span>
+                      </button>
+                    </div>
+                    <div>
+                      <dt>به نام</dt>
+                      <dd>{wallet.bankTransferAccount.cardHolderName}</dd>
+                    </div>
+                  </dl>
                 </div>
-                <div>
-                  <dt>به نام</dt>
-                  <dd>{wallet.bankTransferAccount.cardHolderName}</dd>
-                </div>
-              </dl>
             ) : (
               <p className="noa-bank-transfer__pending" role="status">اطلاعات کارت واریز هنوز توسط مدیریت ثبت نشده است.</p>
             )}
           </section>
 
-          <div className="noa-file-field" data-invalid={Boolean(errors.receipt)}>
-            <input
-              id={receiptId}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) => {
-                const file = event.target.files?.[0] || null;
-                setReceiptFile(file);
-                setErrors((current) => ({ ...current, receipt: validateFile(file) }));
-              }}
-              aria-invalid={Boolean(errors.receipt)}
-              aria-describedby={`${receiptId}-help${errors.receipt ? ` ${receiptId}-error` : ''}`}
-              disabled={submitting}
-            />
-            <label htmlFor={receiptId}>
-              <Icon name="attach-image" size={20} aria-hidden="true" />
-              <span>{receiptFile ? receiptFile.name : 'انتخاب تصویر رسید'}</span>
-            </label>
-            <small id={`${receiptId}-help`}>JPEG، PNG یا WebP، حداکثر ۵ مگابایت</small>
-            {errors.receipt ? <span id={`${receiptId}-error`} role="alert">{errors.receipt}</span> : null}
-          </div>
+          <section className="noa-upload-card" aria-labelledby={`${receiptId}-upload-title`}>
+            <div className="noa-upload-card__heading">
+                <span className="noa-workflow-step" aria-hidden="true">۲</span>
+                <div>
+                  <h3 id={`${receiptId}-upload-title`}>بارگذاری رسید واریز</h3>
+                  <p>
+                    {receiptFile
+                      ? 'رسید انتخاب شد؛ برای ادامه، روی دکمه بنفش «ادامه و بررسی رسید» بزنید.'
+                      : 'تصویر رسید را انتخاب کنید؛ سپس آن را برای بررسی مالی ثبت کنید.'}
+                  </p>
+                </div>
+                <Button
+                  className="noa-upload-card__review"
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  startIcon={<Icon name="upload" size={18} aria-hidden="true" />}
+                  onClick={() => setReviewOpen(true)}
+                  disabled={submitting || walletLoading || !receiptFile || !wallet?.bankTransferAccount}
+                >
+                  ادامه و بررسی رسید
+                </Button>
+            </div>
+            <div className="noa-file-field" data-invalid={Boolean(errors.receipt)}>
+              <input
+                id={receiptId}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                aria-label="انتخاب تصویر رسید"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+                  setReceiptFile(file);
+                  setErrors((current) => ({ ...current, receipt: validateFile(file) }));
+                }}
+                aria-invalid={Boolean(errors.receipt)}
+                aria-describedby={`${receiptId}-help${errors.receipt ? ` ${receiptId}-error` : ''}`}
+                disabled={submitting}
+              />
+              <label htmlFor={receiptId}>
+                <Icon name="attach-image" size={22} aria-hidden="true" />
+                <span>{receiptFile ? receiptFile.name : 'انتخاب تصویر رسید'}</span>
+                <small>JPEG، PNG یا WebP · حداکثر ۵ مگابایت</small>
+              </label>
+              <small id={`${receiptId}-help`}>پس از بررسی واحد مالی، اعتبار نوآ به کیف پول شما اضافه می‌شود.</small>
+              {errors.receipt ? <span id={`${receiptId}-error`} role="alert">{errors.receipt}</span> : null}
+            </div>
+          </section>
 
           {bankTransferUnavailable ? (
             <p className="noa-receipt-submit-hint" id={`${receiptId}-bank-transfer-hint`} role="status">
@@ -229,62 +366,115 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet }:
             </p>
           ) : null}
 
-          <Button
-            type="submit"
-            size="lg"
-            aria-describedby={bankTransferUnavailable ? `${receiptId}-bank-transfer-hint` : undefined}
-            disabled={submitting || walletLoading || !wallet || !wallet.bankTransferAccount}
-          >
-            {submitting ? <Icon className="noa-spinner" name="spinner" size={20} aria-hidden="true" /> : <Icon name="upload" size={20} aria-hidden="true" />}
-            {submitting ? 'در حال ثبت امن رسید…' : 'ثبت رسید برای بررسی'}
-          </Button>
         </form>
 
-        <section className="noa-receipts" aria-labelledby="noa-receipts-title" aria-busy={receiptsLoading}>
-          <div className="noa-wallet__section-title">
-            <span className="noa-wallet__section-icon" aria-hidden="true"><Icon name="book" size={20} /></span>
-            <div>
-              <h3 id="noa-receipts-title">پیگیری رسیدها</h3>
-              <p>آخرین وضعیت بررسی و مقدار اعتبار تأییدشده</p>
+          <Dialog open={reviewOpen} title="تأیید ثبت رسید" onClose={() => setReviewOpen(false)} showFooter={false}>
+          <div className="noa-submit-dialog">
+            <p>رسید شما برای بررسی مالی آماده است. پس از تأیید، اعتبار نوآ به کیف پول اضافه می‌شود.</p>
+            <dl>
+              <div><dt>فایل انتخاب‌شده</dt><dd>{receiptFile?.name || '—'}</dd></div>
+              <div><dt>نرخ فعلی</dt><dd>{wallet ? `هر نوآ ${formatTomanFa(wallet.exchangeRate.tomanPerNoa)}` : '—'}</dd></div>
+            </dl>
+            <div className="noa-submit-dialog__actions">
+              <Button type="button" variant="secondary" onClick={() => setReviewOpen(false)} disabled={submitting}>بازگشت</Button>
+              <Button
+                type="submit"
+                form="noa-receipt-form"
+                aria-describedby={bankTransferUnavailable ? `${receiptId}-bank-transfer-hint` : undefined}
+                disabled={submitting || walletLoading || !wallet || !wallet.bankTransferAccount || !receiptFile}
+              >
+                {submitting ? <Icon className="noa-spinner" name="spinner" size={20} aria-hidden="true" /> : <Icon name="upload" size={20} aria-hidden="true" />}
+                {submitting ? 'در حال ثبت امن رسید…' : 'ثبت رسید برای بررسی'}
+              </Button>
             </div>
           </div>
+          </Dialog>
 
-          {receiptsError ? <InlineMessage text={receiptsError} variant="error" /> : null}
-          {receiptsLoading ? (
-            <div className="noa-receipts__loading" role="status">در حال دریافت رسیدها…</div>
-          ) : receipts.length === 0 ? (
-            <div className="noa-receipts__empty">
-              <Icon name="credit-card" size={28} aria-hidden="true" />
-              <strong>هنوز رسیدی ثبت نشده است</strong>
-              <span>پس از ثبت واریز، وضعیت آن در این بخش نمایش داده می‌شود.</span>
+          <Dialog open={Boolean(previewReceipt)} title="تصویر رسید واریز" onClose={closeReceiptPreview} showFooter={false}>
+            <div className="noa-receipt-preview">
+              {previewImageLoading ? (
+                <div className="noa-receipt-preview__loading" role="status">
+                  <Icon className="noa-spinner" name="spinner" size={24} aria-hidden="true" />
+                  <span>در حال بارگذاری تصویر رسید…</span>
+                </div>
+              ) : null}
+              {previewImageError ? (
+                <InlineMessage text={previewImageError} variant="error" />
+              ) : null}
+              {previewImageUrl ? (
+                <img src={previewImageUrl} alt={`تصویر رسید ثبت‌شده در ${formatDate(previewReceipt?.submittedAt || null)}`} />
+              ) : null}
+              {!previewImageLoading && !previewImageError && !previewImageUrl ? (
+                <InlineMessage text="تصویر رسید برای نمایش در دسترس نیست." variant="help" />
+              ) : null}
             </div>
-          ) : (
-            <div className="noa-receipts__list">
-              {receipts.map((receipt) => (
-                <article className="noa-receipt-item" key={receipt.receiptId}>
-                  <div className="noa-receipt-item__header">
-                    <strong>رسید واریز بانکی</strong>
-                    <span className={`noa-status noa-status--${receipt.status}`}>{statusLabels[receipt.status]}</span>
-                  </div>
-                  <dl>
-                    <div><dt>مبلغ تأییدشده</dt><dd>{formatTomanFa(receipt.verifiedToman)}</dd></div>
-                    <div><dt>اعتبار</dt><dd>{formatDecimalFa(receipt.approvedNoa || receipt.calculatedNoa)} نوآ</dd></div>
-                    <div><dt>زمان ثبت</dt><dd>{formatDate(receipt.submittedAt)}</dd></div>
-                  </dl>
-                  {receipt.reviewReason ? <p className="noa-receipt-item__reason">{receipt.reviewReason}</p> : null}
-                  <a
-                    className="noa-receipt-item__link"
-                    href={receipt.imageUrl || `/api/noa/receipts/${encodeURIComponent(receipt.receiptId)}/image`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    مشاهده تصویر رسید
-                    <Icon name="external-link" size={16} aria-hidden="true" />
-                  </a>
-                </article>
-              ))}
+          </Dialog>
+
+        <section className={`noa-receipts ${receiptsOpen ? 'is-open' : ''}`} aria-labelledby="noa-receipts-title" aria-busy={receiptsLoading}>
+          <div className="noa-receipts__header">
+            <div className="noa-wallet__section-title">
+              <span className="noa-wallet__section-icon" aria-hidden="true"><Icon name="book" size={20} /></span>
+              <div>
+                <h3 id="noa-receipts-title">پیگیری رسیدها</h3>
+                <p>{receiptsLoading ? 'در حال دریافت وضعیت رسیدها…' : receipts.length ? `${formatDecimalFa(String(receipts.length))} رسید ثبت‌شده دارید` : 'هنوز رسیدی ثبت نشده است'}</p>
+              </div>
             </div>
-          )}
+            <button
+              className="noa-receipts__toggle"
+              type="button"
+              onClick={() => setReceiptsOpen((current) => !current)}
+              aria-expanded={receiptsOpen}
+              aria-controls="noa-receipts-content"
+            >
+              <span>{receiptsOpen ? 'بستن پیگیری' : 'مشاهده رسیدها'}</span>
+              <Icon name={receiptsOpen ? 'chevron-right' : 'chevron-left'} size={18} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="noa-receipts__content-shell">
+            <div
+              id="noa-receipts-content"
+              className="noa-receipts__content"
+              ref={receiptsContentRef}
+              aria-hidden={!receiptsOpen}
+            >
+              {receiptsError ? <InlineMessage text={receiptsError} variant="error" /> : null}
+              {receiptsLoading ? (
+                <div className="noa-receipts__loading" role="status">در حال دریافت رسیدها…</div>
+              ) : receipts.length === 0 ? (
+                <div className="noa-receipts__empty">
+                  <Icon name="credit-card" size={28} aria-hidden="true" />
+                  <strong>هنوز رسیدی ثبت نشده است</strong>
+                  <span>پس از ثبت واریز، وضعیت آن در این بخش نمایش داده می‌شود.</span>
+                </div>
+              ) : (
+                <div className="noa-receipts__list">
+                  {receipts.map((receipt) => (
+                    <article className="noa-receipt-item" key={receipt.receiptId}>
+                      <div className="noa-receipt-item__header">
+                        <strong>رسید واریز بانکی</strong>
+                        <span className={`noa-status noa-status--${receipt.status}`}>{statusLabels[receipt.status]}</span>
+                      </div>
+                      <dl>
+                        <div><dt>مبلغ تأییدشده</dt><dd>{formatTomanFa(receipt.verifiedToman)}</dd></div>
+                        <div><dt>اعتبار</dt><dd>{formatDecimalFa(receipt.approvedNoa || receipt.calculatedNoa)} نوآ</dd></div>
+                        <div><dt>زمان ثبت</dt><dd>{formatDate(receipt.submittedAt)}</dd></div>
+                      </dl>
+                      {receipt.reviewReason ? <p className="noa-receipt-item__reason">{receipt.reviewReason}</p> : null}
+                      <button
+                        className="noa-receipt-item__link"
+                        type="button"
+                        onClick={() => openReceiptPreview(receipt)}
+                      >
+                        مشاهده تصویر رسید
+                        <Icon name="attach-image" size={16} aria-hidden="true" />
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </section>
       </div>
     </section>

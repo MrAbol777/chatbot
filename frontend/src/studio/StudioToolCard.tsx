@@ -1,4 +1,3 @@
-import { Button, Card } from '../design-system/components';
 import type { StudioTool } from './studio.types';
 
 type Props = {
@@ -22,7 +21,12 @@ function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
 
 export default function StudioToolCard({ tool, onOpen }: Props) {
   return (
-    <Card className="studio-tool-card" padding="lg">
+    <button
+      type="button"
+      className="ds-card ds-card--padding-lg studio-tool-card"
+      onClick={onOpen}
+      aria-label={`${tool.actionLabel}: ${tool.title}`}
+    >
       <div className={`studio-tool-card__icon studio-tool-card__icon--${tool.id}`}>
         <ToolIcon toolId={tool.id} />
       </div>
@@ -31,9 +35,7 @@ export default function StudioToolCard({ tool, onOpen }: Props) {
         <h2>{tool.title}</h2>
         <p>{tool.description}</p>
       </div>
-      <Button type="button" className="studio-tool-card__action" onClick={onOpen}>
-        {tool.actionLabel}
-      </Button>
-    </Card>
+      <span className="studio-tool-card__action" aria-hidden="true">{tool.actionLabel}</span>
+    </button>
   );
 }

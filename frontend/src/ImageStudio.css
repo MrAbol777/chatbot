@@ -153,34 +153,43 @@
 }
 .studio-header-back {
   min-height: 44px;
-  padding: 0 12px 0 8px;
+  padding-inline: 13px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--surface-border));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 19%, var(--color-border));
   border-radius: 12px;
-  color: var(--primary-dark);
-  background: color-mix(in srgb, var(--card-bg) 80%, transparent);
-  box-shadow: 0 5px 14px color-mix(in srgb, var(--primary) 6%, transparent);
-  font: 800 .875rem inherit;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  font-size: .8rem;
+  font-weight: 800;
   cursor: pointer;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
-.studio-header-back svg {
-  width: 18px;
-  height: 18px;
+.studio-header-back__icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex: 0 0 20px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.studio-header-back:hover {
-  transform: translateX(-2px);
-  border-color: color-mix(in srgb, var(--primary) 34%, transparent);
-  background: color-mix(in srgb, var(--primary) 7%, var(--card-bg));
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 10%, transparent);
+.studio-header-back:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+.studio-header-back:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+.studio-header-back:active:not(:disabled) {
+  transform: scale(.97);
 }
 
 /* ====== MODAL CLOSE ====== */
@@ -917,8 +926,8 @@
   .studio { padding-inline: clamp(12px, 3vw, 24px); }
   .studio-shell { width: 100%; }
   .studio-header { min-height: 52px; margin: 14px 0 16px; padding: 10px 14px; border-radius: 16px; }
-  .studio-header-back { width: 38px; min-height: 38px; justify-content: center; padding: 0; border-radius: 11px; }
-  .studio-header-back span { display: none; }
+  .studio-header-back { width: 44px; min-width: 44px; height: 44px; min-height: 44px; justify-content: center; padding: 0; border-radius: 12px; }
+  .studio-header-back__label { display: none; }
   .studio-tabs { margin-top: 0; margin-bottom: 20px; }
   .studio-create { width: 100%; padding: 18px 14px; gap: 20px; border-radius: 22px; }
   .gallery-panel { padding: clamp(14px, 3vw, 24px); border-radius: 22px; }
@@ -940,7 +949,7 @@
   .studio-brand-mark svg { width: 20px; height: 20px; }
   .studio-brand-copy h1 { font-size: .875rem; }
   .studio-brand-copy small { font-size: .66rem; }
-  .studio-header-back { width: 36px; min-height: 36px; border-radius: 10px; }
+  .studio-header-back { width: 44px; min-width: 44px; height: 44px; min-height: 44px; border-radius: 12px; }
   .studio-tabs { width: 100%; height: 42px; margin-top: 2px; margin-bottom: 18px; border-radius: 12px; }
   .studio-tabs button { font-size: .82rem; }
   .studio-tab-indicator { height: 32px; }
@@ -990,6 +999,58 @@ body.studio-viewer-open .chat-studio-switcher {
   .image-card img, .studio-submit > i { animation: none; }
   .studio-tab-indicator, .studio button, .studio textarea,
   .image-card, .card-overlay { transition-duration: 0ms; }
+}
+
+/* Shared studio header: the title occupies the same centered slot as chat and video. */
+.studio-shell .studio-header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-surface-2) 94%, white);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+
+.studio-shell .studio-brand {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  min-width: 0;
+}
+
+.studio-shell .studio-header-back {
+  grid-column: 1;
+  grid-row: 1;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 12px;
+  font-size: 0;
+}
+
+.studio-shell .studio-header-back__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.studio-shell .studio-header-spacer { grid-column: 3; grid-row: 1; width: 44px; height: 44px; }
+
+@media (max-width: 620px) {
+  .studio-shell .studio-header { min-height: 64px; padding: 8px; }
+  .studio-shell .studio-brand-copy small { display: none; }
 }
 
 /* ====== IMAGE STUDIO CREATE LAYOUT ======
@@ -1176,4 +1237,48 @@ body.studio-viewer-open .chat-studio-switcher {
   .studio-settings-card .ratio-options button { min-height: 90px; }
   .studio-settings-card .ratio-options button small,
   .studio-output-summary strong em { font-size: .875rem; }
+}
+
+/* Use the complete viewport as the image studio canvas. The form itself is
+   intentionally contained, but the page and its toolbar are not a modal. */
+.chat-shell.view-images .studio {
+  min-height: 100dvh;
+  padding: 0 0 var(--studio-bottom-clearance);
+}
+
+.chat-shell.view-images .studio-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  animation: none;
+}
+
+.chat-shell.view-images .studio-header {
+  min-height: 72px;
+  margin: 0 0 24px;
+  padding-inline: clamp(16px, 4vw, 64px);
+  border-inline: 0;
+  border-top: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Restore the image studio's compact header while keeping the page canvas. */
+.chat-shell.view-images .studio {
+  padding: 0 clamp(16px, 4vw, 48px) var(--studio-bottom-clearance);
+}
+
+.chat-shell.view-images .studio-shell {
+  width: min(100%, 1320px);
+  margin-inline: auto;
+  animation: studio-enter 520ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.chat-shell.view-images .studio-header {
+  min-height: 56px;
+  margin: 20px 0;
+  padding: 10px 18px;
+  border: 1px solid color-mix(in srgb, var(--surface-border) 48%, transparent);
+  border-radius: 18px;
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--primary) 6%, transparent), inset 0 1px rgba(255, 255, 255, .82);
 }

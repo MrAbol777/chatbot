@@ -4,7 +4,6 @@ const {
   normalizeConversationId,
   safeJsonArray
 } = require('./helpers');
-const { getGuestIdFromUserId } = require('./GuestRepository');
 
 const normalizeMessage = (item, fallbackTimestamp = nowIso()) => {
   if (!item || (item.role !== 'user' && item.role !== 'assistant')) {
@@ -176,15 +175,13 @@ class ConversationRepository {
     const normalizedConversationId = normalizeConversationId(conversationId);
     if (!normalizedUserId || !normalizedConversationId) return null;
 
-    const guestId = getGuestIdFromUserId(normalizedUserId) || null;
     const ts = new Date();
     await this.db.query(
-      `INSERT INTO app_conversations (user_id, guest_id, conversation_id, title, title_source, title_generation_status, pinned, messages, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'default', 'pending', 0, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE guest_id = VALUES(guest_id), updated_at = updated_at`,
+      `INSERT INTO app_conversations (user_id, conversation_id, title, title_source, title_generation_status, pinned, messages, created_at, updated_at)
+       VALUES (?, ?, ?, 'default', 'pending', 0, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE updated_at = updated_at`,
       [
         normalizedUserId,
-        guestId,
         normalizedConversationId,
         typeof options.title === 'string' ? options.title.trim() : '',
         JSON.stringify(Array.isArray(options.messages) ? options.messages : []),
@@ -224,15 +221,14 @@ class ConversationRepository {
       : [];
 
     const normalizedUserId = String(userId);
-    const guestId = getGuestIdFromUserId(normalizedUserId) || null;
     const normalizedConversationId = normalizeConversationId(conversationId);
     const ts = new Date();
 
     await this.db.query(
-      `INSERT INTO app_conversations (user_id, guest_id, conversation_id, title, title_source, title_generation_status, pinned, messages, created_at, updated_at)
-       VALUES (?, ?, ?, '', 'default', 'pending', 0, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE guest_id = VALUES(guest_id), messages = VALUES(messages), updated_at = VALUES(updated_at)`,
-      [normalizedUserId, guestId, normalizedConversationId, JSON.stringify(safeMessages), ts, ts]
+      `INSERT INTO app_conversations (user_id, conversation_id, title, title_source, title_generation_status, pinned, messages, created_at, updated_at)
+       VALUES (?, ?, '', 'default', 'pending', 0, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE messages = VALUES(messages), updated_at = VALUES(updated_at)`,
+      [normalizedUserId, normalizedConversationId, JSON.stringify(safeMessages), ts, ts]
     );
   }
 
@@ -300,15 +296,13 @@ class ConversationRepository {
           : [];
 
         await conn.query(
-          `INSERT INTO app_conversations (user_id, guest_id, conversation_id, title, title_source, title_generation_status, pinned, messages, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 'default', 'pending', ?, ?, ?, ?)
+          `INSERT INTO app_conversations (user_id, conversation_id, title, title_source, title_generation_status, pinned, messages, created_at, updated_at)
+           VALUES (?, ?, ?, 'default', 'pending', ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
-             guest_id = VALUES(guest_id),
              title = CASE WHEN title_source IN ('generated', 'manual') THEN title ELSE VALUES(title) END,
              pinned = VALUES(pinned), messages = VALUES(messages), updated_at = VALUES(updated_at)`,
           [
             targetId,
-            getGuestIdFromUserId(targetId) || null,
             conversationId,
             typeof item?.title === 'string' ? item.title.trim() : '',
             Boolean(item?.pinned) ? 1 : 0,

@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useId, useRef } from 'react';
+import Icon from '../../components/Icon';
 import Button from './Button';
 
 type Props = {
@@ -10,9 +11,10 @@ type Props = {
   cancelText?: string;
   onConfirm?: () => void;
   showFooter?: boolean;
+  panelClassName?: string;
 };
 
-function Dialog({ open, title, onClose, children, confirmText, cancelText = 'انصراف', onConfirm, showFooter = true }: Props) {
+function Dialog({ open, title, onClose, children, confirmText, cancelText = 'انصراف', onConfirm, showFooter = true, panelClassName = '' }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
@@ -62,10 +64,18 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'ا�
 
   return (
     <div className="ds-dialog-overlay" role="presentation" onClick={onClose}>
-      <div className="ds-dialog-panel" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(event) => event.stopPropagation()} ref={panelRef}>
+      <div className={`ds-dialog-panel ${panelClassName}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(event) => event.stopPropagation()} ref={panelRef}>
         <div className="ds-dialog-header">
           <h2 id={titleId}>{title}</h2>
-          <Button type="button" variant="ghost" iconOnly className="ds-dialog-close" aria-label="بستن پنجره" onClick={onClose}>×</Button>
+          <Button
+            type="button"
+            variant="ghost"
+            iconOnly
+            startIcon={<Icon name="x-close" size={20} aria-hidden="true" />}
+            className="ds-dialog-close"
+            aria-label="بستن پنجره"
+            onClick={onClose}
+          />
         </div>
         {children}
         {showFooter ? (

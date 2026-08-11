@@ -979,7 +979,7 @@ function createNoaBillingService({ repository }) {
       transactionId: String(row.transaction_id),
       reservationId: row.reservation_id || null,
       type: String(row.entry_type),
-      amountNoa: decimal(String(row.amount), 'amountNoa', { allowZero: false }).value,
+      amountNoa: decimal(String(row.amount), 'amountNoa', { allowZero: true }).value,
       availableDeltaNoa: decimal(String(row.available_delta), 'availableDelta', {
         allowNegative: true
       }).value,

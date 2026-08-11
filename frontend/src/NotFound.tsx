@@ -3,6 +3,7 @@ import { Button } from './design-system/components';
 function NotFound() {
   return (
     <main
+      className="not-found-page"
       style={{
         minHeight: '100dvh',
         display: 'flex',
@@ -38,7 +39,7 @@ function NotFound() {
       <Button
         type="button"
         onClick={() => {
-          window.location.assign('/home');
+          window.location.assign('/');
         }}
       >
         بازگشت به خانه

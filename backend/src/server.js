@@ -446,7 +446,7 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
   }
 
   // Generated chat images are served through /api/images/serve/:taskId,
-  // where task ownership is checked for logged-in users and guests.
+  // where task ownership is checked for the authenticated account.
   if (/^[1-9]\d*$|^0$/.test(imageId)) {
     return res.status(404).json({ error: 'IMAGE_NOT_FOUND' });
   }
@@ -461,7 +461,6 @@ app.get('/api/uploads/images/:imageId', async (req, res) => {
 
 const { router: authRouter } = createAuthModule({
   userRepository: repositories.users,
-  guestsRepository: repositories.guests,
   smsService: appSmsService,
   jwt,
   jwtSecret: authJwtSecret,
@@ -487,7 +486,6 @@ app.use(createVianaRouter({
   vianaService,
   vianaRepository,
   sessionRepository,
-  guestsRepository: repositories.guests,
   jwtSecret: authJwtSecret,
   logger: console
 }));
@@ -650,9 +648,7 @@ const { router: conversationRouter } = createConversationsModule({
     if (resolution.principal) {
       return { userId: resolution.principal.userId, type: 'authenticated' };
     }
-    const guestId = String(req.cookies?.danoa_guest_id || '').trim();
-    if (!/^[a-zA-Z0-9_-]{8,64}$/.test(guestId)) return null;
-    return { userId: await repositories.guests.ensureGuestUser(guestId), type: 'guest' };
+    return null;
   }
 });
 app.use('/api/conversations', conversationRouter);

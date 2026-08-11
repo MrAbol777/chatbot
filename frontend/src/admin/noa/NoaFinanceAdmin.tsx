@@ -1,10 +1,12 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '../../components/Icon';
-import { Button, InlineMessage } from '../../design-system/components';
+import { Button, Dialog, InlineMessage, useNotification } from '../../design-system/components';
 import {
   approveAdminNoaReceipt,
   adjustAdminNoaWallet,
   createIdempotencyKey,
+  fetchAdminNoaReceiptImage,
   fetchAdminNoaUserWallet,
   fetchAdminNoaBankTransferAccount,
   fetchAdminNoaConfig,
@@ -28,6 +30,23 @@ type ReviewDraft = {
   approvedNoa: string;
   reason: string;
   overrideReason: string;
+};
+
+type ReceiptDecision = {
+  receipt: NoaReceipt;
+  action: 'approve' | 'reject';
+  verifiedToman: string | null;
+  approvedNoa: string | null;
+  creditNoa: string | null;
+  reason: string;
+  overrideReason: string;
+};
+
+type ReceiptPreview = {
+  receipt: NoaReceipt;
+  url: string | null;
+  loading: boolean;
+  error: string | null;
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -67,6 +86,7 @@ function createDraft(receipt: NoaReceipt): ReviewDraft {
 }
 
 function NoaFinanceAdmin() {
+  const { confirm } = useNotification();
   const [pricing, setPricing] = useState<NoaPricingConfig[]>([]);
   const [rate, setRate] = useState<NoaExchangeRate | null>(null);
   const [rateInput, setRateInput] = useState('');
@@ -76,6 +96,9 @@ function NoaFinanceAdmin() {
   const [receipts, setReceipts] = useState<NoaReceipt[]>([]);
   const [receiptFilter, setReceiptFilter] = useState<ReceiptFilter>('pending');
   const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
+  const [receiptErrors, setReceiptErrors] = useState<Record<string, string>>({});
+  const [receiptDecision, setReceiptDecision] = useState<ReceiptDecision | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<ReceiptPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState('');
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -126,6 +149,35 @@ function NoaFinanceAdmin() {
   useEffect(() => {
     void loadFinanceData('pending');
   }, []);
+
+  useEffect(() => {
+    if (!receiptPreview) return;
+    let active = true;
+    let objectUrl: string | null = null;
+    void fetchAdminNoaReceiptImage(receiptPreview.receipt.receiptId)
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        if (active) {
+          setReceiptPreview((current) => current ? { ...current, url: objectUrl, loading: false } : current);
+        } else if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+        }
+      })
+      .catch((cause) => {
+        if (active) {
+          setReceiptPreview((current) => current ? {
+            ...current,
+            loading: false,
+            error: cause instanceof Error ? cause.message : 'دریافت تصویر رسید انجام نشد.'
+          } : current);
+        }
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [receiptPreview?.receipt.receiptId]);
 
   useEffect(() => {
     if (selectedRecipient || recipientQuery.trim().length < 2) {
@@ -236,51 +288,77 @@ function NoaFinanceAdmin() {
     }));
   };
 
-  const approveReceipt = async (receipt: NoaReceipt) => {
+  const requestApproveReceipt = (receipt: NoaReceipt) => {
     const draft = drafts[receipt.receiptId] || createDraft(receipt);
     const verifiedToman = normalizePositiveDecimal(draft.verifiedToman, 2);
     const approvedNoa = draft.useOverride ? normalizePositiveDecimal(draft.approvedNoa, 6) : null;
     if (!verifiedToman) {
-      setFeedback({ kind: 'error', text: 'مبلغ تأییدشدهٔ رسید باید بزرگ‌تر از صفر باشد.' });
+      setReceiptErrors((current) => ({ ...current, [receipt.receiptId]: 'مبلغ تأییدشده را وارد کنید.' }));
       return;
     }
     if (draft.useOverride && (!approvedNoa || draft.overrideReason.trim().length < 5)) {
-      setFeedback({ kind: 'error', text: 'برای ویرایش دستی، مقدار نوآ و دلیل حداقل ۵ کاراکتری لازم است.' });
+      setReceiptErrors((current) => ({ ...current, [receipt.receiptId]: 'برای ویرایش دستی، مقدار نوآ و دلیل حداقل ۵ کاراکتری لازم است.' }));
       return;
     }
-    setSavingKey(`receipt:${receipt.receiptId}`);
-    setFeedback(null);
-    try {
-      await approveAdminNoaReceipt(receipt.receiptId, {
-        verifiedToman,
-        ...(approvedNoa ? { approvedNoa } : {}),
-        ...(draft.reason.trim() ? { reason: draft.reason.trim() } : {}),
-        ...(approvedNoa ? { overrideReason: draft.overrideReason.trim() } : {})
-      });
-      setFeedback({ kind: 'success', text: 'رسید تأیید و اعتبار نوآ به کیف پول کاربر واریز شد.' });
-      await loadFinanceData(receiptFilter);
-    } catch (cause) {
-      setFeedback({ kind: 'error', text: cause instanceof Error ? cause.message : 'تأیید رسید انجام نشد.' });
-    } finally {
-      setSavingKey('');
+    const calculatedNoa = rate?.tomanPerNoa
+      ? divideDecimal(verifiedToman, rate.tomanPerNoa, 6)
+      : null;
+    if (!calculatedNoa) {
+      setReceiptErrors((current) => ({ ...current, [receipt.receiptId]: 'با نرخ فعلی، مقدار نوآ قابل محاسبه نیست.' }));
+      return;
     }
+    setReceiptErrors((current) => ({ ...current, [receipt.receiptId]: '' }));
+    setReceiptDecision({
+      receipt,
+      action: 'approve',
+      verifiedToman,
+      approvedNoa,
+      creditNoa: approvedNoa || calculatedNoa,
+      reason: draft.reason.trim(),
+      overrideReason: draft.overrideReason.trim()
+    });
   };
 
-  const rejectReceipt = async (receipt: NoaReceipt) => {
+  const requestRejectReceipt = (receipt: NoaReceipt) => {
     const reason = (drafts[receipt.receiptId]?.reason || '').trim();
     if (reason.length < 5) {
-      setFeedback({ kind: 'error', text: 'برای رد رسید، دلیل حداقل ۵ کاراکتری ثبت کنید.' });
+      setReceiptErrors((current) => ({ ...current, [receipt.receiptId]: 'برای رد رسید، نوشتن دلیل حداقل ۵ کاراکتری الزامی است.' }));
       return;
     }
-    if (!window.confirm('این رسید رد شود؟ این عملیات در گزارش مالی ثبت می‌شود.')) return;
+    setReceiptErrors((current) => ({ ...current, [receipt.receiptId]: '' }));
+    setReceiptDecision({
+      receipt,
+      action: 'reject',
+      verifiedToman: null,
+      approvedNoa: null,
+      creditNoa: null,
+      reason,
+      overrideReason: ''
+    });
+  };
+
+  const submitReceiptDecision = async () => {
+    if (!receiptDecision) return;
+    const { receipt, action, verifiedToman, approvedNoa, creditNoa, reason, overrideReason } = receiptDecision;
     setSavingKey(`receipt:${receipt.receiptId}`);
     setFeedback(null);
     try {
-      await rejectAdminNoaReceipt(receipt.receiptId, reason);
-      setFeedback({ kind: 'success', text: 'رسید رد شد.' });
+      if (action === 'approve' && verifiedToman) {
+        await approveAdminNoaReceipt(receipt.receiptId, {
+          verifiedToman,
+          ...(approvedNoa ? { approvedNoa } : {}),
+          ...(reason ? { reason } : {}),
+          ...(approvedNoa ? { overrideReason } : {})
+        });
+        setFeedback({ kind: 'success', text: `رسید تأیید شد؛ ${formatDecimalFa(creditNoa || '0')} نوآ به کیف پول کاربر اضافه و اعلان داخل‌اپ ارسال شد.` });
+      } else {
+        await rejectAdminNoaReceipt(receipt.receiptId, reason);
+        setFeedback({ kind: 'success', text: 'رسید رد شد و دلیل آن در اعلان داخل‌اپ برای کاربر ارسال شد.' });
+      }
+      setReceiptDecision(null);
       await loadFinanceData(receiptFilter);
     } catch (cause) {
-      setFeedback({ kind: 'error', text: cause instanceof Error ? cause.message : 'رد رسید انجام نشد.' });
+      setFeedback({ kind: 'error', text: cause instanceof Error ? cause.message : `${action === 'approve' ? 'تأیید' : 'رد'} رسید انجام نشد.` });
     } finally {
       setSavingKey('');
     }
@@ -301,7 +379,7 @@ function NoaFinanceAdmin() {
     }
   };
 
-  const submitWalletAdjustment = (event: FormEvent) => {
+  const submitWalletAdjustment = async (event: FormEvent) => {
     event.preventDefault();
     const amountNoa = normalizePositiveDecimal(adjustmentAmount, 6);
     if (!selectedRecipient || !selectedWallet) {
@@ -314,7 +392,12 @@ function NoaFinanceAdmin() {
     }
     const action = adjustmentDirection === 'increase' ? 'اضافه شود' : 'کسر شود';
     const confirmation = `آیا ${formatDecimalFa(amountNoa)} نوآ از کیف پول «${selectedRecipient.name}» ${action}؟\n\nموجودی می‌تواند منفی شود و این تراکنش در دفترکل مالی ثبت می‌شود.`;
-    if (!window.confirm(confirmation)) return;
+    const approved = await confirm({
+      message: confirmation,
+      confirmText: adjustmentDirection === 'increase' ? 'افزایش موجودی' : 'کسر موجودی',
+      cancelText: 'انصراف'
+    });
+    if (!approved) return;
     void applyWalletAdjustment();
   };
 
@@ -352,9 +435,9 @@ function NoaFinanceAdmin() {
     <div className="noa-finance" aria-busy={loading}>
       <header className="noa-finance__hero">
         <div>
-          <span className="noa-finance__eyebrow">عملیات مالی</span>
-          <h3>مرکز مالی نوآ</h3>
-          <p>قیمت عملیات، نرخ تبدیل و رسیدهای واریز بانکی از داده‌های جاری سرور مدیریت می‌شوند.</p>
+          <span className="noa-finance__eyebrow">نوآ و قیمت‌گذاری</span>
+          <h3>مرکز کنترل نوآ</h3>
+          <p>هزینهٔ هر قابلیت متصل به API، نرخ تبدیل و رسیدهای واریز از داده‌های زندهٔ سرور مدیریت می‌شوند.</p>
         </div>
         <Button type="button" variant="secondary" onClick={() => void loadFinanceData()} disabled={loading}>
           <Icon name="retry" size={18} aria-hidden="true" />
@@ -392,7 +475,7 @@ function NoaFinanceAdmin() {
           </div>
         </div>
         {walletFeedback ? <InlineMessage text={walletFeedback.text} variant={walletFeedback.kind} /> : null}
-        <form className="noa-manual-credit__form" onSubmit={submitWalletAdjustment}>
+        <form className="noa-manual-credit__form" onSubmit={(e) => { void submitWalletAdjustment(e); }}>
           <div className="noa-user-picker">
             <label htmlFor="noa-wallet-user">
               <span>کاربر مقصد</span>
@@ -626,48 +709,64 @@ function NoaFinanceAdmin() {
               : null;
             const isPending = receipt.status === 'pending';
             const isSaving = savingKey === `receipt:${receipt.receiptId}`;
+            const receiptError = receiptErrors[receipt.receiptId];
             return (
-              <article className="noa-admin-receipt" key={receipt.receiptId}>
-                <header>
-                  <div>
-                    <strong>{receipt.user?.name || receipt.userId || 'کاربر'}</strong>
-                    <span>رسید واریز بانکی</span>
+              <article className={`noa-admin-receipt${isPending ? ' is-pending' : ''}`} key={receipt.receiptId}>
+                <header className="noa-admin-receipt__header">
+                  <div className="noa-admin-receipt__identity">
+                    <span className="noa-admin-receipt__avatar" aria-hidden="true">
+                      {(receipt.user?.name || receipt.userId || 'ک').trim().slice(0, 1)}
+                    </span>
+                    <div>
+                      <strong>{receipt.user?.name || receipt.userId || 'کاربر'}</strong>
+                      <span>{receipt.user?.phone || 'رسید واریز بانکی'}</span>
+                    </div>
                   </div>
                   <span className={`noa-status noa-status--${receipt.status}`}>{STATUS_LABELS[receipt.status]}</span>
                 </header>
                 <dl className="noa-admin-receipt__facts">
-                  <div><dt>مبلغ ثبت‌شده</dt><dd>{formatTomanFa(receipt.verifiedToman)}</dd></div>
+                  <div><dt>مبلغ ثبت‌شده</dt><dd>{formatTomanFa(receipt.declaredToman || receipt.verifiedToman)}</dd></div>
                   <div><dt>زمان ثبت</dt><dd>{formatDate(receipt.submittedAt)}</dd></div>
                   <div><dt>نوآ نهایی</dt><dd>{formatDecimalFa(receipt.approvedNoa || receipt.calculatedNoa)} نوآ</dd></div>
                 </dl>
-                <a
+                <button
+                  type="button"
                   className="noa-admin-receipt__image"
-                  href={receipt.imageUrl || `/api/admin/noa/receipts/${encodeURIComponent(receipt.receiptId)}/image`}
-                  target="_blank"
-                  rel="noreferrer"
+                  onClick={() => setReceiptPreview({ receipt, url: null, loading: true, error: null })}
                 >
-                  <Icon name="external-link" size={16} aria-hidden="true" />
+                  <Icon name="attach-image" size={17} aria-hidden="true" />
                   مشاهده تصویر رسید
-                </a>
+                </button>
 
                 {isPending ? (
                   <div className="noa-admin-receipt__review">
-                    <label htmlFor={`verified-${receipt.receiptId}`}>
-                      <span>مبلغ تأییدشده (تومان)</span>
-                      <input
-                        id={`verified-${receipt.receiptId}`}
-                        type="text"
-                        inputMode="decimal"
-                        value={draft.verifiedToman}
-                        onChange={(event) => updateDraft(receipt.receiptId, {
-                          verifiedToman: toAsciiDigits(event.target.value).replace(/[^\d.]/g, '')
-                        })}
-                        disabled={isSaving}
-                      />
-                    </label>
-                    <div className="noa-admin-receipt__calculation" aria-live="polite">
-                      <span>محاسبه خودکار با نرخ فعلی</span>
-                      <strong>{calculatedNoa ? `${formatDecimalFa(calculatedNoa)} نوآ` : 'مبلغ معتبر وارد کنید'}</strong>
+                    <div className="noa-admin-receipt__review-heading">
+                      <div>
+                        <span className="noa-admin-receipt__step">مرحله ۱</span>
+                        <strong>مبلغ را با رسید تطبیق دهید</strong>
+                      </div>
+                      <small>نرخ فعلی: {rate ? `هر نوآ ${formatTomanFa(rate.tomanPerNoa)}` : 'در حال دریافت'}</small>
+                    </div>
+                    <div className="noa-admin-receipt__review-grid">
+                      <label htmlFor={`verified-${receipt.receiptId}`}>
+                        <span>مبلغ تأییدشده <em>تومان</em></span>
+                        <input
+                          id={`verified-${receipt.receiptId}`}
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="مثلاً ۵۰۰٬۰۰۰"
+                          value={draft.verifiedToman}
+                          onChange={(event) => updateDraft(receipt.receiptId, {
+                            verifiedToman: toAsciiDigits(event.target.value).replace(/[^\d.]/g, '')
+                          })}
+                          disabled={isSaving}
+                        />
+                      </label>
+                      <div className="noa-admin-receipt__calculation" aria-live="polite">
+                        <span>واریز پیشنهادی به کیف پول</span>
+                        <strong>{calculatedNoa ? `${formatDecimalFa(calculatedNoa)} نوآ` : 'مبلغ معتبر وارد کنید'}</strong>
+                        <small>با نرخ فعلی محاسبه می‌شود</small>
+                      </div>
                     </div>
                     <label className="noa-override-toggle">
                       <input
@@ -676,7 +775,7 @@ function NoaFinanceAdmin() {
                         onChange={(event) => updateDraft(receipt.receiptId, { useOverride: event.target.checked })}
                         disabled={isSaving}
                       />
-                      <span>ویرایش دستی مقدار نوآ</span>
+                      <span>مقدار نوآ را دستی تعیین می‌کنم</span>
                     </label>
                     {draft.useOverride ? (
                       <div className="noa-admin-receipt__override">
@@ -694,10 +793,11 @@ function NoaFinanceAdmin() {
                           />
                         </label>
                         <label htmlFor={`override-reason-${receipt.receiptId}`}>
-                          <span>دلیل ویرایش دستی</span>
+                          <span>دلیل ویرایش دستی <b>*</b></span>
                           <textarea
                             id={`override-reason-${receipt.receiptId}`}
                             rows={2}
+                            minLength={5}
                             value={draft.overrideReason}
                             onChange={(event) => updateDraft(receipt.receiptId, { overrideReason: event.target.value })}
                             disabled={isSaving}
@@ -705,27 +805,32 @@ function NoaFinanceAdmin() {
                         </label>
                       </div>
                     ) : null}
-                    <label htmlFor={`review-reason-${receipt.receiptId}`}>
-                      <span>یادداشت بررسی / دلیل رد</span>
+                    <label className="noa-admin-receipt__reason" htmlFor={`review-reason-${receipt.receiptId}`}>
+                      <span>دلیل رد یا یادداشت بررسی <small>برای رد رسید الزامی است</small></span>
                       <textarea
                         id={`review-reason-${receipt.receiptId}`}
                         rows={2}
+                        maxLength={420}
+                        placeholder="مثلاً مبلغ رسید با واریز ثبت‌شده مطابقت ندارد"
                         value={draft.reason}
                         onChange={(event) => updateDraft(receipt.receiptId, { reason: event.target.value })}
                         disabled={isSaving}
                       />
                     </label>
+                    {receiptError ? <p className="noa-admin-receipt__error" role="alert">{receiptError}</p> : null}
                     <div className="noa-admin-receipt__actions">
-                      <Button type="button" onClick={() => void approveReceipt(receipt)} disabled={isSaving || !rate}>
-                        {isSaving ? 'در حال ثبت…' : 'تأیید و واریز نوآ'}
+                      <Button type="button" onClick={() => requestApproveReceipt(receipt)} disabled={isSaving || !rate}>
+                        <Icon name="check" size={17} aria-hidden="true" />
+                        {isSaving ? 'در حال ثبت…' : 'بررسی نهایی و تأیید'}
                       </Button>
-                      <Button type="button" variant="danger" onClick={() => void rejectReceipt(receipt)} disabled={isSaving}>
+                      <Button type="button" variant="danger" onClick={() => requestRejectReceipt(receipt)} disabled={isSaving}>
                         رد رسید
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <div className="noa-admin-receipt__result">
+                    <strong>{receipt.status === 'approved' ? 'تصمیم ثبت و به کاربر اعلام شده است' : 'رد رسید به کاربر اعلام شده است'}</strong>
                     <p>{receipt.reviewReason || 'بدون یادداشت بررسی'}</p>
                     {receipt.manualOverride ? <small>مقدار نوآ با ویرایش دستی مدیر ثبت شده است.</small> : null}
                   </div>
@@ -741,6 +846,85 @@ function NoaFinanceAdmin() {
           ) : null}
         </div>
       </section>
+
+      {receiptPreview ? createPortal(
+        <div
+          className="noa-admin-receipt-viewer"
+          role="presentation"
+          onMouseDown={() => setReceiptPreview(null)}
+        >
+          <section
+            className="noa-admin-receipt-viewer__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`تصویر رسید ${receiptPreview.receipt.user?.name || 'کاربر'}`}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <strong>تصویر رسید {receiptPreview.receipt.user?.name || 'کاربر'}</strong>
+              <Button
+                type="button"
+                variant="ghost"
+                iconOnly
+                aria-label="بستن تصویر رسید"
+                onClick={() => setReceiptPreview(null)}
+                startIcon={<Icon name="x-close" size={20} aria-hidden="true" />}
+              />
+            </header>
+            <div className="noa-admin-image-preview">
+              {receiptPreview.loading ? <p>در حال دریافت تصویر رسید…</p> : null}
+              {receiptPreview.error ? <InlineMessage text={receiptPreview.error} variant="error" /> : null}
+              {receiptPreview.url ? <img src={receiptPreview.url} alt="تصویر رسید واریز بانکی" /> : null}
+            </div>
+          </section>
+        </div>,
+        document.body
+      ) : null}
+
+      <Dialog
+        open={Boolean(receiptDecision)}
+        title={receiptDecision?.action === 'reject' ? 'تأیید نهایی رد رسید' : 'تأیید نهایی واریز نوآ'}
+        onClose={() => setReceiptDecision(null)}
+        showFooter={false}
+      >
+        {receiptDecision ? (
+          <div className={`noa-admin-decision noa-admin-decision--${receiptDecision.action}`}>
+            <div className="noa-admin-decision__icon" aria-hidden="true">
+              <Icon name={receiptDecision.action === 'approve' ? 'check-circle' : 'info-circle'} size={25} />
+            </div>
+            <p>
+              {receiptDecision.action === 'approve'
+                ? `پس از تأیید، ${formatDecimalFa(receiptDecision.creditNoa || '0')} نوآ به کیف پول «${receiptDecision.receipt.user?.name || 'کاربر'}» اضافه و اعلان داخل‌اپ ارسال می‌شود.`
+                : `رسید «${receiptDecision.receipt.user?.name || 'کاربر'}» رد می‌شود و دلیل زیر در اعلان داخل‌اپ برای او نمایش داده خواهد شد.`}
+            </p>
+            <dl className="noa-admin-decision__summary">
+              {receiptDecision.action === 'approve' ? (
+                <>
+                  <div><dt>مبلغ تأییدشده</dt><dd>{formatTomanFa(receiptDecision.verifiedToman)}</dd></div>
+                  <div><dt>نوآ قابل واریز</dt><dd>{formatDecimalFa(receiptDecision.creditNoa)} نوآ</dd></div>
+                </>
+              ) : null}
+              <div className={receiptDecision.action === 'reject' ? 'is-full' : ''}>
+                <dt>{receiptDecision.action === 'reject' ? 'دلیل رد برای کاربر' : 'یادداشت بررسی'}</dt>
+                <dd>{receiptDecision.reason || 'یادداشتی ثبت نشده است.'}</dd>
+              </div>
+            </dl>
+            <div className="noa-admin-decision__actions">
+              <Button type="button" variant="secondary" onClick={() => setReceiptDecision(null)} disabled={savingKey === `receipt:${receiptDecision.receipt.receiptId}`}>
+                بازگشت و ویرایش
+              </Button>
+              <Button
+                type="button"
+                variant={receiptDecision.action === 'reject' ? 'danger' : 'primary'}
+                onClick={() => void submitReceiptDecision()}
+                loading={savingKey === `receipt:${receiptDecision.receipt.receiptId}`}
+              >
+                {receiptDecision.action === 'reject' ? 'رد قطعی رسید' : 'تأیید و واریز نوآ'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Dialog>
 
     </div>
   );

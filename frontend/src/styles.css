@@ -2523,12 +2523,6 @@ textarea {
   border: 1px solid rgba(8, 145, 178, 0.2);
 }
 
-.profile-status-badge.guest {
-  background: rgba(220, 38, 38, 0.08);
-  color: #dc2626;
-  border: 1px solid rgba(220, 38, 38, 0.14);
-}
-
 .profile-page-grid {
   display: grid;
   grid-template-columns: 1fr 280px;
@@ -9351,4 +9345,144 @@ select:focus-visible {
 .chat-shell.view-noa .noa-page {
   min-height: 100dvh;
   padding-bottom: max(48px, env(safe-area-inset-bottom, 0px));
+}
+
+/* Full-screen application canvases -----------------------------------------
+   A navigation change must replace the working surface, not place another
+   rounded shell on top of the previous one. Content cards remain for grouped
+   controls; the product pages themselves own the entire viewport. */
+.app-shell.chat-shell.view-chat,
+.app-shell.chat-shell.view-profile,
+.app-shell.chat-shell.view-generate,
+.app-shell.chat-shell.view-noa,
+.app-shell.chat-shell.view-studio,
+.app-shell.chat-shell.view-images,
+.app-shell.chat-shell.view-video {
+  min-height: 100dvh;
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.chat-shell.view-chat .chat-card,
+.chat-shell.view-profile .chat-card,
+.chat-shell.view-generate .chat-card,
+.chat-shell.view-noa .chat-card,
+.chat-shell.view-studio .chat-card,
+.chat-shell.view-images .chat-card,
+.chat-shell.view-video .chat-card {
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.chat-shell.view-studio,
+.chat-shell.view-images,
+.chat-shell.view-video,
+.chat-shell.view-profile,
+.chat-shell.view-generate,
+.chat-shell.view-noa {
+  height: auto;
+  overflow: visible;
+  background: var(--color-bg, #f8f7fb);
+}
+
+.chat-shell.view-studio .chat-card,
+.chat-shell.view-images .chat-card,
+.chat-shell.view-video .chat-card {
+  display: block;
+  overflow: visible;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.admin-panel {
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.admin-shell {
+  min-height: 100dvh;
+  gap: 0;
+  align-items: stretch;
+}
+
+.admin-sidebar {
+  top: 0;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-block: 0;
+  border-inline-start: 1px solid var(--admin-border);
+  border-inline-end: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.admin-main {
+  min-height: 100dvh;
+  padding: clamp(20px, 3vw, 48px);
+}
+
+.admin-panel__header {
+  padding: 0 0 clamp(20px, 2.5vw, 34px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-panel__current {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-content > .admin-section {
+  margin-top: 0;
+}
+
+.admin-section .admin-section {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+@media (max-width: 980px) {
+  .admin-shell {
+    display: block;
+  }
+
+  .admin-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-inline: 0;
+    border-block-end: 1px solid var(--admin-border);
+  }
+
+  .admin-main {
+    min-height: auto;
+    padding: 20px 16px max(28px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-nav-button,
+  .chat-shell .chat-card {
+    transition-duration: 1ms;
+  }
 }

@@ -1,5 +1,3 @@
-const { getGuestIdFromUserId, isGuestUserId } = require('./GuestRepository');
-
 const normalizeContent = (value) => (typeof value === 'string' ? value.trim() : '');
 const normalizeNullableString = (value) => {
   const text = typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
@@ -26,25 +24,20 @@ class ChatMessageRepository {
     await this.db.init();
 
     const normalizedUserId = normalizeNullableString(userId);
-    const guestId = normalizedUserId && isGuestUserId(normalizedUserId) ? getGuestIdFromUserId(normalizedUserId) : null;
-    const userType = guestId ? 'guest' : 'registered';
-    const storedUserId = guestId ? null : normalizedUserId;
     const storedContent = normalizeContent(content);
     const storedRole = role === 'assistant' ? 'assistant' : 'user';
 
-    if (!storedContent || (!storedUserId && !guestId)) {
+    if (!storedContent || !normalizedUserId) {
       return null;
     }
 
     const [result] = await this.db.query(
       `INSERT INTO app_chat_messages
-       (user_id, guest_id, user_type, conversation_id, turn_id, role, content, model, response_time_ms, token_usage, error_code, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       (user_id, user_type, conversation_id, turn_id, role, content, model, response_time_ms, token_usage, error_code, created_at)
+       VALUES (?, 'registered', ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE message_id = LAST_INSERT_ID(message_id)`,
       [
-        storedUserId,
-        guestId,
-        userType,
+        normalizedUserId,
         normalizeNullableString(conversationId) || 'default',
         normalizeNullableString(turnId),
         storedRole,
@@ -104,7 +97,7 @@ class ChatMessageRepository {
     const sql = userId
       ? `SELECT message_id, role, content, created_at
          FROM app_chat_messages
-         WHERE conversation_id = ? AND (user_id = ? OR guest_id = ?)
+         WHERE conversation_id = ? AND user_id = ?
          ORDER BY created_at ASC, message_id ASC
          LIMIT ?`
       : `SELECT message_id, role, content, created_at
@@ -112,9 +105,7 @@ class ChatMessageRepository {
          WHERE conversation_id = ?
          ORDER BY created_at ASC, message_id ASC
          LIMIT ?`;
-    const actualParams = userId
-      ? [normalizedConversationId, normalizeNullableString(userId), normalizeNullableString(userId), safeLimit]
-      : params;
+    const actualParams = params;
     const [rows] = await this.db.query(sql, actualParams);
     return rows.map((row) => ({
       id: row.message_id,

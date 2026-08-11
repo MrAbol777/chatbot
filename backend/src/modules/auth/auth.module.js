@@ -15,7 +15,6 @@ function createAuthModule(deps) {
   });
   const authService = deps.authService || createAuthService({
     authRepository,
-    guestsRepository: deps.guestsRepository,
     smsService: deps.smsService,
     jwt: deps.jwt,
     jwtSecret: deps.jwtSecret,

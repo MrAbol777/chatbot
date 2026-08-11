@@ -250,6 +250,21 @@ export async function listNoaReceipts(): Promise<NoaReceipt[]> {
   return Array.isArray(items) ? items.map(normalizeReceipt) : [];
 }
 
+export async function fetchNoaReceiptImage(receiptId: string): Promise<Blob> {
+  const response = await fetch(`/api/noa/receipts/${encodeURIComponent(receiptId)}/image`, {
+    credentials: 'include',
+    headers: authHeaders()
+  });
+  if (!response.ok) {
+    await assertOk(response, 'دریافت تصویر رسید انجام نشد.');
+  }
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.startsWith('image/')) {
+    throw new NoaApiError('فایل رسید قابل پیش‌نمایش نیست.', 415, 'NOA_RECEIPT_IMAGE_INVALID');
+  }
+  return response.blob();
+}
+
 export async function submitNoaReceipt(input: {
   receipt: File;
   idempotencyKey: string;
@@ -445,6 +460,21 @@ export async function listAdminNoaReceipts(status: NoaReceiptStatus | 'all'): Pr
   const payload = asRecord(await assertOk(response, 'دریافت رسیدهای بانکی انجام نشد.'));
   const items = pick(payload, 'items', 'receipts');
   return Array.isArray(items) ? items.map(normalizeReceipt) : [];
+}
+
+export async function fetchAdminNoaReceiptImage(receiptId: string): Promise<Blob> {
+  const response = await fetch(`/api/admin/noa/receipts/${encodeURIComponent(receiptId)}/image`, {
+    credentials: 'include',
+    headers: authHeaders()
+  });
+  if (!response.ok) {
+    await assertOk(response, 'دریافت تصویر رسید انجام نشد.');
+  }
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.startsWith('image/')) {
+    throw new NoaApiError('فایل رسید قابل پیش‌نمایش نیست.', 415, 'NOA_RECEIPT_IMAGE_INVALID');
+  }
+  return response.blob();
 }
 
 export async function approveAdminNoaReceipt(

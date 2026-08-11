@@ -135,7 +135,7 @@ test('chat rejects insufficient Noa before calling optimizer or intent router', 
   assert.deepEqual(calls, ['reserve']);
 });
 
-test('guest chat is rejected before billing or any AI service is called', async () => {
+test('unauthenticated chat is rejected before billing or any AI service is called', async () => {
   const calls = [];
   const controller = createAiController({
     aiService: {},
@@ -159,7 +159,7 @@ test('guest chat is rejected before billing or any AI service is called', async 
     headers: {},
     body: {
       message: 'سلام',
-      clientMessageId: 'guest-message-1'
+      clientMessageId: 'unauthenticated-message-1'
     }
   };
   const res = createJsonResponse();

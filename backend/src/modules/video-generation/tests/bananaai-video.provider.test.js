@@ -48,7 +48,7 @@ test('the product registry exposes exactly one active private I2V model and it i
   assert.equal(active[0].internalKey, BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY);
   assert.equal(active[0].providerModelId, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID);
   assert.equal(active[0].isPublic, false);
-  assert.deepEqual(active[0].allowedDurations, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+  assert.deepEqual(active[0].allowedDurations, Array.from({ length: 15 }, (_, index) => index + 1));
   assert.deepEqual(active[0].allowedAspectRatios, ['16:9', '9:16', '1:1']);
   assert.deepEqual(active[0].allowedResolutions, ['480p']);
 });
@@ -60,7 +60,7 @@ test('BananaAI refuses undocumented negative prompt and arbitrary missing I2V me
   await assert.rejects(provider.submit(input({ capability: 'video.image_to_video', providerModelId: 'seedance-2', providerInputUrl: 'https://media.example.test/input.jpg' })), { code: 'VIDEO_PROVIDER_MODEL_INVALID' });
 });
 
-test('only documented 4xx envelopes are confirmed rejections', () => {
+test('documented 4xx statuses are confirmed rejections even with malformed envelopes', () => {
   const confirmed = classifyBananaSubmissionError({ response: { status: 429, data: { error: { code: 'rate_limit_exceeded', message: 'fixture' } } } });
   assert.equal(confirmed.submissionOutcome, 'confirmed_rejected');
   assert.equal(confirmed.code, 'VIDEO_PROVIDER_RATE_LIMITED');
@@ -68,11 +68,18 @@ test('only documented 4xx envelopes are confirmed rejections', () => {
   const credits = classifyBananaSubmissionError({ response: { status: 403, data: { error: { code: 'insufficient_credits', message: 'fixture' } } } });
   assert.equal(credits.code, 'VIDEO_PROVIDER_INSUFFICIENT_CREDITS');
   const malformed = classifyBananaSubmissionError({ response: { status: 429, data: { message: 'fixture' } } });
-  assert.equal(malformed.submissionOutcome, 'ambiguous');
+  assert.equal(malformed.submissionOutcome, 'confirmed_rejected');
   const server = classifyBananaSubmissionError({ response: { status: 503, data: { error: { code: 'internal_error', message: 'fixture' } } } });
   assert.equal(server.submissionOutcome, 'ambiguous');
   const timeout = classifyBananaSubmissionError(Object.assign(new Error('fixture'), { code: 'ETIMEDOUT' }));
   assert.equal(timeout.submissionOutcome, 'ambiguous');
+});
+
+test('validation status 422 is a confirmed rejection even with a non-standard error body', () => {
+  const rejected = classifyBananaSubmissionError({ response: { status: 422, data: { message: 'duration is not supported' } } });
+  assert.equal(rejected.submissionOutcome, 'confirmed_rejected');
+  assert.equal(rejected.code, 'VIDEO_PROVIDER_CONFIRMED_REJECTION');
+  assert.deepEqual(rejected.details, { status: 422, providerCode: 'confirmed_rejection' });
 });
 
 test('provider rejects an over-budget compiled prompt before making HTTP calls', async () => {

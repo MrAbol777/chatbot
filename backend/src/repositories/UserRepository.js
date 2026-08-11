@@ -81,12 +81,10 @@ class UserRepository {
     const nextAge = sanitizeAge(profile.age);
     const nextPhone = sanitizePhone(profile.phone);
 
-    const isIncomingGuestId = incomingId.startsWith('guest:');
-    const userId = nextPhone
-      ? generateUserId({ isGuest: false })
-      : isIncomingGuestId
-        ? incomingId
-        : generateUserId({ isGuest: true });
+    if (!nextPhone) {
+      throw new Error('PHONE_REQUIRED_FOR_USER');
+    }
+    const userId = generateUserId();
 
     const [byIdRows] = incomingId
       ? await this.db.query('SELECT * FROM app_users WHERE user_id = ? LIMIT 1', [incomingId])
@@ -159,7 +157,7 @@ class UserRepository {
       return existing.guardian_id;
     }
 
-    const guardianId = generateUserId({ isGuest: false });
+    const guardianId = generateUserId();
     await this.db.query(
       'INSERT INTO app_guardians (guardian_id, phone, display_name, created_at, updated_at) VALUES (?, ?, NULL, ?, ?)',
       [guardianId, normalizedPhone, timestamp, timestamp]

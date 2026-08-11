@@ -130,7 +130,6 @@ CREATE TABLE IF NOT EXISTS app_app_errors (
 CREATE TABLE IF NOT EXISTS app_conversations (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id VARCHAR(191) NOT NULL,
-  guest_id VARCHAR(64) NULL,
   conversation_id VARCHAR(191) NOT NULL,
   title VARCHAR(255) NULL,
   generated_title VARCHAR(255) NULL,
@@ -147,7 +146,6 @@ CREATE TABLE IF NOT EXISTS app_conversations (
   updated_at DATETIME NOT NULL,
   UNIQUE KEY uq_app_conversations_user_conversation (user_id, conversation_id),
   INDEX idx_app_conversations_user_id (user_id),
-  INDEX idx_app_conversations_guest_id (guest_id),
   INDEX idx_app_conversations_updated_at (updated_at),
   INDEX idx_app_conversations_title_generation (title_generation_status, updated_at),
   CONSTRAINT fk_app_conversations_user
@@ -156,24 +154,10 @@ CREATE TABLE IF NOT EXISTS app_conversations (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS guest_message_counts (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  guest_id VARCHAR(64) NOT NULL,
-  ip_address VARCHAR(64) NOT NULL,
-  message_count INT NOT NULL DEFAULT 0,
-  created_at DATETIME NOT NULL,
-  last_message_at DATETIME NOT NULL,
-  UNIQUE KEY uq_guest_message_counts_guest_ip (guest_id, ip_address),
-  INDEX idx_guest_message_counts_guest_id (guest_id),
-  INDEX idx_guest_message_counts_ip_address (ip_address),
-  INDEX idx_guest_message_counts_last_message_at (last_message_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 CREATE TABLE IF NOT EXISTS app_chat_messages (
   message_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  user_id VARCHAR(191) NULL,
-  guest_id VARCHAR(64) NULL,
-  user_type VARCHAR(32) NOT NULL,
+  user_id VARCHAR(191) NOT NULL,
+  user_type VARCHAR(32) NOT NULL DEFAULT 'registered',
   conversation_id VARCHAR(191) NOT NULL,
   turn_id VARCHAR(64) NULL,
   role ENUM('user', 'assistant') NOT NULL,
@@ -182,10 +166,8 @@ CREATE TABLE IF NOT EXISTS app_chat_messages (
   response_time_ms INT NULL,
   token_usage JSON NULL,
   error_code VARCHAR(100) NULL,
-  limit_status VARCHAR(100) NULL,
   created_at DATETIME NOT NULL,
   INDEX idx_chat_messages_user_id (user_id),
-  INDEX idx_chat_messages_guest_id (guest_id),
   INDEX idx_chat_messages_conversation (conversation_id),
   INDEX idx_chat_messages_created_at (created_at),
   INDEX idx_chat_messages_role (role),
@@ -204,7 +186,6 @@ CREATE TABLE IF NOT EXISTS app_chat_turns (
   model VARCHAR(191) NULL,
   token_usage JSON NULL,
   error_code VARCHAR(100) NULL,
-  quota_charged TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   completed_at DATETIME NULL,

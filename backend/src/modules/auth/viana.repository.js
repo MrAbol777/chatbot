@@ -97,7 +97,7 @@ function createVianaRepository({ db, now = () => new Date() }) {
         return result;
       }
 
-      const userId = generateUserId({ isGuest: false });
+const userId = generateUserId();
       const timestamp = now();
       await connection.query(
         `INSERT INTO app_users (user_id, name, age, phone, is_banned, registered_at, last_active)

@@ -93,9 +93,6 @@ const createRouter = (overrides = {}) =>
     sessionRepository: {
       create: async () => ({ rawToken: 'local-session', csrfToken: 'csrf' })
     },
-    guestsRepository: {
-      migrateGuestToUser: async () => ({ migratedConversations: 0 })
-    },
     ...overrides
   });
 

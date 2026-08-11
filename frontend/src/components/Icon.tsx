@@ -7,6 +7,7 @@ export type IconName =
   | 'chat-bubble'
   | 'chat-dots'
   | 'grid'
+  | 'sidebar'
   | 'send'
   | 'sparkle'
   | 'mic'
@@ -14,6 +15,7 @@ export type IconName =
   | 'search'
   | 'settings'
   | 'credit-card'
+  | 'copy'
   | 'upload'
   | 'retry'
   | 'spinner'
@@ -92,6 +94,9 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
     case 'grid':
       return <svg {...commonProps}><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 8h3v3H8zM13 8h3v3h-3zM8 13h3v3H8zM13 13h3v3h-3z" /></svg>;
 
+    case 'sidebar':
+      return <svg {...commonProps}><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><path d="M15.5 4.5v15M7.5 8h4M7.5 12h4M7.5 16h4" /></svg>;
+
     case 'send':
       return <svg {...commonProps}><path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" /></svg>;
 
@@ -112,6 +117,9 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
 
     case 'credit-card':
       return <svg {...commonProps}><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z" /></svg>;
+
+    case 'copy':
+      return <svg {...commonProps}><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>;
 
     case 'upload':
       return <svg {...commonProps}><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>;

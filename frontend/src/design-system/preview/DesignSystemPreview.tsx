@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Button, Card, Dialog, FieldGroup, InlineMessage, TextAreaField, TextField, useToast } from '../components';
+import { Button, Card, Dialog, FieldGroup, InlineMessage, TextAreaField, TextField, useNotification } from '../components';
+import Icon from '../../components/Icon';
 
 function DesignSystemPreview() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<'energy' | 'calm'>('energy');
-  const { pushToast } = useToast();
+  const { notify, confirm, prompt } = useNotification();
 
   const switchTheme = (nextTheme: 'energy' | 'calm') => {
     document.documentElement.setAttribute('data-theme', nextTheme);
@@ -33,7 +34,7 @@ function DesignSystemPreview() {
             <Button size="sm">اصلی کوچک</Button>
             <Button size="md">اصلی متوسط</Button>
             <Button size="lg">اصلی بزرگ</Button>
-            <Button iconOnly aria-label="تنظیمات" title="تنظیمات">⚙️</Button>
+            <Button iconOnly aria-label="تنظیمات" title="تنظیمات"><Icon name="settings" size={18} aria-hidden="true" /></Button>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <Button>اصلی</Button>
@@ -44,11 +45,31 @@ function DesignSystemPreview() {
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <Button onClick={() => setOpen(true)}>نمایش مودال</Button>
-            <Button variant="secondary" onClick={() => pushToast('نمونه پیام اطلاع رسانی')}>
-              Toast پیش فرض
+            <Button variant="secondary" onClick={() => notify.info('این یک پیام اطلاع‌رسانی است', { title: 'اطلاع' })}>
+              Toast اطلاع
             </Button>
-            <Button variant="danger" onClick={() => pushToast('خطا در ذخیره اطلاعات', 'danger')}>
+            <Button onClick={() => notify.success('عملیات با موفقیت انجام شد', { title: 'موفق' })}>
+              Toast موفق
+            </Button>
+            <Button onClick={() => notify.warning('این کار ممکن است با ریسک همراه باشد', { title: 'هشدار' })}>
+              Toast هشدار
+            </Button>
+            <Button variant="danger" onClick={() => notify.error('خطا در ذخیره اطلاعات', { title: 'خطا' })}>
               Toast خطا
+            </Button>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <Button variant="secondary" onClick={async () => {
+              const ok = await confirm({ message: 'این عملیات انجام شود؟', confirmText: 'انجام', cancelText: 'لغو' });
+              if (ok) notify.success('تایید شد');
+            }}>
+              Confirm
+            </Button>
+            <Button variant="secondary" onClick={async () => {
+              const value = await prompt({ message: 'کد را وارد کنید', placeholder: 'مثال: 1234', confirmText: 'ارسال' });
+              if (value) notify.info(`مقدار واردشده: ${value}`);
+            }}>
+              Prompt
             </Button>
           </div>
         </div>
@@ -124,9 +145,9 @@ function FormValidationExample() {
           )}
 
           {!errors.mobile && !success && mobile && (
-            <InlineMessage 
-              text="شماره موبایل باید با 09 شروع شود و 11 رقم باشد" 
-              variant="help" 
+            <InlineMessage
+              text="شماره موبایل باید با 09 شروع شود و 11 رقم باشد"
+              variant="info"
             />
           )}
 

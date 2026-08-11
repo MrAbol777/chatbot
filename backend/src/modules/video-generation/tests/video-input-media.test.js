@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createVideoProviderInputGateway } = require('../input-media/video-provider-input.gateway');
+const { createVideoInputMediaRepository } = require('../input-media/video-input-media.repository');
 const { validateVideoInputImage } = require('../input-media/video-input-media.validator');
 
 test('provider input token is opaque, attempt-bound and HMAC authenticated', () => {
@@ -43,4 +44,20 @@ test('input media validation requires MIME and magic-byte agreement', () => {
   assert.deepEqual(validateVideoInputImage(png, 'image/png', 1024), { mimeType: 'image/png', sizeBytes: png.length });
   assert.throws(() => validateVideoInputImage(png, 'image/jpeg', 1024), { code: 'VIDEO_INPUT_MEDIA_TYPE_INVALID' });
   assert.throws(() => validateVideoInputImage(png, 'image/png', 4), { code: 'VIDEO_INPUT_MEDIA_SIZE_INVALID' });
+});
+
+test('provider input lookup remains capability-bound without racing job terminal state', async () => {
+  let queryText = '';
+  const repository = createVideoInputMediaRepository({
+    async query(sql) {
+      queryText = sql;
+      return [[{ id: 'media-1', status: 'bound' }]];
+    }
+  });
+  const row = await repository.getForProvider({ mediaId: 'media-1', jobId: 'job-1', attemptId: 'attempt-1' });
+  assert.equal(row.id, 'media-1');
+  assert.match(queryText, /m\.status='bound'/);
+  assert.match(queryText, /m\.expires_at>NOW\(\)/);
+  assert.doesNotMatch(queryText, /g\.status IN/);
+  assert.doesNotMatch(queryText, /a\.state IN/);
 });

@@ -6,7 +6,7 @@ const { fetchValidatedResult, validateProviderBaseUrl } = require('./provider-re
 const { createVideoResultUrlValidator } = require('../storage/video-result-url-validator');
 const { BANANAAI_MODEL_IDS, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID } = require('../video-model.registry');
 
-const CONFIRMED_REJECTION_STATUSES = new Set([400, 401, 403, 429]);
+const CONFIRMED_REJECTION_STATUSES = new Set([400, 401, 403, 409, 422, 429]);
 const CAPABILITIES = Object.freeze(['video.text_to_video', 'video.image_to_video']);
 const REJECTION_CODES = Object.freeze({
   invalid_request: 'VIDEO_PROVIDER_INVALID_REQUEST',
@@ -35,8 +35,10 @@ function bananaSubmissionError(code, message, outcome, details = {}) {
 function classifyBananaSubmissionError(error) {
   const status = Number(error?.response?.status || 0);
   const body = error?.response?.data;
-  if (CONFIRMED_REJECTION_STATUSES.has(status) && validErrorEnvelope(body)) {
-    const providerCode = String(body.error.code).trim().toLowerCase();
+  if (CONFIRMED_REJECTION_STATUSES.has(status)) {
+    const providerCode = validErrorEnvelope(body)
+      ? String(body.error.code).trim().toLowerCase()
+      : String(body?.code || body?.error?.code || 'confirmed_rejection').trim().toLowerCase().slice(0, 80);
     const code = REJECTION_CODES[providerCode] || 'VIDEO_PROVIDER_CONFIRMED_REJECTION';
     return bananaSubmissionError(code, 'BananaAI rejected the request.', 'confirmed_rejected', { status, providerCode });
   }

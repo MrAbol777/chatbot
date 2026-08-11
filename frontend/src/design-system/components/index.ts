@@ -4,4 +4,14 @@ export { default as Dialog } from './Dialog';
 export { default as FieldGroup } from './FieldGroup';
 export { default as InlineMessage } from './InlineMessage';
 export { TextField, TextAreaField } from './TextField';
-export { ToastProvider, useToast } from './Toast';
+export {
+  ToastProvider,
+  useNotification,
+  useToast,
+  type NotificationVariant,
+  type NotifyApi,
+  type NotifyOptions,
+  type ConfirmOptions,
+  type ConfirmVariant,
+  type PromptOptions
+} from './Toast';

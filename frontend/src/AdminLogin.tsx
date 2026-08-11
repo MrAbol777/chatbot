@@ -38,30 +38,32 @@ function AdminLogin({ onLoginSuccess }: Props) {
   };
 
   return (
-    <Card style={{ maxWidth: 420, margin: '60px auto' }}>
-      <h2 style={{ marginTop: 0 }}>ورود ادمین</h2>
-      <form onSubmit={handleSubmit}>
-        <FieldGroup direction="column">
-          <TextField 
-            label="نام کاربری" 
-            value={username} 
-            onChange={(event) => setUsername(event.target.value)} 
-          />
-          
-          <TextField
-            label="رمز عبور"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            errorText={error || undefined}
-          />
+    <main className="admin-login-page">
+      <Card className="admin-login-card">
+        <h2 style={{ marginTop: 0 }}>ورود ادمین</h2>
+        <form onSubmit={handleSubmit}>
+          <FieldGroup direction="column">
+            <TextField
+              label="نام کاربری"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+            />
 
-          <Button type="submit" disabled={loading}>
-            {loading ? 'در حال ورود...' : 'ورود'}
-          </Button>
-        </FieldGroup>
-      </form>
-    </Card>
+            <TextField
+              label="رمز عبور"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              errorText={error || undefined}
+            />
+
+            <Button type="submit" disabled={loading}>
+              {loading ? 'در حال ورود...' : 'ورود'}
+            </Button>
+          </FieldGroup>
+        </form>
+      </Card>
+    </main>
   );
 }
 

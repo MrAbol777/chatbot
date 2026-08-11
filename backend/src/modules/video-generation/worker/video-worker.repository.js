@@ -217,8 +217,19 @@ function createVideoWorkerRepository(db, { faultInjector, claimProvider = null, 
       await ensureExpectedLease(job, workerId);
       const attempt = await getLockedAttempt(connection, job.provider_attempt_id);
       if (job.status !== 'submitting' || !['submitting', 'planned'].includes(attempt.state)) throw new VideoWorkerRepositoryError('VIDEO_SUBMIT_STATE_CONFLICT');
-      await connection.query("UPDATE app_ai_provider_attempts SET state='ambiguous',error_code=?,safe_error_summary='وضعیت پذیرش درخواست Provider نامعلوم است.',submit_finished_at=NOW(),updated_at=NOW() WHERE attempt_id=?", [safeText(errorCode, 100), attempt.attempt_id]);
-      await connection.query("UPDATE app_video_generations SET status='provider_status_unknown',safe_error_code=?,safe_error_message='وضعیت پذیرش درخواست Provider نامعلوم است و نیازمند بررسی مدیر است.',worker_lease_owner=NULL,worker_lease_until=NULL,updated_at=NOW() WHERE id=? AND status='submitting'", [safeText(errorCode, 100), job.id]);
+      // A response without a definitive provider task ID cannot be polled or
+      // safely recovered.  Do not strand the user in an admin-only state:
+      // fail this attempt, release the reservation atomically, and let the
+      // user submit again immediately.
+      await connection.query("UPDATE app_ai_provider_attempts SET state='failed',error_code=?,safe_error_summary='پاسخ قطعی از سرویس ساخت ویدیو دریافت نشد.',submit_finished_at=NOW(),updated_at=NOW() WHERE attempt_id=?", [safeText(errorCode, 100), attempt.attempt_id]);
+      await noaBillingService.release(getNoaReservationId(job), {
+        connection,
+        reason: 'provider_submission_ambiguous',
+        actorType: 'system',
+        actorId: 'video-worker',
+        metadata: { generationId: job.id, errorCode: safeText(errorCode, 100) }
+      });
+      await connection.query("UPDATE app_video_generations SET status='failed',safe_error_code=?,safe_error_message='پاسخ قطعی از سرویس ساخت ویدیو دریافت نشد؛ نوآی رزروشده بازگشت. می‌توانید دوباره تلاش کنید.',failed_at=NOW(),worker_lease_owner=NULL,worker_lease_until=NULL,updated_at=NOW() WHERE id=? AND status='submitting'", [safeText(errorCode, 100), job.id]);
       return true;
     }),
     rejectSubmissionAndRoute: async ({ jobId, workerId, errorCode, errorMessage }) => inTransaction(async (connection) => {

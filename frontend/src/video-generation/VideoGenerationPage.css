@@ -29,6 +29,62 @@
 @media (max-width: 560px) { .video-generation-page { padding-inline: 12px; }.video-generation-page__header { margin-top: 10px; padding: 9px 12px; border-radius: 16px; }.video-generation-page__brand small { display: none; }.video-generation-page__back { min-width: 44px; padding-inline: 9px; font-size: .72rem; }.video-generation-tabs { width: 100%; margin-bottom: 18px; }.video-prompt-card, .video-settings-card, .video-gallery { border-radius: 20px; }.video-prompt-card { padding: 18px 14px; }.video-settings-card, .video-gallery { padding: 18px 14px; }.video-style-step,.video-review{padding:20px 14px;border-radius:20px}.video-style-grid{grid-template-columns:1fr}.video-style-card{min-height:150px;grid-template-columns:58px 1fr 24px;padding:16px}.video-style-card__visual{width:58px;height:76px}.video-review dl>div{grid-template-columns:1fr;gap:4px}.video-review>div{display:grid;grid-template-columns:1fr}.video-selected-style{grid-template-columns:38px 1fr}.video-selected-style button{grid-column:1/-1}.video-submit-dock--split{grid-template-columns:1fr}.video-gallery__header { align-items: start; flex-direction: column; margin-bottom: 18px; }.video-gallery__refresh { width: 100%; }.video-gallery__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }.video-gallery-card { gap: 8px; padding: 8px; border-radius: 15px; }.video-gallery-card__visual { min-height: 112px; }.video-gallery-card__visual svg { width: 42px; height: 42px; padding: 9px; }.video-gallery-card__top { align-items: start; flex-direction: column; gap: 4px; }.video-gallery-card strong { font-size: .77rem; }.video-textarea-wrap textarea { min-height: 154px; }.video-option-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }.video-option-cards button { min-height: 94px; grid-template-columns: 1fr; grid-template-rows: 34px auto auto; justify-items: center; padding: 8px 5px; }.video-option-cards button > span:not(.video-ratio-shape), .video-option-cards button > small { grid-column: 1; }.video-option-cards button > span:not(.video-ratio-shape) { grid-row: 2; }.video-option-cards button > small { grid-row: 3; }.video-option-cards button b { position: absolute; top: 6px; left: 6px; }.video-ratio-shape { grid-column: 1; grid-row: 1; }.video-submit-dock { position: sticky; z-index: 5; bottom: 8px; padding: 9px 2px 2px; background: linear-gradient(180deg, transparent, var(--color-surface) 36%); }.video-active-status { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .video-generation-page__shell, .video-gallery { animation: none; }.video-status__spinner { animation-duration: .001ms; }.video-generation-page *, .video-generation-page *::before, .video-generation-page *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; } }
 
+/* Keep the video studio header on the same centered three-column grid as the other studios. */
+.video-generation-page__header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  min-height: 64px;
+  padding: 9px 12px;
+  background: color-mix(in srgb, var(--color-surface-2) 94%, white);
+}
+
+.video-generation-page__brand {
+  grid-column: 2;
+  justify-self: center;
+  min-width: 0;
+}
+
+.video-generation-page__brand > span:last-child { text-align: center; }
+
+.video-generation-page__back {
+  grid-column: 1;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.video-generation-page__back svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.video-generation-page__back-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.video-generation-page__header-spacer { grid-column: 3; width: 44px; height: 44px; }
+
+@media (max-width: 560px) {
+  .video-generation-page__header { min-height: 60px; padding: 8px; }
+  .video-generation-page__brand small { display: none; }
+}
+
 /* Refined image input, duration, and output controls. */
 .video-prompt-card { background: linear-gradient(155deg, var(--color-surface) 72%, color-mix(in srgb, var(--color-primary) 4%, var(--color-surface))); }
 .video-media-field { gap: 12px; margin-top: 24px; padding: 16px; border-style: solid; border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-border)); background: linear-gradient(145deg, color-mix(in srgb, var(--color-primary) 4%, var(--color-surface)), var(--color-surface)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-surface) 80%, transparent); }
@@ -146,4 +202,191 @@
 @media (max-width: 560px) {
   .video-generation-page__back { font-size: .875rem; }
   .video-gallery-card strong { font-size: .875rem; }
+}
+
+main.video-generation-page .video-generation-page__header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--color-surface-2) 94%, white);
+}
+
+main.video-generation-page .video-generation-page__brand {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  min-width: 0;
+}
+
+main.video-generation-page .video-generation-page__brand > span:last-child { text-align: center; }
+
+main.video-generation-page .video-generation-page__back {
+  grid-column: 1;
+  grid-row: 1;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 0;
+}
+
+main.video-generation-page .video-generation-page__header-spacer { grid-column: 3; grid-row: 1; width: 44px; height: 44px; }
+
+/* A style choice is a whole-card radio control: the selected option gets an explicit check. */
+.video-style-card__check {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, var(--color-muted) 48%, var(--color-border));
+  border-radius: 50%;
+  color: transparent;
+  background: transparent;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.video-style-card__check svg { display: block; width: 16px; height: 16px; stroke-width: 2.6; }
+
+.video-style-card.is-selected .video-style-card__check {
+  border-color: var(--color-primary);
+  color: #fff;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+@media (max-width: 560px) {
+  main.video-generation-page .video-generation-page__header { min-height: 64px; padding: 8px; }
+  main.video-generation-page .video-generation-page__brand small { display: none; }
+}
+
+/* Full-page video studio: only individual form sections are surfaces. */
+main.video-generation-page {
+  min-height: 100dvh;
+  padding: 0 0 max(32px, env(safe-area-inset-bottom, 0px));
+  background: var(--color-bg);
+}
+
+main.video-generation-page .video-generation-page__shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  animation: none;
+}
+
+main.video-generation-page .video-generation-page__header {
+  min-height: 72px;
+  margin: 0 0 24px;
+  padding-inline: clamp(16px, 4vw, 64px);
+  border-inline: 0;
+  border-top: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+main.video-generation-page .video-generation-tabs,
+main.video-generation-page .video-generation-workspace {
+  width: min(1320px, calc(100% - clamp(32px, 8vw, 128px)));
+  margin-inline: auto;
+}
+
+@media (max-width: 560px) {
+  main.video-generation-page .video-generation-page__header { padding-inline: 16px; }
+  main.video-generation-page .video-generation-tabs,
+  main.video-generation-page .video-generation-workspace { width: min(100% - 32px, 1320px); }
+}
+
+/* Restore the original video studio header and compact tab layout. */
+main.video-generation-page {
+  padding: 0 clamp(16px, 4vw, 48px) 48px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 6%, var(--color-surface-2)) 0, var(--color-surface-2) 290px);
+}
+
+main.video-generation-page .video-generation-page__shell {
+  width: min(100%, 1320px);
+  margin: 0 auto;
+  animation: video-page-enter .42s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+main.video-generation-page .video-generation-page__header {
+  min-height: 56px;
+  margin: 20px 0 24px;
+  padding: 10px 18px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
+  border-radius: 18px;
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--color-primary) 7%, transparent), inset 0 1px rgba(255, 255, 255, .8);
+}
+
+main.video-generation-page .video-generation-tabs {
+  width: min(100%, 380px);
+  margin: 0 auto 28px;
+}
+
+main.video-generation-page .video-generation-workspace {
+  width: auto;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  main.video-generation-page { padding-inline: 12px; }
+  main.video-generation-page .video-generation-page__header { margin-top: 10px; padding: 9px 12px; border-radius: 16px; }
+  main.video-generation-page .video-generation-tabs { width: 100%; margin-bottom: 18px; }
+}
+
+/* The style picker is a short, decisive step. Keep it as a stable viewport on
+   desktop; subsequent video-form steps intentionally retain normal scrolling. */
+@media (min-width: 681px) and (min-height: 700px) {
+  .app-shell.chat-shell.view-video:has(.video-generation-page--style-selection) {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .chat-shell.view-video:has(.video-generation-page--style-selection) .chat-card,
+  main.video-generation-page--style-selection {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  main.video-generation-page--style-selection {
+    padding-bottom: 0;
+  }
+
+  main.video-generation-page--style-selection .video-generation-page__shell {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  main.video-generation-page--style-selection .video-generation-tabs {
+    flex: 0 0 auto;
+    margin-bottom: clamp(18px, 2.5vh, 28px);
+  }
+
+  main.video-generation-page--style-selection .video-generation-workspace {
+    min-height: 0;
+    display: grid;
+    place-items: start center;
+  }
+
+  main.video-generation-page--style-selection .video-style-step {
+    padding: clamp(24px, 3vh, 32px) clamp(24px, 3vw, 36px);
+    background: linear-gradient(155deg, var(--color-surface), color-mix(in srgb, var(--color-primary) 3%, var(--color-surface)));
+  }
+
+  main.video-generation-page--style-selection .video-style-card.is-selected .video-style-card__copy strong {
+    color: var(--color-primary);
+  }
+
+  main.video-generation-page--style-selection .video-style-step__action button:not(:disabled) {
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--color-primary) 24%, transparent);
+  }
 }

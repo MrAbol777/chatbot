@@ -16,16 +16,15 @@ const sanitizePhone = (value) => {
   return /^09[0-9]{9}$/.test(trimmed) ? trimmed : null;
 };
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const GUEST_USER_PREFIX = 'guest:';
 
 const normalizeUuid = (value) => {
   const text = typeof value === 'string' ? value.trim() : '';
   return UUID_PATTERN.test(text) ? text : '';
 };
 
-const generateUserId = ({ isGuest, uuid } = {}) => {
+const generateUserId = ({ uuid } = {}) => {
   const id = normalizeUuid(uuid) || randomUUID();
-  return isGuest ? `${GUEST_USER_PREFIX}${id}` : id;
+  return id;
 };
 const normalizeConversationId = (value) => (typeof value === 'string' && value.trim() ? value.trim() : 'default');
 const safeJsonArray = (value) => (Array.isArray(value) ? value : []);
@@ -77,7 +76,6 @@ module.exports = {
   sanitizeAge,
   sanitizeName,
   sanitizePhone,
-  GUEST_USER_PREFIX,
   generateUserId,
   normalizeUuid,
   normalizeConversationId,

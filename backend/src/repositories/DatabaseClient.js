@@ -3,15 +3,17 @@ const { ensureNoaSchema } = require('../modules/noa/noa.schema');
 const { ensureAuthSessionSchema } = require('../modules/auth/auth.schema');
 
 class DatabaseClient {
-  constructor({ databaseUrl }) {
+  constructor({ databaseUrl, databaseHost }) {
     if (!databaseUrl || !databaseUrl.startsWith('mysql://')) {
       throw new Error('DATABASE_URL must be set to a valid mysql:// URL');
     }
 
     const parsed = new URL(databaseUrl);
+    this.host = String(databaseHost || parsed.hostname).trim() || parsed.hostname;
+    this.port = parsed.port ? Number(parsed.port) : 3306;
     this.pool = mysql.createPool({
-      host: parsed.hostname,
-      port: parsed.port ? Number(parsed.port) : 3306,
+      host: this.host,
+      port: this.port,
       user: decodeURIComponent(parsed.username),
       password: decodeURIComponent(parsed.password),
       database: parsed.pathname.replace(/^\//, ''),
@@ -28,7 +30,7 @@ class DatabaseClient {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
-      console.log('[DB] Connecting to local MySQL...');
+      console.log(`[DB] Connecting to MySQL at ${this.host}:${this.port}...`);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS app_users (
           user_id VARCHAR(191) PRIMARY KEY,
@@ -114,7 +116,6 @@ class DatabaseClient {
         CREATE TABLE IF NOT EXISTS app_conversations (
           id BIGINT AUTO_INCREMENT PRIMARY KEY,
           user_id VARCHAR(191) NOT NULL,
-          guest_id VARCHAR(64) NULL,
           conversation_id VARCHAR(191) NOT NULL,
           title VARCHAR(255) NULL,
           generated_title VARCHAR(255) NULL,
@@ -135,7 +136,6 @@ class DatabaseClient {
           CONSTRAINT fk_conversations_user FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
-      await this.ensureColumn('app_conversations', 'guest_id', 'VARCHAR(64) NULL AFTER user_id');
       await this.ensureColumn('app_conversations', 'generated_title', 'VARCHAR(255) NULL AFTER title');
       await this.ensureColumn('app_conversations', 'title_source', "ENUM('default','generated','manual') NOT NULL DEFAULT 'default' AFTER generated_title");
       await this.ensureColumn('app_conversations', 'title_generation_status', "ENUM('pending','generating','completed','fallback','failed') NULL DEFAULT NULL AFTER title_source");
@@ -144,16 +144,14 @@ class DatabaseClient {
       await this.ensureColumn('app_conversations', 'title_generation_latency_ms', 'INT NULL AFTER title_generator_version');
       await this.ensureColumn('app_conversations', 'title_generated_at', 'DATETIME NULL AFTER title_generation_latency_ms');
       await this.ensureColumn('app_conversations', 'title_manually_updated_at', 'DATETIME NULL AFTER title_generated_at');
-      await this.ensureIndex('app_conversations', 'idx_app_conversations_guest_id', 'guest_id');
       await this.ensureCompositeIndex('app_conversations', 'idx_app_conversations_title_generation', '`title_generation_status`, `updated_at`');
       await this.ensureCompositeIndex('app_conversations', 'idx_app_conversations_title_source', '`title_source`, `updated_at`');
 
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS app_chat_messages (
           message_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-          user_id VARCHAR(191) NULL,
-          guest_id VARCHAR(64) NULL,
-          user_type VARCHAR(32) NOT NULL,
+          user_id VARCHAR(191) NOT NULL,
+          user_type VARCHAR(32) NOT NULL DEFAULT 'registered',
           conversation_id VARCHAR(191) NOT NULL,
           role ENUM('user', 'assistant') NOT NULL,
           content MEDIUMTEXT NOT NULL,
@@ -163,7 +161,6 @@ class DatabaseClient {
           error_code VARCHAR(100) NULL,
           created_at DATETIME NOT NULL,
           INDEX idx_chat_messages_user_id (user_id),
-          INDEX idx_chat_messages_guest_id (guest_id),
           INDEX idx_chat_messages_conversation (conversation_id),
           INDEX idx_chat_messages_created_at (created_at),
           INDEX idx_chat_messages_role (role)
@@ -218,8 +215,7 @@ class DatabaseClient {
           turn_id VARCHAR(64) NULL,
           attempt_id VARCHAR(64) NULL,
           image_generation_id BIGINT NULL,
-          user_id VARCHAR(191) NULL,
-          guest_id VARCHAR(64) NULL,
+          user_id VARCHAR(191) NOT NULL,
           original_input MEDIUMTEXT NOT NULL,
           optimized_input MEDIUMTEXT NULL,
           source_language VARCHAR(16) NULL,
@@ -376,7 +372,7 @@ class DatabaseClient {
       await ensureNoaSchema(this.pool);
       await ensureAuthSessionSchema(this.pool);
 
-      console.log('[DB] Connected to local MySQL');
+      console.log(`[DB] Connected to MySQL at ${this.host}:${this.port}`);
     })();
 
     return this.initPromise;

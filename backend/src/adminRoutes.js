@@ -937,7 +937,7 @@ function createAdminModule({
         taskId: item.task_id,
         userId: item.user_id,
         user: {
-          name: item.user_name || 'کاربر مهمان',
+      name: item.user_name || 'کاربر',
           phone: item.user_phone || null,
           age: item.user_age ?? null
         },

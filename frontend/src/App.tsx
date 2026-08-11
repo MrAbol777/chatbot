@@ -8,7 +8,7 @@ import {
   getImageGenerationStatusForConversation,
   startImageGeneration
 } from './services/imageGeneration';
-import { Button, Dialog, InlineMessage, TextField, ToastProvider, useToast } from './design-system/components';
+import { Button, Dialog, InlineMessage, TextField, useNotification } from './design-system/components';
 import EmptyState from './components/EmptyState';
 import Icon from './components/Icon';
 import type { IconName } from './components/Icon';
@@ -116,7 +116,7 @@ const removeLegacyLocalDevelopmentCredentials = () => {
 
 type RecordingAction = 'idle' | 'confirm' | 'cancel';
 type LandingStep = 'landing' | 'login' | 'signup' | 'chat';
-type AppView = 'home' | 'chat' | 'studio' | 'images' | 'video' | 'profile' | 'noa';
+type AppView = 'chat' | 'studio' | 'images' | 'video' | 'profile' | 'noa';
 type PersonalityProfile = {
   interests: string[];
   preferredStyle: 'formal' | 'casual' | 'playful';
@@ -168,14 +168,13 @@ type PhoneStatusResult = {
 };
 
 const getAppViewFromPath = (pathname: string): AppView => {
-  if (pathname === '/home') return 'home';
   if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
   if (pathname === '/studio') return 'studio';
   if (pathname === '/studio/image' || pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/studio/video') return 'video';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
   if (pathname === '/noa') return 'noa';
-  return 'home';
+  return 'chat';
 };
 const isDesktopChatLayout = () =>
   typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
@@ -1178,10 +1177,21 @@ function ChatApp() {
   const [profile, setProfile] = useState<AppProfile | null>(() => (typeof window === 'undefined' ? null : loadProfile()));
   const [landingStep, setLandingStep] = useState<LandingStep>('landing');
   const [currentView, setCurrentView] = useState<AppView>(() =>
-    typeof window === 'undefined' ? 'home' : getAppViewFromPath(window.location.pathname)
+    typeof window === 'undefined' ? 'chat' : getAppViewFromPath(window.location.pathname)
   );
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
   const [hasCookieSession, setHasCookieSession] = useState(false);
+
+  useEffect(() => {
+    if (!hasCheckedSession || currentView === 'chat') return;
+    const frame = window.requestAnimationFrame(() => {
+      const destination = document.querySelector<HTMLElement>(`.chat-shell.view-${currentView} main`);
+      if (!destination) return;
+      destination.tabIndex = -1;
+      destination.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentView, hasCheckedSession]);
   const [vianaEnabled, setVianaEnabled] = useState(false);
   const [vianaRedirecting, setVianaRedirecting] = useState(false);
   const [vianaNotice, setVianaNotice] = useState<AuthNotice | undefined>();
@@ -1214,13 +1224,33 @@ function ChatApp() {
   const conversationSearchInputRef = useRef<HTMLInputElement>(null);
   const conversationSearchToggleRef = useRef<HTMLButtonElement>(null);
   const chatSidebarToggleRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!conversationSearchOpen) return;
+
+    const focusFrame = window.requestAnimationFrame(() => conversationSearchInputRef.current?.focus());
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setConversationSearchOpen(false);
+      setConversationSearchTerm('');
+      window.requestAnimationFrame(() => conversationSearchToggleRef.current?.focus());
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [conversationSearchOpen]);
+
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsAuthModal, setShowSettingsAuthModal] = useState(false);
   const [profileFormName, setProfileFormName] = useState('');
   const [profileFormAge, setProfileFormAge] = useState('');
   const [profileFormErrors, setProfileFormErrors] = useState<{ name?: string; age?: string }>({});
   const [, setTheme] = useState<'energy' | 'calm'>('energy');
-  const { pushToast } = useToast();
+  const { notify, confirm } = useNotification();
 
   useEffect(() => {
     if (verificationRetrySeconds <= 0) return;
@@ -1262,7 +1292,13 @@ function ChatApp() {
     try { return !!localStorage.getItem('chat_auth_token'); } catch { return false; }
   })();
   const noaWallet = useNoaWallet(Boolean(profile?.id && hasAuthToken));
+  const [noaRefreshVersion, setNoaRefreshVersion] = useState(0);
   const noaNotificationUserRef = useRef<string | null>(null);
+
+  const refreshNoaWorkspace = async () => {
+    await noaWallet.refresh();
+    setNoaRefreshVersion((current) => current + 1);
+  };
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 1024px)');
@@ -1300,12 +1336,24 @@ function ChatApp() {
     const userKey = profile?.id ? String(profile.id) : '';
     if (!userKey || !hasAuthToken || noaNotificationUserRef.current === userKey) return;
     noaNotificationUserRef.current = userKey;
-    void fetchPendingNoaNotifications()
-      .then((items) => items.forEach((item) => pushToast(item.message, 'default', 'مدیریت نوآ')))
-      .catch(() => {
-        // Notifications are supplementary; a temporary failure must not block chat.
-      });
-  }, [hasAuthToken, profile?.id, pushToast]);
+    let active = true;
+    const deliverNoaNotifications = () => {
+      void fetchPendingNoaNotifications()
+        .then((items) => {
+          if (active) items.forEach((item) => notify.info(item.message, { title: 'مدیریت نوآ' }));
+        })
+        .catch(() => {
+          // Notifications are supplementary; a temporary failure must not block chat.
+        });
+    };
+    deliverNoaNotifications();
+    const intervalId = window.setInterval(deliverNoaNotifications, 30000);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      if (noaNotificationUserRef.current === userKey) noaNotificationUserRef.current = '';
+    };
+  }, [hasAuthToken, profile?.id, notify]);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -1572,9 +1620,7 @@ function ChatApp() {
   };
 
   const navigateToView = (view: AppView, mode: 'push' | 'replace' = 'push') => {
-    const nextPath = view === 'home'
-      ? '/home'
-      : view === 'studio'
+    const nextPath = view === 'studio'
         ? '/studio'
         : view === 'video'
           ? '/studio/video'
@@ -1650,10 +1696,6 @@ function ChatApp() {
       return;
     }
     navigateToView('chat');
-  };
-
-  const handleGoToHome = () => {
-    navigateToView('home');
   };
 
   const handleOpenNoaWallet = () => {
@@ -1774,10 +1816,6 @@ function ChatApp() {
           setRegistrationStep(1);
           setLandingStep('signup');
         } else {
-          if (window.location.pathname === '/home') {
-            window.location.replace('/');
-            return;
-          }
           if (profileData && !storedAuthToken) localStorage.removeItem(PROFILE_KEY);
           setLandingStep('landing');
         }
@@ -1814,9 +1852,12 @@ function ChatApp() {
   useEffect(() => {
     if (!profile || !vianaNotice || vianaNotice === 'success') return;
     const message = authNoticeMessage(vianaNotice);
-    if (message) pushToast(message.text, message.variant === 'error' ? 'warning' : 'success');
+    if (message) {
+      if (message.variant === 'error') notify.error(message.text);
+      else notify.info(message.text);
+    }
     setVianaNotice(undefined);
-  }, [profile, pushToast, vianaNotice]);
+  }, [profile, notify, vianaNotice]);
 
   useEffect(() => {
     const refreshVianaAvailability = () => {
@@ -1831,7 +1872,7 @@ function ChatApp() {
   useEffect(() => {
     const handlePopState = () => {
       const pathname = window.location.pathname;
-      if (pathname === '/' || pathname === '/home' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname) || pathname === '/studio' || pathname === '/studio/image' || pathname === '/studio/video' || pathname === '/images' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings' || pathname === '/noa') {
+      if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname) || pathname === '/studio' || pathname === '/studio/image' || pathname === '/studio/video' || pathname === '/images' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings' || pathname === '/noa') {
         const nextView = getAppViewFromPath(pathname);
         setCurrentView(nextView);
         setActiveConversationId(getConversationIdFromPath(pathname));
@@ -2093,11 +2134,10 @@ function ChatApp() {
       recordingActionRef.current = 'cancel';
       setIsRecording(false);
       releaseMicStream();
-      pushToast(
+      notify.error(
         event.error === 'not-allowed' || event.error === 'service-not-allowed'
           ? 'اجازه دسترسی به میکروفن داده نشد. لطفاً دسترسی میکروفن را در مرورگر فعال کن.'
-          : 'دسترسی به میکروفن برقرار نشد. لطفاً دوباره تلاش کن.',
-        'danger'
+          : 'دسترسی به میکروفن برقرار نشد. لطفاً دوباره تلاش کن.'
       );
     };
 
@@ -2109,7 +2149,7 @@ function ChatApp() {
         } catch {
           keepRecordingRef.current = false;
           setIsRecording(false);
-          pushToast('ضبط برای مدت طولانی ادامه پیدا نکرد. لطفاً دوباره تلاش کن.', 'warning');
+          notify.warning('ضبط برای مدت طولانی ادامه پیدا نکرد. لطفاً دوباره تلاش کن.');
           return;
         }
       }
@@ -2142,7 +2182,7 @@ function ChatApp() {
       releaseMicStream();
       recognitionRef.current = null;
     };
-  }, [pushToast]);
+  }, [notify]);
 
   const updateConversation = (conversationId: string, updater: (conversation: Conversation) => Conversation) => {
     setConversations((prev) =>
@@ -2162,11 +2202,11 @@ function ChatApp() {
   const saveManualTitle = async (conversationId: string, value: string) => {
     const title = value.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
     if (!title) {
-      pushToast('عنوان نمی‌تواند خالی باشد.', 'warning');
+      notify.warning('عنوان نمی‌تواند خالی باشد.');
       return false;
     }
     if (title.length > 40) {
-      pushToast('عنوان حداکثر ۴۰ کاراکتر است.', 'warning');
+      notify.warning('عنوان حداکثر ۴۰ کاراکتر است.');
       return false;
     }
     try {
@@ -2174,7 +2214,7 @@ function ChatApp() {
       updateConversation(conversationId, (item) => ({ ...item, title: result.title, updatedAt: new Date().toISOString() }));
       return true;
     } catch (error) {
-      pushToast(error instanceof Error ? error.message : 'ذخیره عنوان انجام نشد.', 'warning');
+      notify.warning(error instanceof Error ? error.message : 'ذخیره عنوان انجام نشد.');
       return false;
     }
   };
@@ -2223,7 +2263,7 @@ function ChatApp() {
       navigateToConversation(created.id, 'replace');
       return created;
     } catch (error) {
-      pushToast(error instanceof Error ? error.message : 'ساخت گفتگوی جدید انجام نشد.', 'warning');
+      notify.warning(error instanceof Error ? error.message : 'ساخت گفتگوی جدید انجام نشد.');
       return ensureConversation();
     }
   };
@@ -2292,7 +2332,7 @@ function ChatApp() {
             status: 'COMPLETED',
             images: [{ url: imageUrl, alt: prompt }]
           });
-          pushToast('عکس با موفقیت ساخته شد', 'success');
+          notify.success('عکس با موفقیت ساخته شد');
           return;
         }
 
@@ -2304,7 +2344,7 @@ function ChatApp() {
             status: 'ERROR',
             images: undefined
           });
-          pushToast(errorMessage, 'danger');
+          notify.error(errorMessage);
           return;
         }
 
@@ -2378,7 +2418,8 @@ function ChatApp() {
     }
     if (shouldReturnToSettings) {
       setShowSettingsAuthModal(false);
-      setShowProfileModal(true);
+      setShowProfileModal(false);
+      navigateToView('profile', 'replace');
       return;
     }
 
@@ -2657,7 +2698,7 @@ function ChatApp() {
       });
     } catch (error) {
       if (!(error instanceof Error && (error as Error & { streamHandled?: boolean }).streamHandled)) {
-        pushToast(error instanceof Error ? error.message : 'تلاش مجدد ناموفق بود.', 'warning');
+        notify.warning(error instanceof Error ? error.message : 'تلاش مجدد ناموفق بود.');
       }
     } finally {
       sendInFlightRef.current = false;
@@ -2697,7 +2738,7 @@ function ChatApp() {
       id: generateMessageId('user'),
       role: 'user',
       type: 'text',
-      content: content || '📷 عکس ارسال شد',
+      content: content || 'تصویر ارسال شد',
       timestamp: new Date().toISOString(),
       images: previewImages.length > 0 ? previewImages : undefined
     };
@@ -2751,7 +2792,7 @@ function ChatApp() {
             })),
             ...prev
           ]);
-          pushToast('آپلود تصویر ناموفق: خطای شبکه', 'danger');
+          notify.error('آپلود تصویر ناموفق: خطای شبکه');
           return;
         }
 
@@ -2765,7 +2806,7 @@ function ChatApp() {
             })),
             ...prev
           ]);
-          pushToast(`آپلود تصویر ناموفق: ${String(uploadError)}`, 'danger');
+          notify.error(`آپلود تصویر ناموفق: ${String(uploadError)}`);
           return;
         }
 
@@ -2786,7 +2827,7 @@ function ChatApp() {
             })),
             ...prev
           ]);
-          pushToast('آپلود تصویر ناموفق: شناسه تصویر دریافت نشد.', 'danger');
+          notify.error('آپلود تصویر ناموفق: شناسه تصویر دریافت نشد.');
           return;
         }
 
@@ -2883,7 +2924,7 @@ function ChatApp() {
         }
 
         if (data.status === 'ERROR') {
-          pushToast(data.assistantText || 'ساخت عکس ناموفق بود', 'warning');
+          notify.warning(data.assistantText || 'ساخت عکس ناموفق بود');
         } else if (imageTaskId) {
           updateImageTaskMessage(currentConversation.id, imageTaskId, {
             type: 'image_loading',
@@ -2893,7 +2934,7 @@ function ChatApp() {
             taskId: imageTaskId
           });
           void pollImageTask(currentConversation.id, imageTaskId, content || 'تصویر ساخته شده');
-          pushToast('درخواست ساخت تصویر ثبت شد', 'success');
+          notify.success('درخواست ساخت تصویر ثبت شد');
         }
         return;
       }
@@ -2929,7 +2970,7 @@ function ChatApp() {
           }));
         }
         if (data.status === 'ERROR') {
-          pushToast(data.assistantText || 'خواندن تصویر ناموفق بود', 'warning');
+          notify.warning(data.assistantText || 'خواندن تصویر ناموفق بود');
         }
         return;
       }
@@ -2963,14 +3004,14 @@ function ChatApp() {
           };
         });
         setInputValue(content);
-        pushToast(requestError.message || 'موجودی نوآ برای این عملیات کافی نیست.', 'warning');
+        notify.warning(requestError.message || 'موجودی نوآ برای این عملیات کافی نیست.');
         void noaWallet.refresh();
         handleOpenNoaWallet();
         return;
       }
 
       if (error instanceof Error && (error as Error & { streamHandled?: boolean }).streamHandled) {
-        pushToast('پاسخ کامل نشد؛ برای تلاش دوباره روی آیکون کنار پیام بزن.', 'warning');
+        notify.warning('پاسخ کامل نشد؛ برای تلاش دوباره روی آیکون کنار پیام بزن.');
         return;
       }
 
@@ -2985,11 +3026,6 @@ function ChatApp() {
       const isNetworkError = error instanceof Error && error.message.includes('اتصال به سرور');
       const isTimeoutError = error instanceof Error && error.message.includes('بیش از حد طول کشید');
 
-      let toastType: 'danger' | 'warning' = 'danger';
-      if (isNetworkError || isTimeoutError) {
-        toastType = 'warning';
-      }
-
       const fallbackText =
         error instanceof Error && error.message.trim()
           ? error.message
@@ -3000,12 +3036,15 @@ function ChatApp() {
         timestamp: new Date().toISOString()
       };
 
-      pushToast(
+      const toastMessage =
         isNetworkError ? 'خطای شبکه — لطفاً اتصال اینترنت خود را بررسی کنید و دوباره تلاش کنید' :
         isTimeoutError ? 'درخواست بیش از حد طول کشید. لطفاً دوباره تلاش کنید' :
-        'خطا در دریافت پاسخ — لطفاً دوباره تلاش کنید',
-        toastType
-      );
+        'خطا در دریافت پاسخ — لطفاً دوباره تلاش کنید';
+      if (isNetworkError || isTimeoutError) {
+        notify.warning(toastMessage);
+      } else {
+        notify.error(toastMessage);
+      }
 
       updateConversation(currentConversation.id, (item) => ({
         ...item,
@@ -3045,11 +3084,11 @@ function ChatApp() {
     const next: ImageAttachment[] = [];
     for (const file of selectedFiles) {
       if (!allowedImageTypes.has(file.type)) {
-        pushToast(`فرمت ${file.name} مجاز نیست.`, 'danger');
+        notify.error(`فرمت ${file.name} مجاز نیست.`);
         continue;
       }
       if (file.size > uploadMaxSizeBytes) {
-        pushToast(`حجم ${file.name} بیشتر از ${new Intl.NumberFormat('fa-IR').format(uploadMaxSizeMb)} مگابایت است.`, 'danger');
+        notify.error(`حجم ${file.name} بیشتر از ${new Intl.NumberFormat('fa-IR').format(uploadMaxSizeMb)} مگابایت است.`);
         continue;
       }
       next.push({
@@ -3067,7 +3106,7 @@ function ChatApp() {
     setAttachments((prev) => {
       const merged = [...prev, ...next];
       if (merged.length > uploadMaxFiles) {
-        pushToast(`حداکثر ${new Intl.NumberFormat('fa-IR').format(uploadMaxFiles)} عکس قابل انتخاب است. فقط ${new Intl.NumberFormat('fa-IR').format(uploadMaxFiles)} مورد اول نگه داشته شد.`, 'warning');
+        notify.warning(`حداکثر ${new Intl.NumberFormat('fa-IR').format(uploadMaxFiles)} عکس قابل انتخاب است. فقط ${new Intl.NumberFormat('fa-IR').format(uploadMaxFiles)} مورد اول نگه داشته شد.`);
       }
       const limited = merged.slice(0, uploadMaxFiles);
       const removed = merged.slice(uploadMaxFiles);
@@ -3128,7 +3167,7 @@ function ChatApp() {
           item.id === id ? { ...item, status: 'error' as AttachmentStatus, error: 'آپلود تصویر با خطا مواجه شد.' } : item
         )
       );
-      pushToast('آپلود تصویر ناموفق. لطفاً دوباره تلاش کنید.', 'danger');
+      notify.error('آپلود تصویر ناموفق. لطفاً دوباره تلاش کنید.');
     }
   };
 
@@ -3200,13 +3239,18 @@ function ChatApp() {
     items[nextIndex].focus();
   };
 
-  const handleDeleteConversation = (conversationId: string) => {
+  const handleDeleteConversation = async (conversationId: string) => {
     const target = conversations.find((item) => item.id === conversationId);
     if (!target) {
       return;
     }
 
-    const allowed = window.confirm(`"${target.title}" حذف شود؟`);
+    const allowed = await confirm({
+      message: `«${target.title}» حذف شود؟`,
+      confirmText: 'حذف',
+      cancelText: 'انصراف',
+      variant: 'danger'
+    });
     if (!allowed) {
       return;
     }
@@ -3227,8 +3271,13 @@ function ChatApp() {
     }
   };
 
-  const handleDeleteAllConversations = () => {
-    const confirmed = window.confirm('همه گفتگوها حذف شوند؟ این عمل قابل بازگشت نیست.');
+  const handleDeleteAllConversations = async () => {
+    const confirmed = await confirm({
+      message: 'همه گفتگوها حذف شوند؟ این عمل قابل بازگشت نیست.',
+      confirmText: 'حذف همه',
+      cancelText: 'انصراف',
+      variant: 'danger'
+    });
     if (!confirmed) {
       return;
     }
@@ -3244,7 +3293,7 @@ function ChatApp() {
 
   const handleDownloadActiveConversation = () => {
     if (!activeConversation) {
-      pushToast('گفتگوی فعالی برای ذخیره وجود ندارد.', 'warning');
+      notify.warning('گفتگوی فعالی برای ذخیره وجود ندارد.');
       return;
     }
 
@@ -3271,7 +3320,12 @@ function ChatApp() {
   };
 
   const handleLogout = async () => {
-    const confirmed = window.confirm('از حساب خارج می شوی؟ همه اطلاعات گفتگو پاک می شود.');
+    const confirmed = await confirm({
+      message: 'از حساب خارج می شوی؟ همه اطلاعات گفتگو پاک می شود.',
+      confirmText: 'خروج',
+      cancelText: 'انصراف',
+      variant: 'danger'
+    });
     if (!confirmed) {
       return;
     }
@@ -3329,7 +3383,7 @@ function ChatApp() {
         supportedMimeType: getSupportedRecordingMimeType() || null,
         userAgent: navigator.userAgent
       });
-      pushToast('مرورگر تو از ضبط صدا پشتیبانی نمی کند.', 'warning');
+      notify.warning('مرورگر تو از ضبط صدا پشتیبانی نمی کند.');
       return;
     }
 
@@ -3356,7 +3410,7 @@ function ChatApp() {
           : error instanceof Error && error.message === 'MEDIA_DEVICES_UNSUPPORTED'
             ? 'مرورگر تو دسترسی مستقیم به میکروفن را پشتیبانی نمی کند.'
             : 'فعلاً نتوانستم ضبط را شروع کنم. دوباره امتحان کن.';
-      pushToast(message, 'danger');
+      notify.error(message);
     }
   };
 
@@ -3388,8 +3442,8 @@ function ChatApp() {
  const handleGenerateImageSubmit = async () => {
    const prompt = imageGenPrompt.trim();
    if (!prompt) {
-     pushToast('لطفاً توضیح عکس را بنویس', 'danger');
-     return;
+notify.error('لطفاً توضیح عکس را بنویس');
+      return;
    }
    if (prompt.length < 8) {
      setImageGenError('توضیح تصویر را کمی کامل‌تر بنویس تا نتیجه دقیق‌تر شود.');
@@ -3428,7 +3482,7 @@ function ChatApp() {
      });
      void pollImageTask(currentConversation.id, taskId, prompt);
      setImageGenPrompt('');
-     pushToast('درخواست ساخت تصویر ثبت شد', 'success');
+     notify.success('درخواست ساخت تصویر ثبت شد');
    } catch (error) {
      const message = error instanceof Error ? error.message : 'مشکلی در ساخت عکس پیش آمد.';
      setImageGenError(message);
@@ -3449,9 +3503,9 @@ function ChatApp() {
        ]),
        updatedAt: new Date().toISOString()
      }));
-     pushToast(message, 'danger');
-   } finally {
-     setIsGeneratingImage(false);
+notify.error(message);
+    } finally {
+      setIsGeneratingImage(false);
      setImageGenStatus('');
    }
  };
@@ -3762,6 +3816,7 @@ function ChatApp() {
 
   const shouldShowSendAction = inputValue.trim().length > 0 || attachments.length > 0;
   const canSendMessage = !isRecording && !isSending && shouldShowSendAction;
+  const isEmptyConversation = currentView === 'chat' && !conversationLoadingId && !isSending && visibleMessages.length === 0;
   const imagePromptLength = imageGenPrompt.trim().length;
   const canSubmitImagePrompt = imagePromptLength > 0 && !isGeneratingImage;
   const currentPathname = window.location.pathname;
@@ -3773,6 +3828,109 @@ function ChatApp() {
       <div className="bg-blob blob-yellow" />
       <div className="bg-blob blob-purple" />
       {currentView === 'chat' ? <a className="app-skip-link" href="#chat-messages">رفتن به پیام‌ها</a> : null}
+
+      {currentView === 'chat' && conversationSearchOpen ? (
+        <div
+          className="conversation-search-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            setConversationSearchOpen(false);
+            setConversationSearchTerm('');
+            window.requestAnimationFrame(() => conversationSearchToggleRef.current?.focus());
+          }}
+        >
+          <section
+            id="conversation-search-modal"
+            className="conversation-search-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="conversation-search-modal-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="conversation-search-modal__header">
+              <h2 id="conversation-search-modal-title">جست‌وجوی گفتگوها</h2>
+              <button
+                type="button"
+                className="conversation-search-modal__close"
+                onClick={() => {
+                  setConversationSearchOpen(false);
+                  setConversationSearchTerm('');
+                  window.requestAnimationFrame(() => conversationSearchToggleRef.current?.focus());
+                }}
+                aria-label="بستن جست‌وجوی گفتگوها"
+                title="بستن"
+              >
+                <Icon name="x-close" size={20} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="conversation-search-modal__field" role="search">
+              <Icon name="search" size={20} aria-hidden="true" />
+              <input
+                ref={conversationSearchInputRef}
+                type="search"
+                dir="rtl"
+                value={conversationSearchTerm}
+                onChange={(event) => setConversationSearchTerm(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setConversationSearchOpen(false);
+                    setConversationSearchTerm('');
+                    window.requestAnimationFrame(() => conversationSearchToggleRef.current?.focus());
+                  }
+                }}
+                placeholder="جستجو در عنوان یا متن گفتگو"
+                aria-label="جستجو در گفتگوها"
+              />
+            </div>
+
+            <div className="conversation-search-modal__results" aria-live="polite">
+              <div className="conversation-search-modal__results-heading">
+                <span>{conversationSearchTerm.trim() ? 'نتایج جستجو' : 'گفتگوهای اخیر'}</span>
+                <span>{new Intl.NumberFormat('fa-IR').format(visibleConversations.length)}</span>
+              </div>
+
+              {visibleConversations.length ? (
+                <div className="conversation-search-modal__result-list">
+                  {visibleConversations.map(({ conversation }) => (
+                    <button
+                      key={conversation.id}
+                      type="button"
+                      className="conversation-search-modal__result"
+                      onClick={() => {
+                        setActiveConversationId(conversation.id);
+                        setConversationSearchOpen(false);
+                        setConversationSearchTerm('');
+                        navigateToConversation(conversation.id);
+                      }}
+                    >
+                      <span className="conversation-search-modal__result-icon" aria-hidden="true">
+                        <Icon name="chat-bubble" size={20} />
+                      </span>
+                      <span className="conversation-search-modal__result-copy">
+                        <strong>{conversation.title || DEFAULT_TITLE}</strong>
+                        <small>{getConversationPreview(conversation) || 'بدون پیام'}</small>
+                      </span>
+                      <time dateTime={conversation.updatedAt}>{formatConversationDate(conversation.updatedAt)}</time>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="conversation-search-modal__empty">
+                  <span className="conversation-search-modal__empty-icon" aria-hidden="true">
+                    <Icon name="search" size={22} />
+                  </span>
+                  <strong>گفتگویی پیدا نشد</strong>
+                  <span>عبارت دیگری را امتحان کن.</span>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {imagePreview ? (
         <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="پیش‌نمایش تصویر" onClick={() => setImagePreview(null)}>
@@ -3800,7 +3958,7 @@ function ChatApp() {
         </div>
       ) : null}
 
-      <div className="chat-card">
+      <div className={`chat-card ${isEmptyConversation ? 'chat-card--empty' : ''}`}>
         {/* Warning banner for users logged in without a JWT token (pre-fix session) */}
         {!hasAuthToken && (
           <div className="auth-token-warning" style={{
@@ -3841,18 +3999,6 @@ function ChatApp() {
         <header className="top-bar">
           <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
           <div className="top-bar-main">
-            <button
-              className="chat-conversations-btn"
-              onClick={handleGoToHome}
-              type="button"
-              aria-label="بازگشت به گفتگوهای من"
-              title="بازگشت به گفتگوهای من"
-            >
-              <span className="chat-conversations-icon" aria-hidden="true">
-                <Icon name="chevron-right" size={19} />
-              </span>
-              <span className="chat-conversations-label">گفتگوهای من</span>
-            </button>
             <div className="top-title">
               <div className="top-copy">
                 <div className="top-copy-row chat-title-pill">
@@ -3893,15 +4039,15 @@ function ChatApp() {
           <div className="top-bar-actions">
             <button
               ref={chatSidebarToggleRef}
-              className="header-action-btn header-action-btn-secondary chat-sidebar-btn"
+              className={`header-action-btn header-action-btn-secondary chat-sidebar-btn chat-sidebar-toggle ${sidebarOpen ? 'is-open' : ''}`}
               onClick={handleBackToHome}
               type="button"
               aria-label={sidebarOpen ? 'بستن تاریخچه گفتگوها' : 'باز کردن تاریخچه گفتگوها'}
               aria-expanded={sidebarOpen}
               aria-controls="chat-history-sidebar"
-              title={sidebarOpen ? 'بستن سایدبار' : 'باز کردن سایدبار'}
+              title={sidebarOpen ? 'بستن پنل گفتگوها' : 'باز کردن پنل گفتگوها'}
             >
-              <Icon name="grid" size={21} aria-hidden="true" />
+              <Icon name="sidebar" size={21} aria-hidden="true" />
             </button>
             <button className="header-action-btn header-action-btn-secondary chat-share-btn" type="button" onClick={handleDownloadActiveConversation} aria-label="اشتراک‌گذاری گفتگو" title="اشتراک‌گذاری گفتگو">
               <svg className="header-action-icon chat-header-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
@@ -3910,60 +4056,41 @@ function ChatApp() {
         </header>
         ) : null}
 
-        {currentView === 'chat' || currentView === 'home' ? (
+        {currentView === 'chat' ? (
         <aside
           id="chat-history-sidebar"
-          className={`sidebar conversation-home chat-history-sidebar ${sidebarOpen || currentView === 'home' ? 'open' : ''}`}
+          className={`sidebar conversation-home chat-history-sidebar ${sidebarOpen ? 'open' : ''}`}
           aria-label="تاریخچه و ناوبری دانوآ"
-          aria-hidden={currentView === 'chat' && !sidebarOpen}
+          aria-hidden={!sidebarOpen}
           ref={(node) => {
-            if (node) node.inert = currentView === 'chat' && !sidebarOpen;
+            if (node) node.inert = !sidebarOpen;
           }}
         >
           <header className="conversation-home-header">
-            {currentView === 'home' ? (
-              <h1 className="conversation-home-title">گفتگوهای من</h1>
-            ) : (
-              <div className="conversation-home-brand">
-                <span className="conversation-home-brand__mark" aria-hidden="true">د</span>
-                <span>
-                  <strong>دانوآ</strong>
-                  <small>همراه هوشمند تو</small>
-                </span>
-              </div>
-            )}
+            <div className="conversation-home-brand">
+              <span className="conversation-home-brand__mark" aria-hidden="true">د</span>
+              <span>
+                <strong>دانوآ</strong>
+                <small>همراه هوشمند تو</small>
+              </span>
+            </div>
             <div className="conversation-home-header-actions">
               <button
                 ref={conversationSearchToggleRef}
                 type="button"
                 className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
                 onClick={() => {
-                  const nextSearchOpen = !conversationSearchOpen;
-                  setConversationSearchOpen(nextSearchOpen);
-                  if (nextSearchOpen) {
-                    window.requestAnimationFrame(() => conversationSearchInputRef.current?.focus());
-                  } else {
-                    setConversationSearchTerm('');
-                  }
+                  setConversationSearchTerm('');
+                  setConversationSearchOpen(true);
+                  window.requestAnimationFrame(() => conversationSearchInputRef.current?.focus());
                 }}
-                aria-label={conversationSearchOpen ? 'بستن جستجوی گفتگوها' : 'جستجوی گفتگوها'}
+                aria-label="جستجوی گفتگوها"
                 aria-expanded={conversationSearchOpen}
-                aria-controls="conversation-sidebar-search"
+                aria-controls="conversation-search-modal"
                 title="جستجوی گفتگوها"
               >
                 <Icon name="search" size={20} aria-hidden="true" />
               </button>
-              {currentView === 'chat' ? (
-                <button
-                  type="button"
-                  className="conversation-home-close"
-                  onClick={() => setSidebarOpen(false)}
-                  aria-label="بستن سایدبار"
-                  title="بستن"
-                >
-                  <Icon name="x-close" size={20} aria-hidden="true" />
-                </button>
-              ) : null}
             </div>
           </header>
 
@@ -3972,46 +4099,6 @@ function ChatApp() {
               <Icon name="new-chat" size={20} aria-hidden="true" />
               <span>گفتگوی جدید</span>
             </button>
-            {conversationSearchOpen ? (
-              <div id="conversation-sidebar-search" className="conversation-search-panel" role="search">
-                <Icon name="search" size={18} aria-hidden="true" />
-                <input
-                  ref={conversationSearchInputRef}
-                  className="conversation-search-input"
-                  type="search"
-                  dir="rtl"
-                  value={conversationSearchTerm}
-                  onChange={(event) => setConversationSearchTerm(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Escape') {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (conversationSearchTerm) {
-                        setConversationSearchTerm('');
-                      } else {
-                        setConversationSearchOpen(false);
-                        conversationSearchToggleRef.current?.focus();
-                      }
-                    }
-                  }}
-                  placeholder="جستجوی گفتگوها"
-                  aria-label="جستجو در گفتگوها"
-                />
-                {conversationSearchTerm ? (
-                  <button
-                    type="button"
-                    className="conversation-search-clear"
-                    onClick={() => {
-                      setConversationSearchTerm('');
-                      conversationSearchInputRef.current?.focus();
-                    }}
-                    aria-label="پاک کردن جستجو"
-                  >
-                    <Icon name="x-close" size={16} aria-hidden="true" />
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
           </div>
 
           <div className="conversation-history-heading">
@@ -4241,7 +4328,7 @@ function ChatApp() {
               onClick={() => {
                 const targetId = conversationMenuTarget.id;
                 setConversationMenu(null);
-                handleDeleteConversation(targetId);
+                void handleDeleteConversation(targetId);
               }}
             >
               <span className="conversation-context-menu__icon" aria-hidden="true">
@@ -4381,7 +4468,7 @@ function ChatApp() {
                   profileFormErrors={profileFormErrors}
                   onNameChange={(event) => setProfileFormName(event.target.value)}
                   onAgeChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
-                  onSave={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}
+                  onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات ذخیره شد'); }}
                   onDeleteAll={handleDeleteAllConversations}
                   onLogout={handleLogout}
                   showAccountActions={false}
@@ -4487,12 +4574,24 @@ function ChatApp() {
                 <span>مدیریت اعتبار</span>
                 <h1>کیف پول نوآ</h1>
               </div>
+              <Button
+                className="noa-page__refresh"
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void refreshNoaWorkspace()}
+                disabled={noaWallet.loading}
+                startIcon={<Icon name="retry" size={18} aria-hidden="true" />}
+              >
+                {noaWallet.loading ? 'در حال بروزرسانی' : 'بروزرسانی'}
+              </Button>
             </header>
             <NoaWalletPanel
               wallet={noaWallet.wallet}
               walletLoading={noaWallet.loading}
               walletError={noaWallet.error}
               onRefreshWallet={noaWallet.refresh}
+              refreshVersion={noaRefreshVersion}
             />
           </main>
         ) : null}
@@ -4515,7 +4614,7 @@ function ChatApp() {
                 profileFormErrors={profileFormErrors}
                 onNameChange={(event) => setProfileFormName(event.target.value)}
                 onAgeChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
-                onSave={() => { handleSaveProfileSettings(); pushToast('تغییرات ذخیره شد', 'success'); }}
+                onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات ذخیره شد'); }}
                 onDeleteAll={handleDeleteAllConversations}
                 onLogout={handleLogout}
               />
@@ -4617,7 +4716,7 @@ function ChatApp() {
                disabled={!canSubmitImagePrompt}
              >
                <span>{isGeneratingImage ? 'در حال ساخت...' : 'بساز'}</span>
-               <span aria-hidden="true">✦</span>
+               <Icon name="sparkle" size="1.1em" aria-hidden="true" />
              </Button>
            </div>
          </Dialog>
@@ -4726,8 +4825,8 @@ function ChatApp() {
                   <path d="M8 9h8M8 12.3h5.6" />
                 </svg>
               }
-              title="سلام، من دانوآم"
-              description="من یک دستیار هوش مصنوعی‌ام؛ سؤال بپرس، عکس بفرست یا با هم یک ایده پیدا کنیم."
+              title="امروز چه کاری می‌تونم برات انجام بدم؟"
+              description="پیامت را بنویس تا دانوآ شروع کند."
               action={(
                 <div className="chat-starter-area">
                   <span className="chat-starter-label">برای شروع یکی را انتخاب کن:</span>
@@ -4963,7 +5062,7 @@ function App() {
 
   if (pathname === '/plans') {
     if (typeof window !== 'undefined') {
-      window.location.replace('/home');
+      window.location.replace('/');
     }
     return null;
   }
@@ -4976,12 +5075,12 @@ function App() {
     return <LazyRoute><AdminPanel /></LazyRoute>;
   }
 
-  if (pathname === '/design-system-preview') {
-    return <LazyRoute><ToastProvider><DesignSystemPreview /></ToastProvider></LazyRoute>;
+if (pathname === '/design-system-preview') {
+    return <LazyRoute><DesignSystemPreview /></LazyRoute>;
   }
 
   if (pathname === '/') {
-    return <LazyRoute><ToastProvider><ChatApp /></ToastProvider></LazyRoute>;
+    return <LazyRoute><ChatApp /></LazyRoute>;
   }
 
   if (pathname === '/landing') {
@@ -4991,7 +5090,6 @@ function App() {
 
   if (
     pathname !== '/' && pathname !== '/chat' && !/^\/c\/[^/]+$/.test(pathname) && pathname !== '/studio' && pathname !== '/studio/image' && pathname !== '/studio/video' && pathname !== '/images' &&
-    pathname !== '/home' &&
     pathname !== '/generate' &&
     pathname !== '/photos' &&
     pathname !== '/profile' &&
@@ -5003,9 +5101,7 @@ function App() {
 
   return (
     <LazyRoute>
-      <ToastProvider>
-        <ChatApp />
-      </ToastProvider>
+      <ChatApp />
     </LazyRoute>
   );
 }

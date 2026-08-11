@@ -4,6 +4,7 @@ import ImageViewer from './ImageViewer';
 import Icon from './components/Icon';
 import { formatDecimalFa } from './noa/decimal';
 import { fetchNoaPublicConfig } from './noa/noa.service';
+import { Button } from './design-system/components';
 import './ImageStudio.css';
 
 const ratios = [
@@ -219,10 +220,13 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
           <small>ایده‌ات را به تصویر تبدیل کن</small>
         </span>
       </div>
-      <button className="studio-header-back" type="button" onClick={onBack} aria-label={backLabel} title={backLabel}>
-        <span>{backLabel}</span>
-        <Icon name="chevron-left" size="1.3em" aria-hidden="true" />
-      </button>
+      <Button type="button" variant="ghost" className="studio-header-back" onClick={onBack} aria-label={backLabel} title={backLabel}>
+        <svg className="studio-header-back__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M15 18 9 12l6-6" />
+        </svg>
+        <span className="studio-header-back__label">{backLabel}</span>
+      </Button>
+      <span className="studio-header-spacer" aria-hidden="true" />
     </header>
     <div className="studio-tabs" role="tablist" aria-label="بخش‌های استودیوی تصویر"><span className={`studio-tab-indicator ${tab === 'gallery' ? 'gallery' : ''}`} aria-hidden="true" /><button type="button" role="tab" aria-selected={tab === 'create'} className={tab === 'create' ? 'active' : ''} onClick={() => setTab('create')}>ساخت تصویر</button><button type="button" role="tab" aria-selected={tab === 'gallery'} className={tab === 'gallery' ? 'active' : ''} onClick={() => setTab('gallery')}>تصاویر من</button></div>
     {(error || (tab === 'gallery' && galleryError)) && <div className="studio-error" role="alert"><span className="studio-error-icon" aria-hidden="true">!</span><span>{error || galleryError}</span><button type="button" onClick={() => { setError(''); setGalleryError(''); }} aria-label="بستن پیام"><Icon name="x-close" size="1em" /></button></div>}

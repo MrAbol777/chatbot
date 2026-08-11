@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminPanel from './AdminPanel';
+import { ToastProvider } from './design-system/components';
 
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -21,7 +22,7 @@ describe('AdminPanel navigation and loading', () => {
 
   it('uses grouped accessible navigation and loads data only for the active section', async () => {
     const user = userEvent.setup();
-    render(<AdminPanel />);
+    render(<ToastProvider><AdminPanel /></ToastProvider>);
 
     expect(screen.getByRole('link', { name: 'پرش به محتوای اصلی' })).toHaveAttribute('href', '#admin-main-content');
     expect(screen.getByRole('button', { name: 'داشبورد' })).toHaveAttribute('aria-current', 'page');

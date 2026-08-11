@@ -1,7 +1,3 @@
-const { normalizeGuestId } = require('../../repositories/GuestRepository');
-
-const GUEST_COOKIE_NAME = 'danoa_guest_id';
-
 function createAuthController({ authService, errorsRepository, logger = console }) {
   const sendVerificationCode = async (req, res) => {
     try {
@@ -44,21 +40,11 @@ function createAuthController({ authService, errorsRepository, logger = console 
 
   const verifyCode = async (req, res) => {
     try {
-      const cookieGuestId = normalizeGuestId(req.cookies?.[GUEST_COOKIE_NAME]);
-      const bodyGuestId = normalizeGuestId(req.body?.guestId);
       const result = await authService.verifyCode({
         phone: req.body?.phone,
         code: req.body?.code,
-        mode: typeof req.body?.mode === 'string' ? req.body.mode.trim() : '',
-        guestId: cookieGuestId || bodyGuestId || ''
+        mode: typeof req.body?.mode === 'string' ? req.body.mode.trim() : ''
       });
-      if (result.body?.success && result.body?.requiresProfile === false && (cookieGuestId || bodyGuestId)) {
-        res.clearCookie(GUEST_COOKIE_NAME, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production'
-        });
-      }
       return res.status(result.statusCode).json(result.body);
     } catch (error) {
       await errorsRepository.logError('verify_code_failed', '/api/verify-code', 500, error instanceof Error ? error.message : 'unknown');
@@ -68,19 +54,7 @@ function createAuthController({ authService, errorsRepository, logger = console 
 
   const registerProfile = async (req, res) => {
     try {
-      const cookieGuestId = normalizeGuestId(req.cookies?.[GUEST_COOKIE_NAME]);
-      const bodyGuestId = normalizeGuestId(req.body?.guestId);
-      const result = await authService.registerProfile({
-        ...(req.body || {}),
-        guestId: cookieGuestId || bodyGuestId || ''
-      });
-      if (result.body?.success && (cookieGuestId || bodyGuestId)) {
-        res.clearCookie(GUEST_COOKIE_NAME, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production'
-        });
-      }
+      const result = await authService.registerProfile(req.body || {});
       return res.status(result.statusCode).json(result.body);
     } catch (error) {
       const details = error instanceof Error ? error.message : 'unknown';

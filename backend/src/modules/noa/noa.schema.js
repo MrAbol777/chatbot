@@ -334,9 +334,7 @@ const LEGACY_RUNTIME_TABLES = Object.freeze([
   'app_plans',
   'app_plan_daily_usage',
   'app_plan_hourly_usage',
-  'app_video_usage',
-  'app_video_quota_reservations',
-  'guest_message_counts'
+  'app_video_usage'
 ]);
 
 async function archiveLegacyRuntimeTables(db) {

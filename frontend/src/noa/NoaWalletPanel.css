@@ -1,77 +1,125 @@
 .noa-page {
-  width: min(1180px, calc(100% - 32px));
-  margin: 24px auto 48px;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 76px minmax(0, 1fr);
+  gap: 16px;
+  padding: clamp(12px, 2vw, 24px) clamp(16px, 3vw, 48px) clamp(16px, 2vw, 24px);
+  background:
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--color-primary-soft) 68%, transparent), transparent 28rem),
+    radial-gradient(circle at 4% 100%, color-mix(in srgb, var(--color-primary-soft) 38%, transparent), transparent 25rem),
+    var(--color-bg);
 }
 
 .noa-page__header {
+  width: min(1400px, 100%);
+  min-width: 0;
+  height: 76px;
+  min-height: 0;
+  margin-inline: auto;
+  padding: 10px 14px 10px 22px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--color-surface-2) 94%, transparent);
+  box-shadow: var(--shadow-sm);
 }
 
-.noa-page__header h1,
-.noa-page__header span {
+.noa-page__header > div {
+  min-width: 0;
+}
+
+.noa-page__header span,
+.noa-page__header h1 {
+  display: block;
   margin: 0;
 }
 
 .noa-page__header span {
-  display: block;
-  color: var(--color-muted);
-  font-size: var(--font-size-sm);
+  margin-bottom: 2px;
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+}
+
+.noa-page__header h1 {
+  color: var(--color-text);
+  font-size: clamp(1.1rem, 1.6vw, 1.4rem);
+  line-height: 1.2;
+}
+
+.noa-page__header .generate-page-back {
+  flex: 0 0 auto;
+}
+
+.noa-page__refresh {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  min-height: 44px;
+}
+
+.noa-page > .noa-wallet {
+  width: min(1240px, 100%);
+  height: 100%;
+  min-height: 0;
+  margin-inline: auto;
 }
 
 .noa-wallet {
+  display: grid;
+  grid-template-rows: 128px auto minmax(0, 1fr);
+  gap: 14px;
   color: var(--color-text);
   direction: rtl;
 }
 
-.noa-wallet__heading,
-.noa-wallet__section-title,
-.noa-receipt-item__header,
-.noa-receipt-item__link {
-  display: flex;
-  align-items: center;
-}
-
-.noa-wallet__heading {
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.noa-wallet__heading h2,
-.noa-wallet__section-title h3 {
-  margin: 0;
-}
-
-.noa-wallet__heading p,
-.noa-wallet__section-title p {
-  margin: 4px 0 0;
-  color: var(--color-muted);
-  line-height: 1.7;
-}
-
-.noa-wallet__eyebrow {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--color-primary);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-}
-
 .noa-wallet__balance {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
-  min-height: 112px;
-  padding: 20px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+  gap: clamp(16px, 2.2vw, 28px);
+  min-height: 0;
+  padding: clamp(18px, 2vw, 26px) clamp(20px, 2.5vw, 32px);
+  color: var(--color-primary-contrast);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 68%, var(--color-on-primary-fixed));
   border-radius: var(--radius-xl);
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-primary-soft) 70%, white), var(--color-surface-2));
-  box-shadow: var(--shadow-sm);
+    radial-gradient(circle at 6% 12%, color-mix(in srgb, var(--color-primary-fixed) 42%, transparent), transparent 15rem),
+    linear-gradient(118deg, color-mix(in srgb, var(--color-primary) 76%, var(--color-on-primary-fixed)), var(--color-primary));
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.noa-wallet__balance::before,
+.noa-wallet__balance::after {
+  position: absolute;
+  z-index: 0;
+  border: 1px solid color-mix(in srgb, var(--color-primary-fixed) 48%, transparent);
+  border-radius: 50%;
+  content: '';
+}
+
+.noa-wallet__balance::before {
+  width: 270px;
+  height: 270px;
+  inset: -164px -82px auto auto;
+}
+
+.noa-wallet__balance::after {
+  width: 180px;
+  height: 180px;
+  inset: auto 26% -126px auto;
+}
+
+.noa-wallet__balance > * {
+  position: relative;
+  z-index: 1;
 }
 
 .noa-wallet__balance-icon,
@@ -79,15 +127,15 @@
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  color: var(--color-primary);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
 }
 
 .noa-wallet__balance-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 54px;
+  height: 54px;
+  color: var(--color-primary-fixed);
+  border: 1px solid color-mix(in srgb, var(--color-primary-fixed) 34%, transparent);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--color-on-primary-fixed) 28%, transparent);
 }
 
 .noa-wallet__balance-main {
@@ -96,210 +144,413 @@
 
 .noa-wallet__balance-main span {
   display: block;
-  margin-bottom: 4px;
-  color: var(--color-muted);
+  margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-primary-fixed) 86%, var(--color-primary-contrast));
+  font-size: var(--font-size-sm);
+  font-weight: 650;
 }
 
 .noa-wallet__balance-main strong {
   display: block;
-  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-size: clamp(1.75rem, 3vw, 2.7rem);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.055em;
+  line-height: 1.1;
 }
 
 .noa-wallet__balance-meta {
   display: grid;
-  grid-template-columns: repeat(2, minmax(120px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(132px, 1fr));
+  gap: 8px;
   margin: 0;
 }
 
 .noa-wallet__balance-meta div {
   min-width: 0;
-  padding: 10px 12px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--color-primary-fixed) 25%, transparent);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-surface-2) 82%, transparent);
+  background: color-mix(in srgb, var(--color-on-primary-fixed) 22%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 .noa-wallet__balance-meta dt {
-  color: var(--color-muted);
+  color: color-mix(in srgb, var(--color-primary-fixed) 86%, var(--color-primary-contrast));
   font-size: var(--font-size-xs);
 }
 
 .noa-wallet__balance-meta dd {
   margin: 4px 0 0;
+  color: var(--color-primary-contrast);
   font-size: var(--font-size-sm);
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
 }
 
 .noa-wallet__live {
-  min-height: 8px;
-  margin-top: 12px;
+  min-height: 0;
+}
+
+.noa-wallet__live:empty {
+  display: none;
+}
+
+.noa-wallet__live .ds-inline-message {
+  margin: 0;
+}
+
+.noa-success-notice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px 12px;
+  position: fixed;
+  z-index: calc(var(--z-toast, 70) + 2);
+  inset: max(14px, env(safe-area-inset-top)) auto auto 50%;
+  width: min(540px, calc(100vw - 28px));
+  padding: 11px 12px 12px;
+  color: var(--color-text);
+  border: 1px solid color-mix(in srgb, var(--color-success) 25%, rgb(255 255 255 / 66%));
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-surface, #fff) 83%, rgb(238 255 248 / 93%));
+  box-shadow: 0 18px 45px rgb(16 24 40 / 18%), 0 2px 7px color-mix(in srgb, var(--color-success) 18%, transparent);
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  transform: translateX(-50%);
+  animation: noa-success-notice-enter 260ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.noa-success-notice__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: var(--color-success);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-success) 14%, var(--color-surface));
+}
+
+.noa-success-notice__content {
+  min-width: 0;
+}
+
+.noa-success-notice__content strong,
+.noa-success-notice__content p {
+  display: block;
+  margin: 0;
+}
+
+.noa-success-notice__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+  color: var(--color-muted);
+  font-size: .7rem;
+  font-weight: 800;
+}
+
+.noa-success-notice__meta time {
+  font-weight: 600;
+}
+
+.noa-success-notice__content strong {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 850;
+}
+
+.noa-success-notice__content p {
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: .76rem;
+  line-height: 1.6;
+}
+
+.noa-success-notice__action {
+  grid-column: 2 / -1;
+  min-height: 38px;
+  justify-self: start;
+  white-space: nowrap;
+}
+
+.noa-success-notice__dismiss {
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  color: var(--color-muted);
 }
 
 .noa-wallet__grid {
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 20px;
-  margin-top: 12px;
+  grid-template-columns: minmax(0, 1.24fr) minmax(330px, .76fr);
+  gap: 14px;
+  align-items: stretch;
 }
 
 .noa-receipt-form,
 .noa-receipts {
   min-width: 0;
-  padding: 20px;
-  border: 1px solid var(--color-border);
+  min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, var(--color-border));
   border-radius: var(--radius-xl);
-  background: var(--color-surface-2);
-  box-shadow: var(--shadow-sm);
+  background: color-mix(in srgb, var(--color-surface-2) 97%, white);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--color-primary) 7%, transparent);
 }
 
 .noa-receipt-form {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  align-content: start;
-  gap: 16px;
+  grid-template-rows: auto auto auto auto;
+  gap: 12px;
+  padding: clamp(16px, 2vw, 22px);
+}
+
+.noa-receipt-form::before {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 4px;
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  background: linear-gradient(var(--color-primary), color-mix(in srgb, var(--color-primary) 18%, transparent));
+  content: '';
+}
+
+.noa-receipt-form__header,
+.noa-receipts__header,
+.noa-receipt-item__header,
+.noa-receipt-item__link {
+  display: flex;
+  align-items: center;
+}
+
+.noa-receipt-form__header,
+.noa-receipts__header {
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .noa-wallet__section-title {
+  display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
+}
+
+.noa-wallet__section-title h2,
+.noa-wallet__section-title h3,
+.noa-wallet__section-title h4,
+.noa-wallet__section-title p {
+  margin: 0;
+}
+
+.noa-wallet__section-title h2,
+.noa-wallet__section-title h3 {
+  color: var(--color-text);
+  font-size: 1.08rem;
+  line-height: 1.35;
+}
+
+.noa-wallet__section-title p,
+.noa-bank-transfer__heading p,
+.noa-upload-card__heading p {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
 }
 
 .noa-wallet__section-icon {
   width: 40px;
   height: 40px;
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
   border-radius: 12px;
+  background: var(--color-primary-soft);
 }
 
-.noa-field,
-.noa-file-field {
-  display: grid;
-  gap: 6px;
+.noa-receipt-form__steps {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-primary-soft) 72%, var(--color-surface));
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+}
+
+.noa-bank-transfer,
+.noa-upload-card {
+  min-width: 0;
+  border-radius: var(--radius-lg);
 }
 
 .noa-bank-transfer {
   display: grid;
   gap: 12px;
   padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--color-primary-soft) 52%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 32%, var(--color-border));
+  background: linear-gradient(115deg, color-mix(in srgb, var(--color-primary-soft) 72%, var(--color-surface)), var(--color-surface));
 }
 
-.noa-bank-transfer__heading {
+.noa-bank-transfer__heading,
+.noa-upload-card__heading {
   display: flex;
   align-items: flex-start;
   gap: 10px;
 }
 
+.noa-upload-card__review {
+  flex: 0 0 auto;
+  min-height: 44px;
+  margin-inline-start: auto;
+  padding-inline: 16px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 28%, transparent);
+  white-space: nowrap;
+}
+
+.noa-upload-card__review:not(:disabled):hover {
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--color-primary) 36%, transparent);
+}
+
 .noa-bank-transfer__heading h4,
-.noa-bank-transfer__heading p {
+.noa-upload-card__heading h3,
+.noa-bank-transfer__heading p,
+.noa-upload-card__heading p {
   margin: 0;
 }
 
-.noa-bank-transfer__heading p,
-.noa-bank-transfer__pending,
-.noa-bank-transfer__details dt {
-  color: var(--color-muted);
+.noa-bank-transfer__heading h4,
+.noa-upload-card__heading h3 {
+  color: var(--color-text);
+  font-size: .95rem;
+}
+
+.noa-workflow-step {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  color: var(--color-primary-contrast);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
   font-size: var(--font-size-sm);
-  line-height: 1.6;
+  font-weight: 800;
 }
 
 .noa-bank-transfer__details {
+  display: block;
+}
+
+.noa-bank-transfer__details dl {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(120px, .5fr);
+  gap: 8px;
   margin: 0;
 }
 
-.noa-bank-transfer__details div {
+.noa-bank-transfer__details dl > div {
   min-width: 0;
   padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 10%, var(--color-border));
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  background: color-mix(in srgb, var(--color-surface-2) 88%, transparent);
+}
+
+.noa-bank-transfer__details dt {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
 }
 
 .noa-bank-transfer__details dd {
   margin: 4px 0 0;
   overflow-wrap: anywhere;
-  font-size: var(--font-size-md);
+  color: var(--color-text);
+  font-size: clamp(.95rem, 1.4vw, 1.08rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  letter-spacing: .012em;
+}
+
+.noa-card-number__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  min-height: 100%;
+  gap: 4px;
+  padding: 10px 12px;
+  color: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  touch-action: manipulation;
+  transition: color var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard);
+}
+
+.noa-card-number {
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+.noa-card-number__label {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+}
+
+.noa-card-number__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-text);
+  font-size: clamp(.95rem, 1.4vw, 1.08rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .012em;
+}
+
+.noa-card-number__value svg {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+}
+
+.noa-card-number__copy:hover {
+  color: color-mix(in srgb, var(--color-primary) 74%, var(--color-text));
+}
+
+.noa-card-number__copy:active {
+  transform: scale(.98);
 }
 
 .noa-bank-transfer__pending {
   margin: 0;
-}
-
-.noa-field label {
-  font-weight: 700;
-}
-
-.noa-field input {
-  width: 100%;
-  min-height: 48px;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  color: var(--color-text);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  outline: none;
-  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
-}
-
-.noa-field input:focus-visible,
-.noa-file-field input:focus-visible + label,
-.noa-receipt-item__link:focus-visible {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
-  outline: none;
-}
-
-.noa-field small,
-.noa-file-field small,
-.noa-receipt-preview small {
   color: var(--color-muted);
+  font-size: var(--font-size-sm);
   line-height: 1.6;
 }
 
-.noa-field > span,
-.noa-file-field > span {
-  color: var(--color-danger);
-  font-size: var(--font-size-sm);
-}
-
-.noa-receipt-submit-hint {
-  margin: 2px 0 0;
-  padding: 10px 12px;
-  color: #8a5300;
-  border: 1px solid rgba(180, 109, 0, 0.28);
-  border-radius: var(--radius-md);
-  background: #fff8e8;
-  font-size: var(--font-size-sm);
-  font-weight: 650;
-  line-height: 1.65;
-}
-
-.noa-field[data-invalid='true'] input,
-.noa-file-field[data-invalid='true'] label {
-  border-color: var(--color-danger);
-}
-
-.noa-receipt-preview {
+.noa-upload-card {
   display: grid;
-  gap: 3px;
+  align-content: start;
+  gap: 8px;
   padding: 12px 14px;
-  border-right: 4px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  background: var(--color-primary-soft);
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
 }
 
-.noa-receipt-preview strong {
-  font-size: var(--font-size-lg);
-  font-variant-numeric: tabular-nums;
+.noa-file-field {
+  display: grid;
+  gap: 4px;
 }
 
 .noa-file-field input {
@@ -313,26 +564,149 @@
 }
 
 .noa-file-field label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 48px;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  min-height: 64px;
   padding: 8px 12px;
   color: var(--color-primary);
-  border: 1px dashed var(--color-primary);
+  border: 1.5px dashed var(--color-primary);
   border-radius: var(--radius-md);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--color-primary-soft) 28%, transparent) 50%, transparent 50%) 0 0 / 14px 14px,
+    linear-gradient(color-mix(in srgb, var(--color-primary-soft) 28%, transparent) 50%, transparent 50%) 0 0 / 14px 14px,
+    var(--color-surface);
   cursor: pointer;
-  transition: background var(--motion-fast), border-color var(--motion-fast);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  text-align: center;
+  touch-action: manipulation;
+  transition: border-color var(--motion-fast) var(--motion-ease-standard), background-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard);
+}
+
+.noa-file-field label small {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
 }
 
 .noa-file-field label:hover {
-  background: var(--color-primary-soft);
+  border-style: solid;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.noa-file-field label:active {
+  transform: scale(.99);
+}
+
+.noa-file-field input:focus-visible + label,
+.noa-card-number__copy:focus-visible,
+.noa-receipts__toggle:focus-visible,
+.noa-receipt-item__link:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 .noa-file-field input:disabled + label {
   cursor: not-allowed;
-  opacity: 0.48;
+  opacity: .5;
+}
+
+.noa-file-field > small {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+@media (min-width: 1024px) and (min-height: 681px) {
+  .noa-bank-transfer {
+    gap: 9px;
+    padding: 12px 14px;
+  }
+
+  .noa-bank-transfer__heading p,
+  .noa-upload-card__heading p {
+    display: none;
+  }
+
+  .noa-upload-card__heading {
+    align-items: center;
+  }
+}
+
+.noa-file-field > span {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.noa-file-field[data-invalid='true'] label {
+  border-color: var(--color-danger);
+}
+
+.noa-receipt-submit-hint {
+  margin: 0;
+  padding: 8px 10px;
+  color: var(--color-warning);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 28%, var(--color-border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-warning) 9%, var(--color-surface));
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.noa-receipt-form > .ds-button {
+  width: 100%;
+  min-height: 52px;
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
+.noa-submit-dialog {
+  display: grid;
+  gap: 16px;
+}
+
+.noa-submit-dialog > p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.7;
+}
+
+.noa-submit-dialog dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.noa-submit-dialog dl > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-primary-soft) 36%, var(--color-surface));
+}
+
+.noa-submit-dialog dt {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+}
+
+.noa-submit-dialog dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.noa-submit-dialog__actions {
+  display: grid;
+  grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr);
+  gap: 8px;
+}
+
+.noa-submit-dialog__actions .ds-button {
+  min-height: 48px;
 }
 
 .noa-spinner {
@@ -340,23 +714,89 @@
 }
 
 .noa-receipts {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-rows: auto 0fr;
+  align-self: start;
+  align-content: start;
+  overflow: hidden;
+  padding: clamp(16px, 2vw, 22px);
+  transition: grid-template-rows 280ms cubic-bezier(.2, .8, .2, 1), box-shadow var(--motion-fast) var(--motion-ease-standard);
+}
+
+.noa-receipts.is-open {
+  grid-template-rows: auto 1fr;
+}
+
+.noa-receipts__header {
+  min-height: 44px;
+}
+
+.noa-receipts__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 6px;
+  min-width: 122px;
+  min-height: 44px;
+  padding: 0 12px;
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  touch-action: manipulation;
+  transition: background-color var(--motion-fast) var(--motion-ease-standard), border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard);
+}
+
+.noa-receipts__toggle:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.noa-receipts__toggle:active {
+  transform: scale(.98);
+}
+
+.noa-receipts__content-shell {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.noa-receipts__content {
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 160ms ease-out 20ms, transform 220ms cubic-bezier(.2, .8, .2, 1), visibility 0s linear 280ms;
+  visibility: hidden;
+}
+
+.noa-receipts.is-open .noa-receipts__content {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 180ms ease-out 80ms, transform 280ms cubic-bezier(.2, .8, .2, 1) 40ms, visibility 0s;
+  visibility: visible;
 }
 
 .noa-receipts__loading,
 .noa-receipts__empty {
   display: grid;
   place-items: center;
-  min-height: 220px;
-  padding: 24px;
+  align-content: center;
+  gap: 8px;
+  min-height: 156px;
+  padding: 18px;
   color: var(--color-muted);
   text-align: center;
-}
-
-.noa-receipts__empty {
-  gap: 8px;
 }
 
 .noa-receipts__empty strong {
@@ -364,64 +804,56 @@
 }
 
 .noa-receipts__list {
+  min-height: 0;
   display: grid;
-  gap: 12px;
-  max-height: 620px;
+  align-content: start;
+  gap: 9px;
   overflow: auto;
-  padding-inline-end: 2px;
+  padding-inline-end: 3px;
 }
 
 .noa-receipt-item {
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  transition: border-color var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard);
+}
+
+.noa-receipt-item:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 8%, transparent);
+  transform: translateY(-1px);
 }
 
 .noa-receipt-item__header {
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .noa-receipt-item__header strong {
   min-width: 0;
   overflow-wrap: anywhere;
-  font-variant-numeric: tabular-nums;
 }
 
 .noa-status {
   flex: 0 0 auto;
-  padding: 4px 9px;
+  padding: 3px 8px;
   border: 1px solid currentColor;
   border-radius: var(--radius-pill);
   font-size: var(--font-size-xs);
-  font-weight: 700;
+  font-weight: 800;
 }
 
-.noa-status--pending {
-  color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
-}
-
-.noa-status--approved {
-  color: var(--color-success);
-  background: color-mix(in srgb, var(--color-success) 10%, transparent);
-}
-
-.noa-status--rejected {
-  color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
-}
+.noa-status--pending { color: var(--color-warning); background: color-mix(in srgb, var(--color-warning) 10%, transparent); }
+.noa-status--approved { color: var(--color-success); background: color-mix(in srgb, var(--color-success) 10%, transparent); }
+.noa-status--rejected { color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 10%, transparent); }
 
 .noa-receipt-item dl {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.noa-receipt-item dl div {
-  min-width: 0;
+  gap: 7px;
+  margin: 10px 0;
 }
 
 .noa-receipt-item dt {
@@ -432,77 +864,232 @@
 .noa-receipt-item dd {
   margin: 3px 0 0;
   overflow-wrap: anywhere;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
 }
 
 .noa-receipt-item__reason {
-  margin: 8px 0;
-  padding: 8px 10px;
+  margin: 7px 0;
+  padding: 7px 9px;
   color: var(--color-danger);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  font-size: var(--font-size-sm);
 }
 
 .noa-receipt-item__link {
   justify-content: flex-start;
   gap: 6px;
-  min-height: 44px;
+  min-height: 40px;
   width: fit-content;
+  padding: 0;
   color: var(--color-primary);
-  font-weight: 700;
-  text-decoration: none;
+  border: 0;
   border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.noa-receipt-preview {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, var(--color-border));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface-2) 88%, var(--color-primary-soft));
+}
+
+.noa-receipt-preview > img {
+  display: block;
+  width: 100%;
+  max-height: min(62dvh, 560px);
+  object-fit: contain;
+}
+
+.noa-receipt-preview__loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.noa-receipt-preview .ds-inline-message {
+  width: calc(100% - 24px);
+  margin: 12px;
 }
 
 @keyframes noa-spin {
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 900px) {
-  .noa-wallet__grid {
-    grid-template-columns: 1fr;
-  }
+@keyframes noa-success-notice-enter {
+  from { opacity: 0; transform: translate(-50%, -28px) scale(.98); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 
-@media (max-width: 640px) {
-  .profile-noa-wallet {
-    width: min(100% - 24px, 1180px);
-    margin-bottom: 32px;
+@media (max-width: 1023px) {
+  .noa-page {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    grid-template-rows: auto auto;
   }
 
-  .noa-wallet__heading {
-    align-items: stretch;
-    flex-direction: column;
+  .noa-page > .noa-wallet,
+  .noa-wallet {
+    height: auto;
   }
 
-  .noa-wallet__heading > button {
-    width: 100%;
-    min-height: 44px;
+  .noa-wallet {
+    grid-template-rows: auto auto auto;
   }
 
-  .noa-wallet__balance {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .noa-wallet__balance-meta {
-    grid-column: 1 / -1;
+  .noa-wallet__grid {
     grid-template-columns: 1fr;
   }
 
   .noa-receipt-form,
   .noa-receipts {
+    min-height: auto;
+  }
+
+  /* On tablet widths the page can scroll naturally, so never compress the
+     upload step beneath the submit action. */
+  .noa-receipt-form {
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .noa-receipts__list {
+    max-height: 420px;
+  }
+
+  .noa-success-notice {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .noa-success-notice__dismiss {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .noa-success-notice__action {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .noa-page {
+    gap: 12px;
+    padding: 10px 12px 24px;
+  }
+
+  .noa-page__header {
+    min-height: 64px;
+    padding: 8px 10px 8px 14px;
+    border-radius: var(--radius-lg);
+  }
+
+  .noa-page__header h1 { font-size: 1rem; }
+  .noa-page__header .generate-page-back { width: 44px; min-width: 44px; }
+  .noa-page__refresh { min-width: 44px; padding-inline: 10px; }
+  .noa-page__refresh > span:not([aria-hidden='true']) { display: none; }
+
+  .noa-wallet { gap: 12px; }
+
+  .noa-wallet__balance {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
     padding: 16px;
   }
 
-  .noa-receipt-item dl {
-    grid-template-columns: 1fr;
+  .noa-wallet__balance-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+  }
+
+  .noa-wallet__balance-main strong { font-size: clamp(1.5rem, 7vw, 2rem); }
+
+  .noa-wallet__balance-meta {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .noa-wallet__balance-meta div { padding: 9px; }
+  .noa-wallet__balance-meta dd { font-size: var(--font-size-xs); }
+
+  .noa-success-notice {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .noa-success-notice__dismiss {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .noa-success-notice__action {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .noa-receipt-form,
+  .noa-receipts { padding: 14px; }
+
+  .noa-receipt-form { grid-template-rows: auto auto auto auto; }
+  .noa-receipt-form__header { align-items: flex-start; }
+  .noa-receipt-form__steps { margin-top: 3px; }
+
+  .noa-bank-transfer,
+  .noa-upload-card { padding: 12px; }
+
+  .noa-upload-card__heading {
+    flex-wrap: wrap;
+  }
+
+  .noa-upload-card__review {
+    margin-inline-start: 0;
   }
 
   .noa-bank-transfer__details {
     grid-template-columns: 1fr;
   }
+
+  .noa-bank-transfer__details dl {
+    grid-template-columns: minmax(0, 1.4fr) minmax(94px, .6fr);
+    gap: 6px;
+  }
+
+  .noa-bank-transfer__details dl > div { padding: 9px; }
+  .noa-bank-transfer__details dd { font-size: .82rem; }
+  .noa-file-field label { min-height: 82px; }
+
+  .noa-receipts__header { align-items: flex-start; }
+  .noa-receipts__toggle { min-width: 44px; padding: 0 10px; }
+  .noa-receipts__toggle span { display: none; }
+  .noa-receipt-item dl { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 1024px) and (max-height: 680px) {
+  .noa-page {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .noa-page > .noa-wallet,
+  .noa-wallet { height: auto; }
+
+  .noa-wallet { grid-template-rows: auto auto auto; }
+    .noa-receipts__list { max-height: 340px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -510,8 +1097,8 @@
   .noa-wallet *::before,
   .noa-wallet *::after {
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
   }
 }

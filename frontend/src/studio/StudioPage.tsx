@@ -29,19 +29,26 @@ export default function StudioPage({ onBackToHome, onOpenImage, onOpenVideo }: P
     <main className="danoa-studio-page" dir="rtl">
       <div className="danoa-studio-page__shell">
         <header className="danoa-studio-page__header">
-          <Button type="button" variant="ghost" className="danoa-studio-page__back" onClick={onBackToHome}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="danoa-studio-page__back"
+            onClick={onBackToHome}
+            aria-label="بازگشت به گفتگو"
+            title="بازگشت به گفتگو"
+          >
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg>
-            بازگشت به خانه
+            <span className="danoa-studio-page__back-label">بازگشت به گفتگو</span>
           </Button>
-          <div className="danoa-studio-page__brand" aria-label="استودیو دانوآ">
+          <div className="danoa-studio-page__title" aria-label="استودیو دانوآ">
             <span aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 8h3v3H8zM13 8h3v3h-3zM8 13h3v3H8zM13 13h3v3h-3z" /></svg></span>
-            <strong>دانوآ</strong>
+            <h1 id="studio-title">استودیو دانوآ</h1>
           </div>
+          <span className="danoa-studio-page__header-spacer" aria-hidden="true" />
         </header>
 
         <section className="danoa-studio-page__hero" aria-labelledby="studio-title">
           <span className="danoa-studio-page__eyebrow">ابزارهای خلاقانه</span>
-          <h1 id="studio-title">استودیو دانوآ</h1>
           <p>ابزار موردنظرت را برای ساخت محتوای خلاقانه انتخاب کن</p>
         </section>
 

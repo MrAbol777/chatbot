@@ -76,7 +76,7 @@ class AnalyticsRepository {
     await this.db.init();
     return (
       await this.db.query(
-        `SELECT COUNT(DISTINCT COALESCE(NULLIF(user_id, ''), CONCAT('guest:', guest_id))) AS c
+        `SELECT COUNT(DISTINCT user_id) AS c
          FROM app_chat_messages
          WHERE role = 'user' AND created_at >= ?`,
         [new Date(Date.now() - DAY_MS)]

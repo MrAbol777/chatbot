@@ -133,6 +133,11 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
           promptProfileKey: promptSnapshot?.profileKey || null,
           promptProfileVersion: promptSnapshot?.profileVersion || null,
           promptCompilerVersion: promptSnapshot?.compilerVersion || null,
+          // `prompt` is retained as the required, provider-facing snapshot for
+          // the legacy NOT NULL column.  Routed jobs still keep the original
+          // text separately in `userPrompt` and the enriched text in
+          // `compiledPrompt`.
+          prompt: promptSnapshot?.compiledPrompt || data.prompt,
           userPrompt: promptSnapshot?.userPrompt || data.prompt,
           compiledPrompt: promptSnapshot?.compiledPrompt || null,
           compiledPromptHash: promptSnapshot?.compiledPromptHash || null,

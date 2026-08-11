@@ -8,8 +8,10 @@ import './design-system/styles/components.css';
 import './styles.css';
 import './ChatExperience.css';
 import './components/AppShellState.css';
+import './PageExperience.css';
 import { installAuthenticatedFetch } from './auth/danoaSession';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { ToastProvider } from './design-system/components';
 
 installAuthenticatedFetch();
 
@@ -35,7 +37,9 @@ window.addEventListener('error', (event) => {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AppErrorBoundary>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </AppErrorBoundary>
   </React.StrictMode>
 );

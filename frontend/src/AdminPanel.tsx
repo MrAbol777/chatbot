@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-import { Button, FieldGroup, InlineMessage, TextAreaField, TextField } from './design-system/components';
+import { Button, FieldGroup, InlineMessage, TextAreaField, TextField, useNotification } from './design-system/components';
 import Icon, { type IconName } from './components/Icon';
 import AiProviderManagement from './admin/ai-routing/AiProviderManagement';
 import VideoGenerationsAdmin from './admin/video-generations/VideoGenerationsAdmin';
@@ -292,7 +292,6 @@ type ReportSection =
   | 'conversation_summary'
   | 'messages'
   | 'ai_performance'
-  | 'guest_conversations'
   | 'supervised_otp_usage';
 type ReportRangePreset = 'today' | '7d' | '30d' | 'custom';
 const USERS_PAGE_SIZE = 10;
@@ -302,7 +301,7 @@ const TAB_LABELS: Record<AdminTab, string> = {
   users: 'کاربران',
   imageGenerations: 'خروجی‌های تصویر',
   videoGenerations: 'خروجی‌های ویدیو',
-  noaFinance: 'مالی نوآ',
+  noaFinance: 'نوآ و قیمت‌گذاری',
   aiRouting: 'ارائه‌دهندگان AI',
   videoPromptProfiles: 'پرامپت‌های ویدیو',
   errors: 'خطاها',
@@ -332,7 +331,7 @@ const TAB_DESCRIPTIONS: Record<AdminTab, string> = {
   users: 'جست‌وجو، بررسی پروفایل و مدیریت دسترسی کاربران',
   imageGenerations: 'پیگیری وضعیت و جزئیات خروجی‌های استودیوی تصویر',
   videoGenerations: 'مشاهده کاربر، پرامپت، تصویر ورودی و خروجی هر درخواست ویدیو',
-  noaFinance: 'مدیریت قیمت‌ها، نرخ تبدیل و رسیدهای واریز بانکی',
+  noaFinance: 'قیمت‌گذاری زندهٔ قابلیت‌های API، کیف‌پول‌ها، نرخ تبدیل و رسیدهای واریز',
   aiRouting: 'کنترل مسیرها، مدل‌ها و وضعیت ارائه‌دهندگان هوش مصنوعی',
   videoPromptProfiles: 'مدیریت نسخه‌ها و قواعد پرامپت‌های ساخت ویدیو',
   errors: 'بررسی خطاهای ثبت‌شده و الگوهای پرتکرار',
@@ -345,7 +344,7 @@ const TAB_DESCRIPTIONS: Record<AdminTab, string> = {
 const TAB_GROUPS: Array<{ label: string; items: AdminTab[] }> = [
   { label: 'نمای کلی', items: ['dashboard'] },
   { label: 'محصول و کاربران', items: ['users', 'imageGenerations', 'videoGenerations'] },
-  { label: 'عملیات مالی', items: ['noaFinance'] },
+  { label: 'نوآ و پرداخت', items: ['noaFinance'] },
   { label: 'هوش مصنوعی', items: ['aiRouting', 'videoPromptProfiles'] },
   { label: 'سیستم و امنیت', items: ['errors', 'siteSettings', 'supervisedOtp', 'config', 'audit'] }
 ];
@@ -356,7 +355,6 @@ const REPORT_SECTION_OPTIONS: Array<{ key: ReportSection; label: string }> = [
   { key: 'conversation_summary', label: 'conversation summary' },
   { key: 'messages', label: 'messages' },
   { key: 'ai_performance', label: 'AI performance' },
-  { key: 'guest_conversations', label: 'چت‌های مهمان' },
   { key: 'supervised_otp_usage', label: 'Supervised OTP' }
 ];
 const FALLBACK_IMAGE_MODEL_PRESETS: ImageModelPreset[] = [
@@ -517,6 +515,7 @@ const getProfileMessageImages = (message: ProfileMessage, userId: string): ChatI
 };
 
 function AdminPanel() {
+  const { notify, confirm } = useNotification();
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [adminIdentity, setAdminIdentity] = useState<AdminIdentity | null>(null);
   const [identityLoading, setIdentityLoading] = useState(true);
@@ -543,9 +542,6 @@ function AdminPanel() {
   const [reportRangePreset, setReportRangePreset] = useState<ReportRangePreset>('7d');
   const [reportCustomFromDate, setReportCustomFromDate] = useState('');
   const [reportCustomToDate, setReportCustomToDate] = useState('');
-  const [reportGuestOnly, setReportGuestOnly] = useState(false);
-  const [reportMinGuestMessages, setReportMinGuestMessages] = useState('0');
-  const [reportGuestErrorsOnly, setReportGuestErrorsOnly] = useState(false);
   const [reportAmbiguousOnly, setReportAmbiguousOnly] = useState(false);
   const [reportOptions, setReportOptions] = useState<Record<ReportSection, boolean>>({
     users: true,
@@ -553,7 +549,6 @@ function AdminPanel() {
     conversation_summary: false,
     messages: false,
     ai_performance: true,
-    guest_conversations: false,
     supervised_otp_usage: false
   });
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null);
@@ -938,7 +933,13 @@ function AdminPanel() {
   };
 
   const deleteUser = async (user: User) => {
-    if (!window.confirm('حذف کاربر و گفتگوها انجام شود؟')) return;
+    const allowed = await confirm({
+      message: 'حذف کاربر و گفتگوها انجام شود؟',
+      confirmText: 'حذف',
+      cancelText: 'انصراف',
+      variant: 'danger'
+    });
+    if (!allowed) return;
     setActionError('');
     try {
       const response = await fetch(`/api/admin/users/${user.user_id}`, { method: 'DELETE', credentials: 'include' });
@@ -992,7 +993,7 @@ function AdminPanel() {
       .filter((section) => reportOptions[section.key])
       .map((section) => section.key);
     if (selectedSections.length === 0) {
-      window.alert('حداقل یک بخش گزارش را انتخاب کنید.');
+      notify.warning('حداقل یک بخش گزارش را انتخاب کنید.');
       return;
     }
     params.set('format', reportFormat);
@@ -1003,9 +1004,6 @@ function AdminPanel() {
     if (reportUserScope === 'selected' && selectedReportUserIds.length > 0) {
       params.set('userIds', selectedReportUserIds.join(','));
     }
-    if (reportGuestOnly) params.set('guestOnly', '1');
-    if (Number.parseInt(reportMinGuestMessages, 10) > 0) params.set('minGuestMessages', reportMinGuestMessages);
-    if (reportGuestErrorsOnly) params.set('guestErrorsOnly', '1');
     if (reportAmbiguousOnly) params.set('ambiguousOnly', '1');
     window.open(`/api/admin/reports/export?${params.toString()}`, '_blank');
   };
@@ -1103,7 +1101,13 @@ function AdminPanel() {
   };
 
   const runImageLiveTest = async () => {
-    if (!window.confirm('تست واقعی ساخت تصویر اعتبار مصرف می‌کند. ادامه می‌دهی؟')) return;
+    const allowed = await confirm({
+      message: 'تست واقعی ساخت تصویر اعتبار مصرف می‌کند. ادامه می‌دهی؟',
+      confirmText: 'اجرای واقعی',
+      cancelText: 'انصراف',
+      variant: 'danger'
+    });
+    if (!allowed) return;
     setImageTestLoading(true);
     setImageTestMessage('');
     setImageTestResult(null);
@@ -1154,7 +1158,13 @@ function AdminPanel() {
       setVisionTestMessage('برای تست واقعی Vision یک تصویر انتخاب کن.');
       return;
     }
-    if (!window.confirm('تست واقعی خواندن تصویر ممکن است اعتبار مصرف کند. ادامه می‌دهی؟')) return;
+    const allowed = await confirm({
+      message: 'تست واقعی خواندن تصویر ممکن است اعتبار مصرف کند. ادامه می‌دهی؟',
+      confirmText: 'اجرای واقعی',
+      cancelText: 'انصراف',
+      variant: 'danger'
+    });
+    if (!allowed) return;
     setVisionTestLoading(true);
     setVisionTestMessage('');
     setVisionTestResult(null);
@@ -1182,7 +1192,13 @@ function AdminPanel() {
   };
 
   const runVisionModelProbe = async () => {
-    if (!window.confirm('Model probe واقعی ممکن است اعتبار مصرف کند و فقط تصویر تست داخلی را ارسال می‌کند. ادامه می‌دهی؟')) return;
+    const allowed = await confirm({
+      message: 'Model probe واقعی ممکن است اعتبار مصرف کند و فقط تصویر تست داخلی را ارسال می‌کند. ادامه می‌دهی؟',
+      confirmText: 'اجرای Probe',
+      cancelText: 'انصراف',
+      variant: 'danger'
+    });
+    if (!allowed) return;
     setVisionTestLoading(true);
     setVisionTestMessage('');
     setVisionTestResult(null);
@@ -1240,7 +1256,13 @@ function AdminPanel() {
   };
 
   const runIntentRouterModelProbe = async () => {
-    if (!window.confirm('Model probe واقعی intent-router ممکن است اعتبار مصرف کند. ادامه می‌دهی؟')) return;
+    const allowed = await confirm({
+      message: 'Model probe واقعی intent-router ممکن است اعتبار مصرف کند. ادامه می‌دهی؟',
+      confirmText: 'اجرای Probe',
+      cancelText: 'انصراف',
+      variant: 'danger'
+    });
+    if (!allowed) return;
     setIntentRouterTestLoading(true);
     setIntentRouterTestMessage('');
     setIntentRouterTestResult(null);
@@ -1348,7 +1370,13 @@ function AdminPanel() {
   };
 
   const deleteSupervisedOtp = async () => {
-    if (!window.confirm('کد Supervised OTP حذف و غیرفعال شود؟')) return;
+    const allowed = await confirm({
+      message: 'کد Supervised OTP حذف و غیرفعال شود؟',
+      confirmText: 'حذف',
+      cancelText: 'انصراف',
+      variant: 'danger'
+    });
+    if (!allowed) return;
     setSupervisedOtpSaving(true);
     setSupervisedOtpMessage('');
     try {
@@ -1915,8 +1943,8 @@ function AdminPanel() {
                   )}
                 </div>
                 <div className="studio-generation-card__meta">
-                  <strong>{generation.user.name || 'کاربر مهمان'}</strong>
-                  <span>{generation.user.phone || 'مهمان بدون شماره'}{generation.createdAt ? ` · ${generation.createdAt}` : ''}</span>
+                  <strong>{generation.user.name || 'کاربر'}</strong>
+                  <span>{generation.user.phone || 'شماره ثبت‌نشده'}{generation.createdAt ? ` · ${generation.createdAt}` : ''}</span>
                 </div>
                 <div className="studio-generation-card__prompt">
                   <span>پرامپت کاربر</span>
@@ -2914,29 +2942,6 @@ function AdminPanel() {
           ))}
         </FieldGroup>
         <FieldGroup direction="row" className="admin-report-options">
-          <label>
-            <input
-              type="checkbox"
-              checked={reportGuestOnly}
-              onChange={(e) => setReportGuestOnly(e.target.checked)}
-            /> فقط مهمان‌ها
-          </label>
-          <label className="admin-control-field">
-            <span>حداقل تعداد پیام</span>
-            <input
-              type="number"
-              min="0"
-              value={reportMinGuestMessages}
-              onChange={(e) => setReportMinGuestMessages(e.target.value)}
-            />
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={reportGuestErrorsOnly}
-              onChange={(e) => setReportGuestErrorsOnly(e.target.checked)}
-            /> فقط گفتگوهای دارای خطا
-          </label>
           <label>
             <input
               type="checkbox"

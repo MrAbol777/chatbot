@@ -54,7 +54,7 @@ Current compatibility:
 <Button variant="secondary">بازگشت</Button>
 <Button variant="danger" size="sm">حذف</Button>
 <Button loading>در حال انجام</Button>
-<Button iconOnly aria-label="تنظیمات">⚙️</Button>
+<Button iconOnly aria-label="تنظیمات"><Icon name="settings" /></Button>
 ```
 
 `iconOnly` accessibility rule:

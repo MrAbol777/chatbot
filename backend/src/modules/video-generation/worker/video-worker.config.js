@@ -6,6 +6,10 @@ const DEFAULTS = Object.freeze({
   shutdownTimeoutMs: 10_000,
   batchSize: 5,
   leaseMs: 60_000,
+  // BananaAI generation is asynchronous and can legitimately take several
+  // minutes. The job timeout below is the single authoritative deadline;
+  // keep this optional escape hatch disabled by default.
+  providerDeadlineSeconds: 0,
   jobTimeoutMinutes: 30,
   maxPollAttempts: 20,
   pollBaseDelayMs: 5_000,
@@ -16,6 +20,14 @@ function positiveInteger(value, name) {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) {
     throw new Error(`${name} must be a positive safe integer.`);
+  }
+  return parsed;
+}
+
+function nonNegativeInteger(value, name) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative safe integer.`);
   }
   return parsed;
 }
@@ -45,6 +57,9 @@ function loadVideoWorkerConfig(env = process.env) {
     shutdownTimeoutMs: positiveInteger(env.VIDEO_GENERATION_WORKER_SHUTDOWN_TIMEOUT_MS || env.VIDEO_WORKER_SHUTDOWN_TIMEOUT_MS || DEFAULTS.shutdownTimeoutMs, 'VIDEO_GENERATION_WORKER_SHUTDOWN_TIMEOUT_MS'),
     batchSize: positiveInteger(env.VIDEO_GENERATION_WORKER_BATCH_SIZE || env.VIDEO_WORKER_BATCH_SIZE || DEFAULTS.batchSize, 'VIDEO_GENERATION_WORKER_BATCH_SIZE'),
     leaseMs: positiveInteger(env.VIDEO_GENERATION_WORKER_LEASE_MS || env.VIDEO_WORKER_LEASE_MS || DEFAULTS.leaseMs, 'VIDEO_GENERATION_WORKER_LEASE_MS'),
+    providerDeadlineSeconds: env.VIDEO_PROVIDER_DEADLINE_SECONDS === undefined || env.VIDEO_PROVIDER_DEADLINE_SECONDS === ''
+      ? DEFAULTS.providerDeadlineSeconds
+      : nonNegativeInteger(env.VIDEO_PROVIDER_DEADLINE_SECONDS, 'VIDEO_PROVIDER_DEADLINE_SECONDS'),
     jobTimeoutMinutes: positiveInteger(env.VIDEO_JOB_TIMEOUT_MINUTES || DEFAULTS.jobTimeoutMinutes, 'VIDEO_JOB_TIMEOUT_MINUTES'),
     maxPollAttempts: positiveInteger(env.VIDEO_GENERATION_WORKER_MAX_ATTEMPTS || env.VIDEO_MAX_POLL_ATTEMPTS || DEFAULTS.maxPollAttempts, 'VIDEO_GENERATION_WORKER_MAX_ATTEMPTS'),
     pollBaseDelayMs: positiveInteger(env.VIDEO_POLL_BASE_DELAY_MS || DEFAULTS.pollBaseDelayMs, 'VIDEO_POLL_BASE_DELAY_MS'),
