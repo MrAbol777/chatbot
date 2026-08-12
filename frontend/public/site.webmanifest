@@ -11,14 +11,14 @@
   "theme_color": "#6d28d9",
   "icons": [
     {
-      "src": "/brand/danoa-logo-v2-transparent.png",
-      "sizes": "1256x1256",
+      "src": "/brand/danoa-d-mark-192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/brand/danoa-avatar.png",
-      "sizes": "1024x1024",
+      "src": "/brand/danoa-d-mark-512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     }

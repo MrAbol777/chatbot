@@ -707,6 +707,12 @@ app.use(createHealthRouter({
   }
 }));
 
+// Brand files have versioned names. Cache them aggressively so the loading
+// screen and compact logos appear immediately on repeat visits.
+app.use('/brand', express.static(path.join(frontendDistPath, 'brand'), {
+  maxAge: '1y',
+  immutable: true
+}));
 app.use(express.static(frontendDistPath));
 
 app.get('*', (req, res) => {

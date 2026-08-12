@@ -1,5 +1,6 @@
 'use strict';
 
+const https = require('https');
 const { fail } = require('../video-generation.errors');
 const { VideoStorageError } = require('../storage/video-storage.errors');
 const { fetchValidatedResult, validateProviderBaseUrl } = require('./provider-result-downloader');
@@ -32,6 +33,23 @@ function bananaSubmissionError(code, message, outcome, details = {}) {
   return Object.assign(new Error(message), { code, safe: true, submissionOutcome: outcome, details });
 }
 
+function createBananaProxyConfig(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return undefined;
+  let url;
+  try { url = new URL(raw); } catch (_) { throw fail('VIDEO_PROVIDER_NOT_CONFIGURED', 'تنظیمات پروکسی سرویس ساخت ویدیو معتبر نیست.', 503); }
+  if (!['http:', 'https:'].includes(url.protocol) || !url.hostname || url.pathname !== '/' || url.search || url.hash) {
+    throw fail('VIDEO_PROVIDER_NOT_CONFIGURED', 'تنظیمات پروکسی سرویس ساخت ویدیو معتبر نیست.', 503);
+  }
+  const proxy = {
+    protocol: url.protocol.slice(0, -1),
+    host: url.hostname,
+    port: Number(url.port || (url.protocol === 'https:' ? 443 : 80))
+  };
+  if (url.username || url.password) proxy.auth = { username: decodeURIComponent(url.username), password: decodeURIComponent(url.password) };
+  return proxy;
+}
+
 function classifyBananaSubmissionError(error) {
   const status = Number(error?.response?.status || 0);
   const body = error?.response?.data;
@@ -49,6 +67,8 @@ function createBananaAiVideoProvider({
   httpClient,
   baseUrl = 'https://bananaai.ir',
   apiKey,
+  proxyUrl,
+  forceIpv4 = true,
   resultAllowedHosts = [],
   resultAllowedPorts = [443],
   resultAllowedPathPrefixes = ['/'],
@@ -64,10 +84,12 @@ function createBananaAiVideoProvider({
   if (!httpClient || !['object', 'function'].includes(typeof httpClient)) throw new Error('BANANAAI_HTTP_CLIENT_REQUIRED');
   const configuredRoot = String(baseUrl || '').trim();
   const root = configuredRoot ? validateProviderBaseUrl(configuredRoot) : '';
+  const proxy = createBananaProxyConfig(proxyUrl);
+  const httpsAgent = new https.Agent({ keepAlive: true, ...(forceIpv4 ? { family: 4 } : {}) });
   const validator = createVideoResultUrlValidator({ allowedHosts: resultAllowedHosts, allowedPorts: resultAllowedPorts, allowedPathPrefixes: resultAllowedPathPrefixes, allowTestLocal: allowTestLocalResult, resolver: dnsResolver });
   const promptLimit = Number(maxPromptLength);
   if (!Number.isSafeInteger(promptLimit) || promptLimit < 256) throw new Error('BANANAAI_MAX_PROMPT_LENGTH_INVALID');
-  const requestConfig = (timeout) => ({ headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, timeout, maxRedirects: 0 });
+  const requestConfig = (timeout) => ({ headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, timeout, maxRedirects: 0, httpsAgent, ...(proxy ? { proxy } : {}), transitional: { clarifyTimeoutError: true } });
 
   function validateRequest(input) {
     if (!root || !String(apiKey || '').trim()) throw fail('VIDEO_PROVIDER_NOT_CONFIGURED', 'تنظیمات سرویس ساخت ویدیو کامل نیست.', 503);
@@ -98,10 +120,11 @@ function createBananaAiVideoProvider({
     let response;
     try { response = await httpClient.post(`${root}${endpoint}`, payload, requestConfig(requestTimeoutMs)); }
     catch (error) { throw classifyBananaSubmissionError(error); }
-    if (!response?.data || !String(response.data.id || '').trim()) {
+    const providerJobId = String(response?.data?.id || response?.data?.taskId || '').trim();
+    if (!response?.data || !providerJobId) {
       throw bananaSubmissionError('VIDEO_PROVIDER_STATUS_UNKNOWN', 'BananaAI returned a response without a task ID.', 'ambiguous', { status: Number(response?.status || 0) || null });
     }
-    return { providerJobId: String(response.data.id), status: 'submitted', creditsReserved: Number.isFinite(Number(response.data.credits_reserved)) ? Number(response.data.credits_reserved) : null };
+    return { providerJobId, status: 'submitted', creditsReserved: Number.isFinite(Number(response.data.credits_reserved)) ? Number(response.data.credits_reserved) : null };
   }
 
   return {
@@ -118,7 +141,11 @@ function createBananaAiVideoProvider({
       if (!root || !String(apiKey || '').trim()) throw fail('VIDEO_PROVIDER_NOT_CONFIGURED', 'تنظیمات سرویس ساخت ویدیو کامل نیست.', 503);
       if (typeof httpClient.get !== 'function') throw fail('VIDEO_PROVIDER_NOT_CONFIGURED', 'تنظیمات سرویس ساخت ویدیو کامل نیست.', 503);
       try { return (await httpClient.get(`${root}/api/v1/tasks/${encodeURIComponent(taskId)}`, requestConfig(statusTimeoutMs))).data; }
-      catch (error) { throw Object.assign(new Error('BananaAI polling failed.'), { code: 'VIDEO_PROVIDER_POLL_FAILED', retryable: true, safe: true, status: Number(error?.response?.status || 0) || null }); }
+      catch (error) {
+        const status = Number(error?.response?.status || 0) || null;
+        const code = status === 429 ? 'VIDEO_PROVIDER_RATE_LIMITED' : status >= 500 ? 'VIDEO_PROVIDER_UNAVAILABLE' : ['ECONNABORTED', 'ETIMEDOUT'].includes(error?.code) ? 'VIDEO_PROVIDER_TIMEOUT' : 'VIDEO_PROVIDER_POLL_FAILED';
+        throw Object.assign(new Error('BananaAI polling failed.'), { code, retryable: true, safe: true, status, retryAfter: error?.response?.headers?.['retry-after'] || null });
+      }
     },
     normalizeStatus: (value) => ({ pending: 'submitted', processing: 'processing', completed: 'storing', failed: 'failed' })[String(value?.status || value || '').toLowerCase()] || null,
     normalizeResult: (value) => {

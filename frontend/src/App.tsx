@@ -12,6 +12,8 @@ import { Button, Dialog, InlineMessage, TextField, useNotification } from './des
 import EmptyState from './components/EmptyState';
 import Icon from './components/Icon';
 import type { IconName } from './components/Icon';
+import InsufficientBalanceNotice from './components/InsufficientBalanceNotice';
+import DanoaLoadingMark from './components/DanoaLoadingMark';
 import ProfileForm from './components/ProfileForm';
 import NoaWalletPanel from './noa/NoaWalletPanel';
 import { formatDecimalFa } from './noa/decimal';
@@ -136,6 +138,10 @@ type ApiErrorData = {
   nextAction?: string;
   retryAfter?: number;
   retryAfterSeconds?: number;
+  actionKey?: string;
+  balanceNoa?: string;
+  requiredNoa?: string;
+  shortfallNoa?: string;
 };
 type AuthFamilyPayload = {
   child?: {
@@ -1222,6 +1228,7 @@ function ChatApp() {
   const [conversationSearchTerm, setConversationSearchTerm] = useState('');
   const [conversationSearchOpen, setConversationSearchOpen] = useState(false);
   const conversationSearchInputRef = useRef<HTMLInputElement>(null);
+  const conversationSidebarSearchInputRef = useRef<HTMLInputElement>(null);
   const conversationSearchToggleRef = useRef<HTMLButtonElement>(null);
   const chatSidebarToggleRef = useRef<HTMLButtonElement>(null);
 
@@ -1540,6 +1547,18 @@ function ChatApp() {
         return searchableText.includes(query);
       });
   }, [conversationSearchTerm, orderedConversations]);
+  const sidebarPinnedConversations = visibleConversations.filter(({ conversation }) => conversation.pinned);
+  const sidebarUnpinnedConversations = visibleConversations.filter(({ conversation }) => !conversation.pinned);
+  const sidebarToday = sidebarUnpinnedConversations.filter(({ conversation }) => {
+    const date = new Date(conversation.updatedAt || conversation.createdAt);
+    const now = new Date();
+    return date.toDateString() === now.toDateString();
+  });
+  const sidebarOlder = sidebarUnpinnedConversations.filter(({ conversation }) => {
+    const date = new Date(conversation.updatedAt || conversation.createdAt);
+    const now = new Date();
+    return date.toDateString() !== now.toDateString();
+  });
   const conversationMenuTarget = conversationMenu
     ? conversations.find((conversation) => conversation.id === conversationMenu.conversationId) || null
     : null;
@@ -2993,20 +3012,37 @@ function ChatApp() {
       }));
     } catch (error) {
       const requestError = error as ChatRequestError;
-      if (requestError.status === 402 || requestError.payload?.error === 'NOA_INSUFFICIENT_FUNDS') {
+      const isInsufficientBalance =
+        requestError.payload?.error === 'NOA_INSUFFICIENT_FUNDS' ||
+        requestError.payload?.error === 'NOA_INSUFFICIENT_BALANCE' ||
+        (requestError.status === 402 && !requestError.payload?.error);
+      if (isInsufficientBalance) {
+        const billingMessage: ChatMessage = {
+          id: generateMessageId('assistant-billing'),
+          role: 'assistant',
+          type: 'text',
+          content: '',
+          timestamp: new Date().toISOString(),
+          billingError: {
+            kind: 'insufficient_balance',
+            actionKey: requestError.payload?.actionKey,
+            balanceNoa: requestError.payload?.balanceNoa,
+            requiredNoa: requestError.payload?.requiredNoa,
+            shortfallNoa: requestError.payload?.shortfallNoa,
+            retryable: Boolean(content && attachmentsAtSend.length === 0),
+            retryMessage: content || undefined
+          }
+        };
         updateConversation(currentConversation.id, (item) => {
-          const remainingMessages = item.messages.filter((message) => message.timestamp !== userMessage.timestamp);
           return {
             ...item,
-            title: item.messages.length === 1 ? DEFAULT_TITLE : item.title,
-            messages: remainingMessages,
+            messages: [...item.messages, billingMessage],
             updatedAt: new Date().toISOString()
           };
         });
         setInputValue(content);
-        notify.warning(requestError.message || 'موجودی نوآ برای این عملیات کافی نیست.');
+        notify.warning('موجودی نوآ برای این درخواست کافی نیست؛ جزئیات و راه‌حل در گفتگو نمایش داده شد.');
         void noaWallet.refresh();
-        handleOpenNoaWallet();
         return;
       }
 
@@ -3797,6 +3833,83 @@ notify.error(message);
     );
   };
 
+  const renderSidebarConversation = ({ conversation, index }: { conversation: Conversation; index: number }) => {
+    const isActive = conversation.id === activeConversationId;
+    const isEditing = editingId === conversation.id;
+    const visual = conversationVisuals[index % conversationVisuals.length];
+    const preview = getConversationPreview(conversation);
+    const dateLabel = formatConversationDate(conversation.updatedAt || conversation.createdAt);
+
+    return (
+      <div className={`conversation-row conversation-card ${isActive ? 'active' : ''}`} key={conversation.id}>
+        {!isEditing ? (
+          <button
+            type="button"
+            className="conversation-card-select"
+            onClick={() => {
+              setActiveConversationId(conversation.id);
+              navigateToConversation(conversation.id);
+            }}
+            aria-label={`باز کردن گفتگو: ${conversation.title || DEFAULT_TITLE}`}
+            aria-current={isActive ? 'page' : undefined}
+          />
+        ) : null}
+        <div className={`conversation-card-icon conversation-card-icon--${visual.tone}`} aria-hidden="true">
+          <Icon name={conversationVisualIcon(index)} size="1.25em" />
+        </div>
+        <div className="conversation-main">
+          {isEditing ? (
+            <form onSubmit={(event) => { event.preventDefault(); void finishTitleEdit(conversation.id, true); }}>
+              <input
+                autoFocus
+                className="rename-input ds-field__input"
+                value={editingTitle}
+                maxLength={40}
+                aria-label="عنوان گفتگو"
+                onBlur={() => { void finishTitleEdit(conversation.id, true); }}
+                onChange={(event) => setEditingTitle(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') { event.preventDefault(); void finishTitleEdit(conversation.id, false); }
+                }}
+              />
+            </form>
+          ) : (
+            <>
+              <div className="conversation-card-title-row">
+                <p>{conversation.title || DEFAULT_TITLE}</p>
+                {conversation.pinned ? (
+                  <span className="conversation-card-pinned" title="سنجاق‌شده" aria-label="سنجاق‌شده">
+                    <Icon name="pin" size={13} aria-hidden="true" />
+                  </span>
+                ) : null}
+              </div>
+              <div className="conversation-card-preview-row">
+                <small>{preview}</small>
+                <time className="conversation-card-date" dateTime={conversation.updatedAt || conversation.createdAt}>
+                  {dateLabel}
+                </time>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="conversation-card-meta" onClick={(event) => event.stopPropagation()}>
+          <button
+            type="button"
+            className={`conversation-more-trigger ${conversationMenu?.conversationId === conversation.id ? 'is-open' : ''}`}
+            aria-label={`گزینه‌های گفتگو: ${conversation.title || DEFAULT_TITLE}`}
+            aria-haspopup="menu"
+            aria-expanded={conversationMenu?.conversationId === conversation.id}
+            aria-controls={conversationMenu?.conversationId === conversation.id ? 'conversation-context-menu' : undefined}
+            title="گزینه‌های گفتگو"
+            onClick={(event) => handleConversationMenuToggle(event, conversation.id)}
+          >
+            <Icon name="more-horizontal" size={19} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   if (!hasCheckedSession && !profile) {
     return null;
   }
@@ -4068,7 +4181,9 @@ notify.error(message);
         >
           <header className="conversation-home-header">
             <div className="conversation-home-brand">
-              <span className="conversation-home-brand__mark" aria-hidden="true">د</span>
+              <span className="conversation-home-brand__mark" aria-hidden="true">
+                <img src={PUBLIC_ASSETS.brandMark} alt="" />
+              </span>
               <span>
                 <strong>دانوآ</strong>
                 <small>همراه هوشمند تو</small>
@@ -4081,18 +4196,50 @@ notify.error(message);
                 className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
                 onClick={() => {
                   setConversationSearchTerm('');
-                  setConversationSearchOpen(true);
-                  window.requestAnimationFrame(() => conversationSearchInputRef.current?.focus());
+                  setConversationSearchOpen(false);
+                  window.requestAnimationFrame(() => conversationSidebarSearchInputRef.current?.focus());
                 }}
                 aria-label="جستجوی گفتگوها"
-                aria-expanded={conversationSearchOpen}
-                aria-controls="conversation-search-modal"
+                aria-controls="conversation-sidebar-search-input"
                 title="جستجوی گفتگوها"
               >
                 <Icon name="search" size={20} aria-hidden="true" />
               </button>
             </div>
           </header>
+
+          <div className="conversation-sidebar-search" role="search">
+            <button
+              type="button"
+              className="conversation-sidebar-search__edge-action"
+              onClick={() => {
+                setConversationSearchTerm('');
+                window.requestAnimationFrame(() => conversationSidebarSearchInputRef.current?.focus());
+              }}
+              aria-label="پاک کردن جستجوی گفتگوها"
+              title="پاک کردن جستجو"
+            >
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
+            </button>
+            <input
+              ref={conversationSidebarSearchInputRef}
+              id="conversation-sidebar-search-input"
+              type="search"
+              dir="rtl"
+              value={conversationSearchTerm}
+              onChange={(event) => setConversationSearchTerm(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  setConversationSearchTerm('');
+                  event.currentTarget.blur();
+                }
+              }}
+              placeholder="جستجوی گفتگوها"
+              aria-label="جستجوی گفتگوها"
+            />
+            <Icon name="search" size={19} aria-hidden="true" />
+          </div>
 
           <div className="conversation-home-primary-actions">
             <button type="button" className="conversation-new-chat-btn" onClick={() => void handleCreateConversation()}>
@@ -4101,10 +4248,12 @@ notify.error(message);
             </button>
           </div>
 
-          <div className="conversation-history-heading">
-            <h2>گفتگوهای اخیر</h2>
-            <span>{new Intl.NumberFormat('fa-IR').format(visibleConversations.length)}</span>
-          </div>
+          {conversationSearchTerm ? (
+            <div className="conversation-history-heading">
+              <h2>نتایج جستجو</h2>
+              <span>{new Intl.NumberFormat('fa-IR').format(visibleConversations.length)}</span>
+            </div>
+          ) : null}
 
           <div className="conversation-list conversation-home-list">
             {!hasHydratedRemoteConversations && profile?.id ? (
@@ -4121,99 +4270,39 @@ notify.error(message);
                 </div>
               ))
             ) : null}
-            {visibleConversations.map(({ conversation, index }) => {
-              const isActive = conversation.id === activeConversationId;
-              const isEditing = editingId === conversation.id;
-              const visual = conversationVisuals[index % conversationVisuals.length];
-              const preview = getConversationPreview(conversation);
-              const dateLabel = formatConversationDate(conversation.updatedAt || conversation.createdAt);
-              return (
-                <div
-                  className={`conversation-row conversation-card ${isActive ? 'active' : ''}`}
-                  key={conversation.id}
-                >
-                  {!isEditing ? (
-                    <button
-                      type="button"
-                      className="conversation-card-select"
-                      onClick={() => {
-                        setActiveConversationId(conversation.id);
-                        navigateToConversation(conversation.id);
-                      }}
-                      aria-label={`باز کردن گفتگو: ${conversation.title || DEFAULT_TITLE}`}
-                      aria-current={isActive ? 'page' : undefined}
-                    />
-                  ) : null}
-                  <div className={`conversation-card-icon conversation-card-icon--${visual.tone}`} aria-hidden="true">
-                    <Icon name={conversationVisualIcon(index)} size="1.5em" />
-                  </div>
-
-                  <div className="conversation-main">
-                    {isEditing ? (
-                      <form
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          void finishTitleEdit(conversation.id, true);
-                        }}
-                      >
-                        <input
-                          autoFocus
-                          className="rename-input ds-field__input"
-                          value={editingTitle}
-                          maxLength={40}
-                          onBlur={() => { void finishTitleEdit(conversation.id, true); }}
-                          onChange={(event) => setEditingTitle(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Escape') { event.preventDefault(); void finishTitleEdit(conversation.id, false); }
-                          }}
-                        />
-                      </form>
-                    ) : (
-                      <>
-                        <div className="conversation-card-title-row">
-                          <p>{conversation.title || DEFAULT_TITLE}</p>
-                          {conversation.pinned ? (
-                            <span className="conversation-card-pinned" title="سنجاق‌شده" aria-label="سنجاق‌شده">
-                              <Icon name="pin" size={13} aria-hidden="true" />
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="conversation-card-preview-row">
-                          <small>{preview}</small>
-                          <time
-                            className="conversation-card-date"
-                            dateTime={conversation.updatedAt || conversation.createdAt}
-                          >
-                            {dateLabel}
-                          </time>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="conversation-card-meta" onClick={(event) => event.stopPropagation()}>
-                    <button
-                      type="button"
-                      className={`conversation-more-trigger ${
-                        conversationMenu?.conversationId === conversation.id ? 'is-open' : ''
-                      }`}
-                      aria-label={`گزینه‌های گفتگو: ${conversation.title || DEFAULT_TITLE}`}
-                      aria-haspopup="menu"
-                      aria-expanded={conversationMenu?.conversationId === conversation.id}
-                      aria-controls={
-                        conversationMenu?.conversationId === conversation.id
-                          ? 'conversation-context-menu'
-                          : undefined
-                      }
-                      title="گزینه‌های گفتگو"
-                      onClick={(event) => handleConversationMenuToggle(event, conversation.id)}
-                    >
-                      <Icon name="more-horizontal" size={21} aria-hidden="true" />
-                    </button>
-                  </div>
+            {sidebarPinnedConversations.length > 0 ? (
+              <section className="conversation-sidebar-section" aria-labelledby="pinned-conversations-title">
+                <div className="conversation-sidebar-section__heading">
+                  <h2 id="pinned-conversations-title">سنجاق‌شده</h2>
+                  <Icon name="pin" size={16} aria-hidden="true" />
                 </div>
-              );
-            })}
+                <div className="conversation-group-card">
+                  {sidebarPinnedConversations.map(renderSidebarConversation)}
+                </div>
+              </section>
+            ) : null}
+
+            {sidebarToday.length > 0 ? (
+              <section className="conversation-sidebar-section" aria-labelledby="today-conversations-title">
+                <div className="conversation-sidebar-section__heading">
+                  <h2 id="today-conversations-title">امروز</h2>
+                </div>
+                <div className="conversation-group-card">
+                  {sidebarToday.map(renderSidebarConversation)}
+                </div>
+              </section>
+            ) : null}
+
+            {sidebarOlder.length > 0 ? (
+              <section className="conversation-sidebar-section" aria-labelledby="older-conversations-title">
+                <div className="conversation-sidebar-section__heading">
+                  <h2 id="older-conversations-title">هفته گذشته</h2>
+                </div>
+                <div className="conversation-group-card">
+                  {sidebarOlder.map(renderSidebarConversation)}
+                </div>
+              </section>
+            ) : null}
             {visibleConversations.length === 0 ? (
               <div className="conversation-search-empty" role="status">
                 {orderedConversations.length === 0 ? (
@@ -4741,7 +4830,7 @@ notify.error(message);
                 {message.role === 'assistant' ? renderBotAvatar() : null}
                 {message.role === 'assistant' ? (
                   <div className={`bubble markdown-body ${message.streamStatus === 'streaming' ? 'streaming-bubble' : ''}`}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    {message.content ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown> : null}
                     {message.streamStatus === 'streaming' ? <span className="stream-cursor" aria-label="در حال نوشتن" /> : null}
                     {message.streamStatus === 'failed' ? (
                       <div className="stream-state stream-state-error" role="alert">
@@ -4771,6 +4860,15 @@ notify.error(message);
                       >
                         رفتن به استودیوی تصویر
                       </button>
+                    ) : null}
+                    {message.billingError?.kind === 'insufficient_balance' ? (
+                      <InsufficientBalanceNotice
+                        billingError={message.billingError}
+                        onOpenWallet={handleOpenNoaWallet}
+                        onRetry={message.billingError.retryable && message.billingError.retryMessage
+                          ? () => void handleSendMessage(message.billingError?.retryMessage)
+                          : undefined}
+                      />
                     ) : null}
                     {Array.isArray(message.images) && message.images.length > 0 ? (
                       <div className="message-image-grid">
@@ -5043,7 +5141,12 @@ notify.error(message);
 function AppRouteFallback() {
   return (
     <main className="app-route-loading" role="status" aria-live="polite">
-      <span className="app-route-loading__spinner" aria-hidden="true" />
+      <span className="app-route-loading__visual" aria-hidden="true">
+        <span className="app-route-loading__brand">
+          <DanoaLoadingMark />
+        </span>
+        <span className="app-route-loading__spinner" />
+      </span>
       <strong>در حال آماده‌سازی دانوآ…</strong>
     </main>
   );

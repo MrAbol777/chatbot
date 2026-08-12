@@ -11,8 +11,8 @@
     <meta name="robots" content="index, follow" />
     <meta name="author" content="دانوآ" />
     <link rel="canonical" href="https://danoa.ir/" />
-    <link rel="icon" type="image/png" href="%BASE_URL%brand/danoa-logo-v2-transparent.png" />
-    <link rel="apple-touch-icon" href="%BASE_URL%brand/danoa-avatar.png" />
+    <link rel="icon" type="image/png" href="%BASE_URL%brand/danoa-d-mark-512.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="%BASE_URL%brand/danoa-d-mark-512.png" />
     <link rel="manifest" href="%BASE_URL%site.webmanifest" />
 
     <meta property="og:type" content="website" />
@@ -21,20 +21,25 @@
     <meta property="og:title" content="دانوآ | دوست هوش مصنوعی بچه‌ها" />
     <meta property="og:description" content="همراهی امن و فارسی برای کمک درسی، احساسات و خلاقیت کودکان و نوجوانان." />
     <meta property="og:url" content="https://danoa.ir/" />
-    <meta property="og:image" content="https://danoa.ir/brand/danoa-avatar.png" />
-    <meta property="og:image:width" content="1024" />
-    <meta property="og:image:height" content="1024" />
+    <meta property="og:image" content="https://danoa.ir/brand/danoa-d-mark-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
     <meta property="og:image:alt" content="نشان دانوآ، دستیار هوش مصنوعی کودکان" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="دانوآ | دوست هوش مصنوعی بچه‌ها" />
     <meta name="twitter:description" content="همراهی امن و فارسی برای کمک درسی، احساسات و خلاقیت کودکان و نوجوانان." />
-    <meta name="twitter:image" content="https://danoa.ir/brand/danoa-avatar.png" />
+    <meta name="twitter:image" content="https://danoa.ir/brand/danoa-d-mark-512.png" />
     <meta name="twitter:image:alt" content="نشان دانوآ، دستیار هوش مصنوعی کودکان" />
 
     <link rel="preload" href="%BASE_URL%fonts/iransens/IRANSansWeb_Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="%BASE_URL%fonts/iransens/IRANSansWeb_Bold.woff2" as="font" type="font/woff2" crossorigin />
 
     <title>دانوآ | دوست هوش مصنوعی بچه‌ها</title>
+    <style>
+      /* Kept inline so the brand is visible before the application CSS or any image request arrives. */
+      .app-route-loading__brand { width: 68px; height: 68px; display: block; }
+      .app-route-loading__brand svg { display: block; width: 100%; height: 100%; }
+    </style>
 
     <script type="application/ld+json">
     {
@@ -84,7 +89,22 @@
   <body>
     <div id="root">
       <main class="app-route-loading" role="status" aria-live="polite">
-        <span class="app-route-loading__spinner" aria-hidden="true"></span>
+        <span class="app-route-loading__visual" aria-hidden="true">
+          <span class="app-route-loading__brand">
+            <svg viewBox="0 0 64 64" focusable="false">
+              <defs>
+                <linearGradient id="danoa-loader-mark" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#8b5cf6" />
+                  <stop offset="1" stop-color="#5b21b6" />
+                </linearGradient>
+              </defs>
+              <rect width="64" height="64" rx="18" fill="url(#danoa-loader-mark)" />
+              <path d="M32 12.5 35.7 25l12.8 3.7-12.8 3.7L32 45l-3.7-12.6-12.8-3.7L28.3 25 32 12.5Z" fill="#fff" />
+              <path d="m47.5 41 1.7 5.8 5.8 1.7-5.8 1.7-1.7 5.8-1.7-5.8-5.8-1.7 5.8-1.7 1.7-5.8Z" fill="#ddd6fe" />
+            </svg>
+          </span>
+          <span class="app-route-loading__spinner"></span>
+        </span>
         <strong>در حال آماده‌سازی دانوآ…</strong>
       </main>
     </div>

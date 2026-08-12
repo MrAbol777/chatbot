@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import DanoaLoadingMark from './DanoaLoadingMark';
 
 type AppErrorBoundaryProps = {
   children: ReactNode;
@@ -36,7 +37,9 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
           <div className="app-shell-state__visual" aria-hidden="true">
             <span className="app-shell-state__orbit app-shell-state__orbit--one" />
             <span className="app-shell-state__orbit app-shell-state__orbit--two" />
-            <img src="/brand/danoa-logo-v2-transparent.png" alt="" />
+            <span className="app-shell-state__brand">
+              <DanoaLoadingMark />
+            </span>
           </div>
           <p className="app-shell-state__eyebrow">دانوآ کنارته</p>
           <h1>این بخش کامل بارگذاری نشد</h1>
@@ -57,4 +60,3 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
     );
   }
 }
-

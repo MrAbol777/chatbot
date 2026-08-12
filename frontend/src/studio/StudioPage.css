@@ -338,3 +338,790 @@
   .danoa-studio-page { padding: 12px 16px 24px; }
   .danoa-studio-page__header { padding: 8px; }
 }
+
+/* Compact mobile studio -----------------------------------------------------
+   The entire tool chooser fits inside the first viewport. The card remains a
+   native button, so tapping anywhere on it and tapping the visible CTA use
+   the same accessible action without nesting buttons. */
+@media (max-width: 680px) {
+  .danoa-studio-page {
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: max(8px, env(safe-area-inset-top, 0px)) 12px max(8px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .danoa-studio-page__shell {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .danoa-studio-page__header {
+    flex: 0 0 auto;
+    min-height: 56px;
+    padding: 6px 8px;
+    border-radius: 16px;
+  }
+
+  .danoa-studio-page__back,
+  .danoa-studio-page__header-spacer {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .danoa-studio-page__title {
+    gap: 6px;
+  }
+
+  .danoa-studio-page__title > span {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+    border-radius: 9px;
+  }
+
+  .danoa-studio-page__title svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .danoa-studio-page__title h1 {
+    font-size: .9rem;
+  }
+
+  .danoa-studio-page__hero {
+    flex: 0 0 auto;
+    gap: 5px;
+    margin: 12px auto 10px;
+    padding-inline: 4px;
+  }
+
+  .danoa-studio-page__eyebrow {
+    min-height: 24px;
+    padding: 2px 9px;
+    font-size: .76rem;
+  }
+
+  .danoa-studio-page__hero p {
+    max-width: 330px;
+    font-size: .9rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .danoa-studio-page__tools {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: minmax(78px, 92px);
+    align-content: center;
+    gap: 10px;
+  }
+
+  .studio-tool-card.ds-card {
+    min-height: 0;
+    height: auto;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 18px;
+    text-align: right;
+    touch-action: manipulation;
+    animation: studio-tool-card-enter 220ms var(--motion-ease-standard, ease-out) both;
+  }
+
+  .studio-tool-card.ds-card:nth-child(2) {
+    animation-delay: 40ms;
+  }
+
+  .studio-tool-card__icon {
+    grid-column: 1;
+    grid-row: 1;
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+  }
+
+  .studio-tool-card__icon svg {
+    width: 23px;
+    height: 23px;
+  }
+
+  .studio-tool-card__copy {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    justify-items: start;
+    align-content: center;
+    gap: 2px;
+    margin: 0;
+  }
+
+  .studio-tool-card__status {
+    display: none;
+  }
+
+  .studio-tool-card__copy h2 {
+    max-width: 100%;
+    font-size: 1rem;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  .studio-tool-card__copy p {
+    max-width: 100%;
+    color: var(--color-muted);
+    font-size: .76rem;
+    line-height: 1.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .studio-tool-card__action {
+    grid-column: 3;
+    grid-row: 1;
+    width: auto;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding-inline: 9px;
+    border-radius: 12px;
+    font-size: .72rem;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+
+  .studio-tool-card.ds-card:active {
+    transform: scale(.985);
+  }
+}
+
+@media (max-width: 680px) and (max-height: 680px) {
+  .danoa-studio-page {
+    padding-block: max(6px, env(safe-area-inset-top, 0px)) max(6px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .danoa-studio-page__hero {
+    margin-block: 8px;
+  }
+
+  .danoa-studio-page__hero p {
+    -webkit-line-clamp: 1;
+  }
+
+  .danoa-studio-page__tools {
+    grid-auto-rows: minmax(72px, 82px);
+    gap: 8px;
+  }
+
+  .studio-tool-card.ds-card {
+    padding: 8px;
+  }
+
+  .studio-tool-card__action {
+    min-height: 42px;
+  }
+}
+
+@keyframes studio-tool-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-tool-card.ds-card,
+  .studio-tool-card.ds-card:nth-child(2) {
+    animation: none;
+  }
+}
+
+/* Creative studio polish ---------------------------------------------------- */
+.danoa-studio-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(196, 181, 253, .22), transparent 30%),
+    radial-gradient(circle at 88% 72%, rgba(153, 246, 228, .16), transparent 28%),
+    linear-gradient(180deg, #fbf9ff 0%, #f4f7fb 100%);
+}
+
+.danoa-studio-page::before,
+.danoa-studio-page::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(34px);
+}
+
+.danoa-studio-page::before {
+  width: 180px;
+  height: 180px;
+  top: 18%;
+  inset-inline-start: -110px;
+  background: rgba(167, 139, 250, .2);
+}
+
+.danoa-studio-page::after {
+  width: 160px;
+  height: 160px;
+  right: -90px;
+  bottom: 10%;
+  background: rgba(45, 212, 191, .15);
+}
+
+.danoa-studio-page__header {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(139, 92, 246, .2);
+  background: rgba(255, 255, 255, .72);
+  box-shadow:
+    0 12px 28px rgba(76, 29, 149, .08),
+    inset 0 1px rgba(255, 255, 255, .95);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.danoa-studio-page__header::before {
+  content: '';
+  position: absolute;
+  inset: 0 18% auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, .72), transparent);
+  pointer-events: none;
+}
+
+.danoa-studio-page__hero {
+  position: relative;
+  z-index: 1;
+}
+
+.danoa-studio-page__hero-title {
+  margin: 0;
+  color: #21133e;
+  font-size: clamp(1.25rem, 3vw, 1.8rem);
+  font-weight: 900;
+  letter-spacing: -.025em;
+  line-height: 1.35;
+}
+
+.danoa-studio-page__hero p {
+  color: #655d77;
+}
+
+.studio-tool-card.ds-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-color: color-mix(in srgb, var(--studio-card-accent, #8b5cf6) 18%, var(--color-border));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .94), color-mix(in srgb, var(--studio-card-accent, #8b5cf6) 5%, #fff));
+  box-shadow:
+    0 12px 28px color-mix(in srgb, var(--studio-card-accent, #8b5cf6) 9%, transparent),
+    inset 0 1px rgba(255, 255, 255, .95);
+}
+
+.studio-tool-card.ds-card::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 150px;
+  height: 150px;
+  top: -82px;
+  inset-inline-end: -56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--studio-card-accent, #8b5cf6) 30%, transparent), transparent 68%);
+  opacity: .8;
+  pointer-events: none;
+}
+
+.studio-tool-card.ds-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.studio-tool-card--image { --studio-card-accent: #7c3aed; }
+.studio-tool-card--video { --studio-card-accent: #0f8f88; }
+
+.studio-tool-card__icon {
+  color: var(--studio-card-accent, var(--color-primary));
+  background: color-mix(in srgb, var(--studio-card-accent, #8b5cf6) 14%, #fff);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .9), 0 8px 16px color-mix(in srgb, var(--studio-card-accent, #8b5cf6) 12%, transparent);
+}
+
+.studio-tool-card__action {
+  color: #fff;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--studio-card-accent, #7c3aed) 92%, #fff), var(--studio-card-accent, #7c3aed));
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--studio-card-accent, #7c3aed) 22%, transparent);
+  transition: transform 180ms var(--motion-ease-standard, ease), box-shadow 180ms var(--motion-ease-standard, ease), filter 180ms var(--motion-ease-standard, ease);
+}
+
+.studio-tool-card.ds-card:hover .studio-tool-card__action {
+  filter: saturate(1.08) brightness(1.03);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--studio-card-accent, #7c3aed) 30%, transparent);
+}
+
+@media (max-width: 680px) {
+  .danoa-studio-page__hero {
+    margin-top: 14px;
+    margin-bottom: 8px;
+    gap: 4px;
+  }
+
+  .danoa-studio-page__hero-title {
+    font-size: 1.28rem;
+  }
+
+  .danoa-studio-page__hero p {
+    font-size: .84rem;
+    line-height: 1.5;
+  }
+
+  .danoa-studio-page__tools {
+    gap: 12px;
+    padding-block: 8px;
+  }
+
+  .studio-tool-card.ds-card {
+    padding: 12px;
+    border-radius: 20px;
+  }
+
+  .studio-tool-card__copy h2 {
+    font-size: 1.05rem;
+    font-weight: 850;
+  }
+
+  .studio-tool-card__copy p {
+    color: #6f6880;
+  }
+
+  .studio-tool-card__action {
+    min-width: 48px;
+    padding-inline: 10px;
+    border-radius: 13px;
+    font-weight: 850;
+  }
+
+  .studio-tool-card.ds-card:active .studio-tool-card__action {
+    transform: scale(.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-tool-card__action {
+    transition: none;
+  }
+}
+
+/* Tool cards v2 ------------------------------------------------------------
+   Give each tool a clear visual identity while keeping the whole card one
+   accessible button. The mobile layout is intentionally bento-like instead
+   of repeating two identical list rows. */
+.studio-tool-card.ds-card {
+  border-color: color-mix(in srgb, var(--studio-card-accent, #7c3aed) 26%, #d9d1e8);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(255, 255, 255, .78)),
+    linear-gradient(135deg, var(--studio-card-wash, #f2eaff), #fff);
+  box-shadow:
+    0 16px 32px color-mix(in srgb, var(--studio-card-accent, #7c3aed) 12%, transparent),
+    inset 0 1px rgba(255, 255, 255, .95);
+}
+
+.studio-tool-card.ds-card::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 230px;
+  height: 120px;
+  right: -58px;
+  bottom: -66px;
+  border: 1px solid color-mix(in srgb, var(--studio-card-accent, #7c3aed) 16%, transparent);
+  border-radius: 50%;
+  transform: rotate(-16deg);
+  opacity: .8;
+  pointer-events: none;
+}
+
+.studio-tool-card--image {
+  --studio-card-accent: #7c3aed;
+  --studio-card-wash: #f0e7ff;
+}
+
+.studio-tool-card--video {
+  --studio-card-accent: #0f8f88;
+  --studio-card-wash: #e2f7f5;
+}
+
+.studio-tool-card__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 24px;
+  color: color-mix(in srgb, var(--studio-card-accent, #7c3aed) 78%, #24133e);
+}
+
+.studio-tool-card__type {
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .02em;
+}
+
+.studio-tool-card__index {
+  display: inline-grid;
+  min-width: 30px;
+  min-height: 24px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--studio-card-accent, #7c3aed) 22%, transparent);
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--studio-card-accent, #7c3aed) 72%, #24133e);
+  background: color-mix(in srgb, var(--studio-card-accent, #7c3aed) 9%, #fff);
+  font-size: .66rem;
+  font-weight: 900;
+  direction: ltr;
+}
+
+.studio-tool-card__icon {
+  border: 1px solid color-mix(in srgb, var(--studio-card-accent, #7c3aed) 18%, transparent);
+  color: var(--studio-card-accent, #7c3aed);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--studio-card-accent, #7c3aed) 17%, #fff), #fff);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, .94),
+    0 10px 20px color-mix(in srgb, var(--studio-card-accent, #7c3aed) 18%, transparent);
+}
+
+.studio-tool-card__action {
+  width: auto;
+  min-width: 150px;
+  gap: 9px;
+  padding-inline: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--studio-card-accent, #7c3aed) 88%, #fff), var(--studio-card-accent, #7c3aed));
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--studio-card-accent, #7c3aed) 26%, transparent);
+}
+
+.studio-tool-card__action svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 180ms var(--motion-ease-standard, ease);
+}
+
+.studio-tool-card.ds-card:hover .studio-tool-card__action svg {
+  transform: translateX(-3px);
+}
+
+@media (min-width: 681px) {
+  .studio-tool-card.ds-card {
+    grid-template-rows: auto auto 1fr auto;
+    justify-items: stretch;
+    gap: 0;
+  }
+
+  .studio-tool-card__topline {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: stretch;
+  }
+
+  .studio-tool-card__icon {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: center;
+    margin-top: 18px;
+  }
+
+  .studio-tool-card__copy {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .studio-tool-card__action {
+    grid-column: 1;
+    grid-row: 4;
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 680px) {
+  .danoa-studio-page__tools {
+    align-content: start;
+    grid-template-rows: repeat(2, 146px);
+    grid-auto-rows: unset;
+    gap: 12px;
+    padding-block: 12px 0;
+  }
+
+  .studio-tool-card.ds-card {
+    grid-template-areas:
+      "topline topline"
+      "copy icon"
+      "copy icon"
+      "action action";
+    grid-template-columns: minmax(0, 1fr) 52px;
+    grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: 0 12px;
+    min-height: 0;
+    padding: 14px;
+    border-radius: 22px;
+    text-align: right;
+  }
+
+  .studio-tool-card--video { padding-block: 14px; }
+
+  .studio-tool-card__topline {
+    grid-area: topline;
+    margin-bottom: 6px;
+  }
+
+  .studio-tool-card__icon {
+    grid-area: icon;
+    align-self: start;
+    justify-self: end;
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+  }
+
+  .studio-tool-card__copy {
+    grid-area: copy;
+    align-self: center;
+    justify-items: start;
+    align-content: center;
+    gap: 3px;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .studio-tool-card__copy h2 {
+    font-size: 1.16rem;
+    font-weight: 900;
+    line-height: 1.35;
+  }
+
+  .studio-tool-card__copy p {
+    max-width: 100%;
+    color: #665d76;
+    font-size: .78rem;
+    line-height: 1.55;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .studio-tool-card__action {
+    grid-area: action;
+    justify-self: start;
+    min-width: 0;
+    min-height: 44px;
+    margin-top: 12px;
+    padding-inline: 13px;
+    border-radius: 14px;
+    font-size: .75rem;
+  }
+
+  .studio-tool-card__action svg {
+    width: 15px;
+    height: 15px;
+    flex-basis: 15px;
+  }
+
+  .studio-tool-card.ds-card:active .studio-tool-card__action {
+    transform: scale(.97);
+  }
+}
+
+@media (max-width: 680px) and (max-height: 680px) {
+  .danoa-studio-page__tools {
+    grid-template-rows: repeat(2, 128px);
+    gap: 10px;
+  }
+
+  .studio-tool-card.ds-card {
+    padding: 12px;
+  }
+
+  .studio-tool-card__icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  .studio-tool-card__copy h2 {
+    font-size: 1.04rem;
+  }
+
+  .studio-tool-card__action {
+    margin-top: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-tool-card__action svg {
+    transition: none;
+  }
+}
+
+/* Keep the studio chooser header in the same visual family as the image and
+   video workspaces. The centered three-column grid also keeps the title in
+   place when the back button changes between desktop and mobile. */
+.danoa-studio-page__header {
+  min-height: 56px;
+  margin: 20px 0;
+  padding: 10px 18px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 48%, transparent);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 10% 105%, color-mix(in srgb, #0f8f88 10%, transparent), transparent 38%),
+    linear-gradient(135deg, color-mix(in srgb, var(--color-surface-2) 94%, #f0ebff), color-mix(in srgb, var(--color-surface-2) 92%, #eef8f4));
+  box-shadow:
+    0 6px 22px color-mix(in srgb, var(--color-primary) 6%, transparent),
+    inset 0 1px rgba(255, 255, 255, .82);
+}
+
+.danoa-studio-page__brand {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.danoa-studio-page__brand-mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  border-radius: 13px;
+  color: #fff;
+  background: var(--chat-send-gradient, linear-gradient(135deg, #7c3aed, #5b21b6));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.danoa-studio-page__brand-mark svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.danoa-studio-page__brand-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  text-align: right;
+}
+
+.danoa-studio-page__brand-copy h1 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(.95rem, 2vw, 1.1rem);
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.danoa-studio-page__brand-copy small {
+  display: block;
+  color: color-mix(in srgb, var(--color-text) 74%, transparent);
+  font-size: .875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.danoa-studio-page__back {
+  grid-column: 1;
+  grid-row: 1;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 19%, var(--color-border));
+  border-radius: 12px;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-surface-2) 82%, transparent);
+  font-size: 0;
+}
+
+.danoa-studio-page__back svg {
+  width: 20px;
+  height: 20px;
+}
+
+.danoa-studio-page__header-spacer {
+  grid-column: 3;
+  grid-row: 1;
+  width: 44px;
+  height: 44px;
+}
+
+@media (max-width: 680px) {
+  .danoa-studio-page__header {
+    min-height: 48px;
+    margin: 10px 0 14px;
+    padding: 8px 12px;
+    border-radius: 15px;
+  }
+
+  .danoa-studio-page__brand {
+    gap: 8px;
+  }
+
+  .danoa-studio-page__brand-mark {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+    border-radius: 11px;
+  }
+
+  .danoa-studio-page__brand-mark svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .danoa-studio-page__brand-copy h1 {
+    font-size: .875rem;
+  }
+
+  .danoa-studio-page__brand-copy small {
+    font-size: .66rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .danoa-studio-page__back {
+    transition: none;
+  }
+}

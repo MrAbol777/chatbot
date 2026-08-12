@@ -33,6 +33,21 @@ test('BananaAI T2V uses only the documented endpoint and JSON fields', async () 
   assert.deepEqual(payload, { model: 'grok-imagine-video', prompt: 'A calm sea', duration: 5, resolution: '720p', aspect_ratio: '16:9' });
   assert.equal(config.headers.Authorization, 'Bearer fixture-key');
   assert.equal(config.maxRedirects, 0);
+  assert.equal(config.httpsAgent.options.family, 4);
+});
+
+test('BananaAI accepts both documented task ID response spellings', async () => {
+  const provider = createProvider(mockHttp({ postResult: { status: 202, data: { taskId: 'task_alias' } } }));
+  const result = await provider.submit(input());
+  assert.equal(result.providerJobId, 'task_alias');
+});
+
+test('BananaAI can use an explicit HTTPS proxy without exposing its credentials in the request URL', async () => {
+  const httpClient = mockHttp({ postResult: { status: 202, data: { id: 'task_proxy' } } });
+  const provider = createBananaAiVideoProvider({ httpClient, apiKey: 'fixture-key', proxyUrl: 'http://user:pass@proxy.example.test:8080', resultAllowedHosts: ['cdn.banana.test'] });
+  await provider.submit(input());
+  const config = httpClient.calls[0][3];
+  assert.deepEqual(config.proxy, { protocol: 'http', host: 'proxy.example.test', port: 8080, auth: { username: 'user', password: 'pass' } });
 });
 
 test('BananaAI I2V sends an owned gateway URL as image_urls', async () => {

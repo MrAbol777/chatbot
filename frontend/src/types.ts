@@ -28,6 +28,15 @@ export interface ChatMessage {
   attemptId?: string;
   streamError?: string;
   imageStudioRedirect?: boolean;
+  billingError?: {
+    kind: 'insufficient_balance';
+    actionKey?: string;
+    balanceNoa?: string;
+    requiredNoa?: string;
+    shortfallNoa?: string;
+    retryable?: boolean;
+    retryMessage?: string;
+  };
   retryPayload?: {
     message: string;
     imageIds: string[];

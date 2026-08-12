@@ -884,12 +884,22 @@ function createAiController({
             errorCode: payload.error || 'IMAGE_TASK_FAILED'
           });
 
+          const billingDetails = String(payload.error || imageError?.code || '').startsWith('NOA_')
+            ? {
+                actionKey: payload.actionKey,
+                balanceNoa: payload.balanceNoa,
+                requiredNoa: payload.requiredNoa,
+                shortfallNoa: payload.shortfallNoa
+              }
+            : {};
+
           return res.status(Number(imageError?.statusCode) || 500).json({
             intent: intentResult.intent,
             status: 'ERROR',
             assistantText,
             error: payload.error || imageError?.code || 'IMAGE_TASK_FAILED',
             reason: payload.reason || null,
+            ...billingDetails,
             messages,
             intentRouter: intentResult.metadata || null
           });

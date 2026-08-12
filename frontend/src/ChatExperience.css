@@ -2699,6 +2699,119 @@
   }
 }
 
+/* Mobile composer transition ------------------------------------------------
+   Keep the composer in its real bottom grid row in both states. Moving the
+   grid item between `messages` and `input` makes the state change snap, so
+   the empty state uses only a transform and can travel to the bottom smoothly
+   when the first message is sent. */
+@media (max-width: 767px) {
+  .chat-shell.view-chat .input-area {
+    grid-area: input;
+    align-self: stretch;
+    z-index: 8;
+    will-change: transform;
+    transition: transform 360ms cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .input-area {
+    grid-area: input;
+    align-self: stretch;
+    transform: translateY(clamp(-236px, -27vh, -150px));
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .empty-state.chat-empty-state {
+    transform: translateY(0);
+  }
+}
+
+/* In the empty state, keep the first action close to the welcome copy. The
+   composer still lives in the real input row, so removing the first message
+   naturally animates it back to the bottom without a layout jump. */
+@media (max-width: 767px) {
+  .chat-shell.view-chat .chat-card.chat-card--empty .input-area {
+    transform: translateY(clamp(-310px, -35vh, -218px));
+  }
+}
+
+@media (max-width: 767px) and (max-height: 680px) {
+  .chat-shell.view-chat .chat-card.chat-card--empty .input-area {
+    transform: translateY(clamp(-238px, -30vh, -170px));
+  }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .chat-shell.view-chat .input-area,
+  .chat-shell.view-chat .chat-card.chat-card--empty .input-area {
+    transition-duration: 1ms;
+  }
+}
+
+/* Mobile chat canvas --------------------------------------------------------
+   The mobile chat has no bottom navigation, so it must not reserve the old
+   navigation clearance under the composer. Pin the app to the viewport and
+   let the composer own only its real safe-area padding. */
+@media (max-width: 767px) {
+  .app-shell.chat-shell.view-chat {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    box-sizing: border-box;
+    padding: 0;
+    overflow: hidden;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .chat-shell.view-chat .chat-card {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .chat-shell.view-chat .messages-area {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: 16px 12px 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: auto;
+  }
+
+  .chat-shell.view-chat .input-area {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 8px max(10px, env(safe-area-inset-left, 0px)) max(8px, env(safe-area-inset-bottom, 0px));
+    border: 0;
+    border-radius: 0;
+    background: var(--danoa-chat-surface, #fff);
+    box-shadow: 0 -8px 22px rgba(31, 36, 48, .06);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .chat-shell.view-chat .input-shell,
+  .chat-shell.view-chat .composer-row {
+    width: 100%;
+    max-width: none;
+  }
+
+  .chat-shell.view-chat .input-shell {
+    margin: 0;
+  }
+}
+
 /* Conversation search lives above the chat so the sidebar never needs to reflow. */
 .conversation-search-modal-backdrop {
   position: fixed;
@@ -3000,4 +3113,228 @@
   .conversation-search-modal__result {
     transition: none;
   }
+}
+
+/* Sidebar refinement: grouped history cards, predictable hierarchy, and a compact search field. */
+.chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
+  background: #fff;
+  border-inline-start-color: var(--danoa-chat-border);
+}
+
+.chat-history-sidebar .conversation-home-brand__mark {
+  overflow: hidden;
+  background: #f1eaff;
+}
+
+.chat-history-sidebar .conversation-home-brand__mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.chat-history-sidebar .conversation-sidebar-search {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 14px 10px;
+  padding: 4px 6px 4px 8px;
+  border: 1px solid var(--danoa-chat-border);
+  border-radius: 12px;
+  color: var(--danoa-chat-muted);
+  background: #fff;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.chat-history-sidebar .conversation-sidebar-search:focus-within {
+  border-color: var(--danoa-chat-accent);
+  box-shadow: 0 0 0 3px rgba(109, 40, 217, .12);
+}
+
+.chat-history-sidebar .conversation-sidebar-search input {
+  min-width: 0;
+  min-height: 36px;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  color: var(--danoa-chat-text);
+  font: inherit;
+  font-size: .82rem;
+  text-align: right;
+  background: transparent;
+}
+
+.chat-history-sidebar .conversation-sidebar-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.chat-history-sidebar .conversation-sidebar-search input::placeholder {
+  color: #8991a2;
+}
+
+.chat-history-sidebar .conversation-sidebar-search > svg {
+  flex: 0 0 auto;
+}
+
+.chat-history-sidebar .conversation-sidebar-search__edge-action {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--danoa-chat-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.chat-history-sidebar .conversation-sidebar-search__edge-action:hover,
+.chat-history-sidebar .conversation-sidebar-search__edge-action:focus-visible {
+  color: var(--danoa-chat-accent);
+  background: #f1eaff;
+}
+
+.chat-history-sidebar .conversation-home-primary-actions {
+  padding: 0 14px 14px;
+}
+
+.chat-history-sidebar .conversation-new-chat-btn {
+  min-height: 46px;
+  justify-content: center;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  background: var(--danoa-chat-accent);
+  box-shadow: 0 8px 18px rgba(109, 40, 217, .2);
+}
+
+.chat-history-sidebar .conversation-new-chat-btn:hover,
+.chat-history-sidebar .conversation-new-chat-btn:focus-visible {
+  color: #fff;
+  background: var(--danoa-chat-accent-hover);
+}
+
+.chat-history-sidebar .conversation-new-chat-btn:active {
+  transform: translateY(0) scale(.99);
+}
+
+.chat-history-sidebar .conversation-home-list {
+  gap: 16px;
+  padding: 0 14px 120px;
+}
+
+.chat-history-sidebar .conversation-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-history-sidebar .conversation-sidebar-section__heading {
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 0 4px;
+  color: var(--danoa-chat-text);
+}
+
+.chat-history-sidebar .conversation-sidebar-section__heading h2 {
+  margin: 0;
+  font-size: .74rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.chat-history-sidebar .conversation-sidebar-section__heading svg {
+  color: var(--danoa-chat-muted);
+}
+
+.chat-history-sidebar .conversation-group-card {
+  overflow: hidden;
+  border: 1px solid rgba(31, 36, 48, .12);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card {
+  min-height: 58px;
+  grid-template-columns: 32px minmax(0, 1fr) 36px;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid rgba(31, 36, 48, .08);
+  border-radius: 0;
+  background: #fff;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card:last-child {
+  border-bottom: 0;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card:hover {
+  background: #fbfaff;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card.active {
+  box-shadow: inset 0 0 0 1px rgba(109, 40, 217, .18);
+  background: #f1eaff;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--danoa-chat-accent);
+  background: #f4f0fb;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card-title-row p {
+  font-size: .78rem;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card-preview-row {
+  gap: 8px;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card-preview-row small {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .66rem;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-card-date {
+  font-size: .62rem;
+}
+
+.chat-history-sidebar .conversation-group-card .conversation-more-trigger {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+}
+
+.chat-history-sidebar .conversation-search-empty {
+  margin: 0;
+  padding: 14px 12px;
+  border: 1px solid rgba(31, 36, 48, .12);
+  border-radius: 12px;
+  background: #fafafe;
 }

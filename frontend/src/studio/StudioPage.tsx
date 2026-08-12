@@ -29,6 +29,18 @@ export default function StudioPage({ onBackToHome, onOpenImage, onOpenVideo }: P
     <main className="danoa-studio-page" dir="rtl">
       <div className="danoa-studio-page__shell">
         <header className="danoa-studio-page__header">
+          <div className="danoa-studio-page__brand">
+            <span className="danoa-studio-page__brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z" />
+                <path d="m18.5 15 .7 2.8L22 18.5l-2.8.7-.7 2.8-.7-2.8-2.8-.7 2.8-.7.7-2.8Z" />
+              </svg>
+            </span>
+            <span className="danoa-studio-page__brand-copy">
+              <h1 id="studio-title">استودیوی دانوآ</h1>
+              <small>ایده‌ات را به محتوای خلاق تبدیل کن</small>
+            </span>
+          </div>
           <Button
             type="button"
             variant="ghost"
@@ -40,16 +52,13 @@ export default function StudioPage({ onBackToHome, onOpenImage, onOpenVideo }: P
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg>
             <span className="danoa-studio-page__back-label">بازگشت به گفتگو</span>
           </Button>
-          <div className="danoa-studio-page__title" aria-label="استودیو دانوآ">
-            <span aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 8h3v3H8zM13 8h3v3h-3zM8 13h3v3H8zM13 13h3v3h-3z" /></svg></span>
-            <h1 id="studio-title">استودیو دانوآ</h1>
-          </div>
           <span className="danoa-studio-page__header-spacer" aria-hidden="true" />
         </header>
 
         <section className="danoa-studio-page__hero" aria-labelledby="studio-title">
           <span className="danoa-studio-page__eyebrow">ابزارهای خلاقانه</span>
-          <p>ابزار موردنظرت را برای ساخت محتوای خلاقانه انتخاب کن</p>
+          <h2 className="danoa-studio-page__hero-title">ایده‌ات را به واقعیت تبدیل کن</h2>
+          <p>ابزار مناسب را برای ساخت محتوای خلاقانه انتخاب کن</p>
         </section>
 
         <section className="danoa-studio-page__tools" aria-label="ابزارهای استودیو">

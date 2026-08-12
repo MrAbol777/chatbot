@@ -10,6 +10,6 @@ const publicAssetUrl = (path: string): string => {
  * Only assets that need a predictable public URL belong here.
  */
 export const PUBLIC_ASSETS = Object.freeze({
-  botAvatar: publicAssetUrl('brand/danoa-avatar.png'),
-  brandMark: publicAssetUrl('brand/danoa-logo-v2-transparent.png'),
+  botAvatar: publicAssetUrl('brand/danoa-d-mark-192.png'),
+  brandMark: publicAssetUrl('brand/danoa-d-mark-192.png'),
 });

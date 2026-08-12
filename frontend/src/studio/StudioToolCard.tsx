@@ -20,13 +20,19 @@ function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
 }
 
 export default function StudioToolCard({ tool, onOpen }: Props) {
+  const isImage = tool.id === 'image';
+
   return (
     <button
       type="button"
-      className="ds-card ds-card--padding-lg studio-tool-card"
+      className={`ds-card ds-card--padding-lg studio-tool-card studio-tool-card--${tool.id}`}
       onClick={onOpen}
       aria-label={`${tool.actionLabel}: ${tool.title}`}
     >
+      <div className="studio-tool-card__topline" aria-hidden="true">
+        <span className="studio-tool-card__type">{isImage ? 'خلق تصویر' : 'خلق ویدیو'}</span>
+        <span className="studio-tool-card__index">{isImage ? '01' : '02'}</span>
+      </div>
       <div className={`studio-tool-card__icon studio-tool-card__icon--${tool.id}`}>
         <ToolIcon toolId={tool.id} />
       </div>
@@ -35,7 +41,10 @@ export default function StudioToolCard({ tool, onOpen }: Props) {
         <h2>{tool.title}</h2>
         <p>{tool.description}</p>
       </div>
-      <span className="studio-tool-card__action" aria-hidden="true">{tool.actionLabel}</span>
+      <span className="studio-tool-card__action" aria-hidden="true">
+        <span>{tool.actionLabel}</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
+      </span>
     </button>
   );
 }

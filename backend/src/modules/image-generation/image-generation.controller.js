@@ -246,7 +246,7 @@ function createImageGenerationController({
       return {
         success: false,
         error: String(error.code),
-        message: error.code === 'NOA_INSUFFICIENT_FUNDS'
+        message: error.code === 'NOA_INSUFFICIENT_FUNDS' || error.code === 'NOA_INSUFFICIENT_BALANCE'
           ? 'موجودی نوآ برای ساخت تصویر کافی نیست.'
           : 'پرداخت نوآ برای ساخت تصویر انجام نشد.',
         ...(error.details && typeof error.details === 'object' ? error.details : {})

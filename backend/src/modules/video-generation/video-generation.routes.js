@@ -59,6 +59,8 @@ function createVideoGenerationRouter(deps) {
       httpClient: deps.httpClient,
       baseUrl: env.BANANAAI_BASE_URL || 'https://bananaai.ir',
       apiKey: env.BANANAAI_API_KEY,
+      proxyUrl: env.BANANAAI_PROXY_URL,
+      forceIpv4: String(env.BANANAAI_FORCE_IPV4 ?? 'true').toLowerCase() !== 'false',
       resultAllowedHosts: splitList(env.BANANAAI_VIDEO_RESULT_ALLOWED_HOSTS),
       resultAllowedPorts: storageConfig.allowedPorts,
       resultAllowedPathPrefixes: splitList(env.BANANAAI_VIDEO_RESULT_ALLOWED_PATH_PREFIXES),
