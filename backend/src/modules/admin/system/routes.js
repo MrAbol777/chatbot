@@ -18,8 +18,18 @@ function createAdminSystemRouter({ systemService, requireAdminAuth }) {
     return res.status(result.statusCode).json(result.body);
   });
 
+  router.get('/config/system-prompt/history', requireAdminAuth, async (_req, res) => {
+    const result = await systemService.getPromptHistory();
+    return res.status(result.statusCode).json(result.body);
+  });
+
   router.put('/config/system-prompt', requireAdminAuth, async (req, res) => {
     const result = await systemService.updateSystemPrompt({ body: req.body, admin: req.admin });
+    return res.status(result.statusCode).json(result.body);
+  });
+
+  router.post('/config/system-prompt/rollback', requireAdminAuth, async (req, res) => {
+    const result = await systemService.rollbackPrompt({ body: req.body, admin: req.admin });
     return res.status(result.statusCode).json(result.body);
   });
 

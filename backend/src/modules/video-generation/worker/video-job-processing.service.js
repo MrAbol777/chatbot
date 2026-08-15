@@ -16,7 +16,39 @@ function resolveProvider(registry, name) {
   return assertVideoProvider(provider);
 }
 
-function createVideoJobProcessingService({ repository, providerRegistry, config, storageOrchestrator = null, providerInputGateway = null, submissionGuard = null, clock = () => new Date(), logger = null }) {
+function createSubmissionLeaseHeartbeat({ repository, jobId, workerId, leaseMs, timers, logger }) {
+  const intervalMs = Math.max(1_000, Math.floor(Number(leaseMs) / 3));
+  const leaseSeconds = Math.ceil(Number(leaseMs) / 1_000);
+  let stopped = false;
+  let leaseLost = false;
+  let renewal = Promise.resolve();
+  const renew = () => {
+    renewal = renewal.then(async () => {
+      if (stopped) return;
+      try {
+        const extended = await repository.extendJobLease({ jobId, workerId, leaseSeconds });
+        if (!extended) leaseLost = true;
+      } catch (error) {
+        leaseLost = true;
+        logger?.warn?.({ event: 'video_submission_lease_renewal_failed', generationId: jobId, errorCode: String(error?.code || 'VIDEO_WORKER_LEASE_RENEWAL_FAILED').slice(0, 100) });
+      }
+    });
+    return renewal;
+  };
+  const timer = timers.setInterval(() => { void renew(); }, intervalMs);
+  timer?.unref?.();
+  void renew();
+  return {
+    stop: async () => {
+      stopped = true;
+      timers.clearInterval(timer);
+      await renewal;
+      return !leaseLost;
+    }
+  };
+}
+
+function createVideoJobProcessingService({ repository, providerRegistry, config, storageOrchestrator = null, providerInputGateway = null, submissionGuard = null, clock = () => new Date(), logger = null, timers = globalThis }) {
   if (!repository || !config) throw new Error('repository and config are required.');
   const log = (event, job, extra = {}) => logger?.info?.({ event, generationId: job.id, status: job.status, attempt: Number(job.poll_attempts || 0), leaseOwner: String(job.worker_lease_owner || '').slice(0, 12), ...extra });
   const observeProviderOutcome = async (value) => {
@@ -82,7 +114,8 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
             duration: job.duration,
             resolution: job.resolution || job.quality || null,
             aspectRatio: job.aspect_ratio,
-            generateAudio: Boolean(job.generate_audio)
+            generateAudio: Boolean(job.generate_audio),
+            idempotencyKey: String(job.danoa_request_id || job.id || '').trim()
           };
           if (!Number.isSafeInteger(promptLimit) || promptLimit < 256 || String(submitInput.prompt || '').length > promptLimit) {
             throw Object.assign(new Error('Compiled prompt exceeds the provider model limit.'), { code: 'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG', submissionOutcome: 'not_submitted', details: { promptLength: String(submitInput.prompt || '').length, promptLimit } });
@@ -96,7 +129,21 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
           await repository.beginSubmission({ jobId: job.id, workerId });
           submissionStarted = true;
           submitStartedAt = Date.now();
-          const submitted = await provider.submit(submitInput);
+          const submissionLease = createSubmissionLeaseHeartbeat({ repository, jobId: job.id, workerId, leaseMs: config.leaseMs, timers, logger });
+          let submitted;
+          let leaseActive;
+          try {
+            try {
+              submitted = await provider.submit(submitInput);
+            } catch (error) {
+              if (error?.submissionOutcome !== 'ambiguous' || !submitInput.idempotencyKey) throw error;
+              log('video_submit_idempotent_retry', job, { errorCode: String(error.code || 'VIDEO_PROVIDER_STATUS_UNKNOWN').slice(0, 100) });
+              submitted = await provider.submit(submitInput);
+            }
+          } finally {
+            leaseActive = await submissionLease.stop();
+          }
+          if (!leaseActive) throw Object.assign(new Error('Submission lease was lost before the provider response could be persisted.'), { code: 'VIDEO_WORKER_LEASE_LOST', submissionOutcome: 'ambiguous' });
           await repository.markSubmissionAccepted({ jobId: job.id, workerId, providerJobId: submitted.providerJobId, creditsReserved: submitted.creditsReserved });
           await observeProviderOutcome({ providerKey: job.provider, capabilityKey: submitInput.capability, success: true, latencyMs: Date.now() - submitStartedAt });
           log('video_job_submitted', job);
@@ -187,4 +234,4 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
   };
 }
 
-module.exports = { createVideoJobProcessingService, resolveProvider };
+module.exports = { createVideoJobProcessingService, createSubmissionLeaseHeartbeat, resolveProvider };

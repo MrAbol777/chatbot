@@ -60,11 +60,12 @@ function createVianaRouter({
           ? req.cookies[config.flowCookieName]
           : randomToken();
       res.cookie(config.flowCookieName, browserBinding, flowCookie);
-      const authorization = vianaService.generateAuthorizationRequest();
+      const authorization = await vianaService.generateAuthorizationRequest();
       await vianaRepository.saveFlow({
         state: authorization.state,
         browserBinding,
         codeVerifier: authorization.codeVerifier,
+        nonce: authorization.nonce,
         environmentKey: config.environmentKey
       });
       return res.redirect(303, authorization.authorizationUrl);
@@ -112,9 +113,9 @@ function createVianaRouter({
       }
 
       phase = 'token';
-      let accessToken = await vianaService.exchangeCode({ code, codeVerifier: pending.codeVerifier });
-      phase = 'userinfo';
-      const profile = await vianaService.fetchUserInfo(accessToken);
+      let accessToken = await vianaService.exchangeCode({ code, codeVerifier: pending.codeVerifier, nonce: pending.nonce });
+      phase = 'student_self';
+      const profile = await vianaService.fetchStudentSelf(accessToken);
       accessToken = undefined;
 
       phase = 'identity';

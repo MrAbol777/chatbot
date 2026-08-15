@@ -1,7 +1,5 @@
 const crypto = require('crypto');
 
-const USERINFO_KEYS = ['dateOfBirth', 'firstName', 'gender', 'grade', 'lastName', 'sub'];
-
 class VianaProtocolError extends Error {
   constructor(code, message, { status = 502, retryable = false, oauthError = null } = {}) {
     super(message);
@@ -13,47 +11,49 @@ class VianaProtocolError extends Error {
   }
 }
 
-function validateUserInfo(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new VianaProtocolError('VIANA_USERINFO_INVALID', 'Viana UserInfo response is not an object.');
+function parseAbsoluteHttpsUrl(value, name) {
+  try {
+    const url = new URL(String(value || ''));
+    if (url.protocol !== 'https:' || url.username || url.password || url.hash) throw new Error('invalid');
+    return url;
+  } catch {
+    throw new VianaProtocolError('VIANA_DISCOVERY_INVALID', `Viana Discovery returned an invalid ${name}.`);
   }
-  const keys = Object.keys(value).sort();
-  if (JSON.stringify(keys) !== JSON.stringify(USERINFO_KEYS)) {
-    throw new VianaProtocolError('VIANA_USERINFO_INVALID', 'Viana UserInfo returned an unexpected response shape.');
+}
+
+function decodeJsonPart(value, code) {
+  try {
+    return JSON.parse(Buffer.from(String(value), 'base64url').toString('utf8'));
+  } catch {
+    throw new VianaProtocolError(code, 'Viana returned an invalid ID token.');
   }
-  for (const key of ['sub', 'firstName', 'lastName', 'dateOfBirth']) {
-    if (typeof value[key] !== 'string' || !value[key].trim()) {
-      throw new VianaProtocolError('VIANA_USERINFO_INVALID', `Viana UserInfo field ${key} is invalid.`);
+}
+
+function validateStudentSelf(value) {
+  const profile = value?.data && typeof value.data === 'object' ? value.data : value;
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+    throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', 'Viana student response is not an object.');
+  }
+  for (const key of ['id', 'firstName', 'lastName', 'dateOfBirth']) {
+    if (typeof profile[key] !== 'string' || !profile[key].trim()) {
+      throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', `Viana student field ${key} is invalid.`);
     }
   }
-  if (value.sub.length > 191 || value.firstName.length > 191 || value.lastName.length > 191) {
-    throw new VianaProtocolError('VIANA_USERINFO_INVALID', 'Viana UserInfo contains an overlong value.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(profile.dateOfBirth)) {
+    throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', 'Viana student dateOfBirth is invalid.');
   }
-  if (value.grade !== null && (typeof value.grade !== 'string' || value.grade.length > 64)) {
-    throw new VianaProtocolError('VIANA_USERINFO_INVALID', 'Viana UserInfo grade is invalid.');
-  }
-  if (value.gender !== null && !['MALE', 'FEMALE'].includes(value.gender)) {
-    throw new VianaProtocolError('VIANA_USERINFO_INVALID', 'Viana UserInfo gender is invalid.');
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value.dateOfBirth)) {
-    throw new VianaProtocolError('VIANA_USERINFO_INVALID', 'Viana UserInfo dateOfBirth is invalid.');
-  }
-  const [year, month, day] = value.dateOfBirth.split('-').map(Number);
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  if (
-    parsed.getUTCFullYear() !== year ||
-    parsed.getUTCMonth() !== month - 1 ||
-    parsed.getUTCDate() !== day
-  ) {
-    throw new VianaProtocolError('VIANA_USERINFO_INVALID', 'Viana UserInfo dateOfBirth is not a calendar date.');
+  const [year, month, day] = profile.dateOfBirth.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', 'Viana student dateOfBirth is not a calendar date.');
   }
   return {
-    sub: value.sub.trim(),
-    firstName: value.firstName.trim(),
-    lastName: value.lastName.trim(),
-    dateOfBirth: value.dateOfBirth,
-    grade: value.grade === null ? null : value.grade.trim(),
-    gender: value.gender
+    sub: typeof profile.id === 'string' && profile.id.trim() ? profile.id.trim() : '',
+    firstName: profile.firstName.trim(),
+    lastName: profile.lastName.trim(),
+    dateOfBirth: profile.dateOfBirth,
+    grade: typeof profile.grade === 'string' && profile.grade.trim() ? profile.grade.trim() : null,
+    gender: ['MALE', 'FEMALE'].includes(profile.gender) ? profile.gender : null
   };
 }
 
@@ -64,54 +64,32 @@ function calculateGregorianAge(dateOfBirth, currentDate = new Date()) {
   const currentDay = currentDate.getUTCDate();
   if (currentMonth < month || (currentMonth === month && currentDay < day)) age -= 1;
   if (!Number.isFinite(age) || age < 0 || age > 130) {
-    throw new VianaProtocolError('VIANA_USERINFO_INVALID', 'Viana dateOfBirth yields an invalid age.');
+    throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', 'Viana dateOfBirth yields an invalid age.');
   }
   return age;
 }
 
 async function readJsonResponse(response) {
   const text = await response.text();
-  if (text.length > 64 * 1024) {
-    throw new VianaProtocolError('VIANA_RESPONSE_TOO_LARGE', 'Viana returned an oversized response.');
-  }
+  if (text.length > 64 * 1024) throw new VianaProtocolError('VIANA_RESPONSE_TOO_LARGE', 'Viana returned an oversized response.');
   try {
     return text ? JSON.parse(text) : null;
   } catch {
-    throw new VianaProtocolError('VIANA_RESPONSE_MALFORMED', `Viana returned non-JSON HTTP ${response.status}.`, {
-      retryable: response.status >= 500
-    });
+    throw new VianaProtocolError('VIANA_RESPONSE_MALFORMED', `Viana returned non-JSON HTTP ${response.status}.`, { retryable: response.status >= 500 });
   }
 }
 
 function mapHttpError(response, body, phase) {
   const oauthError = typeof body?.error === 'string' ? body.error : null;
-  const retryable = response.status === 429 || response.status >= 500 || oauthError === 'temporarily_unavailable';
-  return new VianaProtocolError(
-    `VIANA_${phase.toUpperCase()}_FAILED`,
-    `Viana ${phase} request failed.`,
-    { status: response.status, retryable, oauthError }
-  );
+  return new VianaProtocolError(`VIANA_${phase.toUpperCase()}_FAILED`, `Viana ${phase} request failed.`, {
+    status: response.status,
+    retryable: response.status === 429 || response.status >= 500 || oauthError === 'temporarily_unavailable',
+    oauthError
+  });
 }
 
 function createVianaService({ config, fetchImpl = globalThis.fetch, now = () => new Date(), wait = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
-  const generateAuthorizationRequest = () => {
-    const codeVerifier = crypto.randomBytes(64).toString('base64url');
-    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
-    const state = crypto.randomBytes(32).toString('base64url');
-    const url = new URL(config.authorizationUrl);
-    for (const [name, value] of Object.entries({
-      response_type: 'code',
-      client_id: config.clientId,
-      redirect_uri: config.redirectUri,
-      state,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-      scope: 'profile'
-    })) {
-      url.searchParams.set(name, value);
-    }
-    return { state, codeVerifier, codeChallenge, authorizationUrl: url.toString() };
-  };
+  let discoveryPromise = null;
 
   const request = async (url, init) => {
     const controller = new AbortController();
@@ -120,73 +98,107 @@ function createVianaService({ config, fetchImpl = globalThis.fetch, now = () => 
     try {
       return await fetchImpl(url, { ...init, signal: controller.signal });
     } catch (error) {
-      if (error?.name === 'AbortError') {
-        throw new VianaProtocolError('VIANA_TIMEOUT', 'Viana request timed out.', { retryable: true });
-      }
+      if (error?.name === 'AbortError') throw new VianaProtocolError('VIANA_TIMEOUT', 'Viana request timed out.', { retryable: true });
       throw new VianaProtocolError('VIANA_NETWORK_ERROR', 'Viana request failed.', { retryable: true });
     } finally {
       clearTimeout(timeout);
     }
   };
 
-  const exchangeCode = async ({ code, codeVerifier }) => {
-    const response = await request(config.tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
-        code,
-        redirect_uri: config.redirectUri,
-        code_verifier: codeVerifier
-      })
+  const getDiscovery = async () => {
+    if (!discoveryPromise) {
+      discoveryPromise = (async () => {
+        const response = await request(config.discoveryUrl, { headers: { Accept: 'application/json' } });
+        const body = await readJsonResponse(response);
+        if (!response.ok) throw mapHttpError(response, body, 'discovery');
+        const issuer = parseAbsoluteHttpsUrl(body?.issuer, 'issuer');
+        if (issuer.origin !== new URL(config.discoveryUrl).origin) throw new VianaProtocolError('VIANA_DISCOVERY_INVALID', 'Viana Discovery issuer is not trusted.');
+        const result = {
+          issuer: issuer.origin,
+          authorizationUrl: parseAbsoluteHttpsUrl(body?.authorization_endpoint, 'authorization_endpoint').toString(),
+          tokenUrl: parseAbsoluteHttpsUrl(body?.token_endpoint, 'token_endpoint').toString(),
+          userInfoUrl: parseAbsoluteHttpsUrl(body?.userinfo_endpoint, 'userinfo_endpoint').toString(),
+          jwksUrl: parseAbsoluteHttpsUrl(body?.jwks_uri, 'jwks_uri').toString(),
+          codeChallengeMethods: Array.isArray(body?.code_challenge_methods_supported) ? body.code_challenge_methods_supported : [],
+          responseTypes: Array.isArray(body?.response_types_supported) ? body.response_types_supported : [],
+          tokenAuthMethods: Array.isArray(body?.token_endpoint_auth_methods_supported) ? body.token_endpoint_auth_methods_supported : []
+        };
+        if (!result.responseTypes.includes('code') || !result.codeChallengeMethods.includes('S256') || !result.tokenAuthMethods.includes('client_secret_basic')) {
+          throw new VianaProtocolError('VIANA_DISCOVERY_INVALID', 'Viana Discovery does not support the required Confidential Web flow.');
+        }
+        return result;
+      })().catch((error) => {
+        discoveryPromise = null;
+        throw error;
+      });
+    }
+    return discoveryPromise;
+  };
+
+  const verifyIdToken = async ({ idToken, nonce, discovery }) => {
+    const parts = String(idToken || '').split('.');
+    if (parts.length !== 3) throw new VianaProtocolError('VIANA_ID_TOKEN_INVALID', 'Viana returned an invalid ID token.');
+    const header = decodeJsonPart(parts[0], 'VIANA_ID_TOKEN_INVALID');
+    const claims = decodeJsonPart(parts[1], 'VIANA_ID_TOKEN_INVALID');
+    if (header?.alg !== 'RS256' || typeof header?.kid !== 'string' || !header.kid) {
+      throw new VianaProtocolError('VIANA_ID_TOKEN_INVALID', 'Viana ID token signing metadata is invalid.');
+    }
+    const jwksResponse = await request(discovery.jwksUrl, { headers: { Accept: 'application/json' } });
+    const jwks = await readJsonResponse(jwksResponse);
+    if (!jwksResponse.ok || !Array.isArray(jwks?.keys)) throw new VianaProtocolError('VIANA_JWKS_INVALID', 'Viana signing keys are unavailable.', { retryable: jwksResponse.status >= 500 });
+    const key = jwks.keys.find((item) => item?.kid === header.kid && item?.kty === 'RSA' && item?.use !== 'enc');
+    if (!key) throw new VianaProtocolError('VIANA_ID_TOKEN_INVALID', 'Viana ID token key is unknown.', { retryable: true });
+    let verified = false;
+    try {
+      verified = crypto.verify('RSA-SHA256', Buffer.from(`${parts[0]}.${parts[1]}`), crypto.createPublicKey({ key, format: 'jwk' }), Buffer.from(parts[2], 'base64url'));
+    } catch {}
+    if (!verified) throw new VianaProtocolError('VIANA_ID_TOKEN_INVALID', 'Viana ID token signature is invalid.');
+    const timestamp = Math.floor(now().getTime() / 1000);
+    const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+    if (claims.iss !== discovery.issuer || !audience.includes(config.clientId) || claims.nonce !== nonce || !Number.isFinite(claims.exp) || claims.exp <= timestamp || !Number.isFinite(claims.iat) || claims.iat > timestamp + 60) {
+      throw new VianaProtocolError('VIANA_ID_TOKEN_INVALID', 'Viana ID token claims are invalid.');
+    }
+    return claims;
+  };
+
+  const generateAuthorizationRequest = async () => {
+    const discovery = await getDiscovery();
+    const codeVerifier = crypto.randomBytes(64).toString('base64url');
+    const state = crypto.randomBytes(32).toString('base64url');
+    const nonce = crypto.randomBytes(32).toString('base64url');
+    const url = new URL(discovery.authorizationUrl);
+    for (const [name, value] of Object.entries({ response_type: 'code', client_id: config.clientId, redirect_uri: config.redirectUri, scope: 'openid profile student.self:read', state, nonce, code_challenge: crypto.createHash('sha256').update(codeVerifier).digest('base64url'), code_challenge_method: 'S256' })) url.searchParams.set(name, value);
+    return { state, nonce, codeVerifier, authorizationUrl: url.toString() };
+  };
+
+  const exchangeCode = async ({ code, codeVerifier, nonce }) => {
+    const discovery = await getDiscovery();
+    const basic = Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64');
+    const response = await request(discovery.tokenUrl, {
+      method: 'POST', headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: config.redirectUri, code_verifier: codeVerifier })
     });
     const body = await readJsonResponse(response);
     if (!response.ok) throw mapHttpError(response, body, 'token');
-    if (
-      !body ||
-      typeof body.access_token !== 'string' ||
-      !body.access_token ||
-      body.token_type !== 'Bearer' ||
-      !Number.isFinite(body.expires_in) ||
-      body.expires_in <= 0 ||
-      body.scope !== 'profile'
-    ) {
-      throw new VianaProtocolError('VIANA_TOKEN_INVALID', 'Viana token response is invalid.');
-    }
+    if (!body || typeof body.access_token !== 'string' || !body.access_token || body.token_type !== 'Bearer' || typeof body.id_token !== 'string' || !body.id_token) throw new VianaProtocolError('VIANA_TOKEN_INVALID', 'Viana token response is invalid.');
+    await verifyIdToken({ idToken: body.id_token, nonce, discovery });
     return body.access_token;
   };
 
-  const fetchUserInfo = async (accessToken) => {
+  const fetchStudentSelf = async (accessToken) => {
     let attempt = 0;
     while (attempt < 2) {
-      const response = await request(config.userInfoUrl, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' }
-      });
+      const response = await request(`${config.apiUrl}/students/me`, { method: 'GET', headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } });
       const body = await readJsonResponse(response);
-      if (response.ok) return validateUserInfo(body);
-      const error = mapHttpError(response, body, 'userinfo');
+      if (response.ok) return validateStudentSelf(body);
+      const error = mapHttpError(response, body, 'student_self');
       if (!error.retryable || attempt > 0) throw error;
       attempt += 1;
       await wait(200);
     }
-    throw new VianaProtocolError('VIANA_USERINFO_FAILED', 'Viana UserInfo request failed.');
   };
 
-  const prepareLocalProfile = (profile) => ({
-    age: calculateGregorianAge(profile.dateOfBirth, now()),
-    displayName: `${profile.firstName} ${profile.lastName}`.trim()
-  });
-
-  return { exchangeCode, fetchUserInfo, generateAuthorizationRequest, prepareLocalProfile };
+  return { exchangeCode, fetchStudentSelf, generateAuthorizationRequest, getDiscovery, prepareLocalProfile: (profile) => ({ age: calculateGregorianAge(profile.dateOfBirth, now()), displayName: `${profile.firstName} ${profile.lastName}`.trim() }) };
 }
 
-module.exports = {
-  USERINFO_KEYS,
-  VianaProtocolError,
-  calculateGregorianAge,
-  createVianaService,
-  validateUserInfo
-};
+module.exports = { VianaProtocolError, calculateGregorianAge, createVianaService, validateStudentSelf };

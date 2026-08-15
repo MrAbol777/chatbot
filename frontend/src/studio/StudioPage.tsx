@@ -49,7 +49,7 @@ export default function StudioPage({ onBackToHome, onOpenImage, onOpenVideo }: P
             aria-label="بازگشت به گفتگو"
             title="بازگشت به گفتگو"
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
             <span className="danoa-studio-page__back-label">بازگشت به گفتگو</span>
           </Button>
           <span className="danoa-studio-page__header-spacer" aria-hidden="true" />

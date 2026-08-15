@@ -123,7 +123,7 @@ function createVideoGenerationRepository(db, { noaBillingService } = {}) {
       }
       return true;
     }),
-    listForUser: async (userId) => (await db.query('SELECT id,mode,model_key,status,aspect_ratio,duration,quality,result_mime_type,result_size_bytes,safe_error_code,safe_error_message,created_at,updated_at,completed_at FROM app_video_generations WHERE user_id=? ORDER BY created_at DESC LIMIT 50', [userId]))[0],
+    listForUser: async (userId) => (await db.query('SELECT id,mode,model_key,status,user_prompt,aspect_ratio,duration,quality,result_mime_type,result_size_bytes,safe_error_code,safe_error_message,created_at,updated_at,completed_at FROM app_video_generations WHERE user_id=? ORDER BY created_at DESC LIMIT 50', [userId]))[0],
     getForUser: async (id, userId) => (await db.query('SELECT * FROM app_video_generations WHERE id=? AND user_id=? LIMIT 1', [id,userId]))[0][0] || null,
     getById: async (id) => (await db.query('SELECT * FROM app_video_generations WHERE id=? LIMIT 1', [id]))[0][0] || null
   };

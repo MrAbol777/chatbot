@@ -4536,15 +4536,21 @@ notify.error(message);
                 title="بازگشت"
               >
                 <svg className="chat-header-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M15 18 9 12l6-6" />
+                  <path d="m9 18 6-6-6-6" />
                 </svg>
               </button>
-              <div>
+              <div className="profile-page-header-title">
                 <span>حساب کاربری</span>
-                <h1>پروفایل</h1>
+                <h1>پروفایل من</h1>
               </div>
               <div className="profile-page-header-status">
-                <span className="profile-status-badge registered">حساب تأییدشده</span>
+                <span className="profile-status-badge registered">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14" aria-hidden="true">
+                    <path d="M12 3.5 19 6v5.4c0 4.1-2.8 7.8-7 9.1-4.2-1.3-7-5-7-9.1V6l7-2.5Z" />
+                    <path d="m8.8 12.2 2.1 2.1 4.5-4.7" />
+                  </svg>
+                  <span>تأییدشده</span>
+                </span>
               </div>
             </header>
 
@@ -4557,7 +4563,7 @@ notify.error(message);
                   profileFormErrors={profileFormErrors}
                   onNameChange={(event) => setProfileFormName(event.target.value)}
                   onAgeChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
-                  onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات ذخیره شد'); }}
+                  onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات با موفقیت ذخیره شد'); }}
                   onDeleteAll={handleDeleteAllConversations}
                   onLogout={handleLogout}
                   showAccountActions={false}
@@ -4567,7 +4573,7 @@ notify.error(message);
               <div className="profile-page-card profile-page-card-side">
                 <div className="profile-stats">
                   <div className="profile-stats-header">
-                    <span>خلاصه فعالیت</span>
+                    <span>خلاصه وضعیت و فعالیت</span>
                   </div>
                   <div className="profile-stats-grid">
                     <div className="profile-stat-card">
@@ -4578,28 +4584,9 @@ notify.error(message);
                         </svg>
                       </span>
                       <strong>{new Intl.NumberFormat('fa-IR').format(conversations.length)}</strong>
-                      <span>گفتگو</span>
+                      <span>گفتگوهای ذخیره‌شده</span>
                     </div>
-                    <div className="profile-stat-card">
-                      <span className="profile-stat-icon profile-stat-icon--shield">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M12 3.5 19 6v5.4c0 4.1-2.8 7.8-7 9.1-4.2-1.3-7-5-7-9.1V6l7-2.5Z" />
-                          <path d="m8.8 12.2 2.1 2.1 4.5-4.7" />
-                        </svg>
-                      </span>
-                      <strong>امن</strong>
-                      <span>حساب تأییدشده</span>
-                    </div>
-                    <div className="profile-stat-card">
-                      <span className="profile-stat-icon profile-stat-icon--age">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <circle cx="12" cy="8" r="3.2" />
-                          <path d="M6 18.8c.4-2.8 2.2-4.3 6-4.3s5.6 1.5 6 4.3" />
-                        </svg>
-                      </span>
-                      <strong>{profile?.age ? new Intl.NumberFormat('fa-IR').format(profile.age) : '-'}</strong>
-                      <span>سال</span>
-                    </div>
+
                     <div className="profile-stat-card">
                       <span className="profile-stat-icon profile-stat-icon--plan">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -4607,7 +4594,28 @@ notify.error(message);
                         </svg>
                       </span>
                       <strong>{noaWallet.loading && !noaWallet.wallet ? '…' : formatDecimalFa(noaWallet.wallet?.availableBalance)}</strong>
-                      <span>موجودی نوآ</span>
+                      <span>موجودی نوآ (توکن)</span>
+                    </div>
+
+                    <div className="profile-stat-card">
+                      <span className="profile-stat-icon profile-stat-icon--messages">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                      </span>
+                      <strong>{new Intl.NumberFormat('fa-IR').format(conversations.reduce((sum, c) => sum + (c.messages?.length || 0), 0))}</strong>
+                      <span>کل پیام‌ها</span>
+                    </div>
+
+                    <div className="profile-stat-card">
+                      <span className="profile-stat-icon profile-stat-icon--age">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="8" r="3.2" />
+                          <path d="M6 18.8c.4-2.8 2.2-4.3 6-4.3s5.6 1.5 6 4.3" />
+                        </svg>
+                      </span>
+                      <strong>{profile?.age ? new Intl.NumberFormat('fa-IR').format(profile.age) : 'ثبت‌نشده'}</strong>
+                      <span>سن ثبت‌شده</span>
                     </div>
                   </div>
                 </div>
@@ -4620,28 +4628,41 @@ notify.error(message);
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
                       <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z" />
                     </svg>
-                    <span>افزایش موجودی نوآ</span>
+                    <span>مدیریت و افزایش موجودی نوآ</span>
                   </button>
-                  <button type="button" className="profile-quick-action-btn" onClick={handleDownloadActiveConversation}>
+                  <button type="button" className="profile-quick-action-btn" onClick={() => navigateToView('studio')}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
-                      <path d="M12 15l-4-4h3V4h2v7h3l-4 4ZM5 19v2h14v-2H5Z" />
+                      <path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z" />
                     </svg>
-                    <span>ذخیره گفتگوی فعلی</span>
+                    <span>استودیوی ابزارهای هوش مصنوعی</span>
                   </button>
-                  <button type="button" className="profile-quick-action-btn profile-quick-action-btn--danger" onClick={handleDeleteAllConversations}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
-                      <path d="M5 6.5h14M8.5 6.5V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1.5M9.5 10v6a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-6" />
+                </div>
+
+                <div className="profile-danger-zone">
+                  <div className="profile-danger-zone-header">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
+                      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    <span>حذف همه گفتگوها</span>
-                  </button>
-                  {profile?.id ? (
-                    <button type="button" className="profile-quick-action-btn profile-quick-action-btn--danger" onClick={handleLogout}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="20" height="20">
-                        <path d="M10.5 7.2 15.3 12l-4.8 4.8" /><path d="M4 12h11" /><path d="M14 5h3.5A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19H14" />
+                    <span>مدیریت حساب و حریم خصوصی</span>
+                  </div>
+                  <div className="profile-danger-zone-actions">
+                    <button type="button" className="profile-danger-btn" onClick={handleDeleteAllConversations}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="18" height="18">
+                        <path d="M5 6.5h14M8.5 6.5V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1.5M9.5 10v6a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-6" />
                       </svg>
-                      <span>خروج از حساب</span>
+                      <span>پاک کردن تاریخچه گفتگوها</span>
                     </button>
-                  ) : null}
+                    {profile?.id ? (
+                      <button type="button" className="profile-danger-btn" onClick={handleLogout}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" width="18" height="18">
+                          <path d="M10.5 7.2 15.3 12l-4.8 4.8" /><path d="M4 12h11" /><path d="M14 5h3.5A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19H14" />
+                        </svg>
+                        <span>خروج از حساب کاربری</span>
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </section>

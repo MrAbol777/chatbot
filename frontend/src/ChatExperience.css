@@ -988,8 +988,8 @@
   width: 320px;
   min-width: 320px;
   height: 100dvh;
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   padding: 0;
   border: 0;
@@ -1207,6 +1207,7 @@
 }
 
 .chat-history-sidebar .conversation-home-list {
+  flex: 1 1 0%;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -1509,6 +1510,7 @@
 }
 
 .chat-history-sidebar .conversation-sidebar-nav {
+  flex: 0 0 auto;
   position: static;
   inset: auto;
   width: auto;
@@ -1527,7 +1529,7 @@
   width: 100%;
   min-height: 52px;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) 18px;
+  grid-template-columns: 32px minmax(0, 1fr) 18px;
   align-items: center;
   gap: 10px;
   padding: 7px 10px;
@@ -3337,4 +3339,16 @@
   border: 1px solid rgba(31, 36, 48, .12);
   border-radius: 12px;
   background: #fafafe;
+}
+
+/* Keep the conversation history scrollable without showing a distracting rail. */
+.chat-history-sidebar .conversation-home-list {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chat-history-sidebar .conversation-home-list::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }

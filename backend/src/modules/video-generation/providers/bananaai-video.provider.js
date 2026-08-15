@@ -3,7 +3,7 @@
 const https = require('https');
 const { fail } = require('../video-generation.errors');
 const { VideoStorageError } = require('../storage/video-storage.errors');
-const { fetchValidatedResult, validateProviderBaseUrl } = require('./provider-result-downloader');
+const { fetchValidatedResultWithWget, validateProviderBaseUrl } = require('./provider-result-downloader');
 const { createVideoResultUrlValidator } = require('../storage/video-result-url-validator');
 const { BANANAAI_MODEL_IDS, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID } = require('../video-model.registry');
 
@@ -60,7 +60,15 @@ function classifyBananaSubmissionError(error) {
     const code = REJECTION_CODES[providerCode] || 'VIDEO_PROVIDER_CONFIRMED_REJECTION';
     return bananaSubmissionError(code, 'BananaAI rejected the request.', 'confirmed_rejected', { status, providerCode });
   }
-  return bananaSubmissionError('VIDEO_PROVIDER_STATUS_UNKNOWN', 'BananaAI submission result is ambiguous.', 'ambiguous', { status: status || null });
+  const transportCode = String(error?.code || '').toUpperCase();
+  const code = status >= 500
+    ? 'VIDEO_PROVIDER_UNAVAILABLE'
+    : ['ECONNABORTED', 'ETIMEDOUT'].includes(transportCode)
+      ? 'VIDEO_PROVIDER_TIMEOUT'
+      : ['ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH'].includes(transportCode)
+        ? 'VIDEO_PROVIDER_NETWORK_ERROR'
+        : 'VIDEO_PROVIDER_STATUS_UNKNOWN';
+  return bananaSubmissionError(code, 'BananaAI submission result is ambiguous.', 'ambiguous', { status: status || null, transportCode: transportCode || null });
 }
 
 function createBananaAiVideoProvider({
@@ -89,7 +97,21 @@ function createBananaAiVideoProvider({
   const validator = createVideoResultUrlValidator({ allowedHosts: resultAllowedHosts, allowedPorts: resultAllowedPorts, allowedPathPrefixes: resultAllowedPathPrefixes, allowTestLocal: allowTestLocalResult, resolver: dnsResolver });
   const promptLimit = Number(maxPromptLength);
   if (!Number.isSafeInteger(promptLimit) || promptLimit < 256) throw new Error('BANANAAI_MAX_PROMPT_LENGTH_INVALID');
-  const requestConfig = (timeout) => ({ headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, timeout, maxRedirects: 0, httpsAgent, ...(proxy ? { proxy } : {}), transitional: { clarifyTimeoutError: true } });
+  const requestConfig = (timeout, idempotencyKey = null) => {
+    const key = String(idempotencyKey || '').trim();
+    return {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        ...(key ? { 'Idempotency-Key': key.slice(0, 191) } : {})
+      },
+      timeout,
+      maxRedirects: 0,
+      httpsAgent,
+      ...(proxy ? { proxy } : {}),
+      transitional: { clarifyTimeoutError: true }
+    };
+  };
 
   function validateRequest(input) {
     if (!root || !String(apiKey || '').trim()) throw fail('VIDEO_PROVIDER_NOT_CONFIGURED', 'تنظیمات سرویس ساخت ویدیو کامل نیست.', 503);
@@ -118,7 +140,7 @@ function createBananaAiVideoProvider({
     const endpoint = input.capability === 'video.image_to_video' ? '/api/v1/videos/image-to-video' : '/api/v1/videos/generations';
     if (input.capability === 'video.image_to_video') payload.image_urls = [String(input.providerInputUrl)];
     let response;
-    try { response = await httpClient.post(`${root}${endpoint}`, payload, requestConfig(requestTimeoutMs)); }
+    try { response = await httpClient.post(`${root}${endpoint}`, payload, requestConfig(requestTimeoutMs, input.idempotencyKey)); }
     catch (error) { throw classifyBananaSubmissionError(error); }
     const providerJobId = String(response?.data?.id || response?.data?.taskId || '').trim();
     if (!response?.data || !providerJobId) {
@@ -155,7 +177,7 @@ function createBananaAiVideoProvider({
     },
     fetchResultStream: async (descriptor) => {
       if (!descriptor?.source) throw new VideoStorageError('VIDEO_RESULT_URL_INVALID');
-      return fetchValidatedResult(String(descriptor.source), { validator, timeoutMs: resultTimeoutMs, maxBytes: resultMaxBytes, maxRedirects: resultMaxRedirects });
+      return fetchValidatedResultWithWget(String(descriptor.source), { validator, timeoutMs: resultTimeoutMs, maxRedirects: resultMaxRedirects });
     },
     normalizeCost: (value) => String(value?.status || '').toLowerCase() === 'completed' && value?.credits_deducted === true && Number.isFinite(Number(value?.credits_reserved))
       ? { credits: Number(value.credits_reserved), currency: 'credits' }

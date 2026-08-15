@@ -36,7 +36,15 @@ const { createAdminSettingsService } = require('./modules/admin/settings/service
 const { createAdminSettingsRouter } = require('./modules/admin/settings/routes');
 const { createAdminAiRoutingRouter } = require('./modules/ai-routing/admin-ai-routing.routes');
 const { createVideoPromptProfileAdminRouter } = require('./modules/video-prompt-profiles/video-prompt-profile.routes');
-const { createLoginLimiter, createRequireAdminAuth, parseBannedFilter } = require('./modules/admin/common/auth');
+const {
+  ADMIN_ROLES,
+  createLoginLimiter,
+  createAdminActionLimiter,
+  createRequireAdminAuth,
+  createRequireAdminRole,
+  parseBannedFilter,
+  maskPhoneNumber
+} = require('./modules/admin/common/auth');
 const {
   CONFIG_FILE_PATH,
   SYSTEM_PROMPT_PATH,
@@ -866,6 +874,12 @@ function createAdminModule({
         page,
         pageSize
       });
+      if (Array.isArray(result?.items)) {
+        result.items = result.items.map((item) => ({
+          ...item,
+          phone: maskPhoneNumber(item.phone, req.admin?.role)
+        }));
+      }
       return res.json(result);
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت کاربران' });
@@ -877,6 +891,9 @@ function createAdminModule({
       const profile = await usersRepository.getUserFullProfile(req.params.id);
       if (!profile) {
         return res.status(404).json({ error: 'کاربر پیدا نشد.' });
+      }
+      if (profile.user) {
+        profile.user.phone = maskPhoneNumber(profile.user.phone, req.admin?.role);
       }
       return res.json(profile);
     } catch (error) {
@@ -1003,40 +1020,96 @@ function createAdminModule({
     }
   });
 
-  router.patch('/users/:id/ban', requireAdminAuth, async (req, res) => {
-    const isBanned = Boolean(req.body?.isBanned);
-    const user = await usersRepository.setUserBanStatus(req.params.id, isBanned);
-    if (!user) {
-      return res.status(404).json({ error: 'کاربر پیدا نشد.' });
+  router.patch(
+    '/users/:id/ban',
+    requireAdminAuth,
+    createAdminActionLimiter({ max: 20 }),
+    createRequireAdminRole([ADMIN_ROLES.SUPERADMIN, ADMIN_ROLES.ADMIN, ADMIN_ROLES.MODERATOR]),
+    async (req, res) => {
+      const isBanned = Boolean(req.body?.isBanned);
+      const user = await usersRepository.setUserBanStatus(req.params.id, isBanned);
+      if (!user) {
+        return res.status(404).json({ error: 'کاربر پیدا نشد.' });
+      }
+
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: isBanned ? 'ban_user' : 'unban_user',
+        target: req.params.id,
+        details: { isBanned }
+      });
+
+      return res.json({ success: true, user: { ...user, phone: maskPhoneNumber(user.phone, req.admin?.role) } });
     }
+  );
 
-    await appendAudit({
-      adminUsername: req.admin?.username,
-      action: isBanned ? 'ban_user' : 'unban_user',
-      target: req.params.id,
-      details: { isBanned }
-    });
+  router.delete(
+    '/users/:id',
+    requireAdminAuth,
+    createAdminActionLimiter({ max: 10 }),
+    createRequireAdminRole([ADMIN_ROLES.SUPERADMIN]),
+    async (req, res) => {
+      const result = await usersRepository.deleteUserAndConversations(req.params.id);
+      if (!result.deleted) {
+        return res.status(404).json({ error: 'کاربر پیدا نشد.' });
+      }
 
-    return res.json({ success: true, user });
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'delete_user',
+        target: req.params.id,
+        details: { deletedConversations: result.conversationCount }
+      });
+
+      return res.json({ success: true, ...result });
+    }
+  );
+
+  router.get('/moderation/flagged', requireAdminAuth, async (req, res) => {
+    try {
+      const [flaggedUsers] = await repositories.db.query(
+        `SELECT user_id, name, phone, age, is_banned, created_at, updated_at
+         FROM app_users
+         WHERE is_banned = 1
+         ORDER BY updated_at DESC LIMIT 30`
+      ).catch(() => [[]]);
+
+      const [flaggedImages] = await repositories.db.query(
+        `SELECT g.id, g.task_id, g.user_id, g.original_prompt, g.prompt, g.status, g.created_at,
+                u.name AS user_name, u.phone AS user_phone
+         FROM image_generations g
+         LEFT JOIN app_users u ON u.user_id = g.user_id
+         WHERE g.status IN ('ERROR', 'CANCELLED')
+         ORDER BY g.created_at DESC LIMIT 30`
+      ).catch(() => [[]]);
+
+      return res.json({
+        users: (flaggedUsers || []).map((u) => ({
+          user_id: u.user_id,
+          name: u.name,
+          phone: maskPhoneNumber(u.phone, req.admin?.role),
+          age: u.age,
+          isBanned: Boolean(u.is_banned),
+          createdAt: u.created_at,
+          updatedAt: u.updated_at
+        })),
+        images: (flaggedImages || []).map((img) => ({
+          id: String(img.id),
+          taskId: img.task_id,
+          userId: img.user_id,
+          userName: img.user_name || 'کاربر',
+          userPhone: maskPhoneNumber(img.user_phone, req.admin?.role),
+          prompt: img.original_prompt || img.prompt || '',
+          status: img.status,
+          createdAt: img.created_at
+        }))
+      });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'خطا در دریافت موارد پرچم‌گذاری‌شده' });
+    }
   });
 
-  router.delete('/users/:id', requireAdminAuth, async (req, res) => {
-    const result = await usersRepository.deleteUserAndConversations(req.params.id);
-    if (!result.deleted) {
-      return res.status(404).json({ error: 'کاربر پیدا نشد.' });
-    }
-
-    await appendAudit({
-      adminUsername: req.admin?.username,
-      action: 'delete_user',
-      target: req.params.id,
-      details: { deletedConversations: result.conversationCount }
-    });
-
-    return res.json({ success: true, ...result });
-  });
-
-  router.get('/supervised-otp', requireAdminAuth, async (_req, res) => {
+  router.get('/supervised-otp', requireAdminAuth, createRequireAdminRole([ADMIN_ROLES.SUPERADMIN, ADMIN_ROLES.ADMIN]), async (_req, res) => {
     try {
       if (!supervisedOtpRepository) return res.status(503).json({ error: 'Supervised OTP repository is not available.' });
       return res.json(await supervisedOtpRepository.getConfig());
@@ -1045,7 +1118,7 @@ function createAdminModule({
     }
   });
 
-  router.put('/supervised-otp', requireAdminAuth, async (req, res) => {
+  router.put('/supervised-otp', requireAdminAuth, createRequireAdminRole([ADMIN_ROLES.SUPERADMIN, ADMIN_ROLES.ADMIN]), async (req, res) => {
     try {
       if (!supervisedOtpRepository) return res.status(503).json({ error: 'Supervised OTP repository is not available.' });
       const config = await supervisedOtpRepository.updateConfig({
@@ -1072,7 +1145,7 @@ function createAdminModule({
     }
   });
 
-  router.post('/supervised-otp/reset-used-count', requireAdminAuth, async (req, res) => {
+  router.post('/supervised-otp/reset-used-count', requireAdminAuth, createRequireAdminRole([ADMIN_ROLES.SUPERADMIN, ADMIN_ROLES.ADMIN]), async (req, res) => {
     try {
       if (!supervisedOtpRepository) return res.status(503).json({ error: 'Supervised OTP repository is not available.' });
       const config = await supervisedOtpRepository.resetUsedCount();
@@ -1088,7 +1161,7 @@ function createAdminModule({
     }
   });
 
-  router.delete('/supervised-otp', requireAdminAuth, async (req, res) => {
+  router.delete('/supervised-otp', requireAdminAuth, createRequireAdminRole([ADMIN_ROLES.SUPERADMIN, ADMIN_ROLES.ADMIN]), async (req, res) => {
     try {
       if (!supervisedOtpRepository) return res.status(503).json({ error: 'Supervised OTP repository is not available.' });
       const config = await supervisedOtpRepository.deleteCode();

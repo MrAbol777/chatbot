@@ -992,10 +992,17 @@ body.studio-viewer-open .chat-studio-switcher {
   display: none;
 }
 
+body.studio-output-settings-open .chat-studio-switcher {
+  display: none;
+}
+
+@keyframes studio-output-settings-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes studio-output-settings-rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
 /* ====== REDUCED MOTION ====== */
 @media (prefers-reduced-motion: reduce) {
   .studio-shell, .studio-create, .studio-gallery, .studio-error,
-  .studio-modal, .studio-modal-panel, .shimmer, .skeleton::after,
+  .studio-modal, .studio-modal-panel, .studio-mobile-settings-modal, .studio-mobile-settings-panel, .shimmer, .skeleton::after,
   .image-card img, .studio-submit > i { animation: none; }
   .studio-tab-indicator, .studio button, .studio textarea,
   .image-card, .card-overlay { transition-duration: 0ms; }
@@ -1120,6 +1127,8 @@ body.studio-viewer-open .chat-studio-switcher {
   text-align: center;
 }
 .studio-submit { min-height: 56px; border-radius: 17px; font-size: .96rem; }
+.studio-mobile-settings-trigger,
+.studio-mobile-settings-modal { display: none; }
 .studio-settings-heading {
   display: flex;
   align-items: center;
@@ -1193,7 +1202,7 @@ body.studio-viewer-open .chat-studio-switcher {
   .studio-create-grid { grid-template-columns: 1fr; gap: 16px; }
   .studio-prompt-card, .studio-settings-card { border-radius: 21px; }
   .studio-prompt-card { padding: 18px 14px; }
-  .studio-settings-card { position: static; padding: 18px 14px; }
+  .studio-settings-card { display: none; }
   .studio-create textarea { min-height: 148px; max-height: 280px; }
   .studio-settings-heading { margin-bottom: 16px; }
   .studio-settings-card .ratio-options { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -1215,6 +1224,75 @@ body.studio-viewer-open .chat-studio-switcher {
   .studio-output-summary { margin-top: 16px; }
   .studio-submit-dock { position: sticky; z-index: 6; bottom: calc(var(--studio-bottom-clearance) + 8px); margin: 22px -2px 0; padding: 10px 2px 2px; background: linear-gradient(180deg, transparent, var(--card-bg) 35%); }
   .studio-submit { min-height: 54px; width: 100%; }
+  .studio-mobile-settings-trigger {
+    min-height: 48px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) 22px;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+    padding: 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--surface-border));
+    border-radius: 15px;
+    color: var(--primary-dark);
+    background: color-mix(in srgb, var(--primary) 5%, var(--card-bg));
+    font: 750 .875rem inherit;
+    cursor: pointer;
+    transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+  .studio-mobile-settings-trigger:hover { border-color: color-mix(in srgb, var(--primary) 42%, var(--surface-border)); background: color-mix(in srgb, var(--primary) 9%, var(--card-bg)); }
+  .studio-mobile-settings-trigger:active { transform: scale(.99); }
+  .studio-mobile-settings-trigger:focus-visible,
+  .studio-mobile-settings-panel__close:focus-visible,
+  .studio-mobile-settings-panel .ratio-options button:focus-visible { outline: 3px solid var(--focus-ring, var(--primary)); outline-offset: 3px; }
+  .studio-mobile-settings-trigger > span { min-width: 0; text-align: center; }
+  .studio-mobile-settings-trigger__chevron { font-size: 1.1rem; line-height: 1; }
+  .studio-mobile-settings-modal {
+    position: fixed;
+    z-index: 1200;
+    inset: 0;
+    display: grid;
+    align-items: end;
+    justify-items: center;
+    background: rgba(20, 14, 29, .46);
+    backdrop-filter: blur(4px);
+    animation: studio-output-settings-fade 180ms ease both;
+  }
+  .studio-mobile-settings-panel {
+    width: min(100%, 520px);
+    max-height: min(72dvh, 540px);
+    overflow: auto;
+    padding: 10px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+    border: 1px solid color-mix(in srgb, var(--surface-border) 78%, transparent);
+    border-bottom: 0;
+    border-radius: 24px 24px 0 0;
+    background: var(--card-bg);
+    box-shadow: 0 -18px 50px rgba(39, 20, 70, .2);
+    animation: studio-output-settings-rise 260ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+  .studio-mobile-settings-panel::before {
+    content: '';
+    display: block;
+    width: 52px;
+    height: 5px;
+    margin: 0 auto 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 18%, var(--surface-border));
+  }
+  .studio-mobile-settings-panel__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .studio-mobile-settings-panel__header h2 { margin: 0; color: var(--text-main); font-size: 1rem; font-weight: 850; }
+  .studio-mobile-settings-panel__close { width: 44px; min-width: 44px; height: 44px; min-height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--surface-border); border-radius: 13px; color: var(--text-main); background: var(--surface-soft); cursor: pointer; }
+  .studio-mobile-settings-panel__ratio-field { min-width: 0; margin: 0; padding: 0; border: 0; }
+  .studio-mobile-settings-panel__ratio-field legend { margin-bottom: 11px; color: color-mix(in srgb, var(--text-main) 72%, transparent); font-size: .875rem; font-weight: 750; }
+  .studio-mobile-settings-panel .ratio-options { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .studio-mobile-settings-panel .ratio-options button { min-height: 96px; grid-template-columns: 1fr; grid-template-rows: 36px auto auto; justify-items: center; gap: 1px; padding: 8px 5px; border-radius: 16px; font-size: .875rem; }
+  .studio-mobile-settings-panel .ratio-shape { grid-column: 1; grid-row: 1; }
+  .studio-mobile-settings-panel .ratio-options button > span,
+  .studio-mobile-settings-panel .ratio-options button > small { grid-column: 1; text-align: center; }
+  .studio-mobile-settings-panel .ratio-options button > span { grid-row: 2; }
+  .studio-mobile-settings-panel .ratio-options button > small { grid-row: 3; }
+  .studio-mobile-settings-panel .ratio-options button > svg { position: absolute; inset-inline-start: 9px; inset-block-start: 8px; color: var(--primary); }
 }
 
 @media (max-width: 420px) {

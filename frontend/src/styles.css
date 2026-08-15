@@ -2387,28 +2387,78 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   min-height: 48px;
-  padding: 10px 16px;
+  padding: 10px 14px;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.06), rgba(167, 139, 250, 0.1));
-  border: 1px solid rgba(124, 58, 237, 0.14);
-  font-size: 0.9rem;
+  background: var(--color-surface-container-low, #f2f4f6);
+  border: 1px solid var(--color-border, #ccc3d8);
+  font-size: 0.88rem;
 }
 
-.profile-form-id span {
+.profile-form-id__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-form-id__info span {
   font-weight: 800;
-  color: #4a4455;
+  color: var(--color-muted, #4a4455);
   white-space: nowrap;
+  font-size: 0.84rem;
 }
 
-.profile-form-id code {
+.profile-form-id__info code {
   direction: ltr;
   font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #7c3aed;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--color-primary, #630ed4);
   overflow-wrap: anywhere;
+}
+
+.profile-form-id__copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border, #ccc3d8);
+  background: var(--color-surface-2, #ffffff);
+  color: var(--color-text, #191c1e);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.profile-form-id__copy-btn:hover {
+  background: var(--color-primary-soft, #eaddff);
+  border-color: var(--color-primary, #630ed4);
+  color: var(--color-primary, #630ed4);
+}
+
+.profile-form-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+
+.profile-form-save.ds-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding-inline: 24px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 800;
 }
 
 .profile-form-divider {
@@ -2427,15 +2477,6 @@ textarea {
   min-height: 44px;
   border-radius: 9999px;
   font-size: 0.86rem;
-  font-weight: 900;
-}
-
-/* Save button */
-.profile-form-save {
-  width: 100%;
-  min-height: 54px;
-  border-radius: 9999px;
-  font-size: 1.02rem;
   font-weight: 900;
 }
 
@@ -2618,6 +2659,11 @@ textarea {
   color: #16a34a;
 }
 
+.profile-stat-icon--messages {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
 .profile-stat-card strong {
   font-size: 1.15rem;
   font-weight: 900;
@@ -2634,14 +2680,14 @@ textarea {
 /* Quick actions */
 .profile-quick-actions {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .profile-quick-actions-header {
   font-size: 0.84rem;
   font-weight: 900;
   color: #4a4455;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .profile-quick-action-btn {
@@ -2651,9 +2697,9 @@ textarea {
   width: 100%;
   min-height: 48px;
   padding: 10px 14px;
-  border: 1px solid rgba(204, 195, 216, 0.3);
+  border: 1px solid rgba(204, 195, 216, 0.35);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.75);
   color: #4a4455;
   font: inherit;
   font-size: 0.88rem;
@@ -2663,21 +2709,59 @@ textarea {
 }
 
 .profile-quick-action-btn:hover {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(124, 58, 237, 0.25);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(124, 58, 237, 0.3);
   color: #7c3aed;
   transform: translateX(-2px);
 }
 
-.profile-quick-action-btn--danger {
-  color: #b3261e;
-  border-color: rgba(179, 38, 30, 0.15);
+/* Danger Zone */
+.profile-danger-zone {
+  margin-top: 6px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(186, 26, 26, 0.04);
+  border: 1px solid rgba(186, 26, 26, 0.16);
+  display: grid;
+  gap: 10px;
 }
 
-.profile-quick-action-btn--danger:hover {
-  background: rgba(179, 38, 30, 0.06);
-  border-color: rgba(179, 38, 30, 0.3);
-  color: #b3261e;
+.profile-danger-zone-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ba1a1a;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.profile-danger-zone-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-danger-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid rgba(186, 26, 26, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #ba1a1a;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-danger-btn:hover {
+  background: rgba(186, 26, 26, 0.08);
+  border-color: #ba1a1a;
+  transform: translateX(-2px);
 }
 
 /* =============================================

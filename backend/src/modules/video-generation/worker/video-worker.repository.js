@@ -317,7 +317,7 @@ function createVideoWorkerRepository(db, { faultInjector, claimProvider = null, 
     extendJobLease: async ({ jobId, workerId, leaseSeconds = 60 }) => {
       const seconds = asPositiveInteger(leaseSeconds, 'leaseSeconds');
       const [result] = await db.query(
-        "UPDATE app_video_generations SET worker_lease_until=DATE_ADD(NOW(), INTERVAL ? SECOND), updated_at=NOW() WHERE id=? AND worker_lease_owner=? AND worker_lease_until>NOW() AND status IN ('submitted','processing','storing')",
+        "UPDATE app_video_generations SET worker_lease_until=DATE_ADD(NOW(), INTERVAL ? SECOND), updated_at=NOW() WHERE id=? AND worker_lease_owner=? AND worker_lease_until>NOW() AND status IN ('submitting','submitted','processing','storing')",
         [seconds, jobId, safeText(workerId, 191)]
       );
       return result.affectedRows === 1;

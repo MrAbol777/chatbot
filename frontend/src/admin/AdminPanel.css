@@ -1,0 +1,156 @@
+/* Admin Panel V2 Styles and Prompt Diff Viewer */
+
+.prompt-diff-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+
+.prompt-diff-card {
+  width: 100%;
+  max-width: 900px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.prompt-diff-header {
+  padding: 16px 20px;
+  background-color: #1e293b;
+  border-bottom: 1px solid #334155;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.prompt-diff-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #f8fafc;
+}
+
+.prompt-diff-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.prompt-diff-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.diff-tag {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.diff-tag--add {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.diff-tag--del {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.prompt-diff-body {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #0b0f19;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.prompt-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prompt-diff-table td {
+  padding: 2px 6px;
+  vertical-align: top;
+}
+
+.diff-line-no {
+  width: 38px;
+  text-align: right;
+  color: #475569;
+  user-select: none;
+  font-size: 11px;
+}
+
+.diff-line-marker {
+  width: 16px;
+  text-align: center;
+  user-select: none;
+  font-weight: bold;
+}
+
+.diff-line-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-row--added {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+
+.diff-row--added .diff-line-marker {
+  color: #10b981;
+}
+
+.diff-row--removed {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.diff-row--removed .diff-line-marker {
+  color: #ef4444;
+}
+
+.diff-row--unchanged {
+  color: #cbd5e1;
+}
+
+.prompt-diff-footer {
+  padding: 14px 20px;
+  background-color: #1e293b;
+  border-top: 1px solid #334155;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.admin-card-box {
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 20px;
+}

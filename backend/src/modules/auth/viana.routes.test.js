@@ -69,13 +69,14 @@ const createRouter = (overrides = {}) =>
     logger: { error() {} },
     vianaService: {
       generateAuthorizationRequest: () => ({
+        nonce: 'nonce-one',
         state: 'state-one',
         codeVerifier: 'verifier-one',
         authorizationUrl:
           'http://localhost:3000/oauth/continue?response_type=code&client_id=development-client&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Fapi%2Fauth%2Fviana%2Fcallback&state=state-one&code_challenge=challenge&code_challenge_method=S256&scope=profile'
       }),
       exchangeCode: async () => 'opaque-viana-access-token',
-      fetchUserInfo: async () => ({
+      fetchStudentSelf: async () => ({
         sub: 'subject',
         firstName: 'First',
         lastName: 'Last',
@@ -123,6 +124,7 @@ test('start persists browser-bound state and redirects with no-store without tou
   assert.equal(res.output.headers['cache-control'], 'no-store');
   assert.equal(saved.state, 'state-one');
   assert.equal(saved.codeVerifier, 'verifier-one');
+  assert.equal(saved.nonce, 'nonce-one');
   assert.equal(saved.environmentKey, 'development');
   assert.ok(saved.browserBinding);
   assert.equal(res.output.cleared.length, 0);

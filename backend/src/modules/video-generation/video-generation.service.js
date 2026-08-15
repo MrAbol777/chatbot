@@ -12,7 +12,10 @@ function jobDto(job) {
     id: job.id,
     mode: job.mode,
     status: job.status,
-    prompt: job.prompt,
+    // `prompt` is the provider-ready compiled text for routed video jobs.
+    // The user gallery must expose only the original request, never internal
+    // system/profile instructions embedded in the compiled prompt.
+    prompt: job.user_prompt || job.userPrompt || job.prompt,
     aspectRatio: job.aspect_ratio || job.aspectRatio,
     aspect_ratio: job.aspect_ratio || job.aspectRatio,
     duration: String(job.duration),

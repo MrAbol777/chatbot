@@ -2,14 +2,14 @@ const { generateUserId } = require('../../repositories/helpers');
 const { sha256 } = require('./session.repository');
 
 function createVianaRepository({ db, now = () => new Date() }) {
-  const saveFlow = async ({ state, browserBinding, codeVerifier, environmentKey, ttlMs = 10 * 60 * 1000 }) => {
+  const saveFlow = async ({ state, browserBinding, codeVerifier, nonce, environmentKey, ttlMs = 10 * 60 * 1000 }) => {
     const timestamp = now();
     const expiresAt = new Date(timestamp.getTime() + ttlMs);
     await db.query(
       `INSERT INTO app_viana_oauth_flows
-        (state_hash, browser_binding_hash, code_verifier, environment_key, created_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [sha256(state), sha256(browserBinding), codeVerifier, environmentKey, timestamp, expiresAt]
+        (state_hash, browser_binding_hash, code_verifier, nonce, environment_key, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [sha256(state), sha256(browserBinding), codeVerifier, nonce, environmentKey, timestamp, expiresAt]
     );
     await db.query('DELETE FROM app_viana_oauth_flows WHERE expires_at < ? LIMIT 250', [timestamp]);
     return { expiresAt };
@@ -35,7 +35,7 @@ function createVianaRepository({ db, now = () => new Date() }) {
       await connection.commit();
       if (row.environment_key !== environmentKey) return { valid: false, reason: 'environment_mismatch' };
       if (now().getTime() >= new Date(row.expires_at).getTime()) return { valid: false, reason: 'expired' };
-      return { valid: true, codeVerifier: row.code_verifier };
+      return { valid: true, codeVerifier: row.code_verifier, nonce: row.nonce };
     } catch (error) {
       await connection.rollback();
       throw error;

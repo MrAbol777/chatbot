@@ -42,6 +42,15 @@ test('BananaAI accepts both documented task ID response spellings', async () => 
   assert.equal(result.providerJobId, 'task_alias');
 });
 
+test('BananaAI forwards a stable idempotency key without exposing it in the URL', async () => {
+  const httpClient = mockHttp({ postResult: { status: 202, data: { id: 'task-idempotent' } } });
+  const provider = createProvider(httpClient);
+  await provider.submit(input({ idempotencyKey: 'request-uuid-1234' }));
+  const [, url,, config] = httpClient.calls[0];
+  assert.equal(config.headers['Idempotency-Key'], 'request-uuid-1234');
+  assert.equal(url.includes('request-uuid-1234'), false);
+});
+
 test('BananaAI can use an explicit HTTPS proxy without exposing its credentials in the request URL', async () => {
   const httpClient = mockHttp({ postResult: { status: 202, data: { id: 'task_proxy' } } });
   const provider = createBananaAiVideoProvider({ httpClient, apiKey: 'fixture-key', proxyUrl: 'http://user:pass@proxy.example.test:8080', resultAllowedHosts: ['cdn.banana.test'] });
@@ -86,8 +95,10 @@ test('documented 4xx statuses are confirmed rejections even with malformed envel
   assert.equal(malformed.submissionOutcome, 'confirmed_rejected');
   const server = classifyBananaSubmissionError({ response: { status: 503, data: { error: { code: 'internal_error', message: 'fixture' } } } });
   assert.equal(server.submissionOutcome, 'ambiguous');
+  assert.equal(server.code, 'VIDEO_PROVIDER_UNAVAILABLE');
   const timeout = classifyBananaSubmissionError(Object.assign(new Error('fixture'), { code: 'ETIMEDOUT' }));
   assert.equal(timeout.submissionOutcome, 'ambiguous');
+  assert.equal(timeout.code, 'VIDEO_PROVIDER_TIMEOUT');
 });
 
 test('validation status 422 is a confirmed rejection even with a non-standard error body', () => {
