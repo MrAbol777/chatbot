@@ -71,7 +71,27 @@ a[href]:active {
   filter: brightness(0.96);
 }
 
-:focus-visible {
+html:focus-visible,
+body:focus-visible,
+#root:focus-visible,
+.app-shell:focus-visible,
+main:focus-visible,
+header:focus-visible,
+section:focus-visible,
+aside:focus-visible,
+div:focus-visible {
+  outline: none !important;
+}
+
+button:focus-visible,
+a[href]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[tabindex="0"]:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
 }

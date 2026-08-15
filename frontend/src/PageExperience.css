@@ -35,17 +35,19 @@
 @keyframes danoa-route-enter-noa { from { opacity: .72; } }
 @keyframes danoa-surface-enter { from { opacity: .64; transform: translateY(10px); } }
 
-/* Shared page frame for the user settings view. The Noa wallet owns the
-   viewport itself, like a first-class route rather than a page inside a card. */
 .chat-shell.view-profile .profile-page {
-  width: min(100% - 32px, var(--danoa-page-max-width));
-  margin: 20px auto 40px;
+  width: 100%;
+  max-width: 1400px;
+  height: 100%;
+  max-height: 100%;
+  margin: 0 auto;
+  padding: 0;
 }
 
 .chat-shell.view-profile .profile-page-header {
-  min-height: 64px;
-  margin-bottom: 18px;
-  padding: 9px 14px;
+  min-height: 56px;
+  margin-bottom: clamp(10px, 1.4vh, 18px);
+  padding: 8px 16px;
   border: 1px solid var(--danoa-surface-border);
   border-radius: var(--danoa-header-radius);
   background: color-mix(in srgb, var(--color-surface-2) 94%, white);
@@ -58,10 +60,10 @@
 }
 
 .chat-shell.view-profile .generate-page-back {
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  min-height: 44px;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
   border-radius: 12px;
 }
 

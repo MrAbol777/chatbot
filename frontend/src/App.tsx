@@ -4543,15 +4543,6 @@ notify.error(message);
                 <span>حساب کاربری</span>
                 <h1>پروفایل من</h1>
               </div>
-              <div className="profile-page-header-status">
-                <span className="profile-status-badge registered">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14" aria-hidden="true">
-                    <path d="M12 3.5 19 6v5.4c0 4.1-2.8 7.8-7 9.1-4.2-1.3-7-5-7-9.1V6l7-2.5Z" />
-                    <path d="m8.8 12.2 2.1 2.1 4.5-4.7" />
-                  </svg>
-                  <span>تأییدشده</span>
-                </span>
-              </div>
             </header>
 
             <section className="profile-page-grid">
@@ -5136,16 +5127,12 @@ notify.error(message);
                         <svg viewBox="0 0 24 24">
                           <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
                         </svg>
-          ) : shouldShowSendAction ? (
-                      <svg viewBox="0 0 24 24">
-                        <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 24 24">
-                        <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
-                        <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
-                      </svg>
-                    )}
+                      ) : (
+                        <svg viewBox="0 0 24 24">
+                          <path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" />
+                          <path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" />
+                        </svg>
+                      )}
                     </span>
                   </button>
                 )}
