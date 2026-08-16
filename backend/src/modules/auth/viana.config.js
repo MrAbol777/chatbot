@@ -1,6 +1,6 @@
 const DEFAULT_IDLE_TIMEOUT_SECONDS = 24 * 60 * 60;
 const DEFAULT_ABSOLUTE_TIMEOUT_SECONDS = 30 * 24 * 60 * 60;
-const DEFAULT_HTTP_TIMEOUT_MS = 10_000;
+const DEFAULT_HTTP_TIMEOUT_MS = 20_000;
 
 const trim = (value) => (typeof value === 'string' ? value.trim() : '');
 

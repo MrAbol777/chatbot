@@ -230,6 +230,33 @@ test('successful callback maps identity, creates only a Danoa session, and never
   else process.env.NODE_ENV = previousNodeEnv;
 });
 
+test('callback failure logs only safe Viana diagnostics', async () => {
+  const entries = [];
+  const router = createRouter({
+    logger: { error: (_message, details) => entries.push(details) },
+    vianaService: {
+      exchangeCode: async () => {
+        const error = new Error('upstream failure');
+        error.code = 'VIANA_STUDENT_SELF_FAILED';
+        error.status = 502;
+        error.upstreamStatus = 502;
+        error.retryable = true;
+        throw error;
+      }
+    }
+  });
+  const handler = routeHandler(router, 'GET', '/api/auth/viana/callback');
+  const res = responseRecorder();
+  await handler({ cookies: { danoa_viana_flow: 'binding' }, query: { state: 'valid-state', code: 'single-use-code' } }, res);
+
+  assert.deepEqual(entries[0].code, 'VIANA_STUDENT_SELF_FAILED');
+  assert.equal(entries[0].upstreamStatus, 502);
+  assert.equal(entries[0].requestId, 'safe-correlation-id');
+  assert.equal(typeof entries[0].durationMs, 'number');
+  assert.equal(JSON.stringify(entries[0]).includes('single-use-code'), false);
+  assert.equal(res.output.statusCode, 303);
+});
+
 test('local logout is idempotent and explicitly does not revoke Bearer or globally log out Viana', async () => {
   const router = createSessionRouter({
     config,

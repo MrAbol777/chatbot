@@ -53,6 +53,7 @@ function createVianaRouter({
   router.get('/api/auth/viana/start', async (req, res, next) => {
     noStore(res);
     if (!config.enabled) return res.status(404).json({ error: 'VIANA_SIGNIN_DISABLED' });
+    const startedAt = Date.now();
     try {
       const browserBinding =
         typeof req.cookies?.[config.flowCookieName] === 'string' &&
@@ -74,7 +75,10 @@ function createVianaRouter({
         requestId: res.locals.requestId,
         phase: 'start',
         status: error?.status || 500,
-        oauthError: error?.oauthError || null
+        code: error?.code || 'UNEXPECTED_ERROR',
+        upstreamStatus: error?.upstreamStatus || null,
+        oauthError: error?.oauthError || null,
+        durationMs: Date.now() - startedAt
       });
       return next(error);
     }
@@ -82,6 +86,7 @@ function createVianaRouter({
 
   router.get('/api/auth/viana/callback', async (req, res) => {
     noStore(res);
+    const startedAt = Date.now();
     const redirectHome = () => res.redirect(303, config.postLoginPath);
     if (!config.enabled) {
       setNotice(res, 'disabled');
@@ -142,7 +147,10 @@ function createVianaRouter({
         requestId: res.locals.requestId,
         phase,
         status: error?.status || 500,
-        oauthError: error?.oauthError || null
+        code: error?.code || 'UNEXPECTED_ERROR',
+        upstreamStatus: error?.upstreamStatus || null,
+        oauthError: error?.oauthError || null,
+        durationMs: Date.now() - startedAt
       });
       setNotice(res, error?.retryable ? 'temporary_error' : 'failed');
       return redirectHome();

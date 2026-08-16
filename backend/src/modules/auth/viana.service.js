@@ -1,13 +1,14 @@
 const crypto = require('crypto');
 
 class VianaProtocolError extends Error {
-  constructor(code, message, { status = 502, retryable = false, oauthError = null } = {}) {
+  constructor(code, message, { status = 502, retryable = false, oauthError = null, upstreamStatus = null } = {}) {
     super(message);
     this.name = 'VianaProtocolError';
     this.code = code;
     this.status = status;
     this.retryable = retryable;
     this.oauthError = oauthError;
+    this.upstreamStatus = upstreamStatus;
   }
 }
 
@@ -75,7 +76,10 @@ async function readJsonResponse(response) {
   try {
     return text ? JSON.parse(text) : null;
   } catch {
-    throw new VianaProtocolError('VIANA_RESPONSE_MALFORMED', `Viana returned non-JSON HTTP ${response.status}.`, { retryable: response.status >= 500 });
+    throw new VianaProtocolError('VIANA_RESPONSE_MALFORMED', `Viana returned non-JSON HTTP ${response.status}.`, {
+      retryable: response.status >= 500,
+      upstreamStatus: response.status
+    });
   }
 }
 
@@ -84,12 +88,16 @@ function mapHttpError(response, body, phase) {
   return new VianaProtocolError(`VIANA_${phase.toUpperCase()}_FAILED`, `Viana ${phase} request failed.`, {
     status: response.status,
     retryable: response.status === 429 || response.status >= 500 || oauthError === 'temporarily_unavailable',
-    oauthError
+    oauthError,
+    upstreamStatus: response.status
   });
 }
 
 function createVianaService({ config, fetchImpl = globalThis.fetch, now = () => new Date(), wait = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
   let discoveryPromise = null;
+  let jwksCache = null;
+  const jwksCacheTtlMs = 5 * 60 * 1000;
+  const studentSelfRetryDelaysMs = [400, 1000];
 
   const request = async (url, init) => {
     const controller = new AbortController();
@@ -135,6 +143,23 @@ function createVianaService({ config, fetchImpl = globalThis.fetch, now = () => 
     return discoveryPromise;
   };
 
+  const getJwks = async (discovery, { forceRefresh = false } = {}) => {
+    const timestamp = now().getTime();
+    if (!forceRefresh && jwksCache?.url === discovery.jwksUrl && jwksCache.expiresAt > timestamp) {
+      return jwksCache.keys;
+    }
+    const jwksResponse = await request(discovery.jwksUrl, { headers: { Accept: 'application/json' } });
+    const jwks = await readJsonResponse(jwksResponse);
+    if (!jwksResponse.ok || !Array.isArray(jwks?.keys)) {
+      throw new VianaProtocolError('VIANA_JWKS_INVALID', 'Viana signing keys are unavailable.', {
+        retryable: jwksResponse.status >= 500,
+        upstreamStatus: jwksResponse.status
+      });
+    }
+    jwksCache = { url: discovery.jwksUrl, keys: jwks.keys, expiresAt: timestamp + jwksCacheTtlMs };
+    return jwksCache.keys;
+  };
+
   const verifyIdToken = async ({ idToken, nonce, discovery }) => {
     const parts = String(idToken || '').split('.');
     if (parts.length !== 3) throw new VianaProtocolError('VIANA_ID_TOKEN_INVALID', 'Viana returned an invalid ID token.');
@@ -143,10 +168,12 @@ function createVianaService({ config, fetchImpl = globalThis.fetch, now = () => 
     if (header?.alg !== 'RS256' || typeof header?.kid !== 'string' || !header.kid) {
       throw new VianaProtocolError('VIANA_ID_TOKEN_INVALID', 'Viana ID token signing metadata is invalid.');
     }
-    const jwksResponse = await request(discovery.jwksUrl, { headers: { Accept: 'application/json' } });
-    const jwks = await readJsonResponse(jwksResponse);
-    if (!jwksResponse.ok || !Array.isArray(jwks?.keys)) throw new VianaProtocolError('VIANA_JWKS_INVALID', 'Viana signing keys are unavailable.', { retryable: jwksResponse.status >= 500 });
-    const key = jwks.keys.find((item) => item?.kid === header.kid && item?.kty === 'RSA' && item?.use !== 'enc');
+    let keys = await getJwks(discovery);
+    let key = keys.find((item) => item?.kid === header.kid && item?.kty === 'RSA' && item?.use !== 'enc');
+    if (!key) {
+      keys = await getJwks(discovery, { forceRefresh: true });
+      key = keys.find((item) => item?.kid === header.kid && item?.kty === 'RSA' && item?.use !== 'enc');
+    }
     if (!key) throw new VianaProtocolError('VIANA_ID_TOKEN_INVALID', 'Viana ID token key is unknown.', { retryable: true });
     let verified = false;
     try {
@@ -186,15 +213,16 @@ function createVianaService({ config, fetchImpl = globalThis.fetch, now = () => 
   };
 
   const fetchStudentSelf = async (accessToken) => {
-    let attempt = 0;
-    while (attempt < 2) {
-      const response = await request(`${config.apiUrl}/students/me`, { method: 'GET', headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } });
-      const body = await readJsonResponse(response);
-      if (response.ok) return validateStudentSelf(body);
-      const error = mapHttpError(response, body, 'student_self');
-      if (!error.retryable || attempt > 0) throw error;
-      attempt += 1;
-      await wait(200);
+    for (let attempt = 0; attempt <= studentSelfRetryDelaysMs.length; attempt += 1) {
+      try {
+        const response = await request(`${config.apiUrl}/students/me`, { method: 'GET', headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } });
+        const body = await readJsonResponse(response);
+        if (response.ok) return validateStudentSelf(body);
+        throw mapHttpError(response, body, 'student_self');
+      } catch (error) {
+        if (!error?.retryable || attempt === studentSelfRetryDelaysMs.length) throw error;
+        await wait(studentSelfRetryDelaysMs[attempt]);
+      }
     }
   };
 
