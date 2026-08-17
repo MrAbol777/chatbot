@@ -8056,7 +8056,6 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .chips-row {
-  order: 1;
   padding-inline: 2px;
   scrollbar-width: none;
 }
@@ -8075,7 +8074,6 @@ select:focus-visible {
 }
 
 .chat-shell.view-chat .composer-row {
-  order: 2;
   gap: 8px;
   align-items: flex-end;
   direction: ltr;

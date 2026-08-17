@@ -3622,7 +3622,7 @@
 }
 
 .danoa-hero-title {
-  font-size: clamp(1.85rem, 3.2vw, 2.45rem);
+  font-size: clamp(1.58rem, 2.7vw, 2.1rem);
   font-weight: 850;
   color: #18181b;
   margin: 0 0 12px 0;
@@ -3741,7 +3741,12 @@
   gap: 12px;
 }
 
+.danoa-input-shell > * {
+  order: 0 !important;
+}
+
 .danoa-composer-capsule {
+  order: 0 !important;
   display: flex !important;
   align-items: center !important;
   width: 100% !important;
@@ -4259,7 +4264,7 @@
   min-height: 0;
   overflow: visible;
   display: block;
-  padding: clamp(72px, 12vh, 144px) clamp(20px, 4vw, 64px) 0;
+  padding: clamp(24px, 6.5vh, 88px) clamp(20px, 4vw, 64px) 0;
   background:
     radial-gradient(circle at 50% 38%, rgba(109, 40, 217, .045), transparent 38%),
     var(--danoa-chat-surface, #fff);
@@ -4273,11 +4278,11 @@
 }
 
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-hero-heading-block {
-  margin-bottom: 36px;
+  margin-bottom: 30px;
 }
 
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-hero-title {
-  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-size: clamp(1.7rem, 2.55vw, 2.35rem);
 }
 
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
@@ -4292,7 +4297,7 @@
 .chat-shell.view-chat .chat-card.chat-card--empty .input-area.danoa-input-area {
   grid-area: input;
   align-self: start;
-  padding: 36px clamp(20px, 4vw, 64px) 28px !important;
+  padding: 20px clamp(20px, 4vw, 64px) 28px !important;
   transform: none;
   z-index: auto;
 }
@@ -4300,18 +4305,25 @@
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-input-shell {
   width: min(100%, 980px) !important;
   max-width: 980px !important;
-  gap: 16px;
+  gap: 14px;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-input-shell > * {
+  order: 0 !important;
 }
 
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-composer-capsule {
+  order: 0 !important;
   min-height: 64px;
 }
 
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-suggestions-row {
+  order: 0 !important;
   margin-top: 0;
 }
 
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-disclaimer {
+  order: 0 !important;
   margin-top: 2px;
 }
 
@@ -4341,11 +4353,11 @@
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .messages-area {
-    padding: 52px 16px 0;
+    padding: 24px 16px 0;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-hero-heading-block {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
@@ -4358,7 +4370,7 @@
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .input-area.danoa-input-area {
-    padding: 28px 16px max(24px, env(safe-area-inset-bottom, 0px)) !important;
+    padding: 16px 16px max(20px, env(safe-area-inset-bottom, 0px)) !important;
     box-shadow: none;
   }
 }
