@@ -3204,7 +3204,7 @@
 }
 
 .chat-history-sidebar .conversation-home-primary-actions {
-  padding: 0 14px 14px;
+  padding: 12px 14px 14px;
 }
 
 .chat-history-sidebar .conversation-new-chat-btn {
@@ -3390,67 +3390,80 @@
   }
 }
 
-/* Top Bar Redesign */
+/* Top Bar Redesign -------------------------------------------------------- */
 .chat-shell.view-chat .top-bar.danoa-top-bar {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  min-height: 64px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  height: 56px !important;
   margin-bottom: 0 !important;
-  padding: 14px 28px !important;
+  padding: 0 clamp(16px, 2.5vw, 32px) !important;
   border: none !important;
+  border-bottom: 1px solid rgba(235, 238, 245, 0.75) !important;
   border-radius: 0 !important;
-  background: transparent !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   box-shadow: none !important;
   direction: rtl !important;
+  z-index: 10 !important;
 }
 
-.danoa-top-bar__left {
+.danoa-top-bar__title-wrap {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
 }
 
-.danoa-avatar-badge {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #475569;
-  font-weight: 700;
-  font-size: 0.95rem;
+.danoa-top-bar__title {
+  display: inline-flex;
+  align-items: center;
+}
+
+.danoa-top-bar__title-text {
+  font-size: 1.02rem;
+  font-weight: 750;
+  color: #1e1b2e;
+  padding: 5px 6px;
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  user-select: text;
+  cursor: default;
+}
+
+.danoa-top-bar__actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.danoa-avatar-badge:hover {
-  background: #e2e8f0;
-  transform: scale(1.04);
+  gap: 10px;
 }
 
 .danoa-noa-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 12px 5px 8px;
+  gap: 7px;
+  height: 34px;
+  padding: 0 10px 0 6px;
   border-radius: 999px;
   background: #f5f0ff;
-  border: 1px solid rgba(167, 139, 250, 0.45);
+  border: 1px solid rgba(167, 139, 250, 0.38);
   color: #6d28d9;
-  font-weight: 650;
-  font-size: 0.88rem;
-  box-shadow: 0 2px 8px rgba(109, 40, 217, 0.06);
-  transition: all 0.2s ease;
+  font-weight: 700;
+  font-size: 0.85rem;
+  box-shadow: 0 1px 3px rgba(109, 40, 217, 0.04);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
 }
 
 .danoa-noa-pill:hover {
   background: #ede4ff;
-  border-color: rgba(167, 139, 250, 0.65);
-  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.12);
+  border-color: rgba(139, 92, 246, 0.55);
+  box-shadow: 0 3px 12px rgba(109, 40, 217, 0.1);
+  transform: translateY(-0.5px);
 }
 
 .danoa-noa-pill__add {
@@ -3464,21 +3477,22 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
   padding: 0;
 }
 
 .danoa-noa-pill__add:hover {
-  background: #6d28d9;
+  background: #7c3aed;
   color: #ffffff;
+  transform: scale(1.08);
 }
 
 .danoa-noa-pill__label {
   font-family: inherit;
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.84rem;
+  font-weight: 750;
   color: #6d28d9;
-  user-select: none;
+  white-space: nowrap;
 }
 
 .danoa-noa-pill__icon {
@@ -3487,67 +3501,50 @@
   color: #7c3aed;
 }
 
-.danoa-top-bar__center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.danoa-title-dropdown {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.danoa-title-dropdown__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: none;
-  font-size: 1.08rem;
+.danoa-avatar-badge {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+  color: #334155;
   font-weight: 750;
-  color: #18181b;
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 10px;
-  transition: background 0.18s ease;
-  direction: rtl;
-}
-
-.danoa-title-dropdown__btn:hover {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-.danoa-title-dropdown__text {
-  max-width: 260px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.danoa-title-dropdown__action {
+  font-size: 0.88rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #64748b;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.danoa-title-dropdown__action:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: #18181b;
+.danoa-avatar-badge:hover {
+  background: #ede4ff;
+  border-color: rgba(124, 58, 237, 0.45);
+  color: #6d28d9;
+  transform: scale(1.05);
+  box-shadow: 0 3px 10px rgba(109, 40, 217, 0.12);
 }
 
-.danoa-top-bar__right {
+.danoa-top-action-btn,
+.chat-shell.view-chat .top-bar .chat-sidebar-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.danoa-top-action-btn:hover,
+.chat-shell.view-chat .top-bar .chat-sidebar-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #18181b;
 }
 
 /* Empty State / Hero Redesign */
@@ -4350,6 +4347,38 @@
     height: auto;
     min-height: 100dvh;
     overflow: visible;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar {
+    min-height: 50px !important;
+    max-height: 50px !important;
+    height: 50px !important;
+    padding: 0 12px !important;
+  }
+
+  .danoa-top-bar__title-text,
+  .danoa-title-dropdown__text {
+    max-width: 160px;
+    font-size: 0.95rem;
+  }
+
+  .danoa-noa-pill {
+    height: 30px;
+    padding: 0 8px 0 4px;
+    font-size: 0.78rem;
+    gap: 5px;
+  }
+
+  .danoa-noa-pill__add {
+    width: 20px;
+    height: 20px;
+  }
+
+  .danoa-avatar-badge {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    font-size: 0.8rem;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .messages-area {

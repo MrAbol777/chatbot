@@ -4127,76 +4127,7 @@ notify.error(message);
         <header className="top-bar danoa-top-bar" role="banner">
           <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
           
-          <div className="danoa-top-bar__left">
-            <button
-              type="button"
-              className="danoa-avatar-badge"
-              onClick={handleOpenSettings}
-              aria-label="تنظیمات حساب کاربری"
-              title="تنظیمات حساب کاربری"
-            >
-              <span>{String(profile?.name || 'ع').trim().charAt(0)}</span>
-            </button>
-
-            <div className="danoa-noa-pill" role="status" aria-label="اعتبار نوآ">
-              <button
-                type="button"
-                className="danoa-noa-pill__add"
-                onClick={handleOpenNoaWallet}
-                aria-label="افزایش اعتبار نوآ"
-                title="افزایش اعتبار نوآ"
-              >
-                <Icon name="plus" size={14} aria-hidden="true" />
-              </button>
-              <span className="danoa-noa-pill__label" onClick={handleOpenNoaWallet} style={{ cursor: 'pointer' }}>
-                {noaWallet.wallet
-                  ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ`
-                  : '— نوآ'}
-              </span>
-              <span className="danoa-noa-pill__icon" aria-hidden="true" onClick={handleOpenNoaWallet} style={{ cursor: 'pointer' }}>
-                <Icon name="sparkles" size={16} />
-              </span>
-            </div>
-          </div>
-
-          <div className="danoa-top-bar__right">
-            <div className="danoa-title-dropdown">
-              <button
-                type="button"
-                className="danoa-title-dropdown__action"
-                onClick={() => void handleCreateConversation()}
-                aria-label="گفتگوی جدید"
-                title="گفتگوی جدید"
-              >
-                <Icon name="edit" size={18} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="danoa-title-dropdown__btn"
-                onClick={() => {
-                  if (activeConversation) {
-                    setEditingId(activeConversation.id);
-                    setEditingTitle(activeConversation.title || DEFAULT_TITLE);
-                  }
-                }}
-                aria-label={`عنوان گفتگو: ${activeConversation?.title || DEFAULT_TITLE}`}
-              >
-                <span className="danoa-title-dropdown__text">{activeConversation?.title || DEFAULT_TITLE}</span>
-                <Icon name="chevron-down" size={15} aria-hidden="true" />
-              </button>
-            </div>
-
-            {activeConversation && visibleMessages.length > 0 ? (
-              <button
-                className="header-action-btn danoa-top-action-btn"
-                type="button"
-                onClick={handleDownloadActiveConversation}
-                aria-label="دانلود گفتگو"
-                title="دانلود گفتگو"
-              >
-                <Icon name="download" size={18} aria-hidden="true" />
-              </button>
-            ) : null}
+          <div className="danoa-top-bar__title-wrap">
             {!sidebarOpen ? (
               <button
                 ref={chatSidebarToggleRef}
@@ -4206,9 +4137,57 @@ notify.error(message);
                 aria-label="باز کردن پنل گفتگوها"
                 title="باز کردن پنل گفتگوها"
               >
-                <Icon name="sidebar" size={20} aria-hidden="true" />
+                <Icon name="sidebar" size={19} aria-hidden="true" />
               </button>
             ) : null}
+
+            <div className="danoa-top-bar__title">
+              <span className="danoa-top-bar__title-text">{activeConversation?.title || DEFAULT_TITLE}</span>
+            </div>
+          </div>
+
+          <div className="danoa-top-bar__actions">
+            {activeConversation && visibleMessages.length > 0 ? (
+              <button
+                className="header-action-btn danoa-top-action-btn"
+                type="button"
+                onClick={handleDownloadActiveConversation}
+                aria-label="دانلود گفتگو"
+                title="دانلود گفتگو"
+              >
+                <Icon name="download" size={17} aria-hidden="true" />
+              </button>
+            ) : null}
+
+            <div className="danoa-noa-pill" role="status" aria-label="اعتبار نوآ">
+              <button
+                type="button"
+                className="danoa-noa-pill__add"
+                onClick={handleOpenNoaWallet}
+                aria-label="افزایش اعتبار نوآ"
+                title="افزایش اعتبار نوآ"
+              >
+                <Icon name="plus" size={13} aria-hidden="true" />
+              </button>
+              <span className="danoa-noa-pill__label" onClick={handleOpenNoaWallet} style={{ cursor: 'pointer' }}>
+                {noaWallet.wallet
+                  ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ`
+                  : '— نوآ'}
+              </span>
+              <span className="danoa-noa-pill__icon" aria-hidden="true" onClick={handleOpenNoaWallet} style={{ cursor: 'pointer' }}>
+                <Icon name="sparkles" size={15} />
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="danoa-avatar-badge"
+              onClick={handleOpenSettings}
+              aria-label="تنظیمات حساب کاربری"
+              title="تنظیمات حساب کاربری"
+            >
+              <span>{String(profile?.name || 'ع').trim().charAt(0)}</span>
+            </button>
           </div>
         </header>
         ) : null}
@@ -4252,38 +4231,6 @@ notify.error(message);
             </div>
           </header>
 
-          <div className="conversation-sidebar-search" role="search">
-            <button
-              type="button"
-              className="conversation-sidebar-search__edge-action"
-              onClick={() => {
-                setConversationSearchTerm('');
-                window.requestAnimationFrame(() => conversationSidebarSearchInputRef.current?.focus());
-              }}
-              aria-label="پاک کردن جستجوی گفتگوها"
-              title="پاک کردن جستجو"
-            >
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
-            </button>
-            <input
-              ref={conversationSidebarSearchInputRef}
-              id="conversation-sidebar-search-input"
-              type="search"
-              dir="rtl"
-              value={conversationSearchTerm}
-              onChange={(event) => setConversationSearchTerm(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') {
-                  event.preventDefault();
-                  setConversationSearchTerm('');
-                  event.currentTarget.blur();
-                }
-              }}
-              placeholder="جستجوی گفتگوها"
-              aria-label="جستجوی گفتگوها"
-            />
-            <Icon name="search" size={19} aria-hidden="true" />
-          </div>
 
           <div className="conversation-home-primary-actions">
             <button type="button" className="conversation-new-chat-btn" onClick={() => void handleCreateConversation()}>
