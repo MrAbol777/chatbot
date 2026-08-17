@@ -4943,14 +4943,14 @@ notify.error(message);
                   onClick={openImageStudioFromStudio}
                 >
                   <div className="danoa-shortcut-icon danoa-shortcut-icon--image">
-                    <Icon name="studio-image" size={24} />
+                    <Icon name="studio-image" size={20} />
                   </div>
                   <div className="danoa-shortcut-text">
                     <strong className="danoa-shortcut-title">ساخت تصویر</strong>
                     <span className="danoa-shortcut-desc">خلق تصاویر از متن و ایده‌های شما</span>
                   </div>
                   <div className="danoa-shortcut-arrow">
-                    <Icon name="chevron-left" size={18} />
+                    <Icon name="chevron-left" size={15} />
                   </div>
                 </button>
 
@@ -4960,14 +4960,14 @@ notify.error(message);
                   onClick={openVideoStudio}
                 >
                   <div className="danoa-shortcut-icon danoa-shortcut-icon--video">
-                    <Icon name="studio-video" size={24} />
+                    <Icon name="studio-video" size={20} />
                   </div>
                   <div className="danoa-shortcut-text">
                     <strong className="danoa-shortcut-title">ساخت ویدیو</strong>
                     <span className="danoa-shortcut-desc">تبدیل ایده‌ها به ویدیوهای جذاب</span>
                   </div>
                   <div className="danoa-shortcut-arrow">
-                    <Icon name="chevron-left" size={18} />
+                    <Icon name="chevron-left" size={15} />
                   </div>
                 </button>
 
@@ -4977,14 +4977,14 @@ notify.error(message);
                   onClick={openStudioFromChat}
                 >
                   <div className="danoa-shortcut-icon danoa-shortcut-icon--tools">
-                    <Icon name="briefcase" size={24} />
+                    <Icon name="briefcase" size={20} />
                   </div>
                   <div className="danoa-shortcut-text">
                     <strong className="danoa-shortcut-title">ابزارها</strong>
                     <span className="danoa-shortcut-desc">ابزارهای کاربردی برای کارهای روزمره</span>
                   </div>
                   <div className="danoa-shortcut-arrow">
-                    <Icon name="chevron-left" size={18} />
+                    <Icon name="chevron-left" size={15} />
                   </div>
                 </button>
               </div>
@@ -5168,7 +5168,7 @@ notify.error(message);
                       window.requestAnimationFrame(() => messageInputRef.current?.focus());
                     }}
                   >
-                    <Icon name={item.icon} size={15} />
+                    <Icon name={item.icon} size={13} />
                     <span>{item.label}</span>
                   </button>
                 ))}
