@@ -43,7 +43,22 @@ const PROFILES_KEY = 'chat_profiles';
 const CONVERSATIONS_KEY = 'chat_conversations';
 const ACTIVE_CONVERSATION_KEY = 'chat_active_conversation_id';
 const THEME_KEY = 'danoa_theme';
+const SIDEBAR_COLLAPSED_KEY = 'danoa_sidebar_collapsed';
 const DEFAULT_TITLE = 'گفتگوی جدید';
+
+const getInitialSidebarState = () => {
+  if (typeof window === 'undefined') return false;
+  if (!isDesktopChatLayout()) return false;
+  try {
+    const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (saved !== null) {
+      return saved !== 'true';
+    }
+  } catch {
+    // fallback
+  }
+  return true;
+};
 const CONVERSATION_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const WAITING_MESSAGES = [
   'در حال یافتن پاسخ',
@@ -1221,10 +1236,21 @@ function ChatApp() {
   const [activeConversationId, setActiveConversationId] = useState<string>('');
   const [hasHydratedRemoteConversations, setHasHydratedRemoteConversations] = useState(false);
   const [conversationLoadingId, setConversationLoadingId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return isDesktopChatLayout();
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(getInitialSidebarState);
+
+  const handleToggleSidebar = () => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      if (isDesktopChatLayout()) {
+        try {
+          localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? 'false' : 'true');
+        } catch {
+          // ignore
+        }
+      }
+      return next;
+    });
+  };
   const [conversationSearchTerm, setConversationSearchTerm] = useState('');
   const [conversationSearchOpen, setConversationSearchOpen] = useState(false);
   const conversationSearchInputRef = useRef<HTMLInputElement>(null);
@@ -4195,11 +4221,13 @@ notify.error(message);
         {currentView === 'chat' ? (
         <aside
           id="chat-history-sidebar"
-          className={`sidebar conversation-home chat-history-sidebar ${sidebarOpen ? 'open' : ''}`}
+          className={`sidebar conversation-home chat-history-sidebar ${sidebarOpen ? 'open is-expanded' : 'is-collapsed'}`}
           aria-label="تاریخچه و ناوبری دانوآ"
-          aria-hidden={!sidebarOpen}
+          aria-expanded={sidebarOpen}
           ref={(node) => {
-            if (node) node.inert = !sidebarOpen;
+            if (node) {
+              node.inert = !isDesktopChatLayout() && !sidebarOpen;
+            }
           }}
         >
           <header className="conversation-home-header">
@@ -4223,19 +4251,34 @@ notify.error(message);
                   window.requestAnimationFrame(() => conversationSidebarSearchInputRef.current?.focus());
                 }}
                 aria-label="جستجوی گفتگوها"
-                aria-controls="conversation-sidebar-search-input"
                 title="جستجوی گفتگوها"
               >
                 <Icon name="search" size={20} aria-hidden="true" />
               </button>
+
+              <button
+                type="button"
+                className="conversation-sidebar-toggle-btn"
+                onClick={handleToggleSidebar}
+                aria-label={sidebarOpen ? 'بستن منوی کناری' : 'باز کردن منوی کناری'}
+                title={sidebarOpen ? 'بستن منوی کناری' : 'باز کردن منوی کناری'}
+                aria-expanded={sidebarOpen}
+              >
+                <Icon name={sidebarOpen ? 'chevron-right' : 'chevron-left'} size={18} aria-hidden="true" />
+              </button>
             </div>
           </header>
 
-
           <div className="conversation-home-primary-actions">
-            <button type="button" className="conversation-new-chat-btn" onClick={() => void handleCreateConversation()}>
+            <button
+              type="button"
+              className="conversation-new-chat-btn"
+              onClick={() => void handleCreateConversation()}
+              aria-label="گفتگوی جدید"
+              title={!sidebarOpen ? 'گفتگوی جدید' : undefined}
+            >
               <Icon name="new-chat" size={20} aria-hidden="true" />
-              <span>گفتگوی جدید</span>
+              <span className="conversation-new-chat-btn__label">گفتگوی جدید</span>
             </button>
           </div>
 
@@ -4322,33 +4365,61 @@ notify.error(message);
           </div>
 
           <nav className="conversation-bottom-nav conversation-sidebar-nav" aria-label="بخش‌های دانوآ">
-            <button type="button" className="conversation-nav-item" onClick={openStudioFromChat}>
-              <Icon name="grid" size={21} aria-hidden="true" />
-              <span>
+            <button
+              type="button"
+              className="conversation-nav-item"
+              onClick={openStudioFromChat}
+              title={!sidebarOpen ? 'استودیو' : undefined}
+              aria-label="استودیو"
+            >
+              <span className="conversation-nav-item__icon-wrap">
+                <Icon name="grid" size={21} aria-hidden="true" />
+              </span>
+              <span className="conversation-nav-item__label">
                 <strong>استودیو</strong>
                 <small>ساخت تصویر و ویدیو</small>
               </span>
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
+              <span className="conversation-nav-item__arrow">
+                <Icon name="chevron-left" size={18} aria-hidden="true" />
+              </span>
             </button>
 
-            <button type="button" className="conversation-nav-item" onClick={handleOpenNoaWallet}>
-              <Icon name="credit-card" size={21} aria-hidden="true" />
-              <span>
+            <button
+              type="button"
+              className="conversation-nav-item"
+              onClick={handleOpenNoaWallet}
+              title={!sidebarOpen ? 'کیف پول نوآ' : undefined}
+              aria-label="کیف پول نوآ"
+            >
+              <span className="conversation-nav-item__icon-wrap">
+                <Icon name="credit-card" size={21} aria-hidden="true" />
+              </span>
+              <span className="conversation-nav-item__label">
                 <strong>کیف پول نوآ</strong>
                 <small>{noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ موجودی` : 'مدیریت اعتبار'}</small>
               </span>
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
+              <span className="conversation-nav-item__arrow">
+                <Icon name="chevron-left" size={18} aria-hidden="true" />
+              </span>
             </button>
 
-            <button type="button" className="conversation-nav-item conversation-nav-profile" onClick={handleOpenSettings}>
+            <button
+              type="button"
+              className="conversation-nav-item conversation-nav-profile"
+              onClick={handleOpenSettings}
+              title={!sidebarOpen ? (profile?.name || 'تنظیمات حساب کاربری') : undefined}
+              aria-label="تنظیمات حساب کاربری"
+            >
               <span className="conversation-nav-profile__avatar" aria-hidden="true">
                 {String(profile?.name || 'د').trim().charAt(0)}
               </span>
-              <span>
+              <span className="conversation-nav-item__label">
                 <strong>{profile?.name || 'پروفایل من'}</strong>
                 <small>تنظیمات حساب کاربری</small>
               </span>
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
+              <span className="conversation-nav-item__arrow">
+                <Icon name="chevron-left" size={18} aria-hidden="true" />
+              </span>
             </button>
           </nav>
         </aside>

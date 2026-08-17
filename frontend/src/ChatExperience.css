@@ -4740,3 +4740,213 @@
     transition: none;
   }
 }
+
+/* ==========================================================================
+   DANOA PRODUCTION-GRADE COLLAPSIBLE DESKTOP SIDEBAR (Phase 4.1.1)
+   ========================================================================== */
+:root {
+  --danoa-sidebar-expanded-width: 320px;
+  --danoa-sidebar-collapsed-width: 68px;
+}
+
+.chat-shell.view-chat {
+  --sidebar-width: var(--danoa-sidebar-expanded-width);
+}
+
+.chat-shell.view-chat.sidebar-open {
+  --sidebar-width: var(--danoa-sidebar-expanded-width);
+}
+
+.chat-shell.view-chat.sidebar-closed {
+  --sidebar-width: var(--danoa-sidebar-collapsed-width);
+}
+
+@media (min-width: 1024px) {
+  .chat-shell.view-chat .chat-card,
+  .chat-shell.view-chat.sidebar-open .chat-card,
+  .chat-shell.view-chat.sidebar-closed .chat-card,
+  .chat-shell.view-chat .chat-card.chat-card--empty {
+    grid-template-columns: minmax(0, 1fr) var(--sidebar-width) !important;
+    transition: grid-template-columns 240ms cubic-bezier(0.2, 0, 0, 1) !important;
+  }
+
+  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
+    width: var(--sidebar-width) !important;
+    min-width: var(--sidebar-width) !important;
+    max-width: var(--sidebar-width) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    transition: width 240ms cubic-bezier(0.2, 0, 0, 1),
+                min-width 240ms cubic-bezier(0.2, 0, 0, 1),
+                max-width 240ms cubic-bezier(0.2, 0, 0, 1) !important;
+  }
+}
+
+/* Toggle Button in Header */
+.chat-history-sidebar .conversation-sidebar-toggle-btn {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  color: var(--danoa-chat-muted, #707078);
+  background: transparent;
+  cursor: pointer;
+  transition: color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.chat-history-sidebar .conversation-sidebar-toggle-btn:hover {
+  color: var(--danoa-chat-accent, #7c3aed);
+  background: #f1eaff;
+}
+
+.chat-history-sidebar .conversation-sidebar-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.chat-history-sidebar .conversation-sidebar-toggle-btn:focus-visible {
+  outline: 2px solid var(--danoa-chat-accent, #7c3aed);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   COLLAPSED RAIL OVERRIDES ONLY (Strictly scoped to .is-collapsed)
+   -------------------------------------------------------------------------- */
+@media (min-width: 1024px) {
+  /* Header Rail */
+  .chat-history-sidebar.is-collapsed .conversation-home-header {
+    min-height: auto !important;
+    padding: 12px 0 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    justify-content: center !important;
+    border-bottom: 1px solid var(--danoa-chat-border) !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-home-brand {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-home-brand__mark {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    margin: 0 auto !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-home-brand__text {
+    display: none !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-home-header-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-home-search-toggle,
+  .chat-history-sidebar.is-collapsed .conversation-sidebar-toggle-btn {
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+  }
+
+  /* Primary Action Rail (New Chat) */
+  .chat-history-sidebar.is-collapsed .conversation-home-primary-actions {
+    padding: 10px 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-new-chat-btn {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    display: grid !important;
+    place-items: center !important;
+    margin: 0 auto !important;
+    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.22) !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-new-chat-btn > span {
+    display: none !important;
+  }
+
+  /* History list in collapsed rail */
+  .chat-history-sidebar.is-collapsed .conversation-home-list,
+  .chat-history-sidebar.is-collapsed .conversation-history-heading {
+    display: none !important;
+  }
+
+  /* Bottom Navigation Rail */
+  .chat-history-sidebar.is-collapsed .conversation-sidebar-nav {
+    margin-top: auto !important;
+    padding: 10px 0 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+    border-top: 1px solid var(--danoa-chat-border) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-nav-item {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    place-items: center !important;
+    margin: 0 auto !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-nav-item:hover {
+    background: #f5f0ff !important;
+    color: var(--danoa-chat-accent, #7c3aed) !important;
+  }
+
+  /* Hide Text & Chevron in Collapsed Rail */
+  .chat-history-sidebar.is-collapsed .conversation-nav-item > span:not(.conversation-nav-profile__avatar),
+  .chat-history-sidebar.is-collapsed .conversation-nav-item > svg:last-child {
+    display: none !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-nav-profile {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    border-top: 0 !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-nav-profile__avatar {
+    width: 32px !important;
+    height: 32px !important;
+    margin: 0 auto !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-shell.view-chat .chat-card,
+  .chat-shell.view-chat.sidebar-open .chat-card,
+  .chat-shell.view-chat.sidebar-closed .chat-card,
+  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
+    transition: none !important;
+  }
+}
