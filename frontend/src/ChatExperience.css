@@ -3753,36 +3753,44 @@
   background: #ffffff !important;
   border: 1px solid rgba(226, 232, 240, 0.95) !important;
   border-radius: 999px !important;
-  padding: 6px 10px !important;
-  box-shadow: 0 10px 32px rgba(99, 14, 212, 0.05), 0 2px 8px rgba(0, 0, 0, 0.02) !important;
-  transition: all 0.2s ease !important;
+  padding: 6px 8px !important;
+  box-shadow: 0 4px 20px rgba(99, 14, 212, 0.035), 0 1px 4px rgba(0, 0, 0, 0.015) !important;
+  transition: border-color 180ms ease, box-shadow 180ms ease !important;
   gap: 8px !important;
   direction: ltr !important;
 }
 
 .danoa-composer-capsule:focus-within {
   border-color: rgba(124, 58, 237, 0.45) !important;
-  box-shadow: 0 12px 36px rgba(124, 58, 237, 0.12), 0 0 0 3px rgba(124, 58, 237, 0.08) !important;
+  box-shadow: 0 4px 24px rgba(124, 58, 237, 0.08), 0 0 0 3px rgba(124, 58, 237, 0.08) !important;
 }
 
 .danoa-attach-circle {
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
   border-radius: 50% !important;
   background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
   color: #64748b !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  transition: all 0.18s ease !important;
+  box-shadow: none !important;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease !important;
 }
 
 .danoa-attach-circle:hover {
   background: #f1f5f9 !important;
-  color: #18181b !important;
+  border-color: rgba(203, 213, 225, 0.9) !important;
+  color: #334155 !important;
+  transform: translateY(-1px) !important;
+}
+
+.danoa-attach-circle:active {
+  transform: translateY(0) scale(0.96) !important;
 }
 
 .danoa-composer-inner {
@@ -3790,11 +3798,13 @@
   border: none !important;
   box-shadow: none !important;
   background: transparent !important;
-  padding: 0 6px !important;
+  padding: 0 4px !important;
 }
 
 .danoa-composer-inner .message-field {
   width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 .danoa-composer-inner .message-field textarea {
@@ -3802,16 +3812,22 @@
   border: none !important;
   background: transparent !important;
   font-family: inherit !important;
-  font-size: 0.96rem !important;
-  color: #18181b !important;
+  font-size: 0.94rem !important;
+  color: #1e1b2e !important;
+  caret-color: #7c3aed !important;
   outline: none !important;
   resize: none !important;
   text-align: right !important;
   direction: rtl !important;
-  padding: 8px 8px !important;
-  min-height: 40px !important;
+  padding: 8px 6px !important;
+  min-height: 38px !important;
   max-height: 120px !important;
   line-height: 1.5 !important;
+}
+
+.danoa-composer-inner .message-field textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
 }
 
 .danoa-composer-inner .composer-hint {
@@ -3829,16 +3845,16 @@
   aspect-ratio: 1 / 1;
   padding: 0 !important;
   line-height: 1;
-  border-radius: 14px !important;
-  background: #191919 !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #7c3aed, #630ed4) !important;
   color: #ffffff !important;
   border: none !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  box-shadow: none !important;
-  transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease !important;
+  box-shadow: 0 4px 14px rgba(99, 14, 212, 0.28) !important;
+  transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease !important;
 }
 
 .danoa-composer-actions {
@@ -3862,14 +3878,14 @@
 }
 
 .danoa-send-circle:hover {
-  background: #343434 !important;
+  background: linear-gradient(135deg, #8545f0, #6914db) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 5px 12px rgba(24, 24, 27, 0.18) !important;
+  box-shadow: 0 6px 18px rgba(99, 14, 212, 0.35) !important;
 }
 
 .danoa-send-circle:active {
-  transform: translateY(0) scale(0.97) !important;
-  box-shadow: none !important;
+  transform: translateY(0) scale(0.96) !important;
+  box-shadow: 0 2px 8px rgba(99, 14, 212, 0.2) !important;
 }
 
 .danoa-send-circle:focus-visible {
@@ -4443,13 +4459,18 @@
   flex: 0 0 44px !important;
   border-radius: 50% !important;
   background: linear-gradient(135deg, #7c3aed, #630ed4) !important;
-  box-shadow: 0 6px 18px rgba(99, 14, 212, 0.3) !important;
+  box-shadow: 0 4px 14px rgba(99, 14, 212, 0.28) !important;
 }
 
 .chat-shell.view-chat .danoa-composer-capsule .danoa-send-circle:hover {
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
-  transform: scale(1.04) !important;
-  box-shadow: 0 8px 22px rgba(99, 14, 212, 0.36) !important;
+  background: linear-gradient(135deg, #8545f0, #6914db) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(99, 14, 212, 0.35) !important;
+}
+
+.chat-shell.view-chat .danoa-composer-capsule .danoa-send-circle:active {
+  transform: translateY(0) scale(0.96) !important;
+  box-shadow: 0 2px 8px rgba(99, 14, 212, 0.2) !important;
 }
 
 /* Conversation drawer: the spacious, card-based reference layout. */
