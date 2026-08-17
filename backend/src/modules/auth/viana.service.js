@@ -31,14 +31,17 @@ function decodeJsonPart(value, code) {
 }
 
 function validateStudentSelf(value) {
-  const profile = value?.data && typeof value.data === 'object' ? value.data : value;
-  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+  if (value?.success !== true || !value.data || typeof value.data !== 'object' || Array.isArray(value.data)) {
     throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', 'Viana student response is not an object.');
   }
+  const profile = value.data;
   for (const key of ['id', 'firstName', 'lastName', 'dateOfBirth']) {
     if (typeof profile[key] !== 'string' || !profile[key].trim()) {
       throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', `Viana student field ${key} is invalid.`);
     }
+  }
+  if (!/^[0-9a-f]{64}$/.test(profile.id)) {
+    throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', 'Viana student id is invalid.');
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(profile.dateOfBirth)) {
     throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', 'Viana student dateOfBirth is invalid.');
@@ -49,7 +52,7 @@ function validateStudentSelf(value) {
     throw new VianaProtocolError('VIANA_STUDENT_SELF_INVALID', 'Viana student dateOfBirth is not a calendar date.');
   }
   return {
-    sub: typeof profile.id === 'string' && profile.id.trim() ? profile.id.trim() : '',
+    id: profile.id,
     firstName: profile.firstName.trim(),
     lastName: profile.lastName.trim(),
     dateOfBirth: profile.dateOfBirth,
@@ -125,7 +128,7 @@ function createVianaService({ config, fetchImpl = globalThis.fetch, now = () => 
           issuer: issuer.origin,
           authorizationUrl: parseAbsoluteHttpsUrl(body?.authorization_endpoint, 'authorization_endpoint').toString(),
           tokenUrl: parseAbsoluteHttpsUrl(body?.token_endpoint, 'token_endpoint').toString(),
-          userInfoUrl: parseAbsoluteHttpsUrl(body?.userinfo_endpoint, 'userinfo_endpoint').toString(),
+          userInfoUrl: body?.userinfo_endpoint ? parseAbsoluteHttpsUrl(body.userinfo_endpoint, 'userinfo_endpoint').toString() : null,
           jwksUrl: parseAbsoluteHttpsUrl(body?.jwks_uri, 'jwks_uri').toString(),
           codeChallengeMethods: Array.isArray(body?.code_challenge_methods_supported) ? body.code_challenge_methods_supported : [],
           responseTypes: Array.isArray(body?.response_types_supported) ? body.response_types_supported : [],
@@ -193,29 +196,38 @@ function createVianaService({ config, fetchImpl = globalThis.fetch, now = () => 
     const codeVerifier = crypto.randomBytes(64).toString('base64url');
     const state = crypto.randomBytes(32).toString('base64url');
     const nonce = crypto.randomBytes(32).toString('base64url');
-    const url = new URL(discovery.authorizationUrl);
-    for (const [name, value] of Object.entries({ response_type: 'code', client_id: config.clientId, redirect_uri: config.redirectUri, scope: 'openid profile student.self:read', state, nonce, code_challenge: crypto.createHash('sha256').update(codeVerifier).digest('base64url'), code_challenge_method: 'S256' })) url.searchParams.set(name, value);
+    const url = new URL(config.authorizationUrl || discovery.authorizationUrl);
+    const scope = config.scopes || 'openid profile student.self:read students.sensitive:read';
+    for (const [name, value] of Object.entries({ response_type: 'code', client_id: config.clientId, redirect_uri: config.redirectUri, scope, state, nonce, code_challenge: crypto.createHash('sha256').update(codeVerifier).digest('base64url'), code_challenge_method: 'S256' })) url.searchParams.set(name, value);
     return { state, nonce, codeVerifier, authorizationUrl: url.toString() };
   };
 
   const exchangeCode = async ({ code, codeVerifier, nonce }) => {
     const discovery = await getDiscovery();
     const basic = Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64');
-    const response = await request(discovery.tokenUrl, {
+    const response = await request(config.tokenUrl || discovery.tokenUrl, {
       method: 'POST', headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
       body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: config.redirectUri, code_verifier: codeVerifier })
     });
     const body = await readJsonResponse(response);
     if (!response.ok) throw mapHttpError(response, body, 'token');
     if (!body || typeof body.access_token !== 'string' || !body.access_token || body.token_type !== 'Bearer' || typeof body.id_token !== 'string' || !body.id_token) throw new VianaProtocolError('VIANA_TOKEN_INVALID', 'Viana token response is invalid.');
+    const issuedScopes = typeof body.scope === 'string' ? body.scope.split(/\s+/).filter(Boolean) : Array.isArray(body.scope) ? body.scope : [];
+    if (!issuedScopes.includes('students.sensitive:read')) {
+      throw new VianaProtocolError('VIANA_SCOPE_MISSING', 'Viana did not issue the required sensitive student scope.', { status: 502 });
+    }
     await verifyIdToken({ idToken: body.id_token, nonce, discovery });
     return body.access_token;
   };
 
   const fetchStudentSelf = async (accessToken) => {
+    if (typeof accessToken !== 'string' || !accessToken) {
+      throw new VianaProtocolError('VIANA_TOKEN_INVALID', 'Viana access token is invalid.');
+    }
+    const studentProfileUrl = config.studentProfileUrl || `${config.apiBaseUrl || config.apiUrl}/students/me`;
     for (let attempt = 0; attempt <= studentSelfRetryDelaysMs.length; attempt += 1) {
       try {
-        const response = await request(`${config.apiUrl}/students/me`, { method: 'GET', headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } });
+        const response = await request(studentProfileUrl, { method: 'GET', headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } });
         const body = await readJsonResponse(response);
         if (response.ok) return validateStudentSelf(body);
         throw mapHttpError(response, body, 'student_self');

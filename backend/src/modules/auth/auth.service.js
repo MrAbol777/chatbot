@@ -250,8 +250,8 @@ function createAuthService({
     }
 
     const code = typeof smsService.generateOtp === 'function' ? smsService.generateOtp() : generateOtp();
-    logger.log?.('[OTP] code generated', {
-      phone,
+    logger.log?.('[OTP] request_prepared', {
+      mode: mode || 'phone_otp',
       codeLength: String(code).length,
       createdAt: now()
     });
@@ -273,9 +273,34 @@ function createAuthService({
         };
       }
 
+      // A network/5xx failure is ambiguous: the provider may have accepted the
+      // SMS before its gateway failed. Persist this one-time code so a user who
+      // did receive it can still complete sign-in. We deliberately do not send
+      // another message automatically, because that could create duplicate OTPs.
+      if (smsResult?.retryable === true) {
+        const saved = await authRepository.saveOtp(phone, code);
+        logger.warn?.('[OTP] provider delivery is unconfirmed', {
+          provider: 'ippanel',
+          providerStatus: Number.isInteger(providerStatus) ? providerStatus : null,
+          category: typeof smsResult?.error === 'string' ? smsResult.error : 'provider_unavailable',
+          retryable: true,
+          expiresIn: saved.expiresIn
+        });
+        return {
+          statusCode: 202,
+          body: {
+            success: true,
+            deliveryStatus: 'uncertain',
+            expiresIn: saved.expiresIn
+          }
+        };
+      }
+
       logger.warn?.('[OTP] provider unavailable', {
-        phone,
-        providerStatus: Number.isInteger(providerStatus) ? providerStatus : null
+        provider: 'ippanel',
+        providerStatus: Number.isInteger(providerStatus) ? providerStatus : null,
+        category: typeof smsResult?.error === 'string' ? smsResult.error : 'provider_unavailable',
+        retryable: smsResult?.retryable === true
       });
       return {
         statusCode: 503,
@@ -289,8 +314,7 @@ function createAuthService({
 
     const saved = await authRepository.saveOtp(phone, code);
 
-    logger.log?.('[OTP] verification code created', {
-      phone,
+    logger.log?.('[OTP] verification_code_issued', {
       mode: mode || 'phone_otp',
       expiresIn: saved.expiresIn,
       createdAt: now()
@@ -305,7 +329,6 @@ function createAuthService({
     const canCheckSupervisedOtp = (reason) => ['invalid_code', 'expired'].includes(reason);
 
     logger.log?.('[OTP] verify-code request', {
-      phone,
       mode,
       rawCodeLength: typeof rawCode === 'string' || typeof rawCode === 'number' ? String(rawCode).length : 0,
       digitOnlyCodeLength: code.length
@@ -337,7 +360,6 @@ function createAuthService({
         });
         if (supervisedResult.valid) {
           logger.log?.('[OTP] supervised verification accepted', {
-            phone,
             mode,
             verifiedAt: now()
           });
@@ -355,7 +377,6 @@ function createAuthService({
       }
 
       logger.warn?.('[OTP] verify-code failed', {
-        phone,
         reason: verifyResult.reason,
         remainingAttempts: verifyResult.remainingAttempts || null,
         retryAfterSeconds: verifyResult.retryAfterSeconds || null

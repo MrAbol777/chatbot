@@ -47,8 +47,13 @@
 | `VIANA_OAUTH_ENABLED` | فعال/غیرفعال کردن ورود Viana |
 | `VIANA_ENVIRONMENT` | کلید محیط پایدار برای flow |
 | `VIANA_DISCOVERY_URL` | discovery endpoint |
-| `VIANA_API_URL` | API provider |
+| `VIANA_FRONTEND_URL` | دامنه رابط ویانا |
+| `VIANA_API_BASE_URL` | API base provider |
+| `VIANA_AUTHORIZATION_URL` | endpoint شروع Authorization Code |
+| `VIANA_TOKEN_URL` | endpoint تبادل code با token |
+| `VIANA_STUDENT_PROFILE_URL` | endpoint `students/me` |
 | `VIANA_CLIENT_ID` / `VIANA_CLIENT_SECRET` | credentials OAuth |
+| `VIANA_SCOPES` | scopeهای OAuth؛ باید شامل `students.sensitive:read` باشد |
 | `VIANA_REDIRECT_URI` | callback دقیق ثبت‌شده در provider |
 | `VIANA_POST_LOGIN_PATH` | مسیر local بعد از callback |
 | `VIANA_HTTP_TIMEOUT_MS` | timeout درخواست‌های provider |
@@ -134,4 +139,3 @@
 | توسعه SMS واقعی | موارد بالا + سه متغیر IPPanel |
 | production پایه | `NODE_ENV`، DB credentials، secretهای جداگانه، origin مجاز، provider keyها |
 | production ویدیو | production پایه + همه guardrailها، signing secret، allowlist و worker |
-

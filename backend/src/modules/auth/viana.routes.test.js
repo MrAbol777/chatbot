@@ -77,7 +77,7 @@ const createRouter = (overrides = {}) =>
       }),
       exchangeCode: async () => 'opaque-viana-access-token',
       fetchStudentSelf: async () => ({
-        sub: 'subject',
+        id: 'a'.repeat(64),
         firstName: 'First',
         lastName: 'Last',
         dateOfBirth: '2010-01-01',
@@ -236,7 +236,7 @@ test('callback failure logs only safe Viana diagnostics', async () => {
     logger: { error: (_message, details) => entries.push(details) },
     vianaService: {
       exchangeCode: async () => {
-        const error = new Error('upstream failure');
+        const error = new Error('upstream failure client_secret=server-only-secret access_token=opaque-token code=single-use-code');
         error.code = 'VIANA_STUDENT_SELF_FAILED';
         error.status = 502;
         error.upstreamStatus = 502;
@@ -254,6 +254,8 @@ test('callback failure logs only safe Viana diagnostics', async () => {
   assert.equal(entries[0].requestId, 'safe-correlation-id');
   assert.equal(typeof entries[0].durationMs, 'number');
   assert.equal(JSON.stringify(entries[0]).includes('single-use-code'), false);
+  assert.equal(JSON.stringify(entries[0]).includes('server-only-secret'), false);
+  assert.equal(JSON.stringify(entries[0]).includes('opaque-token'), false);
   assert.equal(res.output.statusCode, 303);
 });
 

@@ -16,9 +16,8 @@ function createAuthController({ authService, errorsRepository, logger = console 
       return res.status(result.statusCode).json(result.body);
     } catch (error) {
       logger.error?.('[OTP] send-verification-code failed', {
-        message: error instanceof Error ? error.message : 'unknown',
-        status: error?.response?.status || null,
-        responseBody: error?.response?.data || null
+        errorType: error instanceof Error ? error.name : 'unknown',
+        upstreamStatus: Number.isInteger(error?.response?.status) ? error.response.status : null
       });
       await errorsRepository.logError('verification_code_failed', '/api/send-verification-code', 500, error instanceof Error ? error.message : 'unknown');
       return res.status(500).json({ error: 'ارسال کد با خطا مواجه شد.' });

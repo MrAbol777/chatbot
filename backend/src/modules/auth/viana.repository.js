@@ -84,7 +84,7 @@ function createVianaRepository({ db, now = () => new Date() }) {
         `SELECT * FROM app_viana_identities
           WHERE provider = 'viana' AND client_id = ? AND subject = ?
           LIMIT 1 FOR UPDATE`,
-        [clientId, profile.sub]
+        [clientId, profile.id]
       );
       if (rows[0]) {
         const result = await updateExistingIdentity(connection, rows[0], {
@@ -112,7 +112,7 @@ const userId = generateUserId();
         [
           environmentKey,
           clientId,
-          profile.sub,
+          profile.id,
           userId,
           profile.firstName,
           profile.lastName,

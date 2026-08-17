@@ -68,11 +68,20 @@ function createSmsService({
   };
 
   const generateOtp = () => String(Math.floor(10000 + Math.random() * 90000));
-  const redactSecret = (value) => {
-    const text = typeof value === 'string' ? value.trim() : '';
-    if (!text) return '';
-    if (text.length <= 6) return '***';
-    return `${text.slice(0, 3)}...${text.slice(-3)}`;
+  const classifyProviderFailure = (status) => {
+    if (status === 429) return { category: 'rate_limited', retryable: true };
+    if (status === 402) return { category: 'account_or_credit', retryable: false };
+    if (status === 401 || status === 403) return { category: 'credentials_or_provider_config', retryable: false };
+    if (Number.isInteger(status) && status >= 500) return { category: 'provider_unavailable', retryable: true };
+    return { category: 'provider_request_rejected', retryable: false };
+  };
+
+  const getEndpointHost = () => {
+    try {
+      return new URL(ippanelSendUrl).host;
+    } catch {
+      return 'invalid_endpoint';
+    }
   };
 
   const canResend = async (phone) => {
@@ -107,14 +116,14 @@ function createSmsService({
     const variants = getIranMobileVariants(phone);
     if (variants.length === 0) {
       otpStore.set(phone, entry);
-      logger.log('[OTPService] saveOtp (fallback key)', { key: phone, codeLength: String(code).length });
+      logger.log('[OTP] state_updated', { operation: 'store', keyVariantCount: 1, fallbackKey: true });
       return;
     }
 
     for (const variant of variants) {
       otpStore.set(variant, { ...entry });
     }
-    logger.log('[OTPService] saveOtp keys', { keys: variants, codeLength: String(code).length });
+    logger.log('[OTP] state_updated', { operation: 'store', keyVariantCount: variants.length, fallbackKey: false });
   };
 
   const verifyOtp = async (phone, code) => {
@@ -123,7 +132,7 @@ function createSmsService({
     const variants = getIranMobileVariants(phone);
     const matchedKey = variants.find((variant) => otpStore.has(variant));
     const lookupKey = matchedKey || phone;
-    logger.log('[OTPService] verifyOtp lookup', { phone, variants, lookupKey, found: Boolean(otpStore.get(lookupKey)) });
+    logger.log('[OTP] state_lookup', { operation: 'verify', keyVariantCount: variants.length, found: Boolean(otpStore.get(lookupKey)) });
     const entry = otpStore.get(lookupKey);
     if (!entry) {
       return { valid: false, reason: 'not_found' };
@@ -201,11 +210,11 @@ function createSmsService({
     }
 
     if (otpDevMock) {
-      logger.log(`[${now()}] [OTP][DEV_MOCK] Verification code`, {
-        phone: normalizedPhone,
-        code: normalizedCode,
-        patternCode,
-        sender: fromNumber
+      logger.log(`[${now()}] [OTP_PROVIDER] send_result`, {
+        provider: 'dev_mock',
+        operation: 'pattern_otp',
+        outcome: 'sent',
+        httpStatus: 200
       });
 
       return {
@@ -232,34 +241,26 @@ function createSmsService({
       Accept: 'application/json'
     };
 
-    logger.log(`[${now()}] [IPPanel] Before send pattern OTP`, {
-      endpoint: ippanelSendUrl,
-      headers: {
-        ...headers,
-        Authorization: redactSecret(headers.Authorization)
-      },
-      payload: {
-        ...payload,
-        params: {
-          ...payload.params,
-          code: normalizedCode ? '***' : ''
-        }
-      }
+    logger.log(`[${now()}] [OTP_PROVIDER] send_attempt`, {
+      provider: 'ippanel',
+      operation: 'pattern_otp',
+      endpointHost: getEndpointHost()
     });
 
     try {
       const response = await ippanelClient.post(ippanelSendUrl, payload, { headers });
 
-      logger.log(`[${now()}] [IPPanel] After send pattern OTP response`, {
-        status: response.status,
-        data: response.data
+      logger.log(`[${now()}] [OTP_PROVIDER] send_result`, {
+        provider: 'ippanel',
+        operation: 'pattern_otp',
+        outcome: 'sent',
+        httpStatus: response.status
       });
 
       return {
         success: true,
         status: response.status,
-        data: response.data,
-        recipient: normalizedPhone
+        data: null
       };
     } catch (error) {
       const rawRetryAfter =
@@ -267,19 +268,25 @@ function createSmsService({
           ? error.response.headers.get('retry-after')
           : error.response?.headers?.['retry-after'];
       const retryAfterSeconds = Number.parseInt(String(rawRetryAfter || ''), 10);
-      logger.error(`[${now()}] [IPPanel] Error while sending pattern OTP`, {
-        'error.message': error.message,
-        'error.response?.status': error.response?.status,
-        'error.response?.data': error.response?.data
+      const status = Number.isInteger(error.response?.status) ? error.response.status : 0;
+      const failure = classifyProviderFailure(status);
+      logger.warn(`[${now()}] [OTP_PROVIDER] send_result`, {
+        provider: 'ippanel',
+        operation: 'pattern_otp',
+        outcome: 'failed',
+        upstreamStatus: status || null,
+        category: failure.category,
+        retryable: failure.retryable,
+        retryAfterSeconds: Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds : null
       });
 
       return {
         success: false,
-        error: error.message,
-        details: error.response?.data || null,
-        status: error.response?.status || 500,
+        error: failure.category,
+        details: null,
+        status: status || 500,
         retryAfterSeconds: Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds : undefined,
-        recipient: normalizedPhone
+        retryable: failure.retryable
       };
     }
   };
@@ -303,19 +310,18 @@ function createSmsService({
     }
 
     const code = generateOtp();
-    logger.log(`[${now()}] [OTP] Before send`, {
-      endpoint: '/api/sms/send-otp',
-      recipient: normalizedPhone
+    logger.log(`[${now()}] [OTP] request`, {
+      operation: 'send',
+      provider: 'ippanel'
     });
 
     const result = await sendPatternOtp(normalizedPhone, code);
 
-    logger.log(`[${now()}] [OTP] After provider response`, {
-      success: result.success,
-      status: result.status,
-      recipient: normalizedPhone,
-      data: result.data || null,
-      details: result.details || null
+    logger.log(`[${now()}] [OTP] result`, {
+      outcome: result.success ? 'sent' : 'failed',
+      providerStatus: result.status || null,
+      category: result.error || null,
+      retryable: result.retryable === true
     });
 
     if (!result.success) {

@@ -1,8 +1,29 @@
 const DEFAULT_IDLE_TIMEOUT_SECONDS = 24 * 60 * 60;
 const DEFAULT_ABSOLUTE_TIMEOUT_SECONDS = 30 * 24 * 60 * 60;
 const DEFAULT_HTTP_TIMEOUT_MS = 20_000;
+const DEFAULT_FRONTEND_URL = 'https://vianaland.ir';
+const DEFAULT_API_BASE_URL = 'https://vianaland.ir/api/v1';
+const DEFAULT_AUTHORIZATION_URL = 'https://vianaland.ir/oauth/continue';
+const DEFAULT_TOKEN_URL = 'https://vianaland.ir/api/v1/identity/token';
+const DEFAULT_STUDENT_PROFILE_URL = 'https://vianaland.ir/api/v1/students/me';
+const DEFAULT_SCOPES = 'openid profile student.self:read students.sensitive:read';
 
 const trim = (value) => (typeof value === 'string' ? value.trim() : '');
+
+// dotenv already removes normal matching quotes. This only handles quotes/newlines
+// introduced by process managers, without trimming or rewriting a real secret.
+function normalizeClientSecret(value) {
+  if (typeof value !== 'string') return '';
+  let secret = value.replace(/[\r\n]+$/g, '');
+  if (secret.length >= 2) {
+    const first = secret[0];
+    const last = secret[secret.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      secret = secret.slice(1, -1);
+    }
+  }
+  return secret;
+}
 
 function parsePositiveInteger(value, fallback, name) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -56,10 +77,15 @@ function loadVianaConfig(env = process.env) {
     enabled,
     environmentKey,
     providerLabel: 'Viana',
+    frontendUrl: trim(env.VIANA_FRONTEND_URL) || DEFAULT_FRONTEND_URL,
     discoveryUrl: trim(env.VIANA_DISCOVERY_URL),
-    apiUrl: trim(env.VIANA_API_URL).replace(/\/+$/, ''),
+    apiBaseUrl: trim(env.VIANA_API_BASE_URL || env.VIANA_API_URL).replace(/\/+$/, ''),
+    authorizationUrl: trim(env.VIANA_AUTHORIZATION_URL) || DEFAULT_AUTHORIZATION_URL,
+    tokenUrl: trim(env.VIANA_TOKEN_URL) || DEFAULT_TOKEN_URL,
+    studentProfileUrl: trim(env.VIANA_STUDENT_PROFILE_URL) || DEFAULT_STUDENT_PROFILE_URL,
+    scopes: trim(env.VIANA_SCOPES) || DEFAULT_SCOPES,
     clientId: trim(env.VIANA_CLIENT_ID),
-    clientSecret: trim(env.VIANA_CLIENT_SECRET),
+    clientSecret: normalizeClientSecret(env.VIANA_CLIENT_SECRET),
     redirectUri: trim(env.VIANA_REDIRECT_URI),
     postLoginPath: trim(env.VIANA_POST_LOGIN_PATH) || '/',
     httpTimeoutMs: parsePositiveInteger(env.VIANA_HTTP_TIMEOUT_MS, DEFAULT_HTTP_TIMEOUT_MS, 'VIANA_HTTP_TIMEOUT_MS'),
@@ -78,6 +104,8 @@ function loadVianaConfig(env = process.env) {
     flowCookieName: 'danoa_viana_flow',
     noticeCookieName: 'danoa_viana_notice'
   };
+  // Keep the old in-process property name for callers while deployments move to VIANA_API_BASE_URL.
+  config.apiUrl = config.apiBaseUrl;
 
   if (config.sessionIdleTimeoutSeconds >= config.sessionAbsoluteTimeoutSeconds) {
     throw new Error('DANOA_SESSION_IDLE_TIMEOUT_SECONDS must be shorter than the absolute timeout.');
@@ -90,7 +118,7 @@ function loadVianaConfig(env = process.env) {
 
   const missing = [
     ['VIANA_DISCOVERY_URL', config.discoveryUrl],
-    ['VIANA_API_URL', config.apiUrl],
+    ['VIANA_API_BASE_URL', config.apiBaseUrl],
     ['VIANA_CLIENT_ID', config.clientId],
     ['VIANA_CLIENT_SECRET', config.clientSecret],
     ['VIANA_REDIRECT_URI', config.redirectUri]
@@ -100,24 +128,41 @@ function loadVianaConfig(env = process.env) {
   }
 
   const discovery = requireAbsoluteUrl(config.discoveryUrl, 'VIANA_DISCOVERY_URL');
-  const api = requireAbsoluteUrl(config.apiUrl, 'VIANA_API_URL');
+  const frontend = requireAbsoluteUrl(config.frontendUrl, 'VIANA_FRONTEND_URL');
+  const api = requireAbsoluteUrl(config.apiBaseUrl, 'VIANA_API_BASE_URL');
+  const authorization = requireAbsoluteUrl(config.authorizationUrl, 'VIANA_AUTHORIZATION_URL');
+  const token = requireAbsoluteUrl(config.tokenUrl, 'VIANA_TOKEN_URL');
+  const studentProfile = requireAbsoluteUrl(config.studentProfileUrl, 'VIANA_STUDENT_PROFILE_URL');
   const redirect = requireAbsoluteUrl(config.redirectUri, 'VIANA_REDIRECT_URI');
   if (
     nodeEnv === 'production' &&
-    [discovery, api, redirect].some((url) => url.protocol !== 'https:')
+    [frontend, discovery, api, authorization, token, studentProfile, redirect].some((url) => url.protocol !== 'https:')
   ) {
     throw new Error('Viana frontend, API, and redirect URLs must use HTTPS in production.');
   }
   if (redirect.protocol === 'http:' && redirect.hostname !== 'localhost') {
     throw new Error('HTTP Viana callbacks are allowed only on localhost.');
   }
+  if (nodeEnv === 'production' && config.redirectUri !== 'https://danoa.ir/api/auth/viana/callback') {
+    throw new Error('VIANA_REDIRECT_URI must be https://danoa.ir/api/auth/viana/callback in production.');
+  }
+  const scopes = config.scopes.split(/\s+/).filter(Boolean);
+  if (!scopes.includes('openid') || !scopes.includes('profile') || !scopes.includes('student.self:read') || !scopes.includes('students.sensitive:read')) {
+    throw new Error('VIANA_SCOPES must include openid, profile, student.self:read, and students.sensitive:read.');
+  }
+  config.scopes = [...new Set(scopes)].join(' ');
 
   return config;
 }
 
 module.exports = {
   DEFAULT_ABSOLUTE_TIMEOUT_SECONDS,
+  DEFAULT_API_BASE_URL,
+  DEFAULT_AUTHORIZATION_URL,
   DEFAULT_HTTP_TIMEOUT_MS,
+  DEFAULT_SCOPES,
+  DEFAULT_STUDENT_PROFILE_URL,
+  DEFAULT_TOKEN_URL,
   DEFAULT_IDLE_TIMEOUT_SECONDS,
   loadVianaConfig
 };

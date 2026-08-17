@@ -3,6 +3,8 @@ import type { SVGAttributes } from 'react';
 export type IconName =
   | 'chevron-left'
   | 'chevron-right'
+  | 'chevron-down'
+  | 'chevron-up'
   | 'x-close'
   | 'chat-bubble'
   | 'chat-dots'
@@ -10,11 +12,18 @@ export type IconName =
   | 'sidebar'
   | 'send'
   | 'sparkle'
+  | 'sparkles'
   | 'mic'
   | 'stop'
   | 'search'
   | 'settings'
   | 'credit-card'
+  | 'wallet'
+  | 'user'
+  | 'clock'
+  | 'lightbulb'
+  | 'file-text'
+  | 'briefcase'
   | 'copy'
   | 'upload'
   | 'retry'
@@ -82,6 +91,12 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
     case 'chevron-right':
       return <svg {...commonProps}><path d="m9 18 6-6-6-6" /></svg>;
 
+    case 'chevron-down':
+      return <svg {...commonProps}><path d="m6 9 6 6 6-6" /></svg>;
+
+    case 'chevron-up':
+      return <svg {...commonProps}><path d="m18 15-6-6-6 6" /></svg>;
+
     case 'x-close':
       return <svg {...commonProps}><path d="M18 6 6 18M6 6l12 12" /></svg>;
 
@@ -103,6 +118,14 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
     case 'sparkle':
       return <svg {...commonProps} strokeWidth="1.5"><path d="M12 3.8 13.9 9l5.3 1.9-5.3 1.9L12 18l-1.9-5.2-5.3-1.9L10.1 9 12 3.8Z" /><path d="m18.2 15.7.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8 2.1-.8.8-2.1Z" /></svg>;
 
+    case 'sparkles':
+      return (
+        <svg {...commonProps} strokeWidth="1.6">
+          <path d="m12 3 1.9 4.8 4.8 1.9-4.8 1.9L12 16.4l-1.9-4.8-4.8-1.9 4.8-1.9L12 3Z" />
+          <path d="M18.5 14.5 19.5 17l2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z" />
+        </svg>
+      );
+
     case 'mic':
       return <svg {...commonProps}><path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" /><path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" /></svg>;
 
@@ -117,6 +140,58 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
 
     case 'credit-card':
       return <svg {...commonProps}><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z" /></svg>;
+
+    case 'wallet':
+      return (
+        <svg {...commonProps}>
+          <path d="M19 7V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-2" />
+          <rect x="15" y="7" width="7" height="10" rx="2" />
+          <circle cx="18.5" cy="12" r="1" />
+        </svg>
+      );
+
+    case 'user':
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="8" r="4" />
+          <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+        </svg>
+      );
+
+    case 'clock':
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="12" r="9" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+
+    case 'lightbulb':
+      return (
+        <svg {...commonProps}>
+          <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-5 11.9c.7.7 1 1.6 1 2.6V17h8v-.5c0-1 .3-1.9 1-2.6A7 7 0 0 0 12 2Z" />
+        </svg>
+      );
+
+    case 'file-text':
+      return (
+        <svg {...commonProps}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      );
+
+    case 'briefcase':
+      return (
+        <svg {...commonProps}>
+          <rect x="3" y="7" width="18" height="14" rx="2" />
+          <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <path d="M3 13a20 20 0 0 0 18 0" />
+        </svg>
+      );
 
     case 'copy':
       return <svg {...commonProps}><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>;

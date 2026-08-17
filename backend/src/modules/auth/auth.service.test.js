@@ -50,6 +50,19 @@ test('sendVerificationCode maps provider failures to service unavailable', async
   assert.equal(savedOtps.length, 0);
 });
 
+test('sendVerificationCode preserves an OTP when the provider outcome is uncertain', async () => {
+  const { service, savedOtps } = createService({
+    smsResult: { success: false, status: 502, error: 'provider_unavailable', retryable: true }
+  });
+
+  const result = await service.sendVerificationCode({ phone: '09123456789', mode: 'login' });
+
+  assert.equal(result.statusCode, 202);
+  assert.equal(result.body.success, true);
+  assert.equal(result.body.deliveryStatus, 'uncertain');
+  assert.deepEqual(savedOtps, [{ phone: '09123456789', code: '12345' }]);
+});
+
 test('sendVerificationCode returns the local retry window without contacting provider', async () => {
   let providerCalled = false;
   const service = createAuthService({
