@@ -3815,38 +3815,38 @@
 
 .danoa-send-circle {
   box-sizing: border-box !important;
-  flex: 0 0 52px !important;
-  width: 52px !important;
-  height: 52px !important;
-  min-width: 52px !important;
-  min-height: 52px !important;
-  max-height: 52px !important;
+  flex: 0 0 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
   aspect-ratio: 1 / 1;
   padding: 0 !important;
   line-height: 1;
-  border-radius: 50% !important;
-  background: linear-gradient(135deg, #7c3aed, #630ed4) !important;
+  border-radius: 14px !important;
+  background: #191919 !important;
   color: #ffffff !important;
   border: none !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  box-shadow: 0 6px 18px rgba(99, 14, 212, 0.3) !important;
-  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+  transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease !important;
 }
 
 .danoa-composer-actions {
-  width: 52px;
-  height: 52px;
-  flex: 0 0 52px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   align-self: center !important;
   justify-content: center;
 }
 
 .danoa-send-circle .action-icon {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: grid;
   place-items: center;
   line-height: 0;
@@ -3857,12 +3857,19 @@
 }
 
 .danoa-send-circle:hover {
-  transform: scale(1.05) !important;
-  box-shadow: 0 8px 22px rgba(99, 14, 212, 0.4) !important;
+  background: #343434 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 5px 12px rgba(24, 24, 27, 0.18) !important;
 }
 
 .danoa-send-circle:active {
-  transform: scale(0.96) !important;
+  transform: translateY(0) scale(0.97) !important;
+  box-shadow: none !important;
+}
+
+.danoa-send-circle:focus-visible {
+  outline: 3px solid rgba(99, 14, 212, 0.26);
+  outline-offset: 3px;
 }
 
 .danoa-suggestions-row {
@@ -4353,5 +4360,307 @@
   .chat-shell.view-chat .chat-card.chat-card--empty .input-area.danoa-input-area {
     padding: 28px 16px max(24px, env(safe-area-inset-bottom, 0px)) !important;
     box-shadow: none;
+  }
+}
+
+/* Keep Danoa's original composer palette and compact action geometry. */
+.chat-shell.view-chat .danoa-composer-capsule .danoa-composer-actions {
+  order: 2;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+}
+
+.chat-shell.view-chat .danoa-composer-capsule .danoa-composer-inner {
+  order: 0;
+}
+
+.chat-shell.view-chat .danoa-composer-capsule .attachment-rail {
+  order: 1;
+}
+
+.chat-shell.view-chat .danoa-composer-capsule .danoa-send-circle {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  flex: 0 0 44px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #7c3aed, #630ed4) !important;
+  box-shadow: 0 6px 18px rgba(99, 14, 212, 0.3) !important;
+}
+
+.chat-shell.view-chat .danoa-composer-capsule .danoa-send-circle:hover {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
+  transform: scale(1.04) !important;
+  box-shadow: 0 8px 22px rgba(99, 14, 212, 0.36) !important;
+}
+
+/* Conversation drawer: the spacious, card-based reference layout. */
+.chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar.danoa-sidebar {
+  /* Must match the chat grid's sidebar track; a wider drawer overflows off-screen. */
+  width: 320px !important;
+  min-width: 320px !important;
+  background: #fff !important;
+  border-inline-start: 1px solid #ebeaf0 !important;
+  box-shadow: -8px 0 28px rgba(25, 19, 50, .035) !important;
+}
+
+.danoa-sidebar__header {
+  min-height: 82px;
+  padding: 18px 20px 10px;
+}
+
+.danoa-sidebar__brand {
+  gap: 10px;
+}
+
+.danoa-sidebar__brand-copy {
+  display: grid;
+  gap: 1px;
+  text-align: right;
+}
+
+.danoa-sidebar__brand strong {
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.danoa-sidebar__brand small {
+  color: #778096;
+  font-size: .76rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.danoa-sidebar__brand-mark img {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.danoa-sidebar__header-btn,
+.danoa-sidebar__collapse-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: #fbfcff;
+  border-color: #e1e6f0;
+}
+
+.danoa-sidebar__search-wrap {
+  margin: 4px 20px 10px;
+}
+
+.danoa-sidebar__search-field {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  color: #78839a;
+  background: #fff;
+  border: 1px solid #e2e3ea;
+  border-radius: 16px;
+  font: inherit;
+  font-size: .92rem;
+  font-weight: 650;
+  text-align: right;
+  direction: rtl;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.danoa-sidebar__search-field:hover,
+.danoa-sidebar__search-field:focus-visible {
+  border-color: rgba(109, 40, 217, .42);
+  background: #fcfbff;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, .1);
+  outline: 0;
+}
+
+.danoa-sidebar__new-chat-wrap {
+  margin: 0 20px 18px;
+}
+
+.danoa-sidebar__new-chat-btn {
+  height: 58px;
+  border-radius: 16px;
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: 0 10px 22px rgba(99, 14, 212, .2);
+}
+
+.danoa-sidebar__section-header {
+  padding: 2px 24px 10px;
+  color: #282532;
+  font-size: .84rem;
+  font-weight: 800;
+}
+
+.danoa-sidebar__list {
+  padding: 0 20px 14px !important;
+  gap: 0;
+}
+
+.danoa-sidebar__group {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #e6e5eb;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.chat-history-sidebar.danoa-sidebar .conversation-card {
+  min-height: 76px !important;
+  padding: 11px 12px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #ecebf0 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+}
+
+.chat-history-sidebar.danoa-sidebar .conversation-card:last-child {
+  border-bottom: 0 !important;
+}
+
+.chat-history-sidebar.danoa-sidebar .conversation-card:hover,
+.chat-history-sidebar.danoa-sidebar .conversation-card.active {
+  background: #fbfaff !important;
+  border-color: #ecebf0 !important;
+}
+
+.conversation-card-body {
+  align-items: center;
+}
+
+.conversation-card-title-group {
+  gap: 10px;
+}
+
+.conversation-card-icon-bubble {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: #7129e8;
+  background: #f2edff;
+  border-radius: 11px;
+}
+
+.conversation-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  text-align: right;
+}
+
+.conversation-card-title {
+  color: #262330;
+  font-size: .9rem;
+  font-weight: 800;
+}
+
+.conversation-card-date {
+  max-width: 220px;
+  margin: 0;
+  overflow: hidden;
+  color: #8a93a7;
+  font-size: .74rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-card-date-separator {
+  color: #c0c5d1;
+}
+
+.chat-history-sidebar.danoa-sidebar .conversation-card-meta {
+  opacity: 1;
+  margin-right: 8px;
+}
+
+.chat-history-sidebar.danoa-sidebar .conversation-more-trigger {
+  width: 36px;
+  height: 36px;
+  color: #a4acbd;
+  border-radius: 10px;
+}
+
+.chat-history-sidebar.danoa-sidebar .conversation-more-trigger:hover,
+.chat-history-sidebar.danoa-sidebar .conversation-more-trigger.is-open {
+  color: #6d28d9;
+  background: #f2edff;
+}
+
+.danoa-sidebar__nav {
+  padding: 12px 20px 16px;
+  border-top-color: #e6e5eb;
+  background: #fff;
+  gap: 6px;
+}
+
+.danoa-sidebar-nav-item {
+  min-height: 54px;
+  padding: 9px 4px;
+  border-radius: 12px;
+}
+
+.danoa-sidebar-nav-item__label {
+  font-size: 1rem;
+}
+
+.danoa-sidebar-nav-item__text strong {
+  font-size: .95rem;
+}
+
+.danoa-sidebar-nav-item__text small {
+  font-size: .76rem;
+}
+
+.danoa-sidebar-subnav {
+  margin: 0 0 8px;
+  padding: 7px 0;
+  border-radius: 14px;
+  background: #f4efff;
+}
+
+.danoa-sidebar-subnav__item {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: .9rem;
+  font-weight: 750;
+}
+
+@media (max-width: 1023px) {
+  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar.danoa-sidebar {
+    width: min(92vw, 400px) !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .danoa-sidebar__header,
+  .danoa-sidebar__search-wrap,
+  .danoa-sidebar__new-chat-wrap,
+  .danoa-sidebar__list,
+  .danoa-sidebar__nav {
+    margin-inline: 16px;
+  }
+
+  .danoa-sidebar__list,
+  .danoa-sidebar__nav {
+    padding-inline: 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .danoa-sidebar__search-field,
+  .danoa-sidebar__new-chat-btn {
+    transition: none;
   }
 }

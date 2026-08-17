@@ -897,6 +897,17 @@ const sortConversations = (items: Conversation[]): Conversation[] => {
   });
 };
 
+const conversationVisuals: Array<{ tone: string; icon: IconName }> = [
+  { tone: 'purple', icon: 'book' },
+  { tone: 'indigo', icon: 'star' },
+  { tone: 'violet', icon: 'heart' },
+  { tone: 'pink', icon: 'sparkles' },
+  { tone: 'blue', icon: 'question' }
+];
+
+const conversationVisualTone = (index: number): string => conversationVisuals[index % conversationVisuals.length].tone;
+const conversationVisualIcon = (index: number): IconName => conversationVisuals[index % conversationVisuals.length].icon;
+
 const formatConversationDate = (value: string): string => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -1533,6 +1544,32 @@ function ChatApp() {
         return searchableText.includes(query);
       });
   }, [conversationSearchTerm, orderedConversations]);
+  const sidebarPinnedConversations = useMemo(
+    () => visibleConversations.filter(({ conversation }) => conversation.pinned),
+    [visibleConversations]
+  );
+  const sidebarUnpinnedConversations = useMemo(
+    () => visibleConversations.filter(({ conversation }) => !conversation.pinned),
+    [visibleConversations]
+  );
+  const sidebarToday = useMemo(
+    () =>
+      sidebarUnpinnedConversations.filter(({ conversation }) => {
+        const date = new Date(conversation.updatedAt || conversation.createdAt);
+        const now = new Date();
+        return date.toDateString() === now.toDateString();
+      }),
+    [sidebarUnpinnedConversations]
+  );
+  const sidebarOlder = useMemo(
+    () =>
+      sidebarUnpinnedConversations.filter(({ conversation }) => {
+        const date = new Date(conversation.updatedAt || conversation.createdAt);
+        const now = new Date();
+        return date.toDateString() !== now.toDateString();
+      }),
+    [sidebarUnpinnedConversations]
+  );
   const conversationMenuTarget = conversationMenu
     ? conversations.find((conversation) => conversation.id === conversationMenu.conversationId) || null
     : null;
@@ -3807,10 +3844,13 @@ notify.error(message);
     );
   };
 
-  const renderSidebarConversation = ({ conversation }: { conversation: Conversation; index?: number }) => {
+  const renderSidebarConversation = ({ conversation, index = 0 }: { conversation: Conversation; index?: number }) => {
     const isActive = conversation.id === activeConversationId;
     const isEditing = editingId === conversation.id;
     const dateLabel = formatConversationDate(conversation.updatedAt || conversation.createdAt);
+    const preview = getConversationPreview(conversation);
+    const tone = conversationVisualTone(index);
+    const iconName = conversationVisualIcon(index);
 
     return (
       <div className={`conversation-row conversation-card ${isActive ? 'active' : ''}`} key={conversation.id}>
@@ -3826,36 +3866,49 @@ notify.error(message);
             aria-current={isActive ? 'page' : undefined}
           />
         ) : null}
-        
-        <div className="conversation-card-body">
-          <time className="conversation-card-date" dateTime={conversation.updatedAt || conversation.createdAt}>
-            {dateLabel}
-          </time>
-          <div className="conversation-card-title-group">
-            <span className="conversation-card-icon-bubble" aria-hidden="true">
-              <Icon name="chat-bubble" size={17} />
-            </span>
-            {isEditing ? (
-              <form onSubmit={(event) => { event.preventDefault(); void finishTitleEdit(conversation.id, true); }}>
-                <input
-                  autoFocus
-                  className="rename-input ds-field__input"
-                  value={editingTitle}
-                  maxLength={40}
-                  aria-label="عنوان گفتگو"
-                  onBlur={() => { void finishTitleEdit(conversation.id, true); }}
-                  onChange={(event) => setEditingTitle(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Escape') { event.preventDefault(); void finishTitleEdit(conversation.id, false); }
-                  }}
-                />
-              </form>
-            ) : (
-              <p className="conversation-card-title">{conversation.title || DEFAULT_TITLE}</p>
-            )}
-          </div>
+
+        <div className={`conversation-card-icon conversation-card-icon--${tone}`} aria-hidden="true">
+          <Icon name={iconName} size={18} />
         </div>
-        
+
+        <div className="conversation-main">
+          {isEditing ? (
+            <form onSubmit={(event) => { event.preventDefault(); void finishTitleEdit(conversation.id, true); }}>
+              <input
+                autoFocus
+                className="rename-input ds-field__input"
+                value={editingTitle}
+                maxLength={40}
+                aria-label="عنوان گفتگو"
+                onBlur={() => { void finishTitleEdit(conversation.id, true); }}
+                onChange={(event) => setEditingTitle(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') { event.preventDefault(); void finishTitleEdit(conversation.id, false); }
+                }}
+              />
+            </form>
+          ) : (
+            <>
+              <div className="conversation-card-title-row">
+                <p>{conversation.title || DEFAULT_TITLE}</p>
+                {conversation.pinned ? (
+                  <span className="conversation-card-pinned" title="سنجاق‌شده" aria-label="سنجاق‌شده">
+                    <Icon name="pin" size={13} aria-hidden="true" />
+                  </span>
+                ) : null}
+              </div>
+              <div className="conversation-card-preview-row">
+                <small>{preview}</small>
+                {dateLabel ? (
+                  <time className="conversation-card-date" dateTime={conversation.updatedAt || conversation.createdAt}>
+                    {dateLabel}
+                  </time>
+                ) : null}
+              </div>
+            </>
+          )}
+        </div>
+
         <div className="conversation-card-meta" onClick={(event) => event.stopPropagation()}>
           <button
             type="button"
@@ -4165,130 +4218,174 @@ notify.error(message);
         {currentView === 'chat' ? (
         <aside
           id="chat-history-sidebar"
-          className={`sidebar conversation-home chat-history-sidebar danoa-sidebar ${sidebarOpen ? 'open' : ''}`}
+          className={`sidebar conversation-home chat-history-sidebar ${sidebarOpen ? 'open' : ''}`}
           aria-label="تاریخچه و ناوبری دانوآ"
           aria-hidden={!sidebarOpen}
           ref={(node) => {
             if (node) node.inert = !sidebarOpen;
           }}
         >
-          <header className="danoa-sidebar__header">
-            <div className="danoa-sidebar__header-actions">
+          <header className="conversation-home-header">
+            <div className="conversation-home-brand">
+              <span className="conversation-home-brand__mark" aria-hidden="true">
+                <img src={PUBLIC_ASSETS.brandMark} alt="" />
+              </span>
+              <div className="conversation-home-brand__text">
+                <strong>دانوآ</strong>
+                <small>همراه هوشمند تو</small>
+              </div>
+            </div>
+            <div className="conversation-home-header-actions">
               <button
                 ref={conversationSearchToggleRef}
                 type="button"
-                className={`danoa-sidebar__header-btn ${conversationSearchOpen ? 'is-active' : ''}`}
+                className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
                 onClick={() => {
                   setConversationSearchTerm('');
-                  setConversationSearchOpen(true);
+                  setConversationSearchOpen(false);
+                  window.requestAnimationFrame(() => conversationSidebarSearchInputRef.current?.focus());
                 }}
-                aria-label="جست‌وجوی گفتگوها"
-                aria-expanded={conversationSearchOpen}
-                aria-controls="conversation-search-modal"
-                title="جست‌وجوی گفتگوها"
+                aria-label="جستجوی گفتگوها"
+                aria-controls="conversation-sidebar-search-input"
+                title="جستجوی گفتگوها"
               >
-                <Icon name="search" size={19} aria-hidden="true" />
+                <Icon name="search" size={20} aria-hidden="true" />
               </button>
-              <button
-                type="button"
-                className="danoa-sidebar__collapse-btn"
-                onClick={() => setSidebarOpen(false)}
-                aria-label="بستن سایدبار"
-                title="بستن سایدبار"
-              >
-                <Icon name="chevron-left" size={18} aria-hidden="true" />
-              </button>
-            </div>
-            <div className="danoa-sidebar__brand">
-              <strong>دانوآ</strong>
-              <span className="danoa-sidebar__brand-mark" aria-hidden="true">
-                <img src={PUBLIC_ASSETS.brandMark} alt="" />
-              </span>
             </div>
           </header>
 
-          <div className="danoa-sidebar__new-chat-wrap">
-            <button type="button" className="danoa-sidebar__new-chat-btn" onClick={() => void handleCreateConversation()}>
-              <Icon name="plus" size={18} aria-hidden="true" />
+          <div className="conversation-sidebar-search" role="search">
+            <button
+              type="button"
+              className="conversation-sidebar-search__edge-action"
+              onClick={() => {
+                setConversationSearchTerm('');
+                window.requestAnimationFrame(() => conversationSidebarSearchInputRef.current?.focus());
+              }}
+              aria-label="پاک کردن جستجوی گفتگوها"
+              title="پاک کردن جستجو"
+            >
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
+            </button>
+            <input
+              ref={conversationSidebarSearchInputRef}
+              id="conversation-sidebar-search-input"
+              type="search"
+              dir="rtl"
+              value={conversationSearchTerm}
+              onChange={(event) => setConversationSearchTerm(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  setConversationSearchTerm('');
+                  event.currentTarget.blur();
+                }
+              }}
+              placeholder="جستجوی گفتگوها"
+              aria-label="جستجوی گفتگوها"
+            />
+            <Icon name="search" size={19} aria-hidden="true" />
+          </div>
+
+          <div className="conversation-home-primary-actions">
+            <button type="button" className="conversation-new-chat-btn" onClick={() => void handleCreateConversation()}>
               <span>گفتگوی جدید</span>
             </button>
           </div>
 
-          <div className="danoa-sidebar__section-header">
-            <Icon name="clock" size={16} aria-hidden="true" />
-            <span>گفتگوهای اخیر</span>
-          </div>
+          <div className="conversation-list conversation-home-list">
+            {!hasHydratedRemoteConversations && profile?.id ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="conversation-row conversation-card conversation-skeleton" aria-hidden="true">
+                  <div className="conversation-card-icon skeleton-shimmer" />
+                  <div className="conversation-main">
+                    <div className="skeleton-line skeleton-line--title" />
+                    <div className="skeleton-line skeleton-line--text" />
+                  </div>
+                  <div className="conversation-card-meta">
+                    <div className="skeleton-line skeleton-line--short" />
+                  </div>
+                </div>
+              ))
+            ) : null}
 
-          <div className="danoa-sidebar__list conversation-list conversation-home-list">
-            {orderedConversations.length > 0 ? (
-              <div className="danoa-sidebar__group">
-                {orderedConversations.map((conv, idx) => renderSidebarConversation({ conversation: conv, index: idx }))}
-              </div>
-            ) : visibleConversations.length === 0 ? (
+            {sidebarPinnedConversations.length > 0 ? (
+              <section className="conversation-sidebar-section" aria-labelledby="pinned-conversations-title">
+                <div className="conversation-sidebar-section__heading">
+                  <h2 id="pinned-conversations-title">سنجاق‌شده</h2>
+                  <Icon name="pin" size={15} aria-hidden="true" />
+                </div>
+                <div className="conversation-group-card">
+                  {sidebarPinnedConversations.map(renderSidebarConversation)}
+                </div>
+              </section>
+            ) : null}
+
+            {sidebarToday.length > 0 ? (
+              <section className="conversation-sidebar-section" aria-labelledby="today-conversations-title">
+                <div className="conversation-sidebar-section__heading">
+                  <h2 id="today-conversations-title">امروز</h2>
+                </div>
+                <div className="conversation-group-card">
+                  {sidebarToday.map(renderSidebarConversation)}
+                </div>
+              </section>
+            ) : null}
+
+            {sidebarOlder.length > 0 ? (
+              <section className="conversation-sidebar-section" aria-labelledby="older-conversations-title">
+                <div className="conversation-sidebar-section__heading">
+                  <h2 id="older-conversations-title">هفته گذشته</h2>
+                </div>
+                <div className="conversation-group-card">
+                  {sidebarOlder.map(renderSidebarConversation)}
+                </div>
+              </section>
+            ) : null}
+
+            {visibleConversations.length === 0 ? (
               <div className="conversation-search-empty" role="status">
-                <span>گفتگویی وجود ندارد.</span>
+                <span>گفتگویی با این عبارت پیدا نشد.</span>
               </div>
             ) : null}
           </div>
 
-          <nav className="danoa-sidebar__nav" aria-label="ناوبری دانوآ">
-            <div className="danoa-sidebar-nav-accordion">
-              <button
-                type="button"
-                className="danoa-sidebar-nav-item danoa-sidebar-nav-item--studio"
-                onClick={() => setStudioMenuOpen((prev) => !prev)}
-                aria-expanded={studioMenuOpen}
-              >
-                <Icon name={studioMenuOpen ? 'chevron-up' : 'chevron-down'} size={18} aria-hidden="true" />
-                <div className="danoa-sidebar-nav-item__right">
-                  <span className="danoa-sidebar-nav-item__label">استودیو</span>
-                  <span className="danoa-sidebar-nav-item__sparkle-icon" aria-hidden="true">
-                    <Icon name="sparkles" size={19} />
-                  </span>
-                </div>
-              </button>
-              {studioMenuOpen ? (
-                <div className="danoa-sidebar-subnav">
-                  <button type="button" className="danoa-sidebar-subnav__item" onClick={openImageStudioFromStudio}>
-                    <span className="danoa-sidebar-subnav__icon">
-                      <Icon name="studio-image" size={18} />
-                    </span>
-                    <span>ساخت تصویر</span>
-                  </button>
-                  <button type="button" className="danoa-sidebar-subnav__item" onClick={openVideoStudio}>
-                    <span className="danoa-sidebar-subnav__icon">
-                      <Icon name="studio-video" size={18} />
-                    </span>
-                    <span>ساخت ویدیو</span>
-                  </button>
-                </div>
-              ) : null}
-            </div>
-
-            <button type="button" className="danoa-sidebar-nav-item" onClick={handleOpenNoaWallet}>
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
-              <div className="danoa-sidebar-nav-item__right">
-                <div className="danoa-sidebar-nav-item__text">
-                  <strong>کیف پول</strong>
-                  <small>مدیریت اعتبار و خرید بسته‌ها</small>
-                </div>
-                <span className="danoa-sidebar-nav-item__icon" aria-hidden="true">
-                  <Icon name="wallet" size={20} />
-                </span>
+          <nav className="conversation-bottom-nav conversation-sidebar-nav" aria-label="بخش‌های دانوآ">
+            <button type="button" className="conversation-nav-item" onClick={openStudioFromChat}>
+              <div className="conversation-nav-icon-wrap" aria-hidden="true">
+                <Icon name="grid" size={20} />
               </div>
+              <div className="conversation-nav-text">
+                <strong>استودیو</strong>
+                <small>ساخت تصویر و ویدیو</small>
+              </div>
+              <Icon name="chevron-left" size={18} aria-hidden="true" className="conversation-nav-chevron" />
             </button>
 
-            <button type="button" className="danoa-sidebar-nav-item" onClick={handleOpenSettings}>
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
-              <div className="danoa-sidebar-nav-item__right">
-                <div className="danoa-sidebar-nav-item__text">
-                  <strong>پروفایل</strong>
-                  <small>تنظیمات حساب و شخصی‌سازی</small>
-                </div>
-                <span className="danoa-sidebar-nav-item__icon" aria-hidden="true">
-                  <Icon name="user" size={20} />
-                </span>
+            <button type="button" className="conversation-nav-item" onClick={handleOpenNoaWallet}>
+              <div className="conversation-nav-icon-wrap" aria-hidden="true">
+                <Icon name="credit-card" size={20} />
               </div>
+              <div className="conversation-nav-text">
+                <strong>کیف پول نوآ</strong>
+                <small>
+                  {noaWallet.wallet
+                    ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ موجودی`
+                    : '۱,۲۳۴,۵۶۷/۵۹ نوآ موجودی'}
+                </small>
+              </div>
+              <Icon name="chevron-left" size={18} aria-hidden="true" className="conversation-nav-chevron" />
+            </button>
+
+            <button type="button" className="conversation-nav-item conversation-nav-profile" onClick={handleOpenSettings}>
+              <span className="conversation-nav-profile__avatar" aria-hidden="true">
+                {String(profile?.name || 'ا').trim().charAt(0)}
+              </span>
+              <div className="conversation-nav-text">
+                <strong>{profile?.name || 'ابوالفضل'}</strong>
+                <small>تنظیمات حساب کاربری</small>
+              </div>
+              <Icon name="chevron-left" size={18} aria-hidden="true" className="conversation-nav-chevron" />
             </button>
           </nav>
         </aside>

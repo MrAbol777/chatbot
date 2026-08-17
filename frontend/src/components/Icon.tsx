@@ -60,6 +60,7 @@ export type IconName =
   | 'pin'
   | 'edit'
   | 'delete'
+  | 'heart'
   | 'empty-chat'
   | 'empty-video';
 
@@ -300,6 +301,9 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
 
     case 'delete':
       return <svg {...commonProps}><path d="M5 6.5h14M8.5 6.5V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1.5M9.5 10v6a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-6" /></svg>;
+
+    case 'heart':
+      return <svg {...commonProps}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>;
 
     case 'empty-chat':
       return <svg {...commonProps}><path d="M6.5 17.5 4 20V7.7C4 5.7 5.7 4 7.7 4h8.6C18.3 4 20 5.7 20 7.7v6.1c0 2-1.7 3.7-3.7 3.7H6.5Z" /><path d="M8 9h8M8 12.3h5.6" /></svg>;
