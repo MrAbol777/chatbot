@@ -11,6 +11,7 @@ import {
 import { Button, Dialog, InlineMessage, TextField, useNotification } from './design-system/components';
 import Icon from './components/Icon';
 import type { IconName } from './components/Icon';
+import EmptyState from './components/EmptyState';
 import InsufficientBalanceNotice from './components/InsufficientBalanceNotice';
 import DanoaLoadingMark from './components/DanoaLoadingMark';
 import ProfileForm from './components/ProfileForm';
@@ -897,16 +898,18 @@ const sortConversations = (items: Conversation[]): Conversation[] => {
   });
 };
 
-const conversationVisuals: Array<{ tone: string; icon: IconName }> = [
-  { tone: 'purple', icon: 'book' },
-  { tone: 'indigo', icon: 'star' },
-  { tone: 'violet', icon: 'heart' },
-  { tone: 'pink', icon: 'sparkles' },
-  { tone: 'blue', icon: 'question' }
+const conversationVisuals: Array<{ tone: string }> = [
+  { tone: 'yellow' },
+  { tone: 'indigo' },
+  { tone: 'orange' },
+  { tone: 'teal' },
+  { tone: 'blue' }
 ];
 
-const conversationVisualTone = (index: number): string => conversationVisuals[index % conversationVisuals.length].tone;
-const conversationVisualIcon = (index: number): IconName => conversationVisuals[index % conversationVisuals.length].icon;
+const conversationVisualIcon = (index: number): IconName => {
+  const icons: IconName[] = ['book', 'star', 'companion', 'sparkle', 'question'];
+  return icons[index % icons.length];
+};
 
 const formatConversationDate = (value: string): string => {
   const date = new Date(value);
@@ -1225,9 +1228,9 @@ function ChatApp() {
   const [conversationSearchTerm, setConversationSearchTerm] = useState('');
   const [conversationSearchOpen, setConversationSearchOpen] = useState(false);
   const conversationSearchInputRef = useRef<HTMLInputElement>(null);
+  const conversationSidebarSearchInputRef = useRef<HTMLInputElement>(null);
   const conversationSearchToggleRef = useRef<HTMLButtonElement>(null);
   const chatSidebarToggleRef = useRef<HTMLButtonElement>(null);
-  const [studioMenuOpen, setStudioMenuOpen] = useState(true);
 
   useEffect(() => {
     if (!conversationSearchOpen) return;
@@ -3844,13 +3847,12 @@ notify.error(message);
     );
   };
 
-  const renderSidebarConversation = ({ conversation, index = 0 }: { conversation: Conversation; index?: number }) => {
+  const renderSidebarConversation = ({ conversation, index }: { conversation: Conversation; index: number }) => {
     const isActive = conversation.id === activeConversationId;
     const isEditing = editingId === conversation.id;
-    const dateLabel = formatConversationDate(conversation.updatedAt || conversation.createdAt);
+    const visual = conversationVisuals[index % conversationVisuals.length];
     const preview = getConversationPreview(conversation);
-    const tone = conversationVisualTone(index);
-    const iconName = conversationVisualIcon(index);
+    const dateLabel = formatConversationDate(conversation.updatedAt || conversation.createdAt);
 
     return (
       <div className={`conversation-row conversation-card ${isActive ? 'active' : ''}`} key={conversation.id}>
@@ -3866,11 +3868,9 @@ notify.error(message);
             aria-current={isActive ? 'page' : undefined}
           />
         ) : null}
-
-        <div className={`conversation-card-icon conversation-card-icon--${tone}`} aria-hidden="true">
-          <Icon name={iconName} size={18} />
+        <div className={`conversation-card-icon conversation-card-icon--${visual.tone}`} aria-hidden="true">
+          <Icon name={conversationVisualIcon(index)} size="1.25em" />
         </div>
-
         <div className="conversation-main">
           {isEditing ? (
             <form onSubmit={(event) => { event.preventDefault(); void finishTitleEdit(conversation.id, true); }}>
@@ -3899,11 +3899,9 @@ notify.error(message);
               </div>
               <div className="conversation-card-preview-row">
                 <small>{preview}</small>
-                {dateLabel ? (
-                  <time className="conversation-card-date" dateTime={conversation.updatedAt || conversation.createdAt}>
-                    {dateLabel}
-                  </time>
-                ) : null}
+                <time className="conversation-card-date" dateTime={conversation.updatedAt || conversation.createdAt}>
+                  {dateLabel}
+                </time>
               </div>
             </>
           )}
@@ -4289,9 +4287,17 @@ notify.error(message);
 
           <div className="conversation-home-primary-actions">
             <button type="button" className="conversation-new-chat-btn" onClick={() => void handleCreateConversation()}>
+              <Icon name="new-chat" size={20} aria-hidden="true" />
               <span>گفتگوی جدید</span>
             </button>
           </div>
+
+          {conversationSearchTerm ? (
+            <div className="conversation-history-heading">
+              <h2>نتایج جستجو</h2>
+              <span>{new Intl.NumberFormat('fa-IR').format(visibleConversations.length)}</span>
+            </div>
+          ) : null}
 
           <div className="conversation-list conversation-home-list">
             {!hasHydratedRemoteConversations && profile?.id ? (
@@ -4313,7 +4319,7 @@ notify.error(message);
               <section className="conversation-sidebar-section" aria-labelledby="pinned-conversations-title">
                 <div className="conversation-sidebar-section__heading">
                   <h2 id="pinned-conversations-title">سنجاق‌شده</h2>
-                  <Icon name="pin" size={15} aria-hidden="true" />
+                  <Icon name="pin" size={16} aria-hidden="true" />
                 </div>
                 <div className="conversation-group-card">
                   {sidebarPinnedConversations.map(renderSidebarConversation)}
@@ -4345,47 +4351,57 @@ notify.error(message);
 
             {visibleConversations.length === 0 ? (
               <div className="conversation-search-empty" role="status">
-                <span>گفتگویی با این عبارت پیدا نشد.</span>
+                {orderedConversations.length === 0 ? (
+                  <EmptyState
+                    icon={
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6.5 17.5 4 20V7.7C4 5.7 5.7 4 7.7 4h8.6C18.3 4 20 5.7 20 7.7v6.1c0 2-1.7 3.7-3.7 3.7H6.5Z" />
+                        <path d="M8 9h8M8 12.3h5.6" />
+                      </svg>
+                    }
+                    title="هنوز گفتگویی نداری"
+                    description="اولین گفتگو رو شروع کن!"
+                    action={
+                      <Button type="button" onClick={handleCreateConversation}>
+                        شروع گفتگوی جدید
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <span>گفتگویی با این عبارت پیدا نشد.</span>
+                )}
               </div>
             ) : null}
           </div>
 
           <nav className="conversation-bottom-nav conversation-sidebar-nav" aria-label="بخش‌های دانوآ">
             <button type="button" className="conversation-nav-item" onClick={openStudioFromChat}>
-              <div className="conversation-nav-icon-wrap" aria-hidden="true">
-                <Icon name="grid" size={20} />
-              </div>
-              <div className="conversation-nav-text">
+              <Icon name="grid" size={21} aria-hidden="true" />
+              <span>
                 <strong>استودیو</strong>
                 <small>ساخت تصویر و ویدیو</small>
-              </div>
-              <Icon name="chevron-left" size={18} aria-hidden="true" className="conversation-nav-chevron" />
+              </span>
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
             </button>
 
             <button type="button" className="conversation-nav-item" onClick={handleOpenNoaWallet}>
-              <div className="conversation-nav-icon-wrap" aria-hidden="true">
-                <Icon name="credit-card" size={20} />
-              </div>
-              <div className="conversation-nav-text">
+              <Icon name="credit-card" size={21} aria-hidden="true" />
+              <span>
                 <strong>کیف پول نوآ</strong>
-                <small>
-                  {noaWallet.wallet
-                    ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ موجودی`
-                    : '۱,۲۳۴,۵۶۷/۵۹ نوآ موجودی'}
-                </small>
-              </div>
-              <Icon name="chevron-left" size={18} aria-hidden="true" className="conversation-nav-chevron" />
+                <small>{noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ موجودی` : 'مدیریت اعتبار'}</small>
+              </span>
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
             </button>
 
             <button type="button" className="conversation-nav-item conversation-nav-profile" onClick={handleOpenSettings}>
               <span className="conversation-nav-profile__avatar" aria-hidden="true">
-                {String(profile?.name || 'ا').trim().charAt(0)}
+                {String(profile?.name || 'د').trim().charAt(0)}
               </span>
-              <div className="conversation-nav-text">
-                <strong>{profile?.name || 'ابوالفضل'}</strong>
+              <span>
+                <strong>{profile?.name || 'پروفایل من'}</strong>
                 <small>تنظیمات حساب کاربری</small>
-              </div>
-              <Icon name="chevron-left" size={18} aria-hidden="true" className="conversation-nav-chevron" />
+              </span>
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
             </button>
           </nav>
         </aside>
