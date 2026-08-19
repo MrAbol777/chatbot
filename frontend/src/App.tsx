@@ -198,7 +198,7 @@ const getAppViewFromPath = (pathname: string): AppView => {
   return 'chat';
 };
 const isDesktopChatLayout = () =>
-  typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+  typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
 const getConversationIdFromPath = (pathname: string) => {
   const match = pathname.match(/^\/c\/([^/]+)$/);
   return match ? decodeURIComponent(match[1]) : '';
@@ -1332,7 +1332,7 @@ function ChatApp() {
   };
 
   useEffect(() => {
-    const media = window.matchMedia('(min-width: 1024px)');
+    const media = window.matchMedia('(min-width: 1200px)');
     const syncSidebar = (event: MediaQueryListEvent | MediaQueryList) => {
       setSidebarOpen(event.matches && getAppViewFromPath(window.location.pathname) === 'chat');
     };
