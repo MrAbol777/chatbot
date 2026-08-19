@@ -5172,123 +5172,151 @@
 
   /* --- Mobile Header (danoa-top-bar) --- */
   /*
-   * Structure (RTL):
-   *   [Logo/Brand mark]  [Title — centered]  [Action button]
-   * Grid: 44px  1fr  44px
+   * JSX children (RTL direction):
+   *   1. chat-sidebar-toggle OR danoa-header-spacer  (flex: 0 0 44px, right side in RTL)
+   *   2. danoa-top-bar__title-wrap                  (flex: 1, centered)
+   *   3. danoa-top-bar__actions                     (flex: 0 0 44px, left side in RTL — hidden)
+   *
+   * Result: perfectly balanced single-row header, 56px tall.
    */
   .chat-shell.view-chat .top-bar.danoa-top-bar {
-    display: grid !important;
-    grid-template-columns: 44px minmax(0, 1fr) 44px !important;
-    align-items: center !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
     min-height: var(--mobile-header-height) !important;
-    max-height: var(--mobile-header-height) !important;
-    height: var(--mobile-header-height) !important;
-    padding: 0 var(--shell-padding-mobile) !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    max-height: none !important;
+    height: auto !important;
+    /* top padding for safe-area (notch), horizontal 4px only */
+    padding: env(safe-area-inset-top, 0px) 4px 0 4px !important;
     margin: 0 !important;
     border: 0 !important;
-    border-bottom: 1px solid rgba(230, 232, 240, 0.8) !important;
+    border-bottom: 1px solid rgba(230, 232, 240, 0.85) !important;
     border-radius: 0 !important;
-    background: rgba(255, 255, 255, 0.96) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
+    background: rgba(255, 255, 255, 0.97) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06) !important;
     direction: rtl !important;
     z-index: 20 !important;
     position: sticky !important;
     top: 0 !important;
-    gap: 8px !important;
-  }
-
-  /* Title wrap: sits in center cell */
-  .danoa-top-bar__title-wrap {
-    grid-column: 2;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
     gap: 0 !important;
-    min-width: 0;
-    overflow: hidden;
+    overflow: hidden !important;
   }
 
-  /* Hide sidebar toggle from title-wrap on mobile (moved to actions) */
-  .danoa-top-bar__title-wrap .chat-sidebar-toggle,
-  .danoa-top-bar__title-wrap .header-action-btn.chat-sidebar-toggle {
+  /* Remove any ::before/::after that could add extra rows */
+  .chat-shell.view-chat .top-bar.danoa-top-bar::before,
+  .chat-shell.view-chat .top-bar.danoa-top-bar::after {
     display: none !important;
   }
 
-  /* Title: centered, truncated */
+  /* All direct children: vertically centered, no shrink, no overflow */
+  .chat-shell.view-chat .top-bar.danoa-top-bar > *:not(.visually-hidden) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+    min-height: var(--mobile-header-height) !important;
+  }
+
+  /* RIGHT side (in RTL): sidebar toggle or spacer — 44px fixed */
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .chat-sidebar-toggle,
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-mobile-sidebar-btn,
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-header-spacer {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    max-width: 44px !important;
+  }
+
+  /* CENTER: title-wrap expands to fill all remaining space */
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-top-bar__title-wrap {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+  }
+
+  /* LEFT side (in RTL): actions — 44px fixed, content hidden */
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-top-bar__actions {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    max-width: 44px !important;
+    gap: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Sidebar toggle button: clean icon style */
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .chat-sidebar-toggle,
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-mobile-sidebar-btn {
+    border: none !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: #4a4a5e !important;
+    cursor: pointer !important;
+    transition: background 160ms ease, color 160ms ease !important;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .chat-sidebar-toggle:hover,
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-mobile-sidebar-btn:hover {
+    background: #f0ebff !important;
+    color: #6d28d9 !important;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .chat-sidebar-toggle:focus-visible,
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-mobile-sidebar-btn:focus-visible {
+    outline: 3px solid rgba(109, 40, 217, 0.25) !important;
+    outline-offset: 2px !important;
+    background: #f0ebff !important;
+    color: #6d28d9 !important;
+  }
+
+  /* Spacer: invisible, same width as toggle for centering balance */
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-header-spacer {
+    background: transparent !important;
+    pointer-events: none !important;
+  }
+
+  /* Title text: single line, centered, ellipsis on overflow */
   .danoa-top-bar__title {
-    min-width: 0;
-    overflow: hidden;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    flex: 1 !important;
   }
 
   .danoa-top-bar__title-text {
+    display: block !important;
     font-size: 0.92rem !important;
     font-weight: 700 !important;
     color: #1e1b2e !important;
+    width: 100% !important;
     max-width: 100% !important;
     text-align: center !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     padding: 0 !important;
+    line-height: 1.3 !important;
   }
 
-  /* Actions section: collapses to single icon on mobile right */
-  .danoa-top-bar__actions {
-    grid-column: 1 !important;
-    justify-content: flex-end !important;
-    gap: 6px !important;
-  }
-
-  /* Noa pill: hide label, show only icon on small screens */
+  /* --- HIDE on mobile (accessible via sidebar drawer) --- */
   .danoa-noa-pill {
     display: none !important;
   }
 
-  /* Avatar badge: stays as compact circle */
   .danoa-avatar-badge {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    font-size: 0.84rem !important;
+    display: none !important;
   }
 
-  /* Download button in header: hide on mobile if space is tight */
-  .danoa-top-bar__actions .danoa-top-action-btn {
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 8px !important;
-  }
-
-  /* Mobile menu trigger (sidebar button): right side of grid col 3 */
-  .chat-shell.view-chat .top-bar .chat-sidebar-toggle {
-    grid-column: 3 !important;
-    justify-self: center !important;
-    width: 36px !important;
-    height: 36px !important;
-    border-radius: 10px !important;
-    background: #f8f9fc !important;
-    border: 1px solid rgba(226, 230, 240, 0.9) !important;
-    color: #4a4a5e !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    transition: background 160ms ease, color 160ms ease !important;
-  }
-
-  .chat-shell.view-chat .top-bar .chat-sidebar-toggle:hover,
-  .chat-shell.view-chat .top-bar .chat-sidebar-toggle:focus-visible {
-    background: #eee8ff !important;
-    color: #6d28d9 !important;
-    border-color: rgba(139, 92, 246, 0.35) !important;
-  }
-
-  .chat-shell.view-chat .top-bar .chat-sidebar-toggle:focus-visible {
-    outline: 3px solid rgba(109, 40, 217, 0.25) !important;
-    outline-offset: 2px !important;
+  .danoa-top-bar__actions .danoa-top-action-btn,
+  .danoa-top-bar__actions .header-action-btn {
+    display: none !important;
   }
 
   /* --- Mobile Sidebar: Full overlay drawer from right --- */
@@ -5426,20 +5454,68 @@
     display: none !important;
   }
 
+  /* Restore desktop header: flex, space-between, full height */
   .chat-shell.view-chat .top-bar.danoa-top-bar {
     display: flex !important;
-    grid-template-columns: unset !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    overflow: visible !important;
   }
 
-  .danoa-top-bar__title-wrap {
-    display: flex !important;
+  /* Hide mobile-only elements */
+  .danoa-mobile-sidebar-btn,
+  .danoa-header-spacer {
+    display: none !important;
+  }
+
+  /* Restore desktop title-wrap */
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-top-bar__title-wrap {
+    flex: 1 !important;
     justify-content: flex-start !important;
+    min-width: 0;
   }
 
+  /* Restore desktop actions */
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-top-bar__actions {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    gap: 10px !important;
+    overflow: visible !important;
+  }
+
+  /* Restore all desktop-visible elements */
   .danoa-noa-pill {
     display: inline-flex !important;
   }
+
+  .danoa-avatar-badge {
+    display: flex !important;
+  }
+
+  .danoa-top-bar__actions .danoa-top-action-btn,
+  .danoa-top-bar__actions .header-action-btn {
+    display: inline-flex !important;
+  }
+
+  /* Restore title-wrap gap and flex-start */
+  .danoa-top-bar__title-wrap {
+    display: flex !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+  }
+
+  /* Restore title-text desktop alignment */
+  .danoa-top-bar__title-text {
+    text-align: right !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
 }
+
 
 /* ============================================================
    SEARCH MODAL: ensure it still works on mobile

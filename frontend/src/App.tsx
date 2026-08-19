@@ -4190,21 +4190,25 @@ notify.error(message);
         {currentView === 'chat' ? (
         <header className="top-bar danoa-top-bar" role="banner">
           <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
-          
-          <div className="danoa-top-bar__title-wrap">
-            {!sidebarOpen ? (
-              <button
-                ref={chatSidebarToggleRef}
-                className="header-action-btn chat-sidebar-toggle"
-                onClick={() => setSidebarOpen(true)}
-                type="button"
-                aria-label="باز کردن پنل گفتگوها"
-                title="باز کردن پنل گفتگوها"
-              >
-                <Icon name="sidebar" size={19} aria-hidden="true" />
-              </button>
-            ) : null}
 
+          {/* Mobile sidebar toggle — direct child of header for flex layout */}
+          {!sidebarOpen ? (
+            <button
+              ref={chatSidebarToggleRef}
+              className="header-action-btn chat-sidebar-toggle danoa-mobile-sidebar-btn"
+              onClick={() => setSidebarOpen(true)}
+              type="button"
+              aria-label="باز کردن پنل گفتگوها"
+              title="باز کردن پنل گفتگوها"
+            >
+              <Icon name="sidebar" size={19} aria-hidden="true" />
+            </button>
+          ) : (
+            /* Balance spacer when toggle is hidden (sidebar open) */
+            <div className="danoa-header-spacer" aria-hidden="true" />
+          )}
+
+          <div className="danoa-top-bar__title-wrap">
             <div className="danoa-top-bar__title">
               <span className="danoa-top-bar__title-text">{activeConversation?.title || DEFAULT_TITLE}</span>
             </div>
@@ -4254,6 +4258,7 @@ notify.error(message);
             </button>
           </div>
         </header>
+
         ) : null}
 
         {currentView === 'chat' ? (
