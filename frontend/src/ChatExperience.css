@@ -5172,6 +5172,48 @@
     opacity: 0.45 !important;
   }
 
+  /* ============================================================
+     PHASE 5.3 — TABLET COMPOSER & SUGGESTIONS
+     ============================================================ */
+  .chat-shell.view-chat .input-area.danoa-input-area {
+    padding: 10px var(--shell-padding-tablet) 18px !important;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .input-area.danoa-input-area {
+    padding: 14px var(--shell-padding-tablet) 22px !important;
+  }
+
+  .chat-shell.view-chat .danoa-input-shell {
+    width: min(100%, 740px) !important;
+    max-width: 740px !important;
+    margin: 0 auto !important;
+    gap: 10px !important;
+  }
+
+  .chat-shell.view-chat .danoa-suggestions-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    overflow-x: visible !important;
+  }
+
+  .chat-shell.view-chat .danoa-suggestion-chip {
+    white-space: nowrap !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    font-size: 0.78rem !important;
+    padding: 5px 13px !important;
+  }
+
+  .chat-shell.view-chat .danoa-disclaimer {
+    font-size: 0.74rem !important;
+    color: #94a3b8 !important;
+    margin-top: 2px !important;
+    text-align: center !important;
+  }
+
   /* Sidebar hitbox (backdrop) visible on tablet */
   .sidebar-hitbox {
     display: block;
@@ -5431,7 +5473,7 @@
   }
 
   .chat-shell.view-chat .input-area.danoa-input-area {
-    padding: 10px var(--shell-padding-mobile) calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 6px var(--shell-padding-mobile) calc(10px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* Prevent horizontal overflow */
@@ -5445,13 +5487,15 @@
   .danoa-input-shell {
     width: 100% !important;
     max-width: 100% !important;
+    margin: 0 auto !important;
+    gap: 8px !important;
   }
 
   /* ============================================================
      PHASE 5.2 — MOBILE HERO & FEATURE CARDS REFINEMENT
      ============================================================ */
   .chat-shell.view-chat .chat-card.chat-card--empty .messages-area {
-    padding: clamp(12px, 2.5vh, 20px) var(--shell-padding-mobile) 0 !important;
+    padding: clamp(10px, 2vh, 18px) var(--shell-padding-mobile) 0 !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-empty-hero {
@@ -5493,7 +5537,7 @@
 
   /* Hero Heading Block */
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-hero-heading-block {
-    margin-bottom: 16px !important;
+    margin-bottom: 14px !important;
     padding: 0 4px !important;
     text-align: center !important;
   }
@@ -5641,6 +5685,201 @@
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:active .danoa-shortcut-arrow {
     color: #7c3aed !important;
   }
+
+  /* ============================================================
+     PHASE 5.3 — MOBILE COMPOSER & HORIZONTAL SUGGESTION CHIPS
+     ============================================================ */
+
+  /* Mobile Composer Capsule:
+     - 58–64px height
+     - Full container width
+     - Clean RTL typing layout with balanced buttons
+  */
+  .chat-shell.view-chat .danoa-composer-capsule {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 56px !important;
+    height: auto !important;
+    padding: 5px 6px 5px 6px !important;
+    gap: 6px !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(226, 232, 240, 0.95) !important;
+    box-shadow: 0 2px 14px rgba(99, 14, 212, 0.03), 0 1px 3px rgba(0, 0, 0, 0.015) !important;
+    transition: border-color 160ms ease, box-shadow 160ms ease !important;
+    direction: ltr !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Focus state: no layout shift, no height jump, clean purple glow */
+  .chat-shell.view-chat .danoa-composer-capsule:focus-within {
+    border-color: rgba(124, 58, 237, 0.45) !important;
+    box-shadow: 0 3px 18px rgba(124, 58, 237, 0.08), 0 0 0 2px rgba(124, 58, 237, 0.12) !important;
+  }
+
+  /* Send / Voice Circle: 44px primary action */
+  .chat-shell.view-chat .danoa-send-circle {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    flex: 0 0 44px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #7c3aed, #630ed4) !important;
+    box-shadow: 0 3px 12px rgba(99, 14, 212, 0.24) !important;
+    border: none !important;
+    cursor: pointer !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .chat-shell.view-chat .danoa-send-circle:hover {
+    transform: none !important;
+    box-shadow: 0 3px 12px rgba(99, 14, 212, 0.24) !important;
+  }
+
+  .chat-shell.view-chat .danoa-send-circle:active {
+    transform: scale(0.96) !important;
+    box-shadow: 0 1px 6px rgba(99, 14, 212, 0.2) !important;
+  }
+
+  /* Attach Plus Circle: 38px secondary action */
+  .chat-shell.view-chat .danoa-attach-circle {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    flex: 0 0 38px !important;
+    border-radius: 50% !important;
+    background: #f8fafc !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    color: #64748b !important;
+    cursor: pointer !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .chat-shell.view-chat .danoa-attach-circle:hover {
+    transform: none !important;
+  }
+
+  .chat-shell.view-chat .danoa-attach-circle:active {
+    transform: scale(0.96) !important;
+    background: #f1f5f9 !important;
+  }
+
+  /* Composer Text Area: clean RTL input */
+  .chat-shell.view-chat .danoa-composer-inner {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    padding: 0 4px !important;
+  }
+
+  .chat-shell.view-chat .danoa-composer-inner .message-field {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .chat-shell.view-chat .danoa-composer-inner .message-field textarea {
+    font-size: 0.92rem !important;
+    line-height: 1.45 !important;
+    min-height: 36px !important;
+    max-height: 110px !important;
+    padding: 7px 4px !important;
+    text-align: right !important;
+    direction: rtl !important;
+    color: #1e1b2e !important;
+    caret-color: #7c3aed !important;
+  }
+
+  /* ============================================================
+     SUGGESTION CHIPS — Mobile Horizontal Touch-Scroll Row
+     ============================================================ */
+  .chat-shell.view-chat .danoa-suggestions-row,
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-suggestions-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-snap-type: x proximity !important;
+    scrollbar-width: none !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 2px 2px 4px 2px !important;
+    margin: 0 !important;
+    direction: rtl !important;
+  }
+
+  .chat-shell.view-chat .danoa-suggestions-row::-webkit-scrollbar,
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-suggestions-row::-webkit-scrollbar {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
+  }
+
+  /* Suggestion Chip:
+     - Single row item
+     - Auto width based on text
+     - 34px height
+     - Clean touch active feedback
+  */
+  .chat-shell.view-chat .danoa-suggestion-chip {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 5px 12px !important;
+    font-size: 0.76rem !important;
+    font-weight: 550 !important;
+    color: #64748b !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(226, 232, 240, 0.85) !important;
+    border-radius: 999px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.015) !important;
+    scroll-snap-align: start !important;
+    direction: rtl !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .chat-shell.view-chat .danoa-suggestion-chip:hover {
+    transform: none !important;
+  }
+
+  .chat-shell.view-chat .danoa-suggestion-chip:active {
+    background: #f5f0ff !important;
+    border-color: rgba(139, 92, 246, 0.45) !important;
+    color: #5b21b6 !important;
+    transform: scale(0.97) !important;
+  }
+
+  .chat-shell.view-chat .danoa-suggestion-chip svg {
+    color: #94a3b8 !important;
+    flex: 0 0 auto !important;
+  }
+
+  .chat-shell.view-chat .danoa-suggestion-chip:active svg {
+    color: #7c3aed !important;
+  }
+
+  /* Disclaimer on Mobile */
+  .chat-shell.view-chat .danoa-disclaimer,
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-disclaimer {
+    font-size: 0.72rem !important;
+    color: #94a3b8 !important;
+    margin: 2px 0 0 0 !important;
+    text-align: center !important;
+    line-height: 1.35 !important;
+    user-select: none !important;
+  }
 }
 
 /* ============================================================
@@ -5706,7 +5945,51 @@
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-desc {
     font-size: 0.7rem !important;
   }
+
+  /* Small mobile composer & suggestions */
+  .chat-shell.view-chat .danoa-composer-capsule {
+    min-height: 52px !important;
+    padding: 4px 5px 4px 5px !important;
+    gap: 4px !important;
+  }
+
+  .chat-shell.view-chat .danoa-send-circle {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    flex: 0 0 40px !important;
+  }
+
+  .chat-shell.view-chat .danoa-attach-circle {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    flex: 0 0 36px !important;
+  }
+
+  .chat-shell.view-chat .danoa-composer-inner .message-field textarea {
+    font-size: 0.86rem !important;
+    padding: 6px 3px !important;
+    min-height: 34px !important;
+  }
+
+  .chat-shell.view-chat .danoa-suggestion-chip {
+    height: 32px !important;
+    min-height: 32px !important;
+    font-size: 0.72rem !important;
+    padding: 4px 10px !important;
+  }
+
+  .chat-shell.view-chat .danoa-disclaimer,
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-disclaimer {
+    font-size: 0.68rem !important;
+    margin: 1px 0 0 0 !important;
+  }
 }
+
 
 
 /* ============================================================
@@ -5819,7 +6102,24 @@
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
+
+  /* Restore desktop suggestions row */
+  .chat-shell.view-chat .danoa-suggestions-row,
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-suggestions-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    gap: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
 }
+
 
 
 /* ============================================================
