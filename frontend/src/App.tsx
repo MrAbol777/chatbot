@@ -1253,27 +1253,25 @@ function ChatApp() {
   };
   const [conversationSearchTerm, setConversationSearchTerm] = useState('');
   const [conversationSearchOpen, setConversationSearchOpen] = useState(false);
+  const [conversationSearchActiveIndex, setConversationSearchActiveIndex] = useState(-1);
   const conversationSearchInputRef = useRef<HTMLInputElement>(null);
-  const conversationSidebarSearchInputRef = useRef<HTMLInputElement>(null);
   const conversationSearchToggleRef = useRef<HTMLButtonElement>(null);
   const chatSidebarToggleRef = useRef<HTMLButtonElement>(null);
+
+  const closeConversationSearch = () => {
+    setConversationSearchOpen(false);
+    setConversationSearchTerm('');
+    setConversationSearchActiveIndex(-1);
+    window.requestAnimationFrame(() => conversationSearchToggleRef.current?.focus());
+  };
 
   useEffect(() => {
     if (!conversationSearchOpen) return;
 
     const focusFrame = window.requestAnimationFrame(() => conversationSearchInputRef.current?.focus());
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      setConversationSearchOpen(false);
-      setConversationSearchTerm('');
-      window.requestAnimationFrame(() => conversationSearchToggleRef.current?.focus());
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
+    setConversationSearchActiveIndex(-1);
     return () => {
       window.cancelAnimationFrame(focusFrame);
-      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [conversationSearchOpen]);
 
@@ -3983,15 +3981,43 @@ notify.error(message);
       <div className="bg-blob blob-purple" />
       {currentView === 'chat' ? <a className="app-skip-link" href="#chat-messages">رفتن به پیام‌ها</a> : null}
 
-      {currentView === 'chat' && conversationSearchOpen ? (
+      {currentView === 'chat' && conversationSearchOpen ? (() => {
+        const searchQuery = conversationSearchTerm.trim();
+        const searchModalResults = searchQuery
+          ? visibleConversations
+          : orderedConversations.slice(0, 7).map((conversation, index) => ({ conversation, index }));
+        const handleSearchResultClick = (conversationId: string) => {
+          setActiveConversationId(conversationId);
+          closeConversationSearch();
+          navigateToConversation(conversationId);
+        };
+        const handleSearchKeyDown = (event: React.KeyboardEvent) => {
+          if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setConversationSearchActiveIndex((prev) =>
+              searchModalResults.length ? Math.min(prev + 1, searchModalResults.length - 1) : -1
+            );
+          } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setConversationSearchActiveIndex((prev) => Math.max(prev - 1, -1));
+            if (conversationSearchActiveIndex <= 0) {
+              conversationSearchInputRef.current?.focus();
+            }
+          } else if (event.key === 'Enter' && conversationSearchActiveIndex >= 0) {
+            const target = searchModalResults[conversationSearchActiveIndex];
+            if (target) handleSearchResultClick(target.conversation.id);
+          } else if (event.key === 'Escape') {
+            event.preventDefault();
+            closeConversationSearch();
+          }
+        };
+        return (
         <div
           className="conversation-search-modal-backdrop"
           role="presentation"
           onMouseDown={(event) => {
             if (event.target !== event.currentTarget) return;
-            setConversationSearchOpen(false);
-            setConversationSearchTerm('');
-            window.requestAnimationFrame(() => conversationSearchToggleRef.current?.focus());
+            closeConversationSearch();
           }}
         >
           <section
@@ -4001,17 +4027,14 @@ notify.error(message);
             aria-modal="true"
             aria-labelledby="conversation-search-modal-title"
             onMouseDown={(event) => event.stopPropagation()}
+            onKeyDown={handleSearchKeyDown}
           >
             <div className="conversation-search-modal__header">
               <h2 id="conversation-search-modal-title">جست‌وجوی گفتگوها</h2>
               <button
                 type="button"
                 className="conversation-search-modal__close"
-                onClick={() => {
-                  setConversationSearchOpen(false);
-                  setConversationSearchTerm('');
-                  window.requestAnimationFrame(() => conversationSearchToggleRef.current?.focus());
-                }}
+                onClick={closeConversationSearch}
                 aria-label="بستن جست‌وجوی گفتگوها"
                 title="بستن"
               >
@@ -4026,40 +4049,46 @@ notify.error(message);
                 type="search"
                 dir="rtl"
                 value={conversationSearchTerm}
-                onChange={(event) => setConversationSearchTerm(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setConversationSearchOpen(false);
-                    setConversationSearchTerm('');
-                    window.requestAnimationFrame(() => conversationSearchToggleRef.current?.focus());
-                  }
+                onChange={(event) => {
+                  setConversationSearchTerm(event.target.value);
+                  setConversationSearchActiveIndex(-1);
                 }}
-                placeholder="جستجو در عنوان یا متن گفتگو"
+                placeholder="جستجوی گفتگوها..."
                 aria-label="جستجو در گفتگوها"
+                autoComplete="off"
               />
+              {conversationSearchTerm ? (
+                <button
+                  type="button"
+                  className="conversation-search-modal__clear"
+                  onClick={() => {
+                    setConversationSearchTerm('');
+                    setConversationSearchActiveIndex(-1);
+                    conversationSearchInputRef.current?.focus();
+                  }}
+                  aria-label="پاک کردن جستجو"
+                  title="پاک کردن"
+                >
+                  <Icon name="x-close" size={16} aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
 
             <div className="conversation-search-modal__results" aria-live="polite">
               <div className="conversation-search-modal__results-heading">
-                <span>{conversationSearchTerm.trim() ? 'نتایج جستجو' : 'گفتگوهای اخیر'}</span>
-                <span>{new Intl.NumberFormat('fa-IR').format(visibleConversations.length)}</span>
+                <span>{searchQuery ? 'نتایج جستجو' : 'گفتگوهای اخیر'}</span>
+                <span>{new Intl.NumberFormat('fa-IR').format(searchModalResults.length)}</span>
               </div>
 
-              {visibleConversations.length ? (
+              {searchModalResults.length > 0 ? (
                 <div className="conversation-search-modal__result-list">
-                  {visibleConversations.map(({ conversation }) => (
+                  {searchModalResults.map(({ conversation }, listIndex) => (
                     <button
                       key={conversation.id}
                       type="button"
-                      className="conversation-search-modal__result"
-                      onClick={() => {
-                        setActiveConversationId(conversation.id);
-                        setConversationSearchOpen(false);
-                        setConversationSearchTerm('');
-                        navigateToConversation(conversation.id);
-                      }}
+                      className={`conversation-search-modal__result${conversationSearchActiveIndex === listIndex ? ' is-active' : ''}`}
+                      onClick={() => handleSearchResultClick(conversation.id)}
+                      tabIndex={0}
                     >
                       <span className="conversation-search-modal__result-icon" aria-hidden="true">
                         <Icon name="chat-bubble" size={20} />
@@ -4072,19 +4101,28 @@ notify.error(message);
                     </button>
                   ))}
                 </div>
-              ) : (
+              ) : searchQuery ? (
                 <div className="conversation-search-modal__empty">
                   <span className="conversation-search-modal__empty-icon" aria-hidden="true">
                     <Icon name="search" size={22} />
                   </span>
                   <strong>گفتگویی پیدا نشد</strong>
-                  <span>عبارت دیگری را امتحان کن.</span>
+                  <span>عبارت دیگری را جستجو کنید.</span>
+                </div>
+              ) : (
+                <div className="conversation-search-modal__empty">
+                  <span className="conversation-search-modal__empty-icon" aria-hidden="true">
+                    <Icon name="chat-bubble" size={22} />
+                  </span>
+                  <strong>هنوز گفتگویی نداری</strong>
+                  <span>اولین گفتگو رو شروع کن!</span>
                 </div>
               )}
             </div>
           </section>
         </div>
-      ) : null}
+        );
+      })() : null}
 
       {imagePreview ? (
         <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="پیش‌نمایش تصویر" onClick={() => setImagePreview(null)}>
@@ -4247,8 +4285,8 @@ notify.error(message);
                 className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
                 onClick={() => {
                   setConversationSearchTerm('');
-                  setConversationSearchOpen(false);
-                  window.requestAnimationFrame(() => conversationSidebarSearchInputRef.current?.focus());
+                  setConversationSearchActiveIndex(-1);
+                  setConversationSearchOpen(true);
                 }}
                 aria-label="جستجوی گفتگوها"
                 title="جستجوی گفتگوها"
