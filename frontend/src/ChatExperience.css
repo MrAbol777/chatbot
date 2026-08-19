@@ -3217,6 +3217,11 @@
   box-shadow: 0 8px 18px rgba(109, 40, 217, .2);
 }
 
+/* Icon سفید روی background بنفش — بدون این rule آیکن بنفش روی بنفش نامرئی است */
+.chat-history-sidebar .conversation-new-chat-btn svg {
+  color: #fff;
+}
+
 .chat-history-sidebar .conversation-new-chat-btn:hover,
 .chat-history-sidebar .conversation-new-chat-btn:focus-visible {
   color: #fff;
@@ -3229,7 +3234,7 @@
 
 .chat-history-sidebar .conversation-home-list {
   gap: 16px;
-  padding: 0 14px 120px;
+  padding: 0 14px 12px;
 }
 
 .chat-history-sidebar .conversation-sidebar-section {
@@ -4816,18 +4821,22 @@
 
 /* --------------------------------------------------------------------------
    COLLAPSED RAIL OVERRIDES ONLY (Strictly scoped to .is-collapsed)
+   Phase 4.2 — Premium Navigation Rail
    -------------------------------------------------------------------------- */
 @media (min-width: 1024px) {
-  /* Header Rail */
+
+  /* ── TOP GROUP: Logo → Toggle → Search ─────────────────────────────────── */
+
+  /* Remove border-bottom so header + primary-actions form one unbroken cluster */
   .chat-history-sidebar.is-collapsed .conversation-home-header {
     min-height: auto !important;
-    padding: 12px 0 10px !important;
+    padding: 14px 0 6px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 6px !important;
     justify-content: center !important;
-    border-bottom: 1px solid var(--danoa-chat-border) !important;
+    border-bottom: none !important;
   }
 
   .chat-history-sidebar.is-collapsed .conversation-home-brand {
@@ -4837,107 +4846,139 @@
     margin: 0 !important;
   }
 
+  /* Logo mark: centered, no distortion */
   .chat-history-sidebar.is-collapsed .conversation-home-brand__mark {
-    width: 38px !important;
-    height: 38px !important;
-    min-width: 38px !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
     margin: 0 auto !important;
   }
 
+  /* Brand text: hidden in collapsed mode */
   .chat-history-sidebar.is-collapsed .conversation-home-brand__text {
     display: none !important;
   }
 
+  /* Toggle & Search stacked column */
   .chat-history-sidebar.is-collapsed .conversation-home-header-actions {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 4px !important;
     width: 100% !important;
   }
 
+  /* Toggle & Search: 40 × 40px — same size as nav items */
   .chat-history-sidebar.is-collapsed .conversation-home-search-toggle,
   .chat-history-sidebar.is-collapsed .conversation-sidebar-toggle-btn {
-    width: 38px !important;
-    min-width: 38px !important;
-    height: 38px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    transition: color 180ms ease, background-color 180ms ease !important;
   }
 
-  /* Primary Action Rail (New Chat) */
+  /* ── NEW CHAT: compact top padding ties it to the header cluster above ─── */
   .chat-history-sidebar.is-collapsed .conversation-home-primary-actions {
-    padding: 10px 0 !important;
+    padding: 4px 0 16px !important;
     display: flex !important;
     justify-content: center !important;
   }
 
+  /* New Chat: 40 × 40px purple pill, white icon, lift on hover */
   .chat-history-sidebar.is-collapsed .conversation-new-chat-btn {
-    width: 42px !important;
-    min-width: 42px !important;
-    height: 42px !important;
-    min-height: 42px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
     padding: 0 !important;
     border-radius: 12px !important;
     display: grid !important;
     place-items: center !important;
     margin: 0 auto !important;
-    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.22) !important;
+    box-shadow: 0 2px 8px rgba(109, 40, 217, 0.18) !important;
+    transition: background-color 180ms ease,
+                transform 180ms ease,
+                box-shadow 180ms ease !important;
   }
 
+  .chat-history-sidebar.is-collapsed .conversation-new-chat-btn:hover {
+    box-shadow: 0 5px 16px rgba(109, 40, 217, 0.30) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .chat-history-sidebar.is-collapsed .conversation-new-chat-btn:active {
+    transform: translateY(0) scale(0.97) !important;
+    box-shadow: 0 1px 4px rgba(109, 40, 217, 0.14) !important;
+  }
+
+  /* Hide text label only — span با کلاس label مخفی می‌شود، نه icon */
   .chat-history-sidebar.is-collapsed .conversation-new-chat-btn > span {
     display: none !important;
   }
 
-  /* History list in collapsed rail */
+  /* Root Cause Fix: .conversation-new-chat-btn svg { color: accent } مستقیم روی SVG اعمال می‌شود
+     و از color: #fff روی button ارث نمی‌برد → icon بنفش روی بنفش = نامرئی.
+     این rule با specificity بالاتر آن را override می‌کند. */
+  .chat-history-sidebar.is-collapsed .conversation-new-chat-btn svg {
+    color: #fff !important;
+  }
+
+  /* ── SPACER: history hidden, nav auto-pushes to bottom ─────────────────── */
   .chat-history-sidebar.is-collapsed .conversation-home-list,
   .chat-history-sidebar.is-collapsed .conversation-history-heading {
     display: none !important;
   }
 
-  /* Bottom Navigation Rail */
+  /* ── BOTTOM GROUP: Studio → Wallet → Profile ──────────────────────────── */
   .chat-history-sidebar.is-collapsed .conversation-sidebar-nav {
     margin-top: auto !important;
-    padding: 10px 0 14px !important;
+    padding: 10px 0 12px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 4px !important;
     border-top: 1px solid var(--danoa-chat-border) !important;
-    background: rgba(255, 255, 255, 0.95) !important;
+    background: transparent !important;
   }
 
+  /* Nav items: 40 × 40px, centered icon only, smooth hover */
   .chat-history-sidebar.is-collapsed .conversation-nav-item {
-    width: 42px !important;
-    min-width: 42px !important;
-    height: 42px !important;
-    min-height: 42px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
     padding: 0 !important;
     border-radius: 10px !important;
     display: grid !important;
     grid-template-columns: 1fr !important;
     place-items: center !important;
     margin: 0 auto !important;
+    transition: color 180ms ease, background-color 180ms ease !important;
   }
 
+  /* Subtle purple tint on hover — not dominant */
   .chat-history-sidebar.is-collapsed .conversation-nav-item:hover {
-    background: #f5f0ff !important;
+    background: rgba(109, 40, 217, 0.07) !important;
     color: var(--danoa-chat-accent, #7c3aed) !important;
   }
 
-  /* Hide Text & Chevron in Collapsed Rail */
+  /* Hide text labels & trailing chevrons — only leading icon shows */
   .chat-history-sidebar.is-collapsed .conversation-nav-item > span:not(.conversation-nav-profile__avatar),
   .chat-history-sidebar.is-collapsed .conversation-nav-item > svg:last-child {
     display: none !important;
   }
 
+  /* Profile item: remove internal separator */
   .chat-history-sidebar.is-collapsed .conversation-nav-profile {
     margin-top: 0 !important;
     padding-top: 0 !important;
     border-top: 0 !important;
   }
 
+  /* Profile avatar: proportional to 40px container */
   .chat-history-sidebar.is-collapsed .conversation-nav-profile__avatar {
-    width: 32px !important;
-    height: 32px !important;
+    width: 30px !important;
+    height: 30px !important;
     margin: 0 auto !important;
   }
 }

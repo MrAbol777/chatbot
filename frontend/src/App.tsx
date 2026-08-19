@@ -4372,16 +4372,12 @@ notify.error(message);
               title={!sidebarOpen ? 'استودیو' : undefined}
               aria-label="استودیو"
             >
-              <span className="conversation-nav-item__icon-wrap">
-                <Icon name="grid" size={21} aria-hidden="true" />
-              </span>
-              <span className="conversation-nav-item__label">
+              <Icon name="grid" size={21} aria-hidden="true" />
+              <span>
                 <strong>استودیو</strong>
                 <small>ساخت تصویر و ویدیو</small>
               </span>
-              <span className="conversation-nav-item__arrow">
-                <Icon name="chevron-left" size={18} aria-hidden="true" />
-              </span>
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
             </button>
 
             <button
@@ -4391,16 +4387,12 @@ notify.error(message);
               title={!sidebarOpen ? 'کیف پول نوآ' : undefined}
               aria-label="کیف پول نوآ"
             >
-              <span className="conversation-nav-item__icon-wrap">
-                <Icon name="credit-card" size={21} aria-hidden="true" />
-              </span>
-              <span className="conversation-nav-item__label">
+              <Icon name="credit-card" size={21} aria-hidden="true" />
+              <span>
                 <strong>کیف پول نوآ</strong>
                 <small>{noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ موجودی` : 'مدیریت اعتبار'}</small>
               </span>
-              <span className="conversation-nav-item__arrow">
-                <Icon name="chevron-left" size={18} aria-hidden="true" />
-              </span>
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
             </button>
 
             <button
@@ -4413,13 +4405,11 @@ notify.error(message);
               <span className="conversation-nav-profile__avatar" aria-hidden="true">
                 {String(profile?.name || 'د').trim().charAt(0)}
               </span>
-              <span className="conversation-nav-item__label">
+              <span>
                 <strong>{profile?.name || 'پروفایل من'}</strong>
                 <small>تنظیمات حساب کاربری</small>
               </span>
-              <span className="conversation-nav-item__arrow">
-                <Icon name="chevron-left" size={18} aria-hidden="true" />
-              </span>
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
             </button>
           </nav>
         </aside>
