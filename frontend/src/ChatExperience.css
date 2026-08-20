@@ -1605,47 +1605,7 @@
   display: none;
 }
 
-@media (max-width: 1023px) {
-  .chat-shell.view-chat .chat-card,
-  .chat-shell.view-chat.sidebar-closed .chat-card {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "notice"
-      "header"
-      "messages"
-      "input";
-    transition: none;
-  }
 
-  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
-    position: fixed;
-    inset: 0 0 0 auto;
-    width: min(86vw, 340px);
-    min-width: 0;
-    transform: translateX(104%);
-    box-shadow: -18px 0 50px rgba(31, 36, 48, .16);
-  }
-
-  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar.open {
-    transform: translateX(0);
-  }
-
-  .chat-shell.view-chat .sidebar-hitbox {
-    position: fixed;
-    inset: 0;
-    z-index: 25;
-    display: block;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    border: 0;
-    background: rgba(31, 36, 48, .42);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-    cursor: default;
-    animation: danaoSidebarScrimIn 180ms ease-out;
-  }
-}
 
 @media (max-width: 767px) {
   .chat-shell.view-chat .top-bar {
@@ -5067,27 +5027,6 @@
     padding: 0 var(--shell-padding-tablet) !important;
   }
 
-  /* Sidebar: position:absolute drawer on tablet */
-  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
-    position: fixed !important;
-    top: 0;
-    right: 0;
-    height: 100dvh !important;
-    width: min(380px, 88vw) !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    border-radius: 0 !important;
-    transform: translateX(100%);
-    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1) !important;
-    z-index: 50 !important;
-    border-inline-start: 1px solid rgba(235, 234, 240, 0.85) !important;
-    box-shadow: -12px 0 40px rgba(25, 19, 50, 0.1) !important;
-    will-change: transform;
-  }
-
-  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar.open {
-    transform: translateX(0) !important;
-  }
 
   /* Chat card: remove sidebar grid column on tablet */
   .chat-shell.view-chat .chat-card,
@@ -6006,36 +5945,518 @@
 }
 
 /* ============================================================
-   PREVENT DESKTOP SIDEBAR GHOST ON MOBILE/TABLET
-   When sidebar is desktop static grid cell, hide it on small screens.
+   PHASE 5.4 — PRODUCTION-GRADE MOBILE / TABLET SIDEBAR DRAWER
+   Breakpoints:
+     Desktop  : >= 1200px (LOCKED — Expanded & Collapsed Rail)
+     Tablet   : 768px – 1199px (Drawer from right)
+     Mobile   : < 768px (Drawer from right)
    ============================================================ */
-@media (max-width: 1199px) {
-  /* Desktop grid layout (sidebar as grid area) must not apply < 1200px */
-  @media (max-width: 1199px) {
-    .chat-shell.view-chat .chat-card {
-      grid-template-columns: minmax(0, 1fr) !important;
-    }
 
-    /* Ensure no margin-right/left ghost from desktop sidebar track */
-    .chat-shell.view-chat .chat-card > .sidebar {
-      grid-area: unset !important;
-      position: fixed !important;
-    }
+@media (max-width: 1199px) {
+  /* 1. Chat card layout: strictly single-column */
+  .chat-shell.view-chat .chat-card,
+  .chat-shell.view-chat.sidebar-open .chat-card,
+  .chat-shell.view-chat.sidebar-closed .chat-card,
+  .chat-shell.view-chat .chat-card.chat-card--empty {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas:
+      "notice"
+      "header"
+      "messages"
+      "input" !important;
+    transition: none !important;
+  }
+
+  /* 2. Backdrop (sidebar-hitbox) */
+  .chat-shell.view-chat .sidebar-hitbox {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 900 !important;
+    display: block !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: rgba(15, 23, 42, 0.32) !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+    cursor: pointer !important;
+    animation: danaoSidebarScrimIn 220ms ease-out both !important;
+  }
+
+  /* 3. Drawer Container (Fixed Right Off-Canvas) */
+  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
+    grid-area: unset !important;
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: auto !important;
+    inset: 0 0 0 auto !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    width: min(88vw, 340px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-inline-start: 1px solid rgba(225, 222, 231, 0.92) !important;
+    border-radius: 0 !important;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(124, 58, 237, 0.05), transparent 36%),
+      #fbfaff !important;
+    box-shadow: -14px 0 45px rgba(15, 23, 42, 0.16) !important;
+    z-index: 950 !important;
+    box-sizing: border-box !important;
+    will-change: transform, opacity;
+
+    /* Off-canvas when closed */
+    transform: translateX(105%) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transition:
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 180ms ease-out,
+      visibility 0s linear 260ms !important;
+  }
+
+  /* When Drawer is Open */
+  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar.open,
+  .chat-shell.view-chat.sidebar-open .sidebar.conversation-home.chat-history-sidebar {
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transition:
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 180ms ease-out,
+      visibility 0s !important;
+  }
+
+  /* 4. Drawer Header */
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-header {
+    flex: 0 0 auto !important;
+    min-height: 60px !important;
+    max-height: none !important;
+    height: auto !important;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 14px 12px 14px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    border-bottom: 1px solid rgba(230, 228, 238, 0.85) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  /* Brand */
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__mark {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    flex: 0 0 38px !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 12px !important;
+    background: var(--chat-send-gradient, linear-gradient(135deg, #7c3aed, #6d28d9)) !important;
+    box-shadow: 0 6px 14px rgba(109, 40, 217, 0.22) !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__mark img {
+    width: 22px !important;
+    height: 22px !important;
+    object-fit: contain !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__text {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__text strong {
+    display: block !important;
+    font-size: 0.94rem !important;
+    font-weight: 700 !important;
+    color: #1e1b2e !important;
+    line-height: 1.25 !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__text small {
+    display: block !important;
+    font-size: 0.72rem !important;
+    color: #71717a !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Header actions (Search + Close) */
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 10px !important;
+    display: grid !important;
+    place-items: center !important;
+    background: transparent !important;
+    color: #64748b !important;
+    border: 0 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    transition: background 160ms ease, color 160ms ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle:hover,
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle:active,
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle.is-active {
+    background: #f1eaff !important;
+    color: #7c3aed !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-toggle-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 10px !important;
+    display: grid !important;
+    place-items: center !important;
+    background: transparent !important;
+    color: #64748b !important;
+    border: 0 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    transition: background 160ms ease, color 160ms ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-toggle-btn:hover,
+  .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-toggle-btn:active {
+    background: #f1eaff !important;
+    color: #7c3aed !important;
+  }
+
+  /* 5. Primary Action (New Chat Button) */
+  .chat-shell.view-chat .chat-history-sidebar .conversation-home-primary-actions {
+    flex: 0 0 auto !important;
+    padding: 10px 14px 8px !important;
+    display: block !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-new-chat-btn {
+    width: 100% !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 13px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    background: var(--chat-send-gradient, linear-gradient(135deg, #7c3aed, #6d28d9)) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(109, 40, 217, 0.25) !important;
+    border: 0 !important;
+    cursor: pointer !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    padding: 0 14px !important;
+    transition: transform 160ms ease, box-shadow 160ms ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-new-chat-btn:active {
+    transform: scale(0.98) !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-new-chat-btn__label {
+    display: inline !important;
+    color: #ffffff !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-new-chat-btn svg {
+    color: #ffffff !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* 6. History List (Scrollable Area) */
+  .chat-shell.view-chat .chat-history-sidebar .conversation-list.conversation-home-list {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 4px 10px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(124, 58, 237, 0.25) transparent !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-list.conversation-home-list::-webkit-scrollbar {
+    width: 5px !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-list.conversation-home-list::-webkit-scrollbar-thumb {
+    background: rgba(124, 58, 237, 0.25) !important;
+    border-radius: 10px !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section__heading {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 6px 8px 3px !important;
+    font-size: 0.76rem !important;
+    font-weight: 700 !important;
+    color: #8a889b !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section__heading h2 {
+    font-size: 0.76rem !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-group-card {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  /* Conversation Item / Card in Mobile Drawer */
+  .chat-shell.view-chat .chat-history-sidebar .conversation-row.conversation-card {
+    min-height: 48px !important;
+    padding: 7px 9px !important;
+    border-radius: 12px !important;
+    gap: 10px !important;
+    display: grid !important;
+    grid-template-columns: 32px 1fr 28px !important;
+    align-items: center !important;
+    position: relative !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    transition: background 140ms ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-row.conversation-card:hover,
+  .chat-shell.view-chat .chat-history-sidebar .conversation-row.conversation-card:active {
+    background: rgba(124, 58, 237, 0.06) !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-row.conversation-card.active {
+    background: #f3effe !important;
+    border-color: rgba(124, 58, 237, 0.16) !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-card-icon {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    border-radius: 10px !important;
+    display: grid !important;
+    place-items: center !important;
+    font-size: 1rem !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-main {
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    overflow: hidden !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-card-title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-card-title-row p {
+    font-size: 0.86rem !important;
+    font-weight: 600 !important;
+    color: #1e1b2e !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-card-preview-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-card-preview-row small {
+    font-size: 0.73rem !important;
+    color: #71717a !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    flex: 1 1 0% !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-card-date {
+    font-size: 0.68rem !important;
+    color: #a1a1aa !important;
+    flex-shrink: 0 !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-more-trigger {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    border-radius: 8px !important;
+    display: grid !important;
+    place-items: center !important;
+    background: transparent !important;
+    color: #94a3b8 !important;
+    border: 0 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    opacity: 0.8 !important;
+  }
+
+  /* 7. Bottom Navigation (Fixed at Bottom) */
+  .chat-shell.view-chat .chat-history-sidebar .conversation-bottom-nav.conversation-sidebar-nav {
+    flex: 0 0 auto !important;
+    padding: 8px 10px max(10px, env(safe-area-inset-bottom, 0px)) !important;
+    border-top: 1px solid rgba(230, 228, 238, 0.85) !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item {
+    width: 100% !important;
+    min-height: 46px !important;
+    padding: 6px 10px !important;
+    border-radius: 11px !important;
+    display: grid !important;
+    grid-template-columns: 24px 1fr 18px !important;
+    align-items: center !important;
+    gap: 10px !important;
+    background: transparent !important;
+    border: 0 !important;
+    cursor: pointer !important;
+    text-align: right !important;
+    transition: background 140ms ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:hover,
+  .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:active {
+    background: #f3effe !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item > span:not(.conversation-nav-profile__avatar) {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    text-align: right !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item strong {
+    display: block !important;
+    font-size: 0.84rem !important;
+    font-weight: 600 !important;
+    color: #1e1b2e !important;
+    line-height: 1.25 !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item small {
+    display: block !important;
+    font-size: 0.7rem !important;
+    color: #71717a !important;
+    line-height: 1.2 !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item > svg:last-child {
+    display: block !important;
+    color: #a1a1aa !important;
+  }
+
+  .chat-shell.view-chat .chat-history-sidebar .conversation-nav-profile__avatar {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    border-radius: 8px !important;
+    display: grid !important;
+    place-items: center !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    background: #ede9fe !important;
+    color: #7c3aed !important;
+  }
+}
+
+/* Tablet specific drawer width (768px - 1199px) */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
+    width: min(75vw, 360px) !important;
+  }
+}
+
+/* Extra small mobile specific width (< 360px) */
+@media (max-width: 359px) {
+  .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
+    width: min(86vw, 290px) !important;
   }
 }
 
 /* ============================================================
-   RESIZE SAFETY: when viewport expands back to desktop,
-   restore sidebar to grid and reset drawer state.
+   RESIZE SAFETY: when viewport expands back to desktop (>= 1200px),
+   restore desktop rail / expanded sidebar and reset drawer state.
    ============================================================ */
 @media (min-width: 1200px) {
   .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
-    position: static !important;
+    position: relative !important;
+    grid-area: sidebar !important;
     transform: none !important;
-    box-shadow: -8px 0 28px rgba(25, 19, 50, 0.035) !important;
-    z-index: auto !important;
-    height: 100% !important;
-    transition: none !important;
+    box-shadow: none !important;
+    height: 100dvh !important;
   }
 
   .sidebar-hitbox {
@@ -6119,8 +6540,6 @@
     padding: 0 !important;
   }
 }
-
-
 
 /* ============================================================
    SEARCH MODAL: ensure it still works on mobile

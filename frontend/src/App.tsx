@@ -4307,7 +4307,7 @@ notify.error(message);
                 title={sidebarOpen ? 'بستن منوی کناری' : 'باز کردن منوی کناری'}
                 aria-expanded={sidebarOpen}
               >
-                <Icon name={sidebarOpen ? 'chevron-right' : 'chevron-left'} size={18} aria-hidden="true" />
+                <Icon name={sidebarOpen ? (isDesktopChatLayout() ? 'chevron-right' : 'x-close') : 'chevron-left'} size={18} aria-hidden="true" />
               </button>
             </div>
           </header>
