@@ -4409,16 +4409,6 @@
     margin-bottom: 24px;
   }
 
-  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
-    min-height: 62px;
-    padding: 11px 13px;
-  }
-
   .chat-shell.view-chat .chat-card.chat-card--empty .input-area.danoa-input-area {
     padding: 16px 16px max(20px, env(safe-area-inset-bottom, 0px)) !important;
     box-shadow: none;
@@ -5514,199 +5504,248 @@
     font-weight: 400 !important;
   }
 
-  /* Feature Cards Container: single vertical column */
+  /* ============================================================
+     PHASE 5.6 — MOBILE QUICK ACTION PILLS (HORIZONTAL ROW)
+     ============================================================ */
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
-    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
     gap: 8px !important;
     width: 100% !important;
     max-width: 100% !important;
-    margin: 0 auto !important;
+    margin: 0 auto 16px auto !important;
+    padding: 2px 2px 4px 2px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    direction: rtl !important;
   }
 
-  /* Mobile Feature Card:
-     - Compact height: ~64px - 70px
-     - Padding: 10px 14px
-     - Border radius: 14px
-     - Touch-friendly
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row::-webkit-scrollbar {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
+  }
+
+  /* Mobile Quick Action Pill Button:
+     - Height: 44px – 48px (46px)
+     - True pill shape: border-radius 999px
+     - Clean white background, subtle border
+     - Touch-friendly tap target (min-height 44px)
+     - Compact horizontal layout: [ icon + title ]
   */
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
-    min-height: 64px !important;
-    max-height: 70px !important;
-    padding: 10px 14px !important;
-    border-radius: 14px !important;
-    gap: 12px !important;
+    flex: 1 1 0px !important;
+    min-width: max-content !important;
+    height: 46px !important;
+    min-height: 44px !important;
+    max-height: 48px !important;
+    padding: 0 clamp(10px, 2.5vw, 14px) !important;
+    border-radius: 999px !important;
+    gap: 7px !important;
     background: #ffffff !important;
-    border: 1px solid rgba(226, 232, 240, 0.85) !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
     direction: rtl !important;
-    display: flex !important;
+    display: inline-flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    transition: background-color 160ms ease, border-color 160ms ease, transform 120ms ease, box-shadow 160ms ease !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    cursor: pointer !important;
+    transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease !important;
     -webkit-tap-highlight-color: transparent !important;
   }
 
-  /* Touch UX: No jarring hover translateY on touch, subtle active state */
+  /* Touch UX: No hover lift on touch; subtle active feedback */
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:hover {
     transform: none !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
-    border-color: rgba(226, 232, 240, 0.85) !important;
+    border-color: rgba(226, 232, 240, 0.9) !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:active {
     background: #faf8ff !important;
-    border-color: rgba(139, 92, 246, 0.3) !important;
-    transform: scale(0.985) !important;
-    box-shadow: 0 2px 6px rgba(124, 58, 237, 0.06) !important;
+    border-color: rgba(139, 92, 246, 0.35) !important;
+    transform: scale(0.98) !important;
+    box-shadow: 0 1px 4px rgba(124, 58, 237, 0.08) !important;
   }
 
-  /* Card Icon (RTL: right side) */
+  /* Pill Icon: Brand purple, compact, clean */
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon {
-    width: 38px !important;
-    height: 38px !important;
-    min-width: 38px !important;
-    flex: 0 0 38px !important;
-    border-radius: 10px !important;
-    background: #f6f2fc !important;
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    flex: 0 0 20px !important;
+    border-radius: 0 !important;
+    background: transparent !important;
     color: #7c3aed !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    padding: 0 !important;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon svg {
+    width: 18px !important;
+    height: 18px !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:active .danoa-shortcut-icon {
-    background: #eee6fa !important;
+    background: transparent !important;
     color: #6d28d9 !important;
   }
 
-  /* Card Text Block */
+  /* Pill Text Block */
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-text {
-    display: flex !important;
-    flex-direction: column !important;
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    gap: 2px !important;
-    text-align: right !important;
-  }
-
-  /* Card Title */
-  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-title {
-    font-size: 0.88rem !important;
-    font-weight: 700 !important;
-    color: #18181b !important;
-    line-height: 1.3 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-
-  /* Card Subtitle / Description */
-  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-desc {
-    font-size: 0.74rem !important;
-    color: #788292 !important;
-    line-height: 1.35 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-
-  /* Card Arrow Indicator (RTL: left side) */
-  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-arrow {
-    color: #c4ccd8 !important;
-    display: flex !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
     align-items: center !important;
-    justify-content: center !important;
-    flex: 0 0 auto !important;
-    width: 18px !important;
-    transition: color 160ms ease !important;
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    gap: 0 !important;
+    text-align: right !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
-  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:active .danoa-shortcut-arrow {
-    color: #7c3aed !important;
+  /* Pill Title */
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-title {
+    font-size: 0.86rem !important;
+    font-weight: 650 !important;
+    color: #1e1b2e !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  /* Subtitle / Description: Hidden on Mobile */
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-desc {
+    display: none !important;
+  }
+
+  /* Arrow / Chevron: Hidden on Mobile */
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-arrow {
+    display: none !important;
   }
 
   /* ============================================================
-     PHASE 5.3 — MOBILE COMPOSER & HORIZONTAL SUGGESTION CHIPS
+     PHASE 5.6 — MOBILE COMPOSER & CONTROLS POLISH
      ============================================================ */
 
   /* Mobile Composer Capsule:
-     - 58–64px height
+     - 54–58px height
      - Full container width
-     - Clean RTL typing layout with balanced buttons
+     - Clean RTL typing layout with balanced buttons and padding
   */
   .chat-shell.view-chat .danoa-composer-capsule {
     width: 100% !important;
     max-width: 100% !important;
-    min-height: 56px !important;
+    min-height: 54px !important;
     height: auto !important;
-    padding: 5px 6px 5px 6px !important;
+    padding: 5px 7px !important;
     gap: 6px !important;
     border-radius: 999px !important;
     background: #ffffff !important;
     border: 1px solid rgba(226, 232, 240, 0.95) !important;
-    box-shadow: 0 2px 14px rgba(99, 14, 212, 0.03), 0 1px 3px rgba(0, 0, 0, 0.015) !important;
+    box-shadow: 0 2px 12px rgba(99, 14, 212, 0.025), 0 1px 3px rgba(0, 0, 0, 0.015) !important;
     transition: border-color 160ms ease, box-shadow 160ms ease !important;
     direction: ltr !important;
     box-sizing: border-box !important;
   }
 
-  /* Focus state: no layout shift, no height jump, clean purple glow */
+  /* Focus state */
   .chat-shell.view-chat .danoa-composer-capsule:focus-within {
     border-color: rgba(124, 58, 237, 0.45) !important;
-    box-shadow: 0 3px 18px rgba(124, 58, 237, 0.08), 0 0 0 2px rgba(124, 58, 237, 0.12) !important;
+    box-shadow: 0 3px 16px rgba(124, 58, 237, 0.07), 0 0 0 2px rgba(124, 58, 237, 0.1) !important;
   }
 
-  /* Send / Voice Circle: 44px primary action */
+  /* Send / Voice Circle: 42px – 44px primary action */
   .chat-shell.view-chat .danoa-send-circle {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
-    max-height: 44px !important;
-    flex: 0 0 44px !important;
+    box-sizing: border-box !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    flex: 0 0 42px !important;
+    aspect-ratio: 1 / 1 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
     border-radius: 50% !important;
     background: linear-gradient(135deg, #7c3aed, #630ed4) !important;
-    box-shadow: 0 3px 12px rgba(99, 14, 212, 0.24) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(99, 14, 212, 0.18) !important;
     border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
     cursor: pointer !important;
+    transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease !important;
     -webkit-tap-highlight-color: transparent !important;
   }
 
   .chat-shell.view-chat .danoa-send-circle:hover {
     transform: none !important;
-    box-shadow: 0 3px 12px rgba(99, 14, 212, 0.24) !important;
+    box-shadow: 0 2px 8px rgba(99, 14, 212, 0.18) !important;
   }
 
   .chat-shell.view-chat .danoa-send-circle:active {
     transform: scale(0.96) !important;
-    box-shadow: 0 1px 6px rgba(99, 14, 212, 0.2) !important;
+    box-shadow: 0 1px 4px rgba(99, 14, 212, 0.12) !important;
+  }
+
+  .chat-shell.view-chat .danoa-send-circle .action-icon {
+    width: 20px !important;
+    height: 20px !important;
+    display: grid !important;
+    place-items: center !important;
+    line-height: 0 !important;
+    transition: transform 180ms ease, opacity 180ms ease !important;
   }
 
   /* Attach Plus Circle: 38px secondary action */
   .chat-shell.view-chat .danoa-attach-circle {
+    box-sizing: border-box !important;
     width: 38px !important;
     height: 38px !important;
     min-width: 38px !important;
     min-height: 38px !important;
+    max-height: 38px !important;
     flex: 0 0 38px !important;
     border-radius: 50% !important;
     background: #f8fafc !important;
-    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    border: 1px solid rgba(226, 232, 240, 0.95) !important;
     color: #64748b !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
     cursor: pointer !important;
+    box-shadow: none !important;
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease !important;
     -webkit-tap-highlight-color: transparent !important;
   }
 
   .chat-shell.view-chat .danoa-attach-circle:hover {
     transform: none !important;
+    background: #f8fafc !important;
   }
 
   .chat-shell.view-chat .danoa-attach-circle:active {
     transform: scale(0.96) !important;
     background: #f1f5f9 !important;
+    border-color: rgba(203, 213, 225, 0.95) !important;
+    color: #334155 !important;
   }
 
-  /* Composer Text Area: clean RTL input */
+  /* Composer Text Area: clean RTL input with comfortable spacing */
   .chat-shell.view-chat .danoa-composer-inner {
     flex: 1 1 auto !important;
     min-width: 0 !important;
@@ -5716,18 +5755,31 @@
   .chat-shell.view-chat .danoa-composer-inner .message-field {
     width: 100% !important;
     min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
   }
 
   .chat-shell.view-chat .danoa-composer-inner .message-field textarea {
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    font-family: inherit !important;
     font-size: 0.92rem !important;
     line-height: 1.45 !important;
     min-height: 36px !important;
     max-height: 110px !important;
-    padding: 7px 4px !important;
+    padding: 7px 8px !important;
     text-align: right !important;
     direction: rtl !important;
     color: #1e1b2e !important;
     caret-color: #7c3aed !important;
+    outline: none !important;
+    resize: none !important;
+  }
+
+  .chat-shell.view-chat .danoa-composer-inner .message-field textarea::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
   }
 
   /* ============================================================
@@ -5859,36 +5911,47 @@
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
     gap: 6px !important;
+    margin: 0 auto 12px auto !important;
+    padding: 2px 2px 4px 2px !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
-    min-height: 58px !important;
-    max-height: 64px !important;
-    padding: 8px 11px !important;
-    gap: 9px !important;
-    border-radius: 12px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 46px !important;
+    padding: 0 11px !important;
+    gap: 6px !important;
+    border-radius: 999px !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    flex: 0 0 34px !important;
-    border-radius: 8px !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    flex: 0 0 18px !important;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon svg {
+    width: 16px !important;
+    height: 16px !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-title {
-    font-size: 0.84rem !important;
+    font-size: 0.81rem !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-desc {
-    font-size: 0.7rem !important;
+    display: none !important;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-arrow {
+    display: none !important;
   }
 
   /* Small mobile composer & suggestions */
   .chat-shell.view-chat .danoa-composer-capsule {
-    min-height: 52px !important;
-    padding: 4px 5px 4px 5px !important;
+    min-height: 50px !important;
+    padding: 4px 5px !important;
     gap: 4px !important;
   }
 
@@ -5899,6 +5962,7 @@
     min-height: 40px !important;
     max-height: 40px !important;
     flex: 0 0 40px !important;
+    box-shadow: 0 2px 6px rgba(99, 14, 212, 0.16) !important;
   }
 
   .chat-shell.view-chat .danoa-attach-circle {
@@ -5906,12 +5970,13 @@
     height: 36px !important;
     min-width: 36px !important;
     min-height: 36px !important;
+    max-height: 36px !important;
     flex: 0 0 36px !important;
   }
 
   .chat-shell.view-chat .danoa-composer-inner .message-field textarea {
     font-size: 0.86rem !important;
-    padding: 6px 3px !important;
+    padding: 6px 6px !important;
     min-height: 34px !important;
   }
 
