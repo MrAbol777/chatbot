@@ -4795,11 +4795,12 @@ notify.error(message);
             />
           </main>
         ) : null}
-        {currentView === 'chat' && sidebarOpen ? (
+        {currentView === 'chat' && sidebarOpen && !isDesktopChatLayout() ? (
           <button
             className="sidebar-hitbox"
             type="button"
             aria-label="بستن تاریخچه گفتگوها"
+            tabIndex={-1}
             onClick={() => setSidebarOpen(false)}
           />
         ) : null}

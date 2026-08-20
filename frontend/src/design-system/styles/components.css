@@ -432,7 +432,6 @@
   }
   .ds-button__spinner { animation-duration: 1.5s; }
 }
-}
 
 .ds-demo-stack { display: grid; gap: var(--space-4); }
 .ds-auth-actions { display: flex; gap: var(--space-3); }
