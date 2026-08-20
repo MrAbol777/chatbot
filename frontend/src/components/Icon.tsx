@@ -5,6 +5,7 @@ export type IconName =
   | 'chevron-right'
   | 'chevron-down'
   | 'chevron-up'
+  | 'arrow-up'
   | 'x-close'
   | 'chat-bubble'
   | 'chat-dots'
@@ -98,6 +99,14 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
     case 'chevron-up':
       return <svg {...commonProps}><path d="m18 15-6-6-6 6" /></svg>;
 
+    case 'arrow-up':
+      return (
+        <svg {...commonProps} strokeWidth="2.2">
+          <path d="m5 12 7-7 7 7" />
+          <path d="M12 19V5" />
+        </svg>
+      );
+
     case 'x-close':
       return <svg {...commonProps}><path d="M18 6 6 18M6 6l12 12" /></svg>;
 
@@ -128,7 +137,13 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
       );
 
     case 'mic':
-      return <svg {...commonProps}><path d="M12 3.5a3 3 0 0 0-3 3V12a3 3 0 1 0 6 0V6.5a3 3 0 0 0-3-3Z" /><path d="M6.5 11a.9.9 0 0 1 .9.9V12a4.6 4.6 0 0 0 9.2 0v-.1a.9.9 0 1 1 1.8 0V12a6.4 6.4 0 0 1-5.5 6.3V20h2a.9.9 0 1 1 0 1.8H9.1a.9.9 0 1 1 0-1.8h2v-1.7A6.4 6.4 0 0 1 5.6 12v-.1a.9.9 0 0 1 .9-.9Z" /></svg>;
+      return (
+        <svg {...commonProps} strokeWidth="2">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" x2="12" y1="19" y2="22" />
+        </svg>
+      );
 
     case 'stop':
       return <svg {...commonProps}><rect x="7" y="7" width="10" height="10" rx="2" /></svg>;

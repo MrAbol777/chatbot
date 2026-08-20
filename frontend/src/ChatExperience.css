@@ -3859,13 +3859,28 @@
 .danoa-send-circle .action-icon {
   width: 20px;
   height: 20px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 0;
+  color: #ffffff;
+  flex: 0 0 auto;
 }
 
 .danoa-send-circle .action-icon svg {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
   display: block;
+  color: #ffffff;
+  stroke: currentColor;
+  fill: none;
+  transform: none;
+}
+
+.danoa-send-circle .action-icon.action-icon-stop svg {
+  fill: currentColor;
 }
 
 .danoa-send-circle:hover {
@@ -5704,10 +5719,29 @@
   .chat-shell.view-chat .danoa-send-circle .action-icon {
     width: 20px !important;
     height: 20px !important;
-    display: grid !important;
-    place-items: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     line-height: 0 !important;
+    color: #ffffff !important;
+    flex: 0 0 auto !important;
     transition: transform 180ms ease, opacity 180ms ease !important;
+  }
+
+  .chat-shell.view-chat .danoa-send-circle .action-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    display: block !important;
+    color: #ffffff !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    transform: none !important;
+  }
+
+  .chat-shell.view-chat .danoa-send-circle .action-icon.action-icon-stop svg {
+    fill: currentColor !important;
   }
 
   /* Attach Plus Circle: 38px secondary action */

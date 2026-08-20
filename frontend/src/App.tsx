@@ -5168,15 +5168,11 @@ notify.error(message);
                       aria-hidden="true"
                     >
                       {isSending ? (
-                        <svg viewBox="0 0 24 24">
-                          <rect x="7" y="7" width="10" height="10" rx="2" />
-                        </svg>
+                        <Icon name="stop" size={20} />
                       ) : shouldShowSendAction ? (
-                        <svg viewBox="0 0 24 24">
-                          <path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" />
-                        </svg>
+                        <Icon name="arrow-up" size={20} />
                       ) : (
-                        <Icon name="mic" size={22} />
+                        <Icon name="mic" size={20} />
                       )}
                     </span>
                   </button>
