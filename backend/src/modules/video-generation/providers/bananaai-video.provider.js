@@ -3,7 +3,7 @@
 const https = require('https');
 const { fail } = require('../video-generation.errors');
 const { VideoStorageError } = require('../storage/video-storage.errors');
-const { fetchValidatedResultWithWget, validateProviderBaseUrl } = require('./provider-result-downloader');
+const { fetchValidatedResultWithNode, validateProviderBaseUrl } = require('./provider-result-downloader');
 const { createVideoResultUrlValidator } = require('../storage/video-result-url-validator');
 const { BANANAAI_MODEL_IDS, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID } = require('../video-model.registry');
 
@@ -85,7 +85,10 @@ function createBananaAiVideoProvider({
   requestTimeoutMs = 120_000,
   statusTimeoutMs = 30_000,
   maxPromptLength = 2000,
-  resultTimeoutMs = 60_000,
+  resultConnectTimeoutMs = 15_000,
+  resultHeadersTimeoutMs = 30_000,
+  resultIdleTimeoutMs = 90_000,
+  resultTotalTimeoutMs = 0,
   resultMaxBytes = 100 * 1024 * 1024,
   resultMaxRedirects = 0
 }) {
@@ -175,9 +178,21 @@ function createBananaAiVideoProvider({
       const source = typeof item === 'string' ? item : item?.url || item?.source;
       return source ? { source: String(source), mimeType: item?.mime_type || item?.mimeType || null, filename: item?.filename || 'video.mp4', sizeBytes: Number.isSafeInteger(Number(item?.size_bytes)) ? Number(item.size_bytes) : null } : null;
     },
-    fetchResultStream: async (descriptor) => {
+    fetchResultStream: async (descriptor, options = {}) => {
       if (!descriptor?.source) throw new VideoStorageError('VIDEO_RESULT_URL_INVALID');
-      return fetchValidatedResultWithWget(String(descriptor.source), { validator, timeoutMs: resultTimeoutMs, maxRedirects: resultMaxRedirects });
+      return fetchValidatedResultWithNode(String(descriptor.source), {
+        validator,
+        maxBytes: Number(options.maxBytes || resultMaxBytes),
+        maxRedirects: Number(options.maxRedirects ?? resultMaxRedirects),
+        connectTimeoutMs: resultConnectTimeoutMs,
+        headersTimeoutMs: resultHeadersTimeoutMs,
+        idleTimeoutMs: resultIdleTimeoutMs,
+        totalTimeoutMs: resultTotalTimeoutMs,
+        proxyUrl,
+        forceIpv4,
+        logger: options.logger,
+        context: options.context
+      });
     },
     normalizeCost: (value) => String(value?.status || '').toLowerCase() === 'completed' && value?.credits_deducted === true && Number.isFinite(Number(value?.credits_reserved))
       ? { credits: Number(value.credits_reserved), currency: 'credits' }

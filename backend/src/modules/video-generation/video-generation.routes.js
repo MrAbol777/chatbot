@@ -44,7 +44,10 @@ function createVideoGenerationRouter(deps) {
         resultAllowedHosts: storageConfig.allowedHosts,
         resultAllowedPorts: storageConfig.allowedPorts,
         resultAllowedPathPrefixes: storageConfig.allowedPathPrefixes,
-        resultTimeoutMs: storageConfig.timeoutMs,
+        resultConnectTimeoutMs: storageConfig.connectTimeoutMs,
+        resultHeadersTimeoutMs: storageConfig.headersTimeoutMs,
+        resultIdleTimeoutMs: storageConfig.idleTimeoutMs,
+        resultTotalTimeoutMs: storageConfig.totalTimeoutMs,
         resultMaxBytes: storageConfig.maxBytes,
         resultMaxRedirects: storageConfig.maxRedirects
       });

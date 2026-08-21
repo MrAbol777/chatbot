@@ -73,3 +73,28 @@ test('reuses a validated deterministic temp file after a crash before rename', a
   assert.equal(calls.downloads, 1);
   assert.equal(calls.finalized, 1);
 });
+
+test('lease loss during a streaming result cannot finalize, retry, or fail a stale storage attempt', async () => {
+  let leaseActive = true;
+  const calls = { finalized: 0, retried: 0, failed: 0 };
+  async function* longResult() {
+    yield mp4.subarray(0, 10);
+    leaseActive = false;
+    yield mp4.subarray(10);
+  }
+  const provider = { fetchResultStream: async () => ({ stream: Readable.from(longResult()), mimeType: 'video/mp4' }) };
+  const repository = {
+    recordStorageAttempt: async () => true,
+    finalizeStoredResult: async () => { calls.finalized += 1; return { idempotent: false }; },
+    scheduleStorageRetry: async () => { calls.retried += 1; return true; },
+    failStorageAndRelease: async () => { calls.failed += 1; return true; }
+  };
+  const job = { id: 'lease-loss-job', user_id: 'lease-loss-user', storage_attempts: 0 };
+  const descriptor = { source: 'https://example.test/video.mp4', filename: 'output.mp4', mimeType: 'video/mp4' };
+  const config = { maxBytes: 1024, timeoutMs: 1000, maxRedirects: 0, maxAttempts: 2, retryBaseDelayMs: 1, retryMaxDelayMs: 1 };
+  await assert.rejects(
+    () => createVideoResultOrchestrator({ storage, config }).store({ job, provider, descriptor, repository, workerId: 'worker-a', assertLease: () => leaseActive }),
+    (error) => error?.code === 'VIDEO_WORKER_LEASE_LOST'
+  );
+  assert.deepEqual(calls, { finalized: 0, retried: 0, failed: 0 });
+});

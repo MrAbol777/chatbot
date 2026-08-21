@@ -16,9 +16,11 @@ function resolveProvider(registry, name) {
   return assertVideoProvider(provider);
 }
 
-function createSubmissionLeaseHeartbeat({ repository, jobId, workerId, leaseMs, timers, logger }) {
-  const intervalMs = Math.max(1_000, Math.floor(Number(leaseMs) / 3));
-  const leaseSeconds = Math.ceil(Number(leaseMs) / 1_000);
+function createJobLeaseHeartbeat({ repository, jobId, workerId, leaseMs, timers, logger, phase = 'submission' }) {
+  const leaseMsNumber = Number(leaseMs);
+  if (!Number.isSafeInteger(leaseMsNumber) || leaseMsNumber <= 0) throw new Error('VIDEO_WORKER_LEASE_MS_INVALID');
+  const intervalMs = Math.max(1, Math.floor(leaseMsNumber / 3));
+  const leaseSeconds = Math.ceil(leaseMsNumber / 1_000);
   let stopped = false;
   let leaseLost = false;
   let renewal = Promise.resolve();
@@ -27,10 +29,12 @@ function createSubmissionLeaseHeartbeat({ repository, jobId, workerId, leaseMs, 
       if (stopped) return;
       try {
         const extended = await repository.extendJobLease({ jobId, workerId, leaseSeconds });
-        if (!extended) leaseLost = true;
+        if (!extended && !stopped) leaseLost = true;
       } catch (error) {
-        leaseLost = true;
-        logger?.warn?.({ event: 'video_submission_lease_renewal_failed', generationId: jobId, errorCode: String(error?.code || 'VIDEO_WORKER_LEASE_RENEWAL_FAILED').slice(0, 100) });
+        if (!stopped) {
+          leaseLost = true;
+          logger?.warn?.({ event: `video_${phase}_lease_renewal_failed`, generationId: jobId, errorCode: String(error?.code || 'VIDEO_WORKER_LEASE_RENEWAL_FAILED').slice(0, 100) });
+        }
       }
     });
     return renewal;
@@ -39,6 +43,7 @@ function createSubmissionLeaseHeartbeat({ repository, jobId, workerId, leaseMs, 
   timer?.unref?.();
   void renew();
   return {
+    isActive: () => !leaseLost,
     stop: async () => {
       stopped = true;
       timers.clearInterval(timer);
@@ -46,6 +51,10 @@ function createSubmissionLeaseHeartbeat({ repository, jobId, workerId, leaseMs, 
       return !leaseLost;
     }
   };
+}
+
+function createSubmissionLeaseHeartbeat(options) {
+  return createJobLeaseHeartbeat({ ...options, phase: 'submission' });
 }
 
 function createVideoJobProcessingService({ repository, providerRegistry, config, storageOrchestrator = null, providerInputGateway = null, submissionGuard = null, clock = () => new Date(), logger = null, timers = globalThis }) {
@@ -207,7 +216,29 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
             job = { ...job, status: 'storing', storage_attempts: 0 };
           }
           const descriptor = provider.normalizeResult(response);
-          const stored = await storageOrchestrator.store({ job, provider, descriptor, repository, workerId });
+          const storageLease = createJobLeaseHeartbeat({ repository, jobId: job.id, workerId, leaseMs: config.leaseMs, timers, logger, phase: 'storage' });
+          let stored;
+          let storageError = null;
+          let leaseActive = true;
+          try {
+            stored = await storageOrchestrator.store({
+              job,
+              provider,
+              descriptor,
+              repository,
+              workerId,
+              assertLease: () => storageLease.isActive()
+            });
+          } catch (error) {
+            storageError = error;
+          } finally {
+            leaseActive = await storageLease.stop();
+          }
+          if (!leaseActive || storageError?.code === 'VIDEO_WORKER_LEASE_LOST') {
+            log('video_storage_lease_lost', job, { errorCode: 'VIDEO_WORKER_LEASE_LOST' });
+            return { action: 'ignored-lease-lost', errorCode: 'VIDEO_WORKER_LEASE_LOST' };
+          }
+          if (storageError) throw storageError;
           log(stored.action === 'succeeded' ? 'video_job_succeeded' : 'video_result_storage', job, stored.errorCode ? { errorCode: stored.errorCode } : {});
           return stored;
         }
@@ -216,6 +247,10 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
         log('video_job_failed', job, { errorCode });
         return { action: 'failed', errorCode };
       } catch (error) {
+        if (error?.code === 'VIDEO_WORKER_LEASE_LOST') {
+          log('video_storage_lease_lost', job, { errorCode: 'VIDEO_WORKER_LEASE_LOST' });
+          return { action: 'ignored-lease-lost', errorCode: 'VIDEO_WORKER_LEASE_LOST' };
+        }
         if (error instanceof VideoWorkerProcessingError && !error.retryable) {
           await repository.failAndReleaseJob({ jobId: job.id, workerId, errorCode: error.code, errorMessage: 'تنظیمات سرویس ساخت ویدیو معتبر نیست.', releaseReason: 'provider_configuration' });
           return { action: 'failed', errorCode: error.code };
@@ -234,4 +269,4 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
   };
 }
 
-module.exports = { createVideoJobProcessingService, createSubmissionLeaseHeartbeat, resolveProvider };
+module.exports = { createVideoJobProcessingService, createJobLeaseHeartbeat, createSubmissionLeaseHeartbeat, resolveProvider };
