@@ -19,6 +19,11 @@
 .broadcast-user-bell span { position: absolute; top: -5px; right: -5px; min-width: 20px; height: 20px; display: grid; place-items: center; padding: 0 4px; border: 2px solid #fff; border-radius: 999px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 800; }
 .broadcast-user-center__panel { position: absolute; top: 54px; left: 0; width: min(350px, calc(100vw - 32px)); overflow: hidden; border: 1px solid rgba(115, 46, 228, .18); border-radius: 16px; background: rgba(255,255,255,.97); box-shadow: 0 20px 50px rgba(56, 30, 90, .18); }
 .broadcast-user-center--header .broadcast-user-center__panel { top: calc(100% + 10px); left: 0; right: auto; width: min(350px, calc(100vw - 32px)); max-height: min(520px, calc(100dvh - 86px)); }
+.broadcast-user-center--profile { position: relative; inset: auto; z-index: 30; display: flex; align-items: center; flex: 0 0 40px; width: 40px; height: 40px; overflow: visible; }
+.broadcast-user-center--profile .broadcast-user-bell { width: 40px; height: 40px; border-color: rgba(115, 46, 228, .15); border-radius: 12px; background: #fff; box-shadow: 0 4px 12px rgba(56, 30, 90, .08); backdrop-filter: none; }
+.broadcast-user-center--profile .broadcast-user-bell:hover { border-color: rgba(115, 46, 228, .3); background: #f7f3ff; box-shadow: 0 6px 16px rgba(115, 46, 228, .12); }
+.broadcast-user-center--profile .broadcast-user-center__panel { top: calc(100% + 10px); inset-inline-end: 0; inset-inline-start: auto; width: min(350px, calc(100vw - 32px)); max-height: min(520px, calc(100dvh - 86px)); }
+.chat-shell.view-profile .profile-page-header > .broadcast-user-center--profile { min-width: 40px; flex: 0 0 40px; }
 .broadcast-user-center__header { display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; border-bottom: 1px solid rgba(115, 46, 228, .1); color: #27213a; }
 .broadcast-user-center__list { max-height: min(430px, 60vh); overflow: auto; }
 .broadcast-user-center__item { position: relative; display: flex; gap: 9px; padding: 13px 14px; border-bottom: 1px solid rgba(115, 46, 228, .08); cursor: pointer; }

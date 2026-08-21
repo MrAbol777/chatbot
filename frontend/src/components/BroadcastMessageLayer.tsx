@@ -23,7 +23,7 @@ type BroadcastNotification = {
   unread: boolean;
 };
 
-type Props = { userId?: string | number; enabled: boolean; placement?: 'floating' | 'header' };
+type Props = { userId?: string | number; enabled: boolean; placement?: 'floating' | 'header' | 'profile' | 'hidden' };
 
 const postAction = async (id: string, action: 'view' | 'dismiss' | 'acknowledge' | 'click') => {
   try {
@@ -117,12 +117,14 @@ export default function BroadcastMessageLayer({ userId, enabled, placement = 'fl
         </div>
       ) : null}
 
-      <div className={`broadcast-user-center ${placement === 'header' ? 'broadcast-user-center--header' : ''}`}>
-        <button type="button" className={`broadcast-user-bell ${unreadCount ? 'has-unread' : ''}`} onClick={() => setCenterOpen((open) => !open)} aria-label={`اعلان‌ها${unreadCount ? `، ${unreadCount} اعلان خوانده‌نشده` : ''}`} aria-expanded={centerOpen}>
-          <Icon name="bell" size={21} aria-hidden="true" />{unreadCount ? <span>{unreadCount > 9 ? '۹+' : unreadCount.toLocaleString('fa-IR')}</span> : null}
-        </button>
-        {centerOpen ? <div className="broadcast-user-center__panel" role="region" aria-label="مرکز اعلان‌ها"><div className="broadcast-user-center__header"><strong>اعلان‌ها</strong><button type="button" onClick={() => setCenterOpen(false)} aria-label="بستن اعلان‌ها"><Icon name="x-close" size={17} aria-hidden="true" /></button></div>{persistentItems.length === 0 ? <div className="broadcast-user-center__empty">اعلان جدیدی ندارید.</div> : <div className="broadcast-user-center__list">{persistentItems.map((item) => <article key={item.id} className={`broadcast-user-center__item ${item.unread ? 'is-unread' : ''}`} onClick={() => { void postAction(item.id, 'view'); if (item.actionUrl) void openAction(item); }}><span className="broadcast-user-center__item-dot" aria-hidden="true" /><div><strong>{item.title || 'اعلان جدید'}</strong><p>{item.message}</p>{item.actionUrl ? <small>{item.actionLabel || 'مشاهده بیشتر'}</small> : null}</div></article>)}</div>}{loading ? <span className="broadcast-user-center__loading">در حال به‌روزرسانی...</span> : null}</div> : null}
-      </div>
+      {placement !== 'hidden' ? (
+        <div className={`broadcast-user-center ${placement === 'header' ? 'broadcast-user-center--header' : ''}${placement === 'profile' ? ' broadcast-user-center--profile' : ''}`}>
+          <button type="button" className={`broadcast-user-bell ${unreadCount ? 'has-unread' : ''}`} onClick={() => setCenterOpen((open) => !open)} aria-label={`اعلان‌ها${unreadCount ? `، ${unreadCount} اعلان خوانده‌نشده` : ''}`} aria-expanded={centerOpen}>
+            <Icon name="bell" size={21} aria-hidden="true" />{unreadCount ? <span>{unreadCount > 9 ? '۹+' : unreadCount.toLocaleString('fa-IR')}</span> : null}
+          </button>
+          {centerOpen ? <div className="broadcast-user-center__panel" role="region" aria-label="مرکز اعلان‌ها"><div className="broadcast-user-center__header"><strong>اعلان‌ها</strong><button type="button" onClick={() => setCenterOpen(false)} aria-label="بستن اعلان‌ها"><Icon name="x-close" size={17} aria-hidden="true" /></button></div>{persistentItems.length === 0 ? <div className="broadcast-user-center__empty">اعلان جدیدی ندارید.</div> : <div className="broadcast-user-center__list">{persistentItems.map((item) => <article key={item.id} className={`broadcast-user-center__item ${item.unread ? 'is-unread' : ''}`} onClick={() => { void postAction(item.id, 'view'); if (item.actionUrl) void openAction(item); }}><span className="broadcast-user-center__item-dot" aria-hidden="true" /><div><strong>{item.title || 'اعلان جدید'}</strong><p>{item.message}</p>{item.actionUrl ? <small>{item.actionLabel || 'مشاهده بیشتر'}</small> : null}</div></article>)}</div>}{loading ? <span className="broadcast-user-center__loading">در حال به‌روزرسانی...</span> : null}</div> : null}
+        </div>
+      ) : null}
 
       {modalItem ? <div className={`broadcast-user-modal-backdrop ${modalItem.displayMode === 'required_modal' ? 'is-required' : ''}`} role="presentation"><section className="broadcast-user-modal" role="dialog" aria-modal="true" aria-labelledby="broadcast-user-modal-title"><div className="broadcast-user-modal__header"><span className={`broadcast-user-modal__priority broadcast-user-modal__priority--${modalItem.priority}`} aria-hidden="true"><Icon name="bell" size={21} /></span><div><span className="broadcast-user-modal__eyebrow">پیام جدید</span><h2 id="broadcast-user-modal-title">{modalItem.title || 'اعلان سامانه'}</h2></div>{modalItem.displayMode !== 'required_modal' ? <button type="button" onClick={() => void dismissModal()} aria-label="بستن پیام"><Icon name="x-close" size={20} aria-hidden="true" /></button> : null}</div>{modalItem.imageUrl ? <img className="broadcast-user-modal__image" src={modalItem.imageUrl} alt="" /> : null}<p className="broadcast-user-modal__message">{modalItem.message}</p><div className="broadcast-user-modal__actions">{modalItem.actionUrl ? <button type="button" className="broadcast-user-modal__primary" onClick={() => void openAction(modalItem)}>{modalItem.actionLabel || 'مشاهده بیشتر'}</button> : null}<button type="button" className="broadcast-user-modal__secondary" onClick={() => void acknowledgeModal()}>{modalItem.displayMode === 'required_modal' ? 'متوجه شدم' : 'بستن پیام'}</button></div></section></div> : null}
     </>

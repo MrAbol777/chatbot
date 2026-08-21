@@ -3058,6 +3058,9 @@ notify.error(message);
       <div className="bg-blob blob-yellow" />
       <div className="bg-blob blob-purple" />
       {currentView === 'chat' ? <a className="app-skip-link" href="#chat-messages">رفتن به پیام‌ها</a> : null}
+      {currentView !== 'profile' ? (
+        <BroadcastMessageLayer userId={profile.id} enabled={Boolean(hasAuthToken && profile.id)} placement="hidden" />
+      ) : null}
 
       {currentView === 'chat' && conversationSearchOpen ? (() => {
         const searchQuery = conversationSearchTerm.trim();
@@ -3265,8 +3268,8 @@ notify.error(message);
             </button>
           </div>
         )}
-        {currentView === 'chat' ? (
-          <ChatHeader
+      {currentView === 'chat' ? (
+        <ChatHeader
             sidebarOpen={sidebarOpen}
             onOpenSidebar={() => setSidebarOpen(true)}
             chatSidebarToggleRef={chatSidebarToggleRef}
@@ -3277,9 +3280,8 @@ notify.error(message);
             onOpenNoaWallet={handleOpenNoaWallet}
             profileName={profile?.name || 'ع'}
             onOpenSettings={handleOpenSettings}
-            notifications={<BroadcastMessageLayer userId={profile.id} enabled={Boolean(hasAuthToken && profile.id)} placement="header" />}
           />
-        ) : null}
+      ) : null}
 
         {currentView === 'chat' ? (
           <ChatSidebar
@@ -3494,6 +3496,7 @@ notify.error(message);
                 <span>حساب کاربری</span>
                 <h1>پروفایل من</h1>
               </div>
+              <BroadcastMessageLayer userId={profile.id} enabled={Boolean(hasAuthToken && profile.id)} placement="profile" />
             </header>
 
             <section className="profile-page-grid">

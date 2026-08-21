@@ -79,37 +79,55 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     >
       <header className="conversation-home-header">
         <div className="conversation-home-brand">
-          <span className="conversation-home-brand__mark" aria-hidden="true">
-            <img src={PUBLIC_ASSETS.brandMark} alt="" />
-          </span>
+          {sidebarOpen ? (
+            <span className="conversation-home-brand__mark" aria-hidden="true">
+              <img src={PUBLIC_ASSETS.brandMark} alt="" />
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="conversation-home-brand__mark"
+              onClick={onToggleSidebar}
+              aria-label="باز کردن سایدبار"
+              title="باز کردن سایدبار"
+              aria-expanded={sidebarOpen}
+            >
+              <img src={PUBLIC_ASSETS.brandMark} alt="" />
+              <span className="conversation-home-brand__reopen-icon" aria-hidden="true">
+                <Icon name="chevron-left" size={20} />
+              </span>
+            </button>
+          )}
           <div className="conversation-home-brand__text">
             <strong>دانوآ</strong>
             <small>همراه هوشمند تو</small>
           </div>
         </div>
-        <div className="conversation-home-header-actions">
-          <button
-            ref={conversationSearchToggleRef}
-            type="button"
-            className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
-            onClick={onOpenSearch}
-            aria-label="جستجوی گفتگوها"
-            title="جستجوی گفتگوها"
-          >
-            <Icon name="search" size={20} aria-hidden="true" />
-          </button>
-
-          <button
-            type="button"
-            className="conversation-sidebar-toggle-btn"
-            onClick={onToggleSidebar}
-            aria-label={sidebarOpen ? 'بستن منوی کناری' : 'باز کردن منوی کناری'}
-            title={sidebarOpen ? 'بستن منوی کناری' : 'باز کردن منوی کناری'}
-            aria-expanded={sidebarOpen}
-          >
-            <Icon name={sidebarOpen ? (isDesktopLayout ? 'chevron-right' : 'x-close') : 'chevron-left'} size={18} aria-hidden="true" />
-          </button>
-        </div>
+        {sidebarOpen ? (
+          <div className="conversation-home-header-actions">
+            <button
+              ref={conversationSearchToggleRef}
+              type="button"
+              className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
+              onClick={onOpenSearch}
+              aria-label="جستجوی گفتگوها"
+              title="جستجوی گفتگوها"
+              aria-pressed={conversationSearchOpen}
+            >
+              <Icon name="search" size={20} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="conversation-sidebar-toggle-btn"
+              onClick={onToggleSidebar}
+              aria-label="بستن سایدبار"
+              title="بستن سایدبار"
+              aria-expanded={sidebarOpen}
+            >
+              <Icon name={isDesktopLayout ? 'chevron-right' : 'x-close'} size={18} aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
       </header>
 
       <div className="conversation-home-primary-actions">
@@ -212,12 +230,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           type="button"
           className="conversation-nav-item"
           onClick={onOpenStudio}
-          title={!sidebarOpen ? 'استودیو' : undefined}
-          aria-label="استودیو"
+          title={!sidebarOpen ? 'ابزارها' : undefined}
+          aria-label="ابزارها"
         >
           <Icon name="grid" size={21} aria-hidden="true" />
           <span>
-            <strong>استودیو</strong>
+            <strong>ابزارها</strong>
             <small>ساخت تصویر و ویدیو</small>
           </span>
           <Icon name="chevron-left" size={18} aria-hidden="true" />
