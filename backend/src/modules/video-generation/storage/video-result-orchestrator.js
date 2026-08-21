@@ -4,6 +4,19 @@ const { sanitizeFilename } = require('./video-file-validator');
 
 function storageDelay(attempt, config) { return Math.min(config.retryMaxDelayMs, config.retryBaseDelayMs * (2 ** Math.min(Math.max(0, attempt - 1), 20))); }
 function safeStorageError(error) { return String(error?.code || 'VIDEO_RESULT_STORAGE_FAILED').slice(0, 100); }
+// BananaAI result descriptors are re-fetched from the completed task on every
+// storage attempt. A transient malformed/empty descriptor must therefore not
+// terminally release a job whose provider task may already have consumed cost.
+// The downloader still validates every later URL before making a connection.
+function retryableStorageError(error, job) {
+  return Boolean(error?.retryable)
+    || (String(job?.provider || '') === 'bananaai' && error?.code === 'VIDEO_RESULT_URL_INVALID');
+}
+function canRetryCompletedBananaResult(error, job) {
+  return retryableStorageError(error, job)
+    && String(job?.provider || '') === 'bananaai'
+    && Boolean(String(job?.provider_job_id || '').trim());
+}
 async function streamSha256(stream) { const hash = crypto.createHash('sha256'); for await (const chunk of stream) hash.update(chunk); return hash.digest('hex'); }
 function assertActiveLease(assertLease) {
   if (typeof assertLease === 'function' && !assertLease()) throw new VideoStorageError('VIDEO_WORKER_LEASE_LOST');
@@ -103,7 +116,12 @@ function createVideoResultOrchestrator({ storage, config, logger = null, clock =
         if (error?.code === 'VIDEO_WORKER_LEASE_LOST') throw error;
         const attempt = Number(job.storage_attempts || 0) + 1;
         const code = safeStorageError(error);
-        if (error?.retryable && attempt < config.maxAttempts) {
+        // A completed BananaAI task has already consumed upstream credits. Do
+        // not turn a transient result-download failure into a user-visible
+        // failure merely because the short storage retry budget was reached.
+        // The worker continues only storage retries until the job deadline;
+        // it never calls provider.submit() from this path.
+        if (retryableStorageError(error, job) && (attempt < config.maxAttempts || canRetryCompletedBananaResult(error, job))) {
           const nextStorageAttemptAt = new Date(clock().getTime() + storageDelay(attempt, config));
           assertActiveLease(assertLease);
           if (!await repository.scheduleStorageRetry({ jobId: job.id, workerId, nextStorageAttemptAt, errorCode: code })) return { action: 'ignored-lease-lost', errorCode: 'VIDEO_WORKER_LEASE_LOST' };

@@ -50,6 +50,7 @@ import { ChatHeader } from './components/chat/ChatHeader';
 import { ChatSidebar } from './components/chat/ChatSidebar';
 import { ChatMessageItem } from './components/chat/ChatMessageItem';
 import { ChatInputBar } from './components/chat/ChatInputBar';
+import BroadcastMessageLayer from './components/BroadcastMessageLayer';
 import { AuthForm } from './components/auth/AuthForm';
 import {
   THEME_KEY,
@@ -3276,6 +3277,7 @@ notify.error(message);
             onOpenNoaWallet={handleOpenNoaWallet}
             profileName={profile?.name || 'ع'}
             onOpenSettings={handleOpenSettings}
+            notifications={<BroadcastMessageLayer userId={profile.id} enabled={Boolean(hasAuthToken && profile.id)} placement="header" />}
           />
         ) : null}
 

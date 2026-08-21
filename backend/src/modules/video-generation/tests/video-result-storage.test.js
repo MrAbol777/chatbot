@@ -98,3 +98,45 @@ test('lease loss during a streaming result cannot finalize, retry, or fail a sta
   );
   assert.deepEqual(calls, { finalized: 0, retried: 0, failed: 0 });
 });
+
+test('a BananaAI completed task retries a transient invalid result descriptor without a new generation', async () => {
+  const calls = { downloads: 0, retried: 0, failed: 0 };
+  const provider = { fetchResultStream: async () => { calls.downloads += 1; throw new VideoStorageError('VIDEO_RESULT_URL_INVALID'); } };
+  const repository = {
+    recordStorageAttempt: async () => true,
+    finalizeStoredResult: async () => { throw new Error('must not finalize'); },
+    scheduleStorageRetry: async () => { calls.retried += 1; return true; },
+    failStorageAndRelease: async () => { calls.failed += 1; return true; }
+  };
+  const job = { id: 'banana-invalid-result', user_id: 'banana-user', provider: 'bananaai', storage_attempts: 0 };
+  const result = await createVideoResultOrchestrator({ storage, config: { maxBytes: 1024, timeoutMs: 1000, maxRedirects: 0, maxAttempts: 2, retryBaseDelayMs: 1, retryMaxDelayMs: 1 } }).store({
+    job,
+    provider,
+    descriptor: { source: 'https://example.test/video.mp4', filename: 'output.mp4', mimeType: 'video/mp4' },
+    repository,
+    workerId: 'worker-a'
+  });
+  assert.equal(result.action, 'storage-retry');
+  assert.deepEqual(calls, { downloads: 1, retried: 1, failed: 0 });
+});
+
+test('a completed BananaAI task keeps retrying transient storage failures past the short retry budget', async () => {
+  const calls = { downloads: 0, retried: 0, failed: 0 };
+  const provider = { fetchResultStream: async () => { calls.downloads += 1; throw new VideoStorageError('VIDEO_RESULT_IDLE_TIMEOUT', undefined, { retryable: true }); } };
+  const repository = {
+    recordStorageAttempt: async () => true,
+    finalizeStoredResult: async () => { throw new Error('must not finalize'); },
+    scheduleStorageRetry: async () => { calls.retried += 1; return true; },
+    failStorageAndRelease: async () => { calls.failed += 1; return true; }
+  };
+  const job = { id: 'banana-storage-retry', user_id: 'banana-user', provider: 'bananaai', provider_job_id: 'provider-task', storage_attempts: 3 };
+  const result = await createVideoResultOrchestrator({ storage, config: { maxBytes: 1024, timeoutMs: 1000, maxRedirects: 0, maxAttempts: 4, retryBaseDelayMs: 1, retryMaxDelayMs: 1 } }).store({
+    job,
+    provider,
+    descriptor: { source: 'https://example.test/video.mp4', filename: 'output.mp4', mimeType: 'video/mp4' },
+    repository,
+    workerId: 'worker-a'
+  });
+  assert.equal(result.action, 'storage-retry');
+  assert.deepEqual(calls, { downloads: 1, retried: 1, failed: 0 });
+});

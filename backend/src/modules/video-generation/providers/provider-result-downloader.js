@@ -129,7 +129,10 @@ async function requestValidatedNode(plan, options) {
   const records = options.forceIpv4 === false ? plan.records : plan.records.filter((record) => record.family === 4);
   if (!records.length) throw resultError('VIDEO_RESULT_DNS_NOT_FOUND');
   const rangeStart = Number(options.rangeStart);
-  const range = Number.isSafeInteger(rangeStart) && rangeStart > 0 ? { Range: `bytes=${rangeStart}-` } : {};
+  const rangeEnd = Number(options.rangeEnd);
+  const range = Number.isSafeInteger(rangeStart) && rangeStart > 0
+    ? { Range: `bytes=${rangeStart}-${Number.isSafeInteger(rangeEnd) && rangeEnd >= rangeStart ? rangeEnd : ''}` }
+    : {};
   const requestOptions = { protocol: plan.url.protocol, hostname: plan.hostname, port: plan.port, path: `${plan.url.pathname}${plan.url.search}`, method: 'GET', headers: { Accept: 'video/mp4, video/webm', 'Accept-Encoding': 'identity', Host: plan.hostname, ...range }, lookup: createPinnedLookup(records), servername: plan.hostname };
   if (!proxy) return requestWithTimers(plan.url.protocol === 'https:' ? https : http, requestOptions, options);
   const tunnel = await openProxyTunnel(plan, proxy, options);
@@ -156,46 +159,58 @@ function createIntegrityStream(response, { expectedLength, idleTimeoutMs, metric
   return stream;
 }
 
-function responseRangeLength(response, offset, expectedTotal) {
+function responseRangeLength(response, offset, expectedTotal, expectedEnd = null) {
   if (Number(response.statusCode || 0) !== 206) throw resultError('VIDEO_RESULT_RANGE_UNSUPPORTED', { retryable: true });
   const raw = response.headers?.['content-range'];
   if (Array.isArray(raw) || !raw) throw resultError('VIDEO_RESULT_RANGE_INVALID', { retryable: true });
   const match = /^bytes\s+(\d+)-(\d+)\/(\d+)$/i.exec(String(raw).trim());
   if (!match) throw resultError('VIDEO_RESULT_RANGE_INVALID', { retryable: true });
   const start = Number(match[1]); const end = Number(match[2]); const total = Number(match[3]);
-  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || !Number.isSafeInteger(total) || start !== offset || end < start || total !== expectedTotal || end >= total) throw resultError('VIDEO_RESULT_RANGE_INVALID', { retryable: true });
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || !Number.isSafeInteger(total) || start !== offset || end < start || total !== expectedTotal || end >= total || (expectedEnd !== null && end !== expectedEnd)) throw resultError('VIDEO_RESULT_RANGE_INVALID', { retryable: true });
   const segmentLength = contentLength(response.headers?.['content-length'], expectedTotal);
   if (segmentLength !== end - start + 1) throw resultError('VIDEO_RESULT_RANGE_INVALID', { retryable: true });
   return segmentLength;
 }
 
-function createResumableStream(initialResponse, { plan, requestImpl, requestOptions, expectedLength, idleTimeoutMs, totalTimeoutMs, maxResumeAttempts, metrics, logger, startedAt }) {
+function createResumableStream(initialResponse, { plan, requestImpl, requestOptions, expectedLength, idleTimeoutMs, totalTimeoutMs, maxResumeAttempts, rangeChunkBytes, metrics, logger, startedAt }) {
   async function* download() {
     let response = initialResponse;
     let segmentLength = expectedLength;
     let resumeAttempts = 0;
+    const chunkBytes = Number(rangeChunkBytes);
+    const useChunks = Number.isSafeInteger(chunkBytes) && chunkBytes > 0;
+    const openRange = async (offset, event, errorCode = null) => {
+      const rangeEnd = useChunks ? Math.min(offset + chunkBytes - 1, expectedLength - 1) : null;
+      logger?.info?.({ event, ...metrics, hostname: plan.hostname, path: plan.url.pathname, resumeOffset: offset, rangeEnd, ...(errorCode ? { errorCode } : {}), elapsedMs: Date.now() - startedAt });
+      const next = await requestImpl(plan, { ...requestOptions, rangeStart: offset, ...(rangeEnd === null ? {} : { rangeEnd }) });
+      return { response: next, segmentLength: responseRangeLength(next, offset, expectedLength, rangeEnd) };
+    };
     while (true) {
       try {
         const clearTotalTimeout = createDeadline(totalTimeoutMs, (error) => response.destroy(error));
         const segment = createIntegrityStream(response, { expectedLength: segmentLength, idleTimeoutMs, metrics, clearTotalTimeout });
         for await (const chunk of segment) yield chunk;
-        if (metrics.receivedBytes !== expectedLength) throw resultError('VIDEO_RESULT_INCOMPLETE_BODY', { retryable: true });
-        return;
+        if (metrics.receivedBytes === expectedLength) return;
+        if (useChunks && metrics.receivedBytes > 0) {
+          ({ response, segmentLength } = await openRange(metrics.receivedBytes, 'video_result_download_chunk'));
+          continue;
+        }
+        throw resultError('VIDEO_RESULT_INCOMPLETE_BODY', { retryable: true });
       } catch (error) {
         const classified = classifyDownloadError(error);
         const offset = metrics.receivedBytes;
         if (!classified.retryable || offset <= 0 || offset >= expectedLength || resumeAttempts >= maxResumeAttempts) throw classified;
         resumeAttempts += 1;
-        logger?.info?.({ event: 'video_result_download_resuming', ...metrics, hostname: plan.hostname, path: plan.url.pathname, resumeAttempt: resumeAttempts, resumeOffset: offset, errorCode: classified.code, elapsedMs: Date.now() - startedAt });
-        response = await requestImpl(plan, { ...requestOptions, rangeStart: offset });
-        segmentLength = responseRangeLength(response, offset, expectedLength);
+        const next = await openRange(offset, 'video_result_download_resuming', classified.code);
+        response = next.response;
+        segmentLength = next.segmentLength;
       }
     }
   }
   return Readable.from(download());
 }
 
-async function fetchValidatedResultWithNode(source, { validator, maxBytes, maxRedirects = 0, connectTimeoutMs = 15_000, headersTimeoutMs = 30_000, idleTimeoutMs = 90_000, totalTimeoutMs = 0, resumeAttempts = 0, proxyUrl = null, forceIpv4 = true, requestImpl = requestValidatedNode, logger = null, context = null }) {
+async function fetchValidatedResultWithNode(source, { validator, maxBytes, maxRedirects = 0, connectTimeoutMs = 15_000, headersTimeoutMs = 30_000, idleTimeoutMs = 90_000, totalTimeoutMs = 0, resumeAttempts = 0, rangeChunkBytes = 0, proxyUrl = null, forceIpv4 = true, requestImpl = requestValidatedNode, logger = null, context = null }) {
   let plan = await validator.validate(source);
   const redirects = Number(maxRedirects);
   if (!Number.isSafeInteger(redirects) || redirects < 0 || redirects > 5) throw resultError('VIDEO_RESULT_TOO_MANY_REDIRECTS');
@@ -226,6 +241,8 @@ async function fetchValidatedResultWithNode(source, { validator, maxBytes, maxRe
     logger?.info?.({ event: 'video_result_download_headers', ...metrics, mimeType });
     const attempts = Number(resumeAttempts);
     if (!Number.isSafeInteger(attempts) || attempts < 0 || attempts > 5) throw resultError('VIDEO_RESULT_RESUME_ATTEMPTS_INVALID');
+    const chunks = Number(rangeChunkBytes);
+    if (!Number.isSafeInteger(chunks) || chunks < 0 || chunks > Number(maxBytes)) throw resultError('VIDEO_RESULT_RANGE_CHUNK_INVALID');
     const stream = createResumableStream(response, {
       plan,
       requestImpl,
@@ -234,6 +251,7 @@ async function fetchValidatedResultWithNode(source, { validator, maxBytes, maxRe
       idleTimeoutMs,
       totalTimeoutMs,
       maxResumeAttempts: attempts,
+      rangeChunkBytes: chunks,
       metrics,
       logger,
       startedAt

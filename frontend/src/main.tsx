@@ -34,11 +34,47 @@ window.addEventListener('error', (event) => {
   console.error('[window:error]', event.message, event.filename, event.lineno, event.error);
 });
 
+const ADMIN_PANEL_PATH = '/admin-secure-9x7k';
+const isAdminEntry = window.location.pathname === ADMIN_PANEL_PATH || window.location.pathname === '/admin/login' || window.location.pathname.startsWith('/admin/');
+const LazyAdminLogin = React.lazy(() => import('./AdminLogin'));
+const LazyAdminPanel = React.lazy(() => import('./AdminPanel'));
+
+function AdminEntry() {
+  const [authenticated, setAuthenticated] = React.useState(false);
+  const [checking, setChecking] = React.useState(true);
+
+  React.useEffect(() => {
+    let mounted = true;
+    fetch('/api/admin/me', { credentials: 'include' })
+      .then((response) => {
+        if (mounted) setAuthenticated(response.ok);
+      })
+      .catch(() => {
+        if (mounted) setAuthenticated(false);
+      })
+      .finally(() => {
+        if (mounted) setChecking(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (checking) return <main className="app-route-loading" role="status" aria-live="polite"><strong>در حال بررسی دسترسی مدیریت…</strong></main>;
+  return (
+    <React.Suspense fallback={<main className="app-route-loading" role="status" aria-live="polite"><strong>در حال آماده‌سازی پنل مدیریت…</strong></main>}>
+      {authenticated ? <LazyAdminPanel /> : <LazyAdminLogin onLoginSuccess={() => setAuthenticated(true)} />}
+    </React.Suspense>
+  );
+}
+
+const Root = isAdminEntry ? AdminEntry : App;
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AppErrorBoundary>
       <ToastProvider>
-        <App />
+        <Root />
       </ToastProvider>
     </AppErrorBoundary>
   </React.StrictMode>

@@ -11,6 +11,7 @@ const { SupervisedOtpRepository } = require('./SupervisedOtpRepository');
 const { ChatTurnRepository } = require('./ChatTurnRepository');
 const { InputOptimizationRepository } = require('./InputOptimizationRepository');
 const AdminRepository = require('./AdminRepository');
+const { createBroadcastMessagesRepository } = require('../modules/broadcast-messages/broadcast-messages.repository');
 
 function createRepositories() {
   const db = new DatabaseClient({
@@ -33,6 +34,7 @@ function createRepositories() {
   const chatTurns = new ChatTurnRepository(db);
   const inputOptimizations = new InputOptimizationRepository(db);
   const admins = new AdminRepository(db);
+  const broadcastMessages = createBroadcastMessagesRepository(db);
 
   return {
     db,
@@ -46,7 +48,8 @@ function createRepositories() {
     chatTurns,
     inputOptimizations,
     supervisedOtp,
-    admins
+    admins,
+    broadcastMessages
   };
 }
 

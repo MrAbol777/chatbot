@@ -71,6 +71,23 @@ test('resumes an interrupted stream with an exact validated byte range without d
   assert.equal(remote.metrics.receivedBytes, 6);
 });
 
+test('continues a stalled provider response in bounded validated range chunks', async () => {
+  const calls = [];
+  const first = new PassThrough(); first.statusCode = 200; first.headers = { 'content-type': 'video/mp4', 'content-length': '6' };
+  const remote = await fetchValidatedResultWithNode('https://cdn.example.test/results/video.mp4', {
+    validator, maxBytes: 1024, idleTimeoutMs: 20, resumeAttempts: 1, rangeChunkBytes: 2,
+    requestImpl: async (_plan, options) => {
+      calls.push([options.rangeStart || 0, options.rangeEnd ?? null]);
+      if (calls.length === 1) return first;
+      if (calls.length === 2) return response({ statusCode: 206, headers: { 'content-type': 'video/mp4', 'content-length': '2', 'content-range': 'bytes 3-4/6' }, chunks: ['de'] });
+      return response({ statusCode: 206, headers: { 'content-type': 'video/mp4', 'content-length': '1', 'content-range': 'bytes 5-5/6' }, chunks: ['f'] });
+    }
+  });
+  first.write('abc');
+  assert.equal((await read(remote.stream)).toString(), 'abcdef');
+  assert.deepEqual(calls, [[0, null], [3, 4], [5, 5]]);
+});
+
 test('does not concatenate a full response when a server ignores the resume range', async () => {
   const first = new PassThrough(); first.statusCode = 200; first.headers = { 'content-type': 'video/mp4', 'content-length': '6' };
   const remote = await fetchValidatedResultWithNode('https://cdn.example.test/results/video.mp4', {

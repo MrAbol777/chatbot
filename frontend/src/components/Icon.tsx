@@ -12,6 +12,7 @@ export type IconName =
   | 'grid'
   | 'sidebar'
   | 'send'
+  | 'bell'
   | 'sparkle'
   | 'sparkles'
   | 'mic'
@@ -124,6 +125,9 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
 
     case 'send':
       return <svg {...commonProps}><path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" /></svg>;
+
+    case 'bell':
+      return <svg {...commonProps}><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" /><path d="M10 21h4" /></svg>;
 
     case 'sparkle':
       return <svg {...commonProps} strokeWidth="1.5"><path d="M12 3.8 13.9 9l5.3 1.9-5.3 1.9L12 18l-1.9-5.2-5.3-1.9L10.1 9 12 3.8Z" /><path d="m18.2 15.7.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8 2.1-.8.8-2.1Z" /></svg>;

@@ -12,6 +12,7 @@ interface ChatHeaderProps {
   onOpenNoaWallet: () => void;
   profileName?: string;
   onOpenSettings: () => void;
+  notifications?: React.ReactNode;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -24,10 +25,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   noaBalanceText,
   onOpenNoaWallet,
   profileName = 'ع',
-  onOpenSettings
+  onOpenSettings,
+  notifications
 }) => {
   return (
-    <header className="top-bar danoa-top-bar" role="banner">
+    <header className={`top-bar danoa-top-bar${notifications ? ' danoa-top-bar--with-notifications' : ''}`} role="banner">
       <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
 
       {!sidebarOpen ? (
@@ -91,6 +93,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         >
           <span>{String(profileName).trim().charAt(0) || 'ع'}</span>
         </button>
+        {notifications}
       </div>
     </header>
   );

@@ -19,6 +19,7 @@ const { createAdminVisionRouter } = require('./modules/admin/vision/routes');
 const { createAdminImageSettingsRouter } = require('./modules/admin/image-settings/routes');
 const { createAdminSupervisedOtpRouter } = require('./modules/admin/otp/routes');
 const { createAdminRuntimeStatusRouter } = require('./modules/admin/runtime-status/routes');
+const { createAdminBroadcastMessagesRouter } = require('./modules/broadcast-messages/broadcast-messages.routes');
 
 const {
   createLoginLimiter,
@@ -57,6 +58,7 @@ function createAdminModule({
   const usersRepository = repositories?.users;
   const analyticsRepository = repositories?.analytics;
   const supervisedOtpRepository = repositories?.supervisedOtp;
+  const broadcastMessagesRepository = repositories?.broadcastMessages;
 
   const loginLimiter = createLoginLimiter();
   const requireAdminAuth = createRequireAdminAuth({
@@ -80,6 +82,12 @@ function createAdminModule({
     usersRepository,
     analyticsRepository,
     repositories,
+    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+  }));
+
+  router.use(createAdminBroadcastMessagesRouter({
+    requireAdminAuth,
+    repository: broadcastMessagesRepository,
     appendAudit: (entry) => appendAudit(entry, repositories?.admins)
   }));
 

@@ -107,7 +107,7 @@ export default function DashboardTab() {
           <div className="chart-grid">
             <div className="chart-card">
               <h3>رشد کاربران - ۷ روز اخیر</h3>
-              <ResponsiveContainer width="100%" height="90%">
+              <ResponsiveContainer width="100%" height="90%" minWidth={1} minHeight={240}>
                 <LineChart data={dashboard.userGrowth || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis dataKey="date" stroke="#888" />
@@ -121,7 +121,7 @@ export default function DashboardTab() {
 
             <div className="chart-card">
               <h3>مصرف API - ۷ روز اخیر</h3>
-              <ResponsiveContainer width="100%" height="90%">
+              <ResponsiveContainer width="100%" height="90%" minWidth={1} minHeight={240}>
                 <BarChart data={dashboard.apiUsage || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis dataKey="date" stroke="#888" />
@@ -135,7 +135,7 @@ export default function DashboardTab() {
 
             <div className="chart-card">
               <h3>توزیع خطاها</h3>
-              <ResponsiveContainer width="100%" height="90%">
+              <ResponsiveContainer width="100%" height="90%" minWidth={1} minHeight={240}>
                 <PieChart>
                   <Pie
                     data={dashboard.errorDistribution || []}

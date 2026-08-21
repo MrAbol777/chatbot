@@ -300,6 +300,7 @@ export type FlaggedItem = {
 export type AdminTab =
   | 'dashboard'
   | 'users'
+  | 'broadcastMessages'
   | 'moderation'
   | 'imageGenerations'
   | 'videoGenerations'
@@ -326,6 +327,7 @@ export type ReportRangePreset = 'today' | '7d' | '30d' | 'custom';
 export const TAB_LABELS: Record<AdminTab, string> = {
   dashboard: 'داشبورد',
   users: 'کاربران',
+  broadcastMessages: 'پیام همگانی',
   moderation: 'ایمنی و نظارت',
   imageGenerations: 'خروجی‌های تصویر',
   videoGenerations: 'خروجی‌های ویدیو',
@@ -342,6 +344,7 @@ export const TAB_LABELS: Record<AdminTab, string> = {
 export const TAB_ICONS: Record<AdminTab, IconName> = {
   dashboard: 'grid',
   users: 'family',
+  broadcastMessages: 'send',
   moderation: 'shield',
   imageGenerations: 'studio-image',
   videoGenerations: 'studio-video',
@@ -358,6 +361,7 @@ export const TAB_ICONS: Record<AdminTab, IconName> = {
 export const TAB_DESCRIPTIONS: Record<AdminTab, string> = {
   dashboard: 'شاخص‌های کلیدی، روند استفاده و آخرین فعالیت‌های سامانه',
   users: 'جست‌وجو، بررسی پروفایل و مدیریت دسترسی کاربران',
+  broadcastMessages: 'ارسال پیام هدفمند و مشاهده وضعیت دریافت کاربران',
   moderation: 'پایش موارد پرچم‌گذاری‌شده، خطاهای امنیتی و سلامت محتوا',
   imageGenerations: 'پیگیری وضعیت و جزئیات خروجی‌های استودیوی تصویر',
   videoGenerations: 'مشاهده کاربر، پرامپت، تصویر ورودی و خروجی هر درخواست ویدیو',
@@ -373,7 +377,7 @@ export const TAB_DESCRIPTIONS: Record<AdminTab, string> = {
 
 export const TAB_GROUPS: Array<{ label: string; items: AdminTab[] }> = [
   { label: 'نمای کلی', items: ['dashboard'] },
-  { label: 'محصول و کاربران', items: ['users', 'moderation', 'imageGenerations', 'videoGenerations'] },
+  { label: 'محصول و کاربران', items: ['users', 'broadcastMessages', 'moderation', 'imageGenerations', 'videoGenerations'] },
   { label: 'نوآ و پرداخت', items: ['noaFinance'] },
   { label: 'هوش مصنوعی', items: ['aiRouting', 'videoPromptProfiles'] },
   { label: 'سیستم و امنیت', items: ['errors', 'siteSettings', 'supervisedOtp', 'config', 'audit'] }
@@ -383,6 +387,7 @@ export const ROLE_ALLOWED_TABS: Record<AdminRole, AdminTab[]> = {
   superadmin: [
     'dashboard',
     'users',
+    'broadcastMessages',
     'moderation',
     'imageGenerations',
     'videoGenerations',
@@ -398,6 +403,7 @@ export const ROLE_ALLOWED_TABS: Record<AdminRole, AdminTab[]> = {
   admin: [
     'dashboard',
     'users',
+    'broadcastMessages',
     'moderation',
     'imageGenerations',
     'videoGenerations',
@@ -409,10 +415,11 @@ export const ROLE_ALLOWED_TABS: Record<AdminRole, AdminTab[]> = {
     'config',
     'audit'
   ],
-  finance: ['dashboard', 'noaFinance'],
-  moderator: ['dashboard', 'users', 'moderation', 'imageGenerations', 'videoGenerations'],
+  finance: ['dashboard', 'broadcastMessages', 'noaFinance'],
+  moderator: ['dashboard', 'users', 'broadcastMessages', 'moderation', 'imageGenerations', 'videoGenerations'],
   developer: [
     'dashboard',
+    'broadcastMessages',
     'aiRouting',
     'videoPromptProfiles',
     'errors',
@@ -420,7 +427,7 @@ export const ROLE_ALLOWED_TABS: Record<AdminRole, AdminTab[]> = {
     'config',
     'audit'
   ],
-  support: ['dashboard', 'users', 'errors']
+  support: ['dashboard', 'users', 'broadcastMessages', 'errors']
 };
 
 export const handleAdminResponse = async (

@@ -46,6 +46,7 @@ const {
   createNoaRepository,
   createNoaUserRouter
 } = require('./modules/noa');
+const { createUserBroadcastMessagesRouter } = require('./modules/broadcast-messages/broadcast-messages.routes');
 
 function createApp({ repositories, runtimeConfig }) {
   const app = express();
@@ -402,6 +403,10 @@ function createApp({ repositories, runtimeConfig }) {
     principalResolver,
     jwtSecret: authJwtSecret,
     logger: console
+  }));
+  app.use(createUserBroadcastMessagesRouter({
+    principalResolver,
+    repository: repositories.broadcastMessages
   }));
   app.use('/api/noa', noaUserRouter);
 

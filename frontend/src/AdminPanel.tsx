@@ -13,6 +13,7 @@ import {
 // Sub-components
 import DashboardTab from './admin/dashboard/DashboardTab';
 import UsersTab from './admin/users/UsersTab';
+import BroadcastMessagesTab from './admin/broadcast-messages/BroadcastMessagesTab';
 import ModerationTab from './admin/moderation/ModerationTab';
 import ImageGenerationsTab from './admin/images/ImageGenerationsTab';
 import VideoGenerationsAdmin from './admin/video-generations/VideoGenerationsAdmin';
@@ -176,6 +177,8 @@ export default function AdminPanel() {
                 onSelectedReportUserIdsChange={setSelectedReportUserIds}
               />
             ) : null}
+
+            {tab === 'broadcastMessages' ? <BroadcastMessagesTab /> : null}
 
             {tab === 'moderation' ? (
               <ModerationTab adminIdentity={adminIdentity} />
