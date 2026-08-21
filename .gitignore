@@ -31,3 +31,4 @@ backend/subscriptions.json
 .opencode/
 .DS_Store
 *.log
+vite.config.*.timestamp-*

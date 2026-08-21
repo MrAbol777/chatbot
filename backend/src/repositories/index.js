@@ -10,6 +10,7 @@ const { ChatMessageRepository } = require('./ChatMessageRepository');
 const { SupervisedOtpRepository } = require('./SupervisedOtpRepository');
 const { ChatTurnRepository } = require('./ChatTurnRepository');
 const { InputOptimizationRepository } = require('./InputOptimizationRepository');
+const AdminRepository = require('./AdminRepository');
 
 function createRepositories() {
   const db = new DatabaseClient({
@@ -31,6 +32,7 @@ function createRepositories() {
   const supervisedOtp = new SupervisedOtpRepository(db);
   const chatTurns = new ChatTurnRepository(db);
   const inputOptimizations = new InputOptimizationRepository(db);
+  const admins = new AdminRepository(db);
 
   return {
     db,
@@ -43,7 +45,8 @@ function createRepositories() {
     chatMessages,
     chatTurns,
     inputOptimizations,
-    supervisedOtp
+    supervisedOtp,
+    admins
   };
 }
 

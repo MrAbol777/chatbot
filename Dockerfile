@@ -58,7 +58,6 @@ RUN test -s /app/backend/system-prompt.txt
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV FRONTEND_DIST_DIR=/app/frontend/dist
-ENV DB_FILE_PATH=/tmp/hemraz-data.json
 ENV ENABLE_SYSTEM_PROMPT_EDIT=${ENABLE_SYSTEM_PROMPT_EDIT}
 
 EXPOSE 3000

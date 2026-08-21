@@ -1,19 +1,13 @@
-import { ChangeEvent, FormEvent, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { ChangeEvent, FormEvent, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChatMessage, Conversation, UserProfile } from './types';
 import { PUBLIC_ASSETS } from './config/publicAssets';
 import {
-  fetchProtectedImageBlobUrl,
   getImageGenerationStatusForConversation,
   startImageGeneration
 } from './services/imageGeneration';
-import { Button, Dialog, InlineMessage, TextField, useNotification } from './design-system/components';
+import { Button, Dialog, useNotification } from './design-system/components';
 import Icon from './components/Icon';
 import type { IconName } from './components/Icon';
-import EmptyState from './components/EmptyState';
-import InsufficientBalanceNotice from './components/InsufficientBalanceNotice';
-import DanoaLoadingMark from './components/DanoaLoadingMark';
 import ProfileForm from './components/ProfileForm';
 import NoaWalletPanel from './noa/NoaWalletPanel';
 import { formatDecimalFa } from './noa/decimal';
@@ -28,38 +22,67 @@ import {
   type AuthNotice,
   type DanoaSessionResponse
 } from './auth/danoaSession';
+import type {
+  RecordingAction,
+  LandingStep,
+  AppView,
+  AuthMode,
+  AuthFamilyPayload,
+  VerifyCodeResult,
+  PhoneStatusResult,
+  ApiError,
+  ChatRequestError,
+  ChatStreamPayload,
+  AttachmentStatus,
+  ImageAttachment,
+  ImagePreviewState
+} from './types/chat.types';
+import {
+  wait,
+  safeFetch,
+  createDefaultPersonality,
+  normalizePersonality,
+  updatePersonalityFromMessage,
+  postChatStream
+} from './services/chatStream';
+import { buildImageDownloadName } from './components/chat/MessageImage';
+import { ChatHeader } from './components/chat/ChatHeader';
+import { ChatSidebar } from './components/chat/ChatSidebar';
+import { ChatMessageItem } from './components/chat/ChatMessageItem';
+import { ChatInputBar } from './components/chat/ChatInputBar';
+import { AuthForm } from './components/auth/AuthForm';
+import {
+  THEME_KEY,
+  SIDEBAR_COLLAPSED_KEY,
+  DEFAULT_TITLE,
+  CONVERSATION_UUID_PATTERN,
+  getInitialSidebarState,
+  isDesktopChatLayout,
+  parseApiError,
+  buildRequestErrorMessage,
+  createApiError,
+  normalizeLocalizedDigits,
+  normalizePhoneInput,
+  parseAgeInput,
+  filterLocalizedDigits,
+  formatConversationDate,
+  getConversationPreview,
+  getMessageTaskId,
+  dedupeChatMessages,
+  normalizeConversationFromServer,
+  generateMessageId,
+  generateUniqueId,
+  getDefaultThemeByAge
+} from './utils/chatMessages';
 
-const AdminLogin = lazy(() => import('./AdminLogin'));
-const AdminPanel = lazy(() => import('./AdminPanel'));
-const LandingPage = lazy(() => import('./Landing'));
-const NotFound = lazy(() => import('./NotFound'));
 const ImageStudio = lazy(() => import('./ImageStudio'));
 const StudioPage = lazy(() => import('./studio/StudioPage'));
 const VideoGenerationPage = lazy(() => import('./video-generation/VideoGenerationPage'));
-const DesignSystemPreview = lazy(() => import('./design-system/preview/DesignSystemPreview'));
 
 const PROFILE_KEY = 'chat_profile';
 const PROFILES_KEY = 'chat_profiles';
 const CONVERSATIONS_KEY = 'chat_conversations';
 const ACTIVE_CONVERSATION_KEY = 'chat_active_conversation_id';
-const THEME_KEY = 'danoa_theme';
-const SIDEBAR_COLLAPSED_KEY = 'danoa_sidebar_collapsed';
-const DEFAULT_TITLE = 'گفتگوی جدید';
-
-const getInitialSidebarState = () => {
-  if (typeof window === 'undefined') return false;
-  if (!isDesktopChatLayout()) return false;
-  try {
-    const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-    if (saved !== null) {
-      return saved !== 'true';
-    }
-  } catch {
-    // fallback
-  }
-  return true;
-};
-const CONVERSATION_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const WAITING_MESSAGES = [
   'در حال یافتن پاسخ',
   'در حال بررسی سوال شما',
@@ -71,30 +94,10 @@ const IMAGE_PROMPT_EXAMPLES = [
   'یک شهر آینده‌نگر رنگی در غروب، پرجزئیات و شاد',
   'پوستر کودکانه درباره مراقبت از زمین، رنگ‌های روشن و فضای امیدبخش'
 ];
-const SUGGESTION_PROMPTS: Array<{ label: string; prompt: string; icon: IconName }> = [
-  { label: 'به من در تحقیق یک ایده کمک کن', prompt: 'به من در تحقیق یک ایده کمک کن', icon: 'edit' },
-  { label: 'خلاصه این مقاله را بنویس', prompt: 'خلاصه این مقاله را بنویس', icon: 'file-text' },
-  { label: 'ایده‌هایی برای محتوا بده', prompt: 'ایده‌هایی برای محتوا بده', icon: 'lightbulb' }
-];
 const IMAGE_PROMPT_MAX_LENGTH = 700;
 const BOT_AVATAR_FALLBACK_URL = PUBLIC_ASSETS.botAvatar;
 const CHAT_DRAFT_NEW_KEY = 'danoa:chat-draft:new';
 const LAST_STUDIO_CHAT_PATH_KEY = 'danoa:studio-return-chat-path';
-const ATTACHMENT_MENU_ID = 'chat-attachment-menu';
-const ATTACHMENT_MENU_ITEMS: ReadonlyArray<{
-  id: 'image';
-  label: string;
-  description: string;
-  icon: IconName;
-}> = [
-  {
-    id: 'image',
-    label: 'ارسال عکس',
-    description: 'JPG، PNG یا WebP',
-    icon: 'attach-image'
-  }
-];
-
 const getChatDraftKey = (conversationId: string) =>
   conversationId ? `danoa:chat-draft:${conversationId}` : CHAT_DRAFT_NEW_KEY;
 
@@ -131,63 +134,6 @@ const removeLegacyLocalDevelopmentCredentials = () => {
   }
 };
 
-type RecordingAction = 'idle' | 'confirm' | 'cancel';
-type LandingStep = 'landing' | 'login' | 'signup' | 'chat';
-type AppView = 'chat' | 'studio' | 'images' | 'video' | 'profile' | 'noa';
-type PersonalityProfile = {
-  interests: string[];
-  preferredStyle: 'formal' | 'casual' | 'playful';
-  emotionState: 'happy' | 'sad' | 'neutral';
-  messageCount: number;
-  lastTopics: string[];
-};
-type AuthMode = 'login' | 'signup';
-type ApiErrorData = {
-  error?: string;
-  message?: string;
-  details?: string;
-  redirectTo?: AuthMode | null;
-  limit?: number;
-  usage?: number;
-  remaining?: number;
-  nextAction?: string;
-  retryAfter?: number;
-  retryAfterSeconds?: number;
-  actionKey?: string;
-  balanceNoa?: string;
-  requiredNoa?: string;
-  shortfallNoa?: string;
-};
-type AuthFamilyPayload = {
-  child?: {
-    id: string;
-    name: string;
-    age: number;
-    avatar?: string | null;
-    grade?: string | null;
-    safetyLevel?: string;
-  } | null;
-  guardian?: {
-    id?: string | null;
-    phone?: string | null;
-  } | null;
-};
-type VerifyCodeResult = {
-  success: boolean;
-  isNewUser?: boolean;
-  requiresProfile?: boolean;
-  signupToken?: string;
-  userId?: string;
-  profile?: { name: string; age: number; phone: string };
-  token?: string;
-} & AuthFamilyPayload;
-type PhoneStatusResult = {
-  success: boolean;
-  exists: boolean;
-  recommendedMode: AuthMode;
-  redirectTo?: AuthMode | null;
-};
-
 const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
   if (pathname === '/studio') return 'studio';
@@ -197,372 +143,11 @@ const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/noa') return 'noa';
   return 'chat';
 };
-const isDesktopChatLayout = () =>
-  typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
 const getConversationIdFromPath = (pathname: string) => {
   const match = pathname.match(/^\/c\/([^/]+)$/);
   return match ? decodeURIComponent(match[1]) : '';
 };
-type ApiError = Error & {
-  redirectTo?: AuthMode | null;
-  status?: number;
-  retryAfterSeconds?: number;
-};
-type ChatRequestError = Error & { status?: number; payload?: ApiErrorData };
-type ChatImageIntentResponse = {
-  intent?: 'chat' | 'image_generation' | 'image_edit' | 'image_understanding';
-  status?: 'QUEUE' | 'WAITING' | 'RUNNING' | 'COMPLETED' | 'ERROR';
-  assistantText?: string;
-  taskId?: string;
-  error?: string;
-  reason?: string | null;
-  blocked?: boolean;
-  unsupported?: boolean;
-  messages?: ChatMessage[];
-  reply?: string;
-  conversationId?: string;
-  imageStudioRedirect?: boolean;
-};
-type ChatStreamEvent = {
-  type: 'meta' | 'delta' | 'done' | 'error' | 'cancelled' | 'title';
-  status?: 'streaming' | 'completed' | 'cancelled' | 'failed';
-  turnId: string;
-  attemptId: string;
-  intent?: 'chat' | 'image_understanding';
-  delta?: string;
-  reply?: string;
-  conversationId?: string;
-  error?: string;
-  message?: string;
-  retryable?: boolean;
-  imageStudioRedirect?: boolean;
-  title?: string;
-  titleStatus?: 'completed' | 'fallback' | 'skipped';
-};
-type ChatStreamPayload = {
-  message: string;
-  imageIds?: string[];
-  history?: ChatMessage[];
-  profile: UserProfile;
-  personality: PersonalityProfile;
-  conversationId?: string;
-  clientMessageId?: string;
-  turnId: string;
-  attemptId: string;
-};
-type AttachmentStatus = 'pending' | 'uploading' | 'uploaded' | 'error';
-type ImageAttachment = {
-  id: string;
-  file: File;
-  previewUrl: string;
-  status: AttachmentStatus;
-  imageId?: string;
-  error?: string;
-};
-type ImagePreviewState = {
-  src: string;
-  alt: string;
-  downloadName: string;
-};
-
-const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-/**
- * Wrap fetch with network-level error handling.
- * Catches DNS failures, offline, connection refused, etc.
- */
-const safeFetch = async (url: string, init?: RequestInit): Promise<Response> => {
-  try {
-    return await fetch(url, init);
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('درخواست بیش از حد طول کشید. لطفاً دوباره تلاش کنید.');
-    }
-    throw new Error('اتصال به سرور برقرار نشد. اینترنت خود را بررسی کنید.');
-  }
-};
-
-const withImageRetryParam = (src: string, retry: number): string => {
-  if (retry <= 0) {
-    return src;
-  }
-
-  try {
-    const url = new URL(src, window.location.origin);
-    url.searchParams.set('retry', String(retry));
-    return url.origin === window.location.origin ? `${url.pathname}${url.search}${url.hash}` : url.toString();
-  } catch {
-    const separator = src.includes('?') ? '&' : '?';
-    return `${src}${separator}retry=${retry}`;
-  }
-};
-
-const buildImageDownloadName = (src: string, index?: number): string => {
-  const suffix = typeof index === 'number' ? `-${index + 1}` : '';
-  try {
-    const url = new URL(src, window.location.origin);
-    const fileName = url.pathname.split('/').filter(Boolean).pop();
-    if (fileName && fileName.includes('.')) {
-      return fileName;
-    }
-  } catch {
-    // Keep the friendly fallback below for relative or blob URLs.
-  }
-  return `danoa-image${suffix}.jpg`;
-};
-
-const MessageImage = ({
-  src,
-  alt,
-  index,
-  onOpenPreview
-}: {
-  src: string;
-  alt: string;
-  index?: number;
-  onOpenPreview: (image: ImagePreviewState) => void;
-}) => {
-  const [retryCount, setRetryCount] = useState(0);
-  const [failed, setFailed] = useState(false);
-  const [resolvedSrc, setResolvedSrc] = useState(src);
-  const protectedBlobUrlRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    setRetryCount(0);
-    setFailed(false);
-    setResolvedSrc(src);
-    if (protectedBlobUrlRef.current) {
-      URL.revokeObjectURL(protectedBlobUrlRef.current);
-      protectedBlobUrlRef.current = null;
-    }
-
-    if (!src.startsWith('/api/images/result/') && !src.startsWith('/api/images/serve/')) {
-      return;
-    }
-
-    let cancelled = false;
-    fetchProtectedImageBlobUrl(src)
-      .then((blobUrl) => {
-        if (cancelled) {
-          URL.revokeObjectURL(blobUrl);
-          return;
-        }
-        protectedBlobUrlRef.current = blobUrl;
-        setResolvedSrc(blobUrl);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-
-    return () => {
-      cancelled = true;
-      if (protectedBlobUrlRef.current) {
-        URL.revokeObjectURL(protectedBlobUrlRef.current);
-        protectedBlobUrlRef.current = null;
-      }
-    };
-  }, [src]);
-
-  if (failed) {
-    return (
-      <div className="image-load-error">
-        <Icon name="info-circle" size="1.1em" aria-hidden="true" /> خطا در بارگذاری تصویر — لطفاً دوباره تلاش کنید
-      </div>
-    );
-  }
-
-  const displaySrc = resolvedSrc.startsWith('blob:') ? resolvedSrc : withImageRetryParam(resolvedSrc, retryCount);
-  const downloadName = buildImageDownloadName(src, index);
-
-  return (
-    <figure className="generated-image-card">
-      <button
-        type="button"
-        className="generated-image-preview"
-        onClick={() => onOpenPreview({ src: displaySrc, alt, downloadName })}
-        aria-label="مشاهده تصویر"
-      >
-        <img
-          className="message-image"
-          src={displaySrc}
-          alt={alt}
-          loading="lazy"
-          decoding="async"
-          onError={() => {
-            if (retryCount >= 5) {
-              setFailed(true);
-              return;
-            }
-
-            window.setTimeout(() => {
-              setRetryCount((current) => current + 1);
-            }, 700 + retryCount * 500);
-          }}
-        />
-        <span className="generated-image-hover" aria-hidden="true">
-          <span>مشاهده</span>
-        </span>
-      </button>
-      <figcaption className="generated-image-actions">
-        <span className="generated-image-label">تصویر آماده شد</span>
-        <a className="generated-image-download" href={displaySrc} download={downloadName}>
-          دانلود
-        </a>
-      </figcaption>
-    </figure>
-  );
-};
-
 const PERSIAN_PHONE_REGEX = /^09[0-9]{9}$/;
-const INTEREST_PATTERNS = [
-  /(?:عاشق|دوست دارم|علاقه دارم)\s+([آ-یa-zA-Z0-9\s‌]+)/i,
-  /(?:به\s+)?([آ-یa-zA-Z0-9\s‌]+)\s+علاقه دارم/i
-];
-const POSITIVE_EMOTION_REGEX = /(خوشحال|خوشحالم|عالیم|عالیه|هیجان زده|خوبم|راضیم)/i;
-const NEGATIVE_EMOTION_REGEX = /(ناراحت|ناراحتم|غمگین|عصبانی|استرس|مضطرب|بدحالم|خسته ام|خسته‌ام)/i;
-
-const createDefaultPersonality = (): PersonalityProfile => ({
-  interests: [],
-  preferredStyle: 'casual',
-  emotionState: 'neutral',
-  messageCount: 0,
-  lastTopics: []
-});
-
-const normalizePersonality = (value: unknown): PersonalityProfile => {
-  const source = value && typeof value === 'object' ? (value as Partial<PersonalityProfile>) : {};
-  const style = source.preferredStyle;
-  const emotion = source.emotionState;
-  return {
-    interests: Array.isArray(source.interests)
-      ? source.interests.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).slice(0, 20)
-      : [],
-    preferredStyle: style === 'formal' || style === 'playful' || style === 'casual' ? style : 'casual',
-    emotionState: emotion === 'happy' || emotion === 'sad' || emotion === 'neutral' ? emotion : 'neutral',
-    messageCount: Number.isFinite(Number(source.messageCount)) ? Math.max(0, Number(source.messageCount)) : 0,
-    lastTopics: Array.isArray(source.lastTopics)
-      ? source.lastTopics
-          .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-          .slice(-3)
-      : []
-  };
-};
-
-const detectCategoryClient = (msg: string): 'academic' | 'emotional' | 'creative' | 'general' => {
-  const lower = msg.toLowerCase();
-  if (/ریاضی|علم|فرمول|معادله|چرا|چگونه|درس|مدرسه|فیزیک|شیمی|زیست/.test(lower)) return 'academic';
-  if (/احساس|ناراحت|غمگین|ترس|استرس|خجالت|دعوا|دوست|رابطه|دوستی|مامان|بابا/.test(lower)) return 'emotional';
-  if (/داستان|قصه|ایده|شخصیت|بنویس|نوشتن|خلاقیت|ماجراجویی/.test(lower)) return 'creative';
-  return 'general';
-};
-
-const mapCategoryToTopic = (category: 'academic' | 'emotional' | 'creative' | 'general') => {
-  if (category === 'academic') return 'آموزشی';
-  if (category === 'emotional') return 'احساسی';
-  if (category === 'creative') return 'خلاقانه';
-  return 'عمومی';
-};
-
-const extractInterest = (message: string): string | null => {
-  for (const pattern of INTEREST_PATTERNS) {
-    const match = message.match(pattern);
-    const candidate = match?.[1]?.replace(/[.!؟?,،]+$/g, '').trim();
-    if (candidate && candidate.length >= 2 && candidate.length <= 30) {
-      return candidate;
-    }
-  }
-  return null;
-};
-
-const updatePersonalityFromMessage = (current: PersonalityProfile, message: string): PersonalityProfile => {
-  const next: PersonalityProfile = {
-    ...current,
-    interests: [...current.interests],
-    lastTopics: [...current.lastTopics],
-    messageCount: current.messageCount + 1
-  };
-
-  const interest = extractInterest(message);
-  if (interest && !next.interests.includes(interest)) {
-    next.interests.push(interest);
-  }
-
-  if (POSITIVE_EMOTION_REGEX.test(message)) {
-    next.emotionState = 'happy';
-  } else if (NEGATIVE_EMOTION_REGEX.test(message)) {
-    next.emotionState = 'sad';
-  } else {
-    next.emotionState = 'neutral';
-  }
-
-  const category = detectCategoryClient(message);
-  const topic = mapCategoryToTopic(category);
-  next.lastTopics = [...next.lastTopics.filter((item) => item !== topic), topic].slice(-3);
-  return next;
-};
-
-const postChatStream = async (
-  payload: ChatStreamPayload,
-  signal: AbortSignal,
-  onEvent: (event: ChatStreamEvent) => void | Promise<void>
-): Promise<{ kind: 'json'; response: Response; data: ChatImageIntentResponse } | { kind: 'stream'; done: ChatStreamEvent }> => {
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/x-ndjson',
-      ...(localStorage.getItem('chat_auth_token')
-        ? { Authorization: `Bearer ${localStorage.getItem('chat_auth_token')}` }
-        : {})
-    },
-    credentials: 'include',
-    body: JSON.stringify(payload),
-    signal
-  });
-  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-  if (!contentType.includes('application/x-ndjson')) {
-    let data: ChatImageIntentResponse & ApiErrorData = {};
-    try { data = await response.json(); } catch { /* handled below */ }
-    if (!response.ok) {
-      throw createChatRequestError(data.error || data.message || 'پاسخ سرور دریافت نشد.', response.status, data);
-    }
-    return { kind: 'json', response, data };
-  }
-  if (!response.ok || !response.body) {
-    throw createChatRequestError('استریم پاسخ شروع نشد.', response.status, {});
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder('utf-8');
-  let buffer = '';
-  let doneEvent: ChatStreamEvent | null = null;
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-      const lines = buffer.split(/\r?\n/);
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        const event = JSON.parse(line) as ChatStreamEvent;
-        await onEvent(event);
-        if (event.type === 'done') doneEvent = event;
-        if (event.type === 'error') throw createChatRequestError(event.message || 'دریافت پاسخ ناموفق بود.', 502, { error: event.error });
-      }
-      if (done) break;
-    }
-    if (buffer.trim()) {
-      const event = JSON.parse(buffer) as ChatStreamEvent;
-      await onEvent(event);
-      if (event.type === 'done') doneEvent = event;
-      if (event.type === 'error') throw createChatRequestError(event.message || 'دریافت پاسخ ناموفق بود.', 502, { error: event.error });
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  if (!doneEvent) throw createChatRequestError('ارتباط قبل از کامل شدن پاسخ قطع شد.', 502, { error: 'STREAM_INTERRUPTED' });
-  return { kind: 'stream', done: doneEvent };
-};
 
 const createSmoothStreamAnimator = (onChange: (text: string) => void) => {
   let rendered = '';
@@ -615,73 +200,6 @@ const createSmoothStreamAnimator = (onChange: (text: string) => void) => {
       return rendered;
     }
   };
-};
-
-const parseApiError = async (response: Response): Promise<ApiErrorData> => {
-  try {
-    return (await response.json()) as ApiErrorData;
-  } catch {
-    return {};
-  }
-};
-
-const buildRequestErrorMessage = async (response: Response) => {
-  if (response.status === 401 || response.status === 403) {
-    return 'احراز هویت API نامعتبر است. لطفاً کلید API را در بک اند بررسی کن.';
-  }
-
-  const payload = await parseApiError(response);
-  if (payload.error?.trim()) {
-    return payload.error.trim();
-  }
-  if (payload.message?.trim()) {
-    return payload.message.trim();
-  }
-
-  return 'پاسخ سرور دریافت نشد.';
-};
-
-const createApiError = (
-  message: string,
-  redirectTo?: AuthMode | null,
-  status?: number,
-  retryAfterSeconds?: number
-): ApiError => {
-  const error = new Error(message) as ApiError;
-  if (redirectTo) {
-    error.redirectTo = redirectTo;
-  }
-  if (Number.isInteger(status)) {
-    error.status = status;
-  }
-  if (Number.isFinite(Number(retryAfterSeconds)) && Number(retryAfterSeconds) > 0) {
-    error.retryAfterSeconds = Math.ceil(Number(retryAfterSeconds));
-  }
-  return error;
-};
-
-const normalizeLocalizedDigits = (value: string) =>
-  value
-    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
-    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632));
-
-const normalizePhoneInput = (value: string) => normalizeLocalizedDigits(value).trim().replace(/[-\s]/g, '');
-
-const parseAgeInput = (value: string) => {
-  const normalized = normalizeLocalizedDigits(value.trim());
-  if (!normalized || !/^[0-9]+$/.test(normalized)) {
-    return Number.NaN;
-  }
-  return Number(normalized);
-};
-
-const filterLocalizedDigits = (value: string) => value.replace(/[^0-9۰-۹٠-٩]/g, '');
-
-const createChatRequestError = (message: string, status: number, payload?: ApiErrorData): ChatRequestError => {
-  const error = new Error(message) as ChatRequestError;
-  error.status = status;
-  error.payload = payload;
-  return error;
 };
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -925,252 +443,6 @@ const conversationVisualIcon = (index: number): IconName => {
   const icons: IconName[] = ['book', 'star', 'companion', 'sparkle', 'question'];
   return icons[index % icons.length];
 };
-
-const formatConversationDate = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-  const diffDays = Math.round((startOfToday - startOfDate) / 86400000);
-
-  if (diffDays <= 0) {
-    return new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' }).format(date);
-  }
-
-  if (diffDays === 1) {
-    return 'دیروز';
-  }
-
-  if (diffDays < 7) {
-    return `${new Intl.NumberFormat('fa-IR').format(diffDays)} روز پیش`;
-  }
-
-  return new Intl.DateTimeFormat('fa-IR', { month: 'short', day: 'numeric' }).format(date);
-};
-
-const getConversationPreview = (conversation: Conversation): string => {
-  const lastMessage = [...conversation.messages].reverse().find((message) => message.content.trim());
-  return lastMessage?.content.trim() || `${new Intl.NumberFormat('fa-IR').format(conversation.messages.length)} پیام`;
-};
-
-const formatMessageTime = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-
-  return new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' }).format(date);
-};
-
-const imageMessagePriority = (message: ChatMessage): number => {
-  if (message.type === 'image_result') return 30;
-  if (message.type === 'image_error') return 20;
-  if (message.type === 'image_loading') return 10;
-  if (getMessageTaskId(message) && message.status && message.status !== 'COMPLETED' && message.status !== 'ERROR') return 8;
-  return 0;
-};
-
-const normalizeImageDedupeUrl = (value: unknown): string => {
-  const raw = typeof value === 'string' ? value.trim() : '';
-  if (!raw) {
-    return '';
-  }
-
-  try {
-    const url = new URL(raw, window.location.origin);
-    return url.pathname.replace(/\/+$/, '') || url.pathname;
-  } catch {
-    return raw.split('?')[0].split('#')[0].replace(/\/+$/, '');
-  }
-};
-
-const getMessageTaskId = (message: ChatMessage): string => {
-  const candidate = message.taskId ?? message.imageTaskId;
-  return typeof candidate === 'string' || typeof candidate === 'number' ? String(candidate).trim() : '';
-};
-
-const getMessageImageUrls = (message: ChatMessage): string[] => {
-  const urls = [
-    message.imageUrl,
-    message.resultUrl,
-    Array.isArray(message.images) ? message.images[0]?.url : undefined,
-    ...(Array.isArray(message.images) ? message.images.map((image) => image?.url) : [])
-  ];
-  return Array.from(
-    new Set(
-      urls
-        .map((url) => (typeof url === 'string' ? url.trim() : ''))
-        .filter(Boolean)
-    )
-  );
-};
-
-const getMessageImageDedupeUrls = (message: ChatMessage): string[] =>
-  Array.from(new Set(getMessageImageUrls(message).map(normalizeImageDedupeUrl).filter(Boolean)));
-
-const getImageMessageCompletenessScore = (message: ChatMessage): number => {
-  const hasImage = getMessageImageDedupeUrls(message).length > 0 ? 6 : 0;
-  const completed = message.status === 'COMPLETED' ? 4 : 0;
-  const readyText = /عکس آماده شد|تصویر آماده شد/.test(message.content || '') ? 2 : 0;
-  const task = getMessageTaskId(message) ? 1 : 0;
-  return imageMessagePriority(message) + hasImage + completed + readyText + task;
-};
-
-const mergeImageTaskMessages = (current: ChatMessage, next: ChatMessage): ChatMessage => {
-  const currentPriority = getImageMessageCompletenessScore(current);
-  const nextPriority = getImageMessageCompletenessScore(next);
-  const base = nextPriority >= currentPriority ? next : current;
-  const fallback = base === next ? current : next;
-  const taskId = getMessageTaskId(current) || getMessageTaskId(next);
-  const images = getMessageImageUrls(base).length > 0 ? base.images : fallback.images;
-  const imageUrl = base.imageUrl || fallback.imageUrl;
-  const resultUrl = base.resultUrl || fallback.resultUrl;
-
-  return {
-    ...fallback,
-    ...base,
-    id: current.id || next.id,
-    timestamp: current.timestamp || next.timestamp,
-    ...(taskId ? { taskId } : {}),
-    ...(images ? { images } : {}),
-    ...(imageUrl ? { imageUrl } : {}),
-    ...(resultUrl ? { resultUrl } : {})
-  };
-};
-
-const dedupeChatMessages = (messages: ChatMessage[]): ChatMessage[] => {
-  const deduped: ChatMessage[] = [];
-  const taskIndexes = new Map<string, number>();
-  const imageUrlIndexes = new Map<string, number>();
-
-  const rememberImageMessage = (message: ChatMessage, index: number) => {
-    const taskId = getMessageTaskId(message);
-    if (taskId) {
-      taskIndexes.set(taskId, index);
-    }
-    getMessageImageDedupeUrls(message).forEach((url) => imageUrlIndexes.set(url, index));
-  };
-
-  for (const message of messages) {
-    const taskId = getMessageTaskId(message);
-    const isImageTaskMessage =
-      message.role === 'assistant' &&
-      (message.type === 'image_loading' ||
-        message.type === 'image_result' ||
-        message.type === 'image_error' ||
-        Boolean(taskId && message.status));
-
-    if (isImageTaskMessage) {
-      const normalizedTaskMessage =
-        taskId && message.type !== 'image_result' && message.type !== 'image_error'
-          ? { ...message, type: 'image_loading' as const, taskId }
-          : taskId
-            ? { ...message, taskId }
-            : message;
-      const imageUrls = getMessageImageDedupeUrls(message);
-      const existingIndex =
-        (taskId ? taskIndexes.get(taskId) : undefined) ??
-        imageUrls.map((url) => imageUrlIndexes.get(url)).find((index) => index !== undefined);
-
-      if (existingIndex !== undefined) {
-        const merged = mergeImageTaskMessages(deduped[existingIndex], normalizedTaskMessage);
-        deduped[existingIndex] = merged;
-        rememberImageMessage(merged, existingIndex);
-        continue;
-      }
-
-      deduped.push(normalizedTaskMessage);
-      rememberImageMessage(normalizedTaskMessage, deduped.length - 1);
-      continue;
-    }
-
-    if (message.role === 'assistant' && getMessageImageDedupeUrls(message).length > 0) {
-      const imageUrls = getMessageImageDedupeUrls(message);
-      const existingIndex = imageUrls.map((url) => imageUrlIndexes.get(url)).find((index) => index !== undefined);
-      if (existingIndex !== undefined) {
-        deduped[existingIndex] = mergeImageTaskMessages(deduped[existingIndex], {
-          ...message,
-          type: message.type || 'image_result'
-        });
-        rememberImageMessage(deduped[existingIndex], existingIndex);
-        continue;
-      }
-    }
-
-    deduped.push(message);
-    if (message.role === 'assistant') {
-      rememberImageMessage(message, deduped.length - 1);
-    }
-  }
-
-  const seenFinalImageUrls = new Set<string>();
-  return deduped.filter((message) => {
-    if (message.role !== 'assistant' || getMessageImageDedupeUrls(message).length === 0) {
-      return true;
-    }
-
-    const imageUrls = getMessageImageDedupeUrls(message);
-    if (imageUrls.some((url) => seenFinalImageUrls.has(url))) {
-      return false;
-    }
-
-    imageUrls.forEach((url) => seenFinalImageUrls.add(url));
-    return true;
-  });
-};
-
-const normalizeConversationFromServer = (item: {
-  conversation_id: string;
-  title?: string | null;
-  pinned?: boolean;
-  created_at?: string;
-  updated_at?: string;
-  messages?: ChatMessage[];
-}): Conversation => {
-  const createdAt = item.created_at || new Date().toISOString();
-  const updatedAt = item.updated_at || createdAt;
-  const messages = Array.isArray(item.messages)
-    ? dedupeChatMessages(item.messages.map((msg) => ({
-        id: typeof msg.id === 'string' ? msg.id : undefined,
-        role: msg.role,
-        type: msg.type,
-        intent: msg.intent,
-        content: msg.content,
-        timestamp: msg.timestamp || updatedAt,
-        taskId: msg.taskId,
-        imageTaskId: msg.imageTaskId,
-        status: msg.status,
-        imageUrl: msg.imageUrl,
-        resultUrl: msg.resultUrl,
-        images: Array.isArray(msg.images)
-          ? msg.images
-              .filter((image) => image && typeof image.url === 'string' && image.url.trim().length > 0)
-              .map((image) => ({
-                url: image.url.trim(),
-                alt: typeof image.alt === 'string' && image.alt.trim() ? image.alt.trim() : 'تصویر ارسال شده'
-              }))
-          : undefined
-      })))
-    : [];
-
-  return {
-    id: item.conversation_id || `${Date.now()}`,
-    title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : DEFAULT_TITLE,
-    pinned: Boolean(item.pinned),
-    createdAt,
-    updatedAt,
-    messages
-  };
-};
-
-const generateUniqueId = () => Date.now() + Math.floor(Math.random() * 10000);
-const generateMessageId = (prefix = 'msg') =>
-  `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-const getDefaultThemeByAge = (age: number): 'energy' | 'calm' => (age < 13 ? 'energy' : 'calm');
 
 export const loadProfile = (): AppProfile | null => {
   try {
@@ -1529,7 +801,7 @@ function ChatApp() {
 
     const images = visibleMessages.reduce<string[]>((acc, msg) => {
       if (Array.isArray(msg.images)) {
-        msg.images.forEach((img) => { if (img?.url) acc.push(img.url); });
+        msg.images.forEach((img: { url?: string } | undefined) => { if (img?.url) acc.push(img.url); });
       }
       return acc;
     }, []);
@@ -3622,254 +2894,59 @@ notify.error(message);
     setShowProfileModal(false);
   };
 
-  const renderAuthForm = ({ includeLanding = true }: { includeLanding?: boolean } = {}) => {
-    const authCardClass = `register-card auth-card ${authTransition === 'back' ? 'slide-back' : 'slide-forward'}`;
-    const authActionText = isCheckingPhone
-      ? 'در حال بررسی شماره...'
-      : isSendingVerification
-        ? 'در حال ارسال کد...'
-        : verificationRetrySeconds > 0
-          ? `تلاش دوباره تا ${verificationRetrySeconds} ثانیه`
-          : 'ادامه با کد تایید';
-    const notice = authNoticeMessage(vianaNotice);
-    const renderVianaAction = () => (
-      <div className="viana-auth-section">
-        {vianaEnabled ? (
-          <>
-            <div className="auth-divider" aria-hidden="true">
-              <span />
-              <b>یا</b>
-              <span />
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              className="viana-signin-button"
-              loading={vianaRedirecting}
-              disabled={vianaRedirecting || isSendingVerification || isCheckingPhone || isVerifyingCode}
-              onClick={() => {
-                setVianaRedirecting(true);
-                setVianaNotice(undefined);
-                window.location.assign('/api/auth/viana/start');
-              }}
-            >
-              ورود با Viana
-            </Button>
-          </>
-        ) : null}
-        {notice ? <InlineMessage text={notice.text} variant={notice.variant} className="viana-auth-notice" /> : null}
-      </div>
-    );
-    return (
-      <>
-        {includeLanding && landingStep === 'landing' ? (
-          <form className={`${authCardClass} auth-card--entry`} onSubmit={handleRegisterStepOne}>
-            <div className="auth-brand">
-              <span className="auth-logo-mark" aria-hidden="true">د</span>
-              <div>
-                <p className="auth-eyebrow">ورود به دانوآ</p>
-                <h1>حساب کاربری</h1>
-              </div>
-            </div>
-            <p className="subtitle">
-              شماره موبایل را وارد کن؛ اگر قبلاً حساب داشته باشی وارد همان گفتگوها می‌شوی، و اگر تازه باشی بعد از تایید کد فقط اسم و سن را می‌پرسیم.
-            </p>
-
-            <TextField
-              label="شماره موبایل"
-              value={phone}
-              onChange={(event) => {
-                setPhone(filterLocalizedDigits(event.target.value));
-                setVerificationRetrySeconds(0);
-                setErrors((current) => ({ ...current, phone: undefined }));
-              }}
-              placeholder="09123456789"
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9۰-۹٠-٩]*"
-              maxLength={11}
-              autoComplete="tel"
-              helperText="کد تایید برای همین شماره پیامک می‌شود."
-              errorText={errors.phone}
-            />
-
-            <Button
-              type="submit"
-              className="start-btn auth-primary-action"
-              disabled={isSendingVerification || isCheckingPhone || verificationRetrySeconds > 0}
-            >
-              {authActionText}
-            </Button>
-            {renderVianaAction()}
-
-            <p className="helper onboarding-help">
-              {hasSavedAccount
-                ? 'روی این مرورگر قبلاً حساب ذخیره شده؛ با همان شماره وارد شو.'
-                : 'برای استفاده از چت، تصویر و ویدئو باید وارد حساب کاربری شوی.'}
-            </p>
-          </form>
-        ) : registrationStep === 1 ? (
-          <form className={authCardClass} onSubmit={handleRegisterStepOne}>
-            {includeLanding ? (
-              <button
-                type="button"
-                className="auth-back-btn"
-                onClick={() => {
-                  setAuthTransition('back');
-                  setLandingStep('landing');
-                  setErrors({});
-                  setSignupToken('');
-                }}
-              >
-                ← بازگشت
-              </button>
-            ) : null}
-            <div className="auth-step-row">
-              <span>1</span>
-              <p>شماره موبایل</p>
-            </div>
-            <h1>ورود یا ساخت حساب</h1>
-            <p className="subtitle">شماره را وارد کن تا کد تایید بفرستیم. دانوآ خودش تشخیص می‌دهد حساب قبلی داری یا نه.</p>
-
-            <TextField
-              label="شماره موبایل"
-              value={phone}
-              onChange={(event) => {
-                setPhone(filterLocalizedDigits(event.target.value));
-                setVerificationRetrySeconds(0);
-                setErrors((current) => ({ ...current, phone: undefined }));
-              }}
-              placeholder="09123456789"
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9۰-۹٠-٩]*"
-              maxLength={11}
-              autoComplete="tel"
-              helperText="فرمت معتبر: 09XXXXXXXXX"
-              errorText={errors.phone}
-            />
-
-            <Button
-              type="submit"
-              className="start-btn"
-              disabled={isSendingVerification || isCheckingPhone || verificationRetrySeconds > 0}
-            >
-              {authActionText}
-            </Button>
-            {renderVianaAction()}
-          </form>
-        ) : registrationStep === 2 ? (
-          <form className={authCardClass} onSubmit={handleVerifyCode}>
-            <button
-              type="button"
-              className="auth-back-btn"
-              onClick={() => {
-                setRegistrationStep(1);
-                setVerificationCode('');
-                setErrors({});
-              }}
-            >
-              ← بازگشت
-            </button>
-            <div className="auth-step-row">
-              <span>2</span>
-              <p>تایید شماره</p>
-            </div>
-            <h1>کد تایید</h1>
-            <p className="subtitle">کدی که برای شماره زیر پیامک شده را وارد کن.</p>
-            <p className="auth-phone-badge" dir="ltr">{phone || '09XXXXXXXXX'}</p>
-
-            <TextField
-              label="کد تایید"
-              value={verificationCode}
-              onChange={(event) => setVerificationCode(filterLocalizedDigits(event.target.value))}
-              placeholder="12345"
-              type="tel"
-              inputMode="numeric"
-              maxLength={6}
-              autoComplete="one-time-code"
-              errorText={errors.code}
-            />
-
-            <div className="ds-auth-actions">
-              <Button
-                type="button"
-                variant="danger"
-                onClick={() => {
-                  setRegistrationStep(1);
-                  setVerificationCode('');
-                  setErrors({});
-                }}
-              >
-                تغییر شماره
-              </Button>
-              <Button type="submit" className="start-btn" disabled={isVerifyingCode}>
-                {isVerifyingCode ? 'در حال بررسی...' : 'تأیید'}
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <form className={authCardClass} onSubmit={handleCompleteProfile}>
-            <button
-              type="button"
-              className="auth-back-btn"
-              onClick={() => {
-                setRegistrationStep(2);
-                setErrors({});
-              }}
-            >
-              ← بازگشت
-            </button>
-            <div className="auth-step-row">
-              <span>3</span>
-              <p>تکمیل حساب</p>
-            </div>
-            <h1>اطلاعات کودک</h1>
-            <p className="subtitle">این شماره قبلاً در دانوآ ثبت نشده بود. برای ساخت حساب، اسم و سن کودک را وارد کن.</p>
-            <p className="auth-phone-badge" dir="ltr">{phone}</p>
-
-            <TextField
-              label="اسم کودک"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="مثلا: علی"
-              type="text"
-              autoComplete="name"
-              errorText={errors.name}
-            />
-
-            <TextField
-              label="سن کودک"
-              value={age}
-              onChange={(event) => setAge(filterLocalizedDigits(event.target.value))}
-              placeholder="فقط عدد"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9۰-۹٠-٩]*"
-              helperText={`سن مجاز: ${ageMin} سال به بالا`}
-              errorText={errors.age}
-            />
-
-            <div className="ds-auth-actions">
-              <Button
-                type="button"
-                variant="danger"
-                onClick={() => {
-                  setRegistrationStep(2);
-                  setErrors({});
-                }}
-              >
-                بازگشت
-              </Button>
-              <Button type="submit" className="start-btn" disabled={isVerifyingCode}>
-                {isVerifyingCode ? 'در حال ساخت حساب...' : 'شروع گفتگو'}
-              </Button>
-            </div>
-          </form>
-        )}
-      </>
-    );
-  };
+  const renderAuthForm = ({ includeLanding = true }: { includeLanding?: boolean } = {}) => (
+    <AuthForm
+      includeLanding={includeLanding}
+      landingStep={landingStep}
+      registrationStep={registrationStep}
+      authTransition={authTransition}
+      isCheckingPhone={isCheckingPhone}
+      isSendingVerification={isSendingVerification}
+      isVerifyingCode={isVerifyingCode}
+      isCompletingProfile={false}
+      verificationRetrySeconds={verificationRetrySeconds}
+      vianaEnabled={vianaEnabled}
+      vianaRedirecting={vianaRedirecting}
+      vianaNotice={vianaNotice}
+      hasSavedAccount={hasSavedAccount}
+      phone={phone}
+      verificationCode={verificationCode}
+      name={name}
+      age={age}
+      errors={errors}
+      onPhoneChange={(val) => {
+        setPhone(val);
+        setVerificationRetrySeconds(0);
+        setErrors((current) => ({ ...current, phone: undefined }));
+      }}
+      onVerificationCodeChange={(val) => setVerificationCode(val)}
+      onNameChange={(val) => setName(val)}
+      onAgeChange={(val) => setAge(val)}
+      onRegisterStepOne={handleRegisterStepOne}
+      onVerifyCode={handleVerifyCode}
+      onCompleteProfile={handleCompleteProfile}
+      onBackToLanding={() => {
+        setAuthTransition('back');
+        setLandingStep('landing');
+        setErrors({});
+        setSignupToken('');
+      }}
+      onBackToStep1={() => {
+        setRegistrationStep(1);
+        setVerificationCode('');
+        setErrors({});
+      }}
+      onBackToStep2={() => {
+        setRegistrationStep(2);
+        setErrors({});
+      }}
+      onStartViana={() => {
+        setVianaRedirecting(true);
+        setVianaNotice(undefined);
+        window.location.assign('/api/auth/viana/start');
+      }}
+    />
+  );
 
   const renderSidebarConversation = ({ conversation, index }: { conversation: Conversation; index: number }) => {
     const isActive = conversation.id === activeConversationId;
@@ -4188,274 +3265,47 @@ notify.error(message);
           </div>
         )}
         {currentView === 'chat' ? (
-        <header className="top-bar danoa-top-bar" role="banner">
-          <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
-
-          {/* Mobile sidebar toggle — direct child of header for flex layout */}
-          {!sidebarOpen ? (
-            <button
-              ref={chatSidebarToggleRef}
-              className="header-action-btn chat-sidebar-toggle danoa-mobile-sidebar-btn"
-              onClick={() => setSidebarOpen(true)}
-              type="button"
-              aria-label="باز کردن پنل گفتگوها"
-              title="باز کردن پنل گفتگوها"
-            >
-              <Icon name="sidebar" size={19} aria-hidden="true" />
-            </button>
-          ) : (
-            /* Balance spacer when toggle is hidden (sidebar open) */
-            <div className="danoa-header-spacer" aria-hidden="true" />
-          )}
-
-          <div className="danoa-top-bar__title-wrap">
-            <div className="danoa-top-bar__title">
-              <span className="danoa-top-bar__title-text">{activeConversation?.title || DEFAULT_TITLE}</span>
-            </div>
-          </div>
-
-          <div className="danoa-top-bar__actions">
-            {activeConversation && visibleMessages.length > 0 ? (
-              <button
-                className="header-action-btn danoa-top-action-btn"
-                type="button"
-                onClick={handleDownloadActiveConversation}
-                aria-label="دانلود گفتگو"
-                title="دانلود گفتگو"
-              >
-                <Icon name="download" size={17} aria-hidden="true" />
-              </button>
-            ) : null}
-
-            <div className="danoa-noa-pill" role="status" aria-label="اعتبار نوآ">
-              <button
-                type="button"
-                className="danoa-noa-pill__add"
-                onClick={handleOpenNoaWallet}
-                aria-label="افزایش اعتبار نوآ"
-                title="افزایش اعتبار نوآ"
-              >
-                <Icon name="plus" size={13} aria-hidden="true" />
-              </button>
-              <span className="danoa-noa-pill__label" onClick={handleOpenNoaWallet} style={{ cursor: 'pointer' }}>
-                {noaWallet.wallet
-                  ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ`
-                  : '— نوآ'}
-              </span>
-              <span className="danoa-noa-pill__icon" aria-hidden="true" onClick={handleOpenNoaWallet} style={{ cursor: 'pointer' }}>
-                <Icon name="sparkles" size={15} />
-              </span>
-            </div>
-
-            <button
-              type="button"
-              className="danoa-avatar-badge"
-              onClick={handleOpenSettings}
-              aria-label="تنظیمات حساب کاربری"
-              title="تنظیمات حساب کاربری"
-            >
-              <span>{String(profile?.name || 'ع').trim().charAt(0)}</span>
-            </button>
-          </div>
-        </header>
-
+          <ChatHeader
+            sidebarOpen={sidebarOpen}
+            onOpenSidebar={() => setSidebarOpen(true)}
+            chatSidebarToggleRef={chatSidebarToggleRef}
+            activeConversationTitle={activeConversation?.title || DEFAULT_TITLE}
+            hasMessages={Boolean(activeConversation && visibleMessages.length > 0)}
+            onDownloadConversation={handleDownloadActiveConversation}
+            noaBalanceText={noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ` : undefined}
+            onOpenNoaWallet={handleOpenNoaWallet}
+            profileName={profile?.name || 'ع'}
+            onOpenSettings={handleOpenSettings}
+          />
         ) : null}
 
         {currentView === 'chat' ? (
-        <aside
-          id="chat-history-sidebar"
-          className={`sidebar conversation-home chat-history-sidebar ${sidebarOpen ? 'open is-expanded' : 'is-collapsed'}`}
-          aria-label="تاریخچه و ناوبری دانوآ"
-          aria-expanded={sidebarOpen}
-          ref={(node) => {
-            if (node) {
-              node.inert = !isDesktopChatLayout() && !sidebarOpen;
-            }
-          }}
-        >
-          <header className="conversation-home-header">
-            <div className="conversation-home-brand">
-              <span className="conversation-home-brand__mark" aria-hidden="true">
-                <img src={PUBLIC_ASSETS.brandMark} alt="" />
-              </span>
-              <div className="conversation-home-brand__text">
-                <strong>دانوآ</strong>
-                <small>همراه هوشمند تو</small>
-              </div>
-            </div>
-            <div className="conversation-home-header-actions">
-              <button
-                ref={conversationSearchToggleRef}
-                type="button"
-                className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
-                onClick={() => {
-                  setConversationSearchTerm('');
-                  setConversationSearchActiveIndex(-1);
-                  setConversationSearchOpen(true);
-                }}
-                aria-label="جستجوی گفتگوها"
-                title="جستجوی گفتگوها"
-              >
-                <Icon name="search" size={20} aria-hidden="true" />
-              </button>
-
-              <button
-                type="button"
-                className="conversation-sidebar-toggle-btn"
-                onClick={handleToggleSidebar}
-                aria-label={sidebarOpen ? 'بستن منوی کناری' : 'باز کردن منوی کناری'}
-                title={sidebarOpen ? 'بستن منوی کناری' : 'باز کردن منوی کناری'}
-                aria-expanded={sidebarOpen}
-              >
-                <Icon name={sidebarOpen ? (isDesktopChatLayout() ? 'chevron-right' : 'x-close') : 'chevron-left'} size={18} aria-hidden="true" />
-              </button>
-            </div>
-          </header>
-
-          <div className="conversation-home-primary-actions">
-            <button
-              type="button"
-              className="conversation-new-chat-btn"
-              onClick={() => void handleCreateConversation()}
-              aria-label="گفتگوی جدید"
-              title={!sidebarOpen ? 'گفتگوی جدید' : undefined}
-            >
-              <Icon name="new-chat" size={20} aria-hidden="true" />
-              <span className="conversation-new-chat-btn__label">گفتگوی جدید</span>
-            </button>
-          </div>
-
-          {conversationSearchTerm ? (
-            <div className="conversation-history-heading">
-              <h2>نتایج جستجو</h2>
-              <span>{new Intl.NumberFormat('fa-IR').format(visibleConversations.length)}</span>
-            </div>
-          ) : null}
-
-          <div className="conversation-list conversation-home-list">
-            {!hasHydratedRemoteConversations && profile?.id ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={`skeleton-${i}`} className="conversation-row conversation-card conversation-skeleton" aria-hidden="true">
-                  <div className="conversation-card-icon skeleton-shimmer" />
-                  <div className="conversation-main">
-                    <div className="skeleton-line skeleton-line--title" />
-                    <div className="skeleton-line skeleton-line--text" />
-                  </div>
-                  <div className="conversation-card-meta">
-                    <div className="skeleton-line skeleton-line--short" />
-                  </div>
-                </div>
-              ))
-            ) : null}
-
-            {sidebarPinnedConversations.length > 0 ? (
-              <section className="conversation-sidebar-section" aria-labelledby="pinned-conversations-title">
-                <div className="conversation-sidebar-section__heading">
-                  <h2 id="pinned-conversations-title">سنجاق‌شده</h2>
-                  <Icon name="pin" size={16} aria-hidden="true" />
-                </div>
-                <div className="conversation-group-card">
-                  {sidebarPinnedConversations.map(renderSidebarConversation)}
-                </div>
-              </section>
-            ) : null}
-
-            {sidebarToday.length > 0 ? (
-              <section className="conversation-sidebar-section" aria-labelledby="today-conversations-title">
-                <div className="conversation-sidebar-section__heading">
-                  <h2 id="today-conversations-title">امروز</h2>
-                </div>
-                <div className="conversation-group-card">
-                  {sidebarToday.map(renderSidebarConversation)}
-                </div>
-              </section>
-            ) : null}
-
-            {sidebarOlder.length > 0 ? (
-              <section className="conversation-sidebar-section" aria-labelledby="older-conversations-title">
-                <div className="conversation-sidebar-section__heading">
-                  <h2 id="older-conversations-title">هفته گذشته</h2>
-                </div>
-                <div className="conversation-group-card">
-                  {sidebarOlder.map(renderSidebarConversation)}
-                </div>
-              </section>
-            ) : null}
-
-            {visibleConversations.length === 0 ? (
-              <div className="conversation-search-empty" role="status">
-                {orderedConversations.length === 0 ? (
-                  <EmptyState
-                    icon={
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6.5 17.5 4 20V7.7C4 5.7 5.7 4 7.7 4h8.6C18.3 4 20 5.7 20 7.7v6.1c0 2-1.7 3.7-3.7 3.7H6.5Z" />
-                        <path d="M8 9h8M8 12.3h5.6" />
-                      </svg>
-                    }
-                    title="هنوز گفتگویی نداری"
-                    description="اولین گفتگو رو شروع کن!"
-                    action={
-                      <Button type="button" onClick={handleCreateConversation}>
-                        شروع گفتگوی جدید
-                      </Button>
-                    }
-                  />
-                ) : (
-                  <span>گفتگویی با این عبارت پیدا نشد.</span>
-                )}
-              </div>
-            ) : null}
-          </div>
-
-          <nav className="conversation-bottom-nav conversation-sidebar-nav" aria-label="بخش‌های دانوآ">
-            <button
-              type="button"
-              className="conversation-nav-item"
-              onClick={openStudioFromChat}
-              title={!sidebarOpen ? 'استودیو' : undefined}
-              aria-label="استودیو"
-            >
-              <Icon name="grid" size={21} aria-hidden="true" />
-              <span>
-                <strong>استودیو</strong>
-                <small>ساخت تصویر و ویدیو</small>
-              </span>
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
-            </button>
-
-            <button
-              type="button"
-              className="conversation-nav-item"
-              onClick={handleOpenNoaWallet}
-              title={!sidebarOpen ? 'کیف پول نوآ' : undefined}
-              aria-label="کیف پول نوآ"
-            >
-              <Icon name="credit-card" size={21} aria-hidden="true" />
-              <span>
-                <strong>کیف پول نوآ</strong>
-                <small>{noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ موجودی` : 'مدیریت اعتبار'}</small>
-              </span>
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
-            </button>
-
-            <button
-              type="button"
-              className="conversation-nav-item conversation-nav-profile"
-              onClick={handleOpenSettings}
-              title={!sidebarOpen ? (profile?.name || 'تنظیمات حساب کاربری') : undefined}
-              aria-label="تنظیمات حساب کاربری"
-            >
-              <span className="conversation-nav-profile__avatar" aria-hidden="true">
-                {String(profile?.name || 'د').trim().charAt(0)}
-              </span>
-              <span>
-                <strong>{profile?.name || 'پروفایل من'}</strong>
-                <small>تنظیمات حساب کاربری</small>
-              </span>
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
-            </button>
-          </nav>
-        </aside>
+          <ChatSidebar
+            sidebarOpen={sidebarOpen}
+            isDesktopLayout={isDesktopChatLayout()}
+            onToggleSidebar={handleToggleSidebar}
+            onCreateConversation={() => void handleCreateConversation()}
+            visibleConversations={visibleConversations}
+            orderedConversations={orderedConversations}
+            pinnedConversations={sidebarPinnedConversations}
+            todayConversations={sidebarToday}
+            olderConversations={sidebarOlder}
+            hasHydratedRemoteConversations={hasHydratedRemoteConversations}
+            profile={profile}
+            onOpenStudio={openStudioFromChat}
+            onOpenNoaWallet={handleOpenNoaWallet}
+            onOpenSettings={handleOpenSettings}
+            noaBalanceText={noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ موجودی` : undefined}
+            conversationSearchOpen={conversationSearchOpen}
+            conversationSearchTerm={conversationSearchTerm}
+            onOpenSearch={() => {
+              setConversationSearchTerm('');
+              setConversationSearchActiveIndex(-1);
+              setConversationSearchOpen(true);
+            }}
+            conversationSearchToggleRef={conversationSearchToggleRef}
+            renderSidebarConversation={renderSidebarConversation}
+          />
         ) : null}
         {conversationMenu && conversationMenuTarget ? (
           <div
@@ -4927,96 +3777,21 @@ notify.error(message);
         <main id="chat-messages" className="messages-area" ref={messagesContainerRef} aria-live="polite" aria-busy={isSending}>
           {visibleMessages.length ? (
             visibleMessages.map((message, index) => (
-              <div
+              <ChatMessageItem
                 key={`${message.timestamp}-${index}`}
-                className={`message-row ${message.role} ${message.streamStatus ? `stream-${message.streamStatus}` : ''} ${Array.isArray(message.images) && message.images.length > 0 ? 'has-images' : ''}`}
-                ref={(node) => {
-                  if (index === visibleMessages.length - 1) {
-                    lastMessageRef.current = node;
-                  }
-                  if (message.role === 'assistant' && index === lastAssistantMessageIndex) {
-                    botMessageRef.current = node;
-                  }
-                }}
-              >
-                {message.role === 'assistant' ? renderBotAvatar() : null}
-                {message.role === 'assistant' ? (
-                  <div className={`bubble markdown-body ${message.streamStatus === 'streaming' ? 'streaming-bubble' : ''}`}>
-                    {message.content ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown> : null}
-                    {message.streamStatus === 'streaming' ? <span className="stream-cursor" aria-label="در حال نوشتن" /> : null}
-                    {message.streamStatus === 'failed' ? (
-                      <div className="stream-state stream-state-error" role="alert">
-                        <span>{message.streamError || 'پاسخ کامل نشد. دوباره تلاش کنیم؟'}</span>
-                        <button
-                          type="button"
-                          className="stream-retry-btn"
-                          onClick={() => void handleRetryStreamMessage(message)}
-                          disabled={isSending}
-                          aria-label="تلاش مجدد برای دریافت پاسخ"
-                          title="تلاش مجدد"
-                        >
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M20 11a8 8 0 1 0-2.35 5.65M20 5v6h-6" />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : null}
-                    {message.streamStatus === 'cancelled' ? (
-                      <div className="stream-state stream-state-cancelled">پاسخ با درخواست شما متوقف شد.</div>
-                    ) : null}
-                    {message.imageStudioRedirect ? (
-                      <button
-                        type="button"
-                        className="image-studio-redirect-btn"
-                        onClick={openStudioFromChat}
-                      >
-                        رفتن به استودیوی تصویر
-                      </button>
-                    ) : null}
-                    {message.billingError?.kind === 'insufficient_balance' ? (
-                      <InsufficientBalanceNotice
-                        billingError={message.billingError}
-                        onOpenWallet={handleOpenNoaWallet}
-                        onRetry={message.billingError.retryable && message.billingError.retryMessage
-                          ? () => void handleSendMessage(message.billingError?.retryMessage)
-                          : undefined}
-                      />
-                    ) : null}
-                    {Array.isArray(message.images) && message.images.length > 0 ? (
-                      <div className="message-image-grid">
-                        {message.images.map((image, imageIndex) => (
-                          <MessageImage
-                            key={`${image.url}-${imageIndex}`}
-                            src={image.url}
-                            alt={image.alt || 'تصویر ارسال شده'}
-                            index={imageIndex}
-                            onOpenPreview={setImagePreview}
-                          />
-                        ))}
-                      </div>
-                    ) : null}
-                    <span className="message-time">{formatMessageTime(message.timestamp)}</span>
-                  </div>
-                ) : (
-                  <div className="bubble">
-                    {message.content ? <div>{message.content}</div> : null}
-                    {Array.isArray(message.images) && message.images.length > 0 ? (
-                      <div className="message-image-grid">
-                        {message.images.map((image, imageIndex) => (
-                          <MessageImage
-                            key={`${image.url}-${imageIndex}`}
-                            src={image.url}
-                            alt={image.alt || 'تصویر ارسال شده'}
-                            index={imageIndex}
-                            onOpenPreview={setImagePreview}
-                          />
-                        ))}
-                      </div>
-                    ) : null}
-                    <span className="message-time">{formatMessageTime(message.timestamp)}</span>
-                  </div>
-                )}
-              </div>
+                message={message}
+                index={index}
+                isLastAssistant={message.role === 'assistant' && index === lastAssistantMessageIndex}
+                isSending={isSending}
+                renderBotAvatar={renderBotAvatar}
+                onRetryStreamMessage={(msg) => void handleRetryStreamMessage(msg)}
+                onOpenStudio={openStudioFromChat}
+                onOpenNoaWallet={handleOpenNoaWallet}
+                onSendMessage={(val) => void handleSendMessage(val)}
+                onOpenImagePreview={setImagePreview}
+                lastMessageRef={index === visibleMessages.length - 1 ? lastMessageRef : undefined}
+                botMessageRef={message.role === 'assistant' && index === lastAssistantMessageIndex ? botMessageRef : undefined}
+              />
             ))
           ) : conversationLoadingId ? (
             <div className="empty-state chat-empty-state" role="status" aria-label="در حال بارگذاری گفتگو">
@@ -5113,247 +3888,42 @@ notify.error(message);
        ) : null}
 
         {currentView === 'chat' ? (
-        <footer className="input-area danoa-input-area" ref={inputAreaRef}>
-          <div className="input-shell danoa-input-shell">
-            {attachments.length > 0 ? (
-              <div className="image-thumb-grid">
-                {attachments.map((attachment) => (
-                  <div className="image-thumb-wrap" key={attachment.id}>
-                    <div className="image-thumb-meta">
-                      <img className="image-thumb" src={attachment.previewUrl} alt={attachment.file.name} />
-                      <div className="image-thumb-copy">
-                        <strong>{attachment.file.name}</strong>
-                        <span>وضعیت: {attachment.status}</span>
-                        {attachment.error ? <span>{attachment.error}</span> : null}
-                      </div>
-                    </div>
-                    <div className="image-thumb-actions">
-                      {attachment.status === 'error' ? (
-                        <button className="retry-thumb-btn" type="button" onClick={() => handleRetryUpload(attachment.id)}>
-                          تلاش مجدد
-                        </button>
-                      ) : null}
-                      <button className="remove-thumb-btn" type="button" aria-label="حذف تصویر" onClick={() => handleRemoveImage(attachment.id)}>
-                        <Icon name="x-close" size="1em" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            <div className={`composer-row danoa-composer-capsule ${isRecording ? 'recording' : ''} ${shouldShowSendAction ? 'has-action' : 'voice-action'}`}>
-              <div className="composer-actions danoa-composer-actions">
-                {isRecording ? (
-                  <>
-                    <button className="confirm-btn" type="button" onClick={handleConfirmRecording} aria-label="ارسال پیام ضبط شده">
-                      تایید
-                    </button>
-                    <button className="cancel-btn" type="button" onClick={handleCancelRecording} aria-label="لغو ضبط صدا">
-                      لغو
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    className={`send-btn danoa-send-circle ${isSending ? 'show-stop' : shouldShowSendAction ? 'show-send' : 'show-mic'}`}
-                    type="button"
-                    onClick={isSending ? handleStopResponse : shouldShowSendAction ? () => void handleSendMessage() : handleStartRecording}
-                    aria-label={isSending ? 'توقف پاسخ' : shouldShowSendAction ? 'ارسال پیام' : 'شروع ضبط صدا'}
-                    title={isSending ? 'توقف پاسخ' : shouldShowSendAction ? 'ارسال پیام' : 'شروع ضبط صدا'}
-                    disabled={!isSending && shouldShowSendAction && !canSendMessage}
-                  >
-                    <span
-                      key={isSending ? 'stop' : shouldShowSendAction ? 'send' : 'mic'}
-                      className={`action-icon ${isSending ? 'action-icon-stop' : shouldShowSendAction ? 'action-icon-send' : 'action-icon-mic'}`}
-                      aria-hidden="true"
-                    >
-                      {isSending ? (
-                        <Icon name="stop" size={20} />
-                      ) : shouldShowSendAction ? (
-                        <Icon name="arrow-up" size={20} />
-                      ) : (
-                        <Icon name="mic" size={20} />
-                      )}
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              <div className={`composer-card danoa-composer-inner ${isRecording ? 'recording' : ''} ${canSendMessage ? 'ready' : ''}`}>
-                <div className="composer-main">
-                  <div className="message-field">
-                    <textarea
-                      ref={messageInputRef}
-                      dir="auto"
-                      rows={1}
-                      value={inputValue}
-                      disabled={isRecording}
-                      onChange={(event) => setInputValue(event.target.value)}
-                      onFocus={() => {
-                        if (window.matchMedia('(max-width: 767px)').matches) {
-                          keyboardDismissedWhileFocusedRef.current = false;
-                          setIsMobileKeyboardOpen(true);
-                        }
-                      }}
-                      onPointerDown={() => {
-                        if (window.matchMedia('(max-width: 767px)').matches) {
-                          keyboardDismissedWhileFocusedRef.current = false;
-                          setIsMobileKeyboardOpen(true);
-                        }
-                      }}
-                      onBlur={() => {
-                        window.setTimeout(() => {
-                          if (document.activeElement !== messageInputRef.current) {
-                            setIsMobileKeyboardOpen(false);
-                          }
-                        }, 0);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && !event.shiftKey) {
-                          event.preventDefault();
-                          void handleSendMessage();
-                        }
-                      }}
-                      placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیام خود را بنویسید...'}
-                      aria-label="نوشتن پیام"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {!isRecording ? (
-                <div className="attachment-rail">
-                  <div className="attachment-box attachment-tools" ref={attachmentBoxRef}>
-                    <button
-                      className={`attach-btn danoa-attach-circle ${attachmentMenuOpen ? 'is-open' : ''}`}
-                      type="button"
-                      aria-label={attachmentMenuOpen ? 'بستن گزینه‌های پیوست' : 'باز کردن گزینه‌های پیوست'}
-                      title="افزودن پیوست"
-                      aria-haspopup="menu"
-                      aria-expanded={attachmentMenuOpen}
-                      aria-controls={ATTACHMENT_MENU_ID}
-                      onClick={handleAttachmentMenuToggle}
-                    >
-                      <Icon name="plus" size={20} aria-hidden="true" />
-                    </button>
-                    {attachmentMenuOpen ? (
-                      <div id={ATTACHMENT_MENU_ID} className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
-                        {ATTACHMENT_MENU_ITEMS.map((item) => (
-                          <button key={item.id} type="button" role="menuitem" onClick={handlePickImageClick}>
-                            <span className="attachment-popup__icon" aria-hidden="true">
-                              <Icon name={item.icon} size="1.2em" />
-                            </span>
-                            <span className="attachment-popup__copy">
-                              <strong>{item.label}</strong>
-                              <small>{item.description}</small>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                    <input ref={imageInputRef} type="file" accept={imageAccept} multiple hidden onChange={handleImageSelect} />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            {visibleMessages.length === 0 ? (
-              <div className="danoa-suggestions-row" role="region" aria-label="پیشنهادهای گفتگو">
-                {SUGGESTION_PROMPTS.map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    className="danoa-suggestion-chip"
-                    onClick={() => {
-                      setInputValue(item.prompt);
-                      window.requestAnimationFrame(() => messageInputRef.current?.focus());
-                    }}
-                  >
-                    <Icon name={item.icon} size={13} />
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
-            <p className="danoa-disclaimer">دانوآ ممکن است اشتباه کند. نتایج را بررسی کنید.</p>
-          </div>
-        </footer>
+          <ChatInputBar
+            attachments={attachments}
+            onRetryUpload={handleRetryUpload}
+            onRemoveAttachment={handleRemoveImage}
+            isRecording={isRecording}
+            isSending={isSending}
+            shouldShowSendAction={shouldShowSendAction}
+            canSendMessage={canSendMessage}
+            inputValue={inputValue}
+            onInputChange={setInputValue}
+            onSendMessage={() => void handleSendMessage()}
+            onStopResponse={handleStopResponse}
+            onStartRecording={handleStartRecording}
+            onConfirmRecording={handleConfirmRecording}
+            onCancelRecording={handleCancelRecording}
+            attachmentMenuOpen={attachmentMenuOpen}
+            onToggleAttachmentMenu={handleAttachmentMenuToggle}
+            onPickImage={handlePickImageClick}
+            imageInputRef={imageInputRef}
+            imageAccept={imageAccept}
+            onImageSelect={handleImageSelect}
+            messageInputRef={messageInputRef}
+            attachmentBoxRef={attachmentBoxRef}
+            inputAreaRef={inputAreaRef}
+            setIsMobileKeyboardOpen={setIsMobileKeyboardOpen}
+            keyboardDismissedWhileFocusedRef={keyboardDismissedWhileFocusedRef}
+            visibleMessagesCount={visibleMessages.length}
+            onSelectSuggestion={(prompt) => {
+              setInputValue(prompt);
+              window.requestAnimationFrame(() => messageInputRef.current?.focus());
+            }}
+          />
         ) : null}
       </div>
     </div>
   );
-}
+};
 
-function AppRouteFallback() {
-  return (
-    <main className="app-route-loading" role="status" aria-live="polite">
-      <span className="app-route-loading__visual" aria-hidden="true">
-        <span className="app-route-loading__brand">
-          <DanoaLoadingMark />
-        </span>
-        <span className="app-route-loading__spinner" />
-      </span>
-      <strong>در حال آماده‌سازی دانوآ…</strong>
-    </main>
-  );
-}
-
-function LazyRoute({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<AppRouteFallback />}>{children}</Suspense>;
-}
-
-function App() {
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
-  const adminPath = '/admin-secure-9x7k';
-  if (typeof document !== 'undefined') {
-    document.documentElement.setAttribute('dir', 'rtl');
-  }
-
-  if (pathname === '/plans') {
-    if (typeof window !== 'undefined') {
-      window.location.replace('/');
-    }
-    return null;
-  }
-
-  if (pathname === '/admin/login') {
-    return <LazyRoute><AdminLogin onLoginSuccess={() => { window.location.href = adminPath; }} /></LazyRoute>;
-  }
-
-  if (pathname === adminPath) {
-    return <LazyRoute><AdminPanel /></LazyRoute>;
-  }
-
-if (pathname === '/design-system-preview') {
-    return <LazyRoute><DesignSystemPreview /></LazyRoute>;
-  }
-
-  if (pathname === '/') {
-    return <LazyRoute><ChatApp /></LazyRoute>;
-  }
-
-  if (pathname === '/landing') {
-    return <LazyRoute><LandingPage /></LazyRoute>;
-  }
-
-
-  if (
-    pathname !== '/' && pathname !== '/chat' && !/^\/c\/[^/]+$/.test(pathname) && pathname !== '/studio' && pathname !== '/studio/image' && pathname !== '/studio/video' && pathname !== '/images' &&
-    pathname !== '/generate' &&
-    pathname !== '/photos' &&
-    pathname !== '/profile' &&
-    pathname !== '/settings' &&
-    pathname !== '/noa'
-  ) {
-    return <LazyRoute><NotFound /></LazyRoute>;
-  }
-
-  return (
-    <LazyRoute>
-      <ChatApp />
-    </LazyRoute>
-  );
-}
-
-export default App;
+export default ChatApp;

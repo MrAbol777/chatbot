@@ -20,7 +20,16 @@ const DEFAULT_CONFIG = {
 const now = () => new Date().toISOString();
 const getDefaultSystemPrompt = async () => (await fs.readFile(SYSTEM_PROMPT_PATH, 'utf8')).trim();
 
-const ensureAdminData = async () => {
+const ensureAdminData = async (adminRepository = null) => {
+  if (adminRepository && typeof adminRepository.listAll === 'function') {
+    try {
+      const rows = await adminRepository.listAll();
+      if (Array.isArray(rows) && rows.length > 0) return rows;
+    } catch (_dbError) {
+      // Fallback to disk file if DB is not reachable in offline/unit test mode
+    }
+  }
+
   await fs.ensureFile(ADMIN_FILE_PATH);
   const raw = await fs.readFile(ADMIN_FILE_PATH, 'utf8');
   if (!raw.trim()) {
@@ -79,7 +88,16 @@ const ensureConfigData = async () => {
   };
 };
 
-const readAuditLogs = async () => {
+const readAuditLogs = async (adminRepository = null, { page = 1, pageSize = 50 } = {}) => {
+  if (adminRepository && typeof adminRepository.listAuditLogs === 'function') {
+    try {
+      const result = await adminRepository.listAuditLogs({ page, pageSize });
+      return result.items || [];
+    } catch (_dbError) {
+      // Fallback to disk file if DB query fails
+    }
+  }
+
   await fs.ensureFile(AUDIT_LOG_PATH);
   const raw = await fs.readFile(AUDIT_LOG_PATH, 'utf8');
   return raw
@@ -97,7 +115,16 @@ const readAuditLogs = async () => {
     .reverse();
 };
 
-const appendAudit = async ({ adminUsername, action, target, details }) => {
+const appendAudit = async ({ adminUsername, action, target, details }, adminRepository = null) => {
+  if (adminRepository && typeof adminRepository.appendAuditLog === 'function') {
+    try {
+      await adminRepository.appendAuditLog({ adminUsername, action, target, details });
+      return;
+    } catch (_dbError) {
+      // Fallback to disk file
+    }
+  }
+
   await fs.ensureFile(AUDIT_LOG_PATH);
   const entry = {
     timestamp: now(),

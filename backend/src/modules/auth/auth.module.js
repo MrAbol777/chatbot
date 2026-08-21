@@ -1,6 +1,6 @@
 const { createAuthRepository } = require('./auth.repository');
-const { createAuthService } = require('./service');
-const { createAuthRouter } = require('./routes');
+const { createAuthService } = require('./auth.service');
+const { createAuthRouter } = require('./auth.routes');
 
 function createAuthModule(deps) {
   const authRepository = deps.authRepository || createAuthRepository({

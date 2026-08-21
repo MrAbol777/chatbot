@@ -120,7 +120,7 @@ const NOA_CORE_DDL = Object.freeze([
         FOREIGN KEY (wallet_id) REFERENCES app_noa_wallets(wallet_id) ON DELETE RESTRICT,
       CONSTRAINT fk_noa_log_reservation
         FOREIGN KEY (reservation_id) REFERENCES app_noa_reservations(reservation_id) ON DELETE RESTRICT,
-      CONSTRAINT chk_noa_log_amount CHECK (amount > 0),
+      CONSTRAINT chk_noa_log_amount CHECK (amount >= 0),
       CONSTRAINT chk_noa_log_reserved_balances CHECK (
         reserved_before >= 0 AND reserved_after >= 0
       )
@@ -330,6 +330,15 @@ async function ensureNegativeAdminBalances(db) {
   }
 }
 
+async function ensureNoticeLogAmount(db) {
+  if (await constraintExists(db, 'app_noa_transaction_logs', 'chk_noa_log_amount')) {
+    await db.query('ALTER TABLE app_noa_transaction_logs DROP CONSTRAINT chk_noa_log_amount');
+  }
+  await db.query(
+    'ALTER TABLE app_noa_transaction_logs ADD CONSTRAINT chk_noa_log_amount CHECK (amount >= 0)'
+  );
+}
+
 const LEGACY_RUNTIME_TABLES = Object.freeze([
   'app_plans',
   'app_plan_daily_usage',
@@ -355,6 +364,7 @@ async function ensureNoaSchema(db) {
   }
   await ensureImageOnlyReceiptSubmission(db);
   await ensureNegativeAdminBalances(db);
+  await ensureNoticeLogAmount(db);
 
   await ensureIntegrationColumn(db, 'app_chat_turns');
   await ensureIntegrationColumn(db, 'image_generations');

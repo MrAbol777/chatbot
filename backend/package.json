@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "nodemon --config nodemon.json src/server.js",
     "start": "node src/server.js",
+    "test": "npm run test:auth && npm run test:admin && npm run test:sms && npm run test:stream && npm run test:noa && npm run test:title && npm run test:video-generation-validation && npm run test:video-generation-provider",
     "test:auth": "node --test --test-concurrency=1 src/modules/auth/*.test.js",
+    "test:admin": "node --test src/repositories/AdminRepository.test.js",
+    "test:sms": "node --test src/modules/sms/*.test.js",
     "test:stream": "node --test src/modules/ai/provider-stream.test.js src/modules/image-understanding/image-understanding.streaming.test.js src/repositories/ChatTurnRepository.test.js src/modules/conversation-memory/conversation-turn-lock.test.js src/modules/intent-router/intent-router.service.test.js src/modules/conversation-title/conversation-title.service.test.js",
     "test:noa": "node --test --test-concurrency=1 src/modules/noa/tests/*.test.js",
     "test:title": "node --test src/modules/conversation-title/conversation-title.service.test.js",
