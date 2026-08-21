@@ -3,7 +3,7 @@
 const http = require('http');
 const https = require('https');
 const tls = require('tls');
-const { Transform } = require('stream');
+const { Readable, Transform } = require('stream');
 const { fetchValidatedResult } = require('./metis-video.provider');
 const { createPinnedLookup } = require('../storage/video-result-url-validator');
 const { fail } = require('../video-generation.errors');
@@ -128,7 +128,9 @@ async function requestValidatedNode(plan, options) {
   const proxy = proxyConfig(options.proxyUrl);
   const records = options.forceIpv4 === false ? plan.records : plan.records.filter((record) => record.family === 4);
   if (!records.length) throw resultError('VIDEO_RESULT_DNS_NOT_FOUND');
-  const requestOptions = { protocol: plan.url.protocol, hostname: plan.hostname, port: plan.port, path: `${plan.url.pathname}${plan.url.search}`, method: 'GET', headers: { Accept: 'video/mp4, video/webm', 'Accept-Encoding': 'identity', Host: plan.hostname }, lookup: createPinnedLookup(records), servername: plan.hostname };
+  const rangeStart = Number(options.rangeStart);
+  const range = Number.isSafeInteger(rangeStart) && rangeStart > 0 ? { Range: `bytes=${rangeStart}-` } : {};
+  const requestOptions = { protocol: plan.url.protocol, hostname: plan.hostname, port: plan.port, path: `${plan.url.pathname}${plan.url.search}`, method: 'GET', headers: { Accept: 'video/mp4, video/webm', 'Accept-Encoding': 'identity', Host: plan.hostname, ...range }, lookup: createPinnedLookup(records), servername: plan.hostname };
   if (!proxy) return requestWithTimers(plan.url.protocol === 'https:' ? https : http, requestOptions, options);
   const tunnel = await openProxyTunnel(plan, proxy, options);
   let socket = tunnel;
@@ -138,12 +140,13 @@ async function requestValidatedNode(plan, options) {
 
 function createIntegrityStream(response, { expectedLength, idleTimeoutMs, metrics, clearTotalTimeout }) {
   let idleTimer = null;
+  const startingBytes = metrics.receivedBytes;
   const clearIdle = () => { if (idleTimer) clearTimeout(idleTimer); idleTimer = null; };
   let stream;
   const armIdle = () => { clearIdle(); idleTimer = setTimeout(() => stream.destroy(classifyDownloadError(timeoutError('VIDEO_RESULT_IDLE_TIMEOUT'))), Number(idleTimeoutMs)); idleTimer.unref?.(); };
   stream = new Transform({
     transform(chunk, _encoding, callback) { metrics.receivedBytes += chunk.length; armIdle(); callback(null, chunk); },
-    flush(callback) { clearIdle(); clearTotalTimeout(); if (expectedLength !== null && metrics.receivedBytes !== expectedLength) return callback(resultError('VIDEO_RESULT_INCOMPLETE_BODY', { retryable: true })); if (metrics.receivedBytes === 0) return callback(resultError('VIDEO_RESULT_EMPTY_RESPONSE')); callback(); }
+    flush(callback) { clearIdle(); clearTotalTimeout(); const receivedInSegment = metrics.receivedBytes - startingBytes; if (expectedLength !== null && receivedInSegment !== expectedLength) return callback(resultError('VIDEO_RESULT_INCOMPLETE_BODY', { retryable: true })); if (receivedInSegment === 0) return callback(resultError('VIDEO_RESULT_EMPTY_RESPONSE')); callback(); }
   });
   stream.once('error', () => { clearIdle(); clearTotalTimeout(); });
   stream.once('close', () => { clearIdle(); clearTotalTimeout(); });
@@ -153,7 +156,46 @@ function createIntegrityStream(response, { expectedLength, idleTimeoutMs, metric
   return stream;
 }
 
-async function fetchValidatedResultWithNode(source, { validator, maxBytes, maxRedirects = 0, connectTimeoutMs = 15_000, headersTimeoutMs = 30_000, idleTimeoutMs = 90_000, totalTimeoutMs = 0, proxyUrl = null, forceIpv4 = true, requestImpl = requestValidatedNode, logger = null, context = null }) {
+function responseRangeLength(response, offset, expectedTotal) {
+  if (Number(response.statusCode || 0) !== 206) throw resultError('VIDEO_RESULT_RANGE_UNSUPPORTED', { retryable: true });
+  const raw = response.headers?.['content-range'];
+  if (Array.isArray(raw) || !raw) throw resultError('VIDEO_RESULT_RANGE_INVALID', { retryable: true });
+  const match = /^bytes\s+(\d+)-(\d+)\/(\d+)$/i.exec(String(raw).trim());
+  if (!match) throw resultError('VIDEO_RESULT_RANGE_INVALID', { retryable: true });
+  const start = Number(match[1]); const end = Number(match[2]); const total = Number(match[3]);
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || !Number.isSafeInteger(total) || start !== offset || end < start || total !== expectedTotal || end >= total) throw resultError('VIDEO_RESULT_RANGE_INVALID', { retryable: true });
+  const segmentLength = contentLength(response.headers?.['content-length'], expectedTotal);
+  if (segmentLength !== end - start + 1) throw resultError('VIDEO_RESULT_RANGE_INVALID', { retryable: true });
+  return segmentLength;
+}
+
+function createResumableStream(initialResponse, { plan, requestImpl, requestOptions, expectedLength, idleTimeoutMs, totalTimeoutMs, maxResumeAttempts, metrics, logger, startedAt }) {
+  async function* download() {
+    let response = initialResponse;
+    let segmentLength = expectedLength;
+    let resumeAttempts = 0;
+    while (true) {
+      try {
+        const clearTotalTimeout = createDeadline(totalTimeoutMs, (error) => response.destroy(error));
+        const segment = createIntegrityStream(response, { expectedLength: segmentLength, idleTimeoutMs, metrics, clearTotalTimeout });
+        for await (const chunk of segment) yield chunk;
+        if (metrics.receivedBytes !== expectedLength) throw resultError('VIDEO_RESULT_INCOMPLETE_BODY', { retryable: true });
+        return;
+      } catch (error) {
+        const classified = classifyDownloadError(error);
+        const offset = metrics.receivedBytes;
+        if (!classified.retryable || offset <= 0 || offset >= expectedLength || resumeAttempts >= maxResumeAttempts) throw classified;
+        resumeAttempts += 1;
+        logger?.info?.({ event: 'video_result_download_resuming', ...metrics, hostname: plan.hostname, path: plan.url.pathname, resumeAttempt: resumeAttempts, resumeOffset: offset, errorCode: classified.code, elapsedMs: Date.now() - startedAt });
+        response = await requestImpl(plan, { ...requestOptions, rangeStart: offset });
+        segmentLength = responseRangeLength(response, offset, expectedLength);
+      }
+    }
+  }
+  return Readable.from(download());
+}
+
+async function fetchValidatedResultWithNode(source, { validator, maxBytes, maxRedirects = 0, connectTimeoutMs = 15_000, headersTimeoutMs = 30_000, idleTimeoutMs = 90_000, totalTimeoutMs = 0, resumeAttempts = 0, proxyUrl = null, forceIpv4 = true, requestImpl = requestValidatedNode, logger = null, context = null }) {
   let plan = await validator.validate(source);
   const redirects = Number(maxRedirects);
   if (!Number.isSafeInteger(redirects) || redirects < 0 || redirects > 5) throw resultError('VIDEO_RESULT_TOO_MANY_REDIRECTS');
@@ -182,8 +224,20 @@ async function fetchValidatedResultWithNode(source, { validator, maxBytes, maxRe
     const mimeType = contentType(response); const metrics = metadata;
     metrics.contentLength = expectedLength; metrics.httpStatus = status;
     logger?.info?.({ event: 'video_result_download_headers', ...metrics, mimeType });
-    const clearTotalTimeout = createDeadline(totalTimeoutMs, (error) => response.destroy(error));
-    const stream = createIntegrityStream(response, { expectedLength, idleTimeoutMs, metrics, clearTotalTimeout });
+    const attempts = Number(resumeAttempts);
+    if (!Number.isSafeInteger(attempts) || attempts < 0 || attempts > 5) throw resultError('VIDEO_RESULT_RESUME_ATTEMPTS_INVALID');
+    const stream = createResumableStream(response, {
+      plan,
+      requestImpl,
+      requestOptions: { connectTimeoutMs, headersTimeoutMs, idleTimeoutMs, totalTimeoutMs, proxyUrl, forceIpv4 },
+      expectedLength,
+      idleTimeoutMs,
+      totalTimeoutMs,
+      maxResumeAttempts: attempts,
+      metrics,
+      logger,
+      startedAt
+    });
     stream.once('end', () => logger?.info?.({ event: 'video_result_download_completed', ...metrics, elapsedMs: Date.now() - startedAt, mimeType }));
     stream.once('error', (error) => { const classified = classifyDownloadError(error); logger?.warn?.({ event: 'video_result_download_failed', ...metrics, elapsedMs: Date.now() - startedAt, errorCode: classified.code, underlyingCode: classified.underlyingCode, underlyingName: classified.underlyingName, retryable: classified.retryable }); });
     return { stream, mimeType, finalUrl: plan.url, contentLength: expectedLength, metrics };

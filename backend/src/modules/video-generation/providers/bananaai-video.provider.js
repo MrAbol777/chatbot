@@ -89,6 +89,7 @@ function createBananaAiVideoProvider({
   resultHeadersTimeoutMs = 30_000,
   resultIdleTimeoutMs = 90_000,
   resultTotalTimeoutMs = 0,
+  resultResumeAttempts = 2,
   resultMaxBytes = 100 * 1024 * 1024,
   resultMaxRedirects = 0
 }) {
@@ -188,6 +189,7 @@ function createBananaAiVideoProvider({
         headersTimeoutMs: resultHeadersTimeoutMs,
         idleTimeoutMs: resultIdleTimeoutMs,
         totalTimeoutMs: resultTotalTimeoutMs,
+        resumeAttempts: resultResumeAttempts,
         proxyUrl,
         forceIpv4,
         logger: options.logger,

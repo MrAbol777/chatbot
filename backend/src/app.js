@@ -257,11 +257,19 @@ function createApp({ repositories, runtimeConfig }) {
   });
 
   const authModule = createAuthModule({
-    usersRepository: repositories.users,
+    // auth.routes owns the legacy public /api/... paths. Keep its dependencies
+    // aligned with the pre-refactor composition so a root-mounted router has
+    // the same runtime behaviour as production.
+    userRepository: repositories.users,
+    dbPool: repositories.db,
+    db: repositories.db,
+    settingsRepository: repositories.settings,
     jwtSecret: authJwtSecret,
     jwt,
     smsService: appSmsService,
     supervisedOtpRepository: repositories.supervisedOtp,
+    eventsRepository: repositories.events,
+    errorsRepository: repositories.errors,
     logger: console
   });
 
@@ -365,10 +373,13 @@ function createApp({ repositories, runtimeConfig }) {
   app.use('/api/upload', uploadRouter);
 
   // Auth & Session routes
-  app.use('/api/auth', authModule.router);
-  app.use('/api/auth/local', createLocalDevelopmentRouter({
+  // These routers already define their complete public /api/... paths.
+  // Mounting them under /api/auth would create /api/auth/api/... paths.
+  app.use(authModule.router);
+  app.use(createLocalDevelopmentRouter({
     enabled: Boolean(process.env.ENABLE_LOCAL_DEV_LOGIN === 'true' || process.env.NODE_ENV !== 'production'),
     usersRepository: repositories.users,
+    noaBillingService,
     jwtSecret: authJwtSecret,
     jwt,
     logger: console

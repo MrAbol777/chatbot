@@ -18,6 +18,20 @@ for (const status of ['queued', 'processing']) test(`${status} schedules a later
 test('completed transitions only to storing until a result is safely stored', async () => { const f = fixture({ response: { status: 'storing' } }); assert.equal((await f.service.processClaimedJob(job(), { workerId: 'worker-1' })).action, 'storing-awaiting-storage'); assert.equal(call(f.calls, 'markJobStoring').workerId, 'worker-1'); assert.equal(f.calls.some(([name]) => name === 'finalizeSuccessfulJob'), false); });
 for (const status of ['failed', 'cancelled']) test(`${status} releases reservation`, async () => { const f = fixture({ response: { status } }); await f.service.processClaimedJob(job(), { workerId: 'worker-1' }); assert.equal(call(f.calls, 'failAndReleaseJob').errorCode, status === 'failed' ? 'VIDEO_PROVIDER_FAILED' : 'VIDEO_PROVIDER_CANCELLED'); });
 for (const [name, error] of [['network error', Object.assign(new Error(), { code: 'ECONNRESET' })], ['timeout error', Object.assign(new Error(), { code: 'ETIMEDOUT' })], ['429', { response: { status: 429 } }], ['500', { response: { status: 500 } }]]) test(`${name} is retried`, async () => { const f = fixture({ error }); const result = await f.service.processClaimedJob(job(), { workerId: 'worker-1' }); assert.equal(result.action, 'scheduled'); assert.ok(call(f.calls, 'scheduleNextPoll')); });
+test('an adapter-declared retryable poll failure never terminally fails the existing provider task', async () => {
+  const error = Object.assign(new Error('upstream poll was indeterminate'), {
+    code: 'VIDEO_PROVIDER_POLL_FAILED',
+    retryable: true,
+    status: 404
+  });
+  const f = fixture({ error });
+  const result = await f.service.processClaimedJob(job(), { workerId: 'worker-1' });
+  assert.equal(result.action, 'scheduled');
+  assert.equal(result.errorCode, 'VIDEO_PROVIDER_POLL_FAILED');
+  assert.ok(call(f.calls, 'scheduleNextPoll'));
+  assert.equal(f.calls.some(([name]) => name === 'failAndReleaseJob'), false);
+  assert.equal(f.calls.some(([name]) => name === 'beginSubmission'), false);
+});
 test('malformed and unknown responses are retried without persisting raw data', async () => { const malformed = fixture({ response: { malformed: true } }); const unknown = fixture({ response: { status: 'mystery' } }); const one = await malformed.service.processClaimedJob(job(), { workerId: 'worker-1' }); const two = await unknown.service.processClaimedJob(job(), { workerId: 'worker-1' }); assert.equal(one.errorCode, 'VIDEO_PROVIDER_MALFORMED_RESPONSE'); assert.equal(two.errorCode, 'VIDEO_PROVIDER_UNKNOWN_STATUS'); assert.equal(JSON.stringify(malformed.calls).includes('malformed'), false); });
 test('max attempts expires before another provider poll', async () => { const f = fixture(); const result = await f.service.processClaimedJob(job({ poll_attempts: 4 }), { workerId: 'worker-1' }); assert.equal(result.errorCode, 'VIDEO_MAX_POLL_ATTEMPTS_REACHED'); assert.equal(f.calls.some(([name]) => name === 'expireAndReleaseJob'), true); assert.equal(f.calls.some(([name]) => name === 'extendJobLease'), false); });
 test('stored job timeout expires without a provider poll', async () => { const f = fixture(); const result = await f.service.processClaimedJob(job({ expires_at: new Date(now.getTime() - 1) }), { workerId: 'worker-1' }); assert.equal(result.errorCode, 'VIDEO_JOB_TIMEOUT'); assert.equal(f.calls.some(([name]) => name === 'extendJobLease'), false); });

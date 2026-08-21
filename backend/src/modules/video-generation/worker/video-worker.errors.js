@@ -8,6 +8,18 @@ class VideoWorkerProcessingError extends Error {
 }
 
 function classifyProviderError(error) {
+  // Provider adapters own the classification of their upstream responses.
+  // In particular, BananaAI marks an indeterminate poll as retryable even
+  // when Axios cannot provide one of the small set of transport codes below.
+  // Do not turn that explicit signal into a terminal generation failure.
+  if (error?.retryable === true) {
+    return {
+      code: typeof error?.code === 'string' && error.code.trim()
+        ? error.code.trim().slice(0, 100)
+        : 'VIDEO_PROVIDER_TEMPORARY_ERROR',
+      retryable: true
+    };
+  }
   const status = Number(error?.response?.status || error?.status || 0);
   const code = String(error?.code || '').toUpperCase();
   if (status === 429 || status >= 500 || ['ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN'].includes(code)) {

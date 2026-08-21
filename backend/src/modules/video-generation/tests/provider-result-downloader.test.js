@@ -54,6 +54,33 @@ test('an idle response is aborted while a direct downloader receives no proxy co
   assert.equal(options.proxyUrl, null);
 });
 
+test('resumes an interrupted stream with an exact validated byte range without duplicating bytes', async () => {
+  const calls = [];
+  const first = new PassThrough(); first.statusCode = 200; first.headers = { 'content-type': 'video/mp4', 'content-length': '6' };
+  const remote = await fetchValidatedResultWithNode('https://cdn.example.test/results/video.mp4', {
+    validator, maxBytes: 1024, idleTimeoutMs: 20, resumeAttempts: 1,
+    requestImpl: async (_plan, options) => {
+      calls.push(options.rangeStart || 0);
+      if (calls.length === 1) return first;
+      return response({ statusCode: 206, headers: { 'content-type': 'video/mp4', 'content-length': '3', 'content-range': 'bytes 3-5/6' }, chunks: ['def'] });
+    }
+  });
+  first.write('abc');
+  assert.equal((await read(remote.stream)).toString(), 'abcdef');
+  assert.deepEqual(calls, [0, 3]);
+  assert.equal(remote.metrics.receivedBytes, 6);
+});
+
+test('does not concatenate a full response when a server ignores the resume range', async () => {
+  const first = new PassThrough(); first.statusCode = 200; first.headers = { 'content-type': 'video/mp4', 'content-length': '6' };
+  const remote = await fetchValidatedResultWithNode('https://cdn.example.test/results/video.mp4', {
+    validator, maxBytes: 1024, idleTimeoutMs: 20, resumeAttempts: 1,
+    requestImpl: async (_plan, options) => options.rangeStart ? response({ statusCode: 200, headers: { 'content-type': 'video/mp4', 'content-length': '6' }, chunks: ['abcdef'] }) : first
+  });
+  first.write('abc');
+  await assert.rejects(() => read(remote.stream), { code: 'VIDEO_RESULT_RANGE_UNSUPPORTED', retryable: true });
+});
+
 test('rejects incomplete, empty, and reset result streams', async () => {
   const incomplete = await fetchValidatedResultWithNode('https://cdn.example.test/results/video.mp4', { validator, maxBytes: 1024, requestImpl: async () => response({ headers: { 'content-type': 'video/mp4', 'content-length': '5' }, chunks: ['abc'] }) });
   await assert.rejects(() => read(incomplete.stream), { code: 'VIDEO_RESULT_INCOMPLETE_BODY', retryable: true });
