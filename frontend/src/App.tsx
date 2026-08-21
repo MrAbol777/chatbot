@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, lazy, startTransition, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChatMessage, Conversation, UserProfile } from './types';
 import { PUBLIC_ASSETS } from './config/publicAssets';
 import {
@@ -79,6 +79,12 @@ import {
 const ImageStudio = lazy(() => import('./ImageStudio'));
 const StudioPage = lazy(() => import('./studio/StudioPage'));
 const VideoGenerationPage = lazy(() => import('./video-generation/VideoGenerationPage'));
+
+const StudioRouteFallback = () => (
+  <main className="app-route-loading" role="status" aria-live="polite">
+    <strong>در حال آماده‌سازی استودیو…</strong>
+  </main>
+);
 
 const PROFILE_KEY = 'chat_profile';
 const PROFILES_KEY = 'chat_profiles';
@@ -968,8 +974,10 @@ function ChatApp() {
         window.history.pushState({}, '', nextPath);
       }
     }
-    setCurrentView(view);
-    setSidebarOpen((current) => view === 'chat' ? (isDesktopChatLayout() || current) : false);
+    startTransition(() => {
+      setCurrentView(view);
+      setSidebarOpen((current) => view === 'chat' ? (isDesktopChatLayout() || current) : false);
+    });
   };
 
   const navigateToConversation = (conversationId: string, mode: 'push' | 'replace' = 'push') => {
@@ -990,20 +998,26 @@ function ChatApp() {
 
     const previousState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
     window.history.pushState({ ...previousState, danaoStudioReturnPath: chatPath }, '', '/studio');
-    setCurrentView('studio');
-    setSidebarOpen(false);
+    startTransition(() => {
+      setCurrentView('studio');
+      setSidebarOpen(false);
+    });
   };
 
   const openImageStudioFromStudio = () => {
     window.history.pushState({}, '', '/studio/image');
-    setCurrentView('images');
-    setSidebarOpen(false);
+    startTransition(() => {
+      setCurrentView('images');
+      setSidebarOpen(false);
+    });
   };
 
   const openVideoStudio = () => {
     window.history.pushState({}, '', '/studio/video');
-    setCurrentView('video');
-    setSidebarOpen(false);
+    startTransition(() => {
+      setCurrentView('video');
+      setSidebarOpen(false);
+    });
   };
 
   const returnToStudio = () => {
@@ -1204,9 +1218,11 @@ function ChatApp() {
       const pathname = window.location.pathname;
       if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname) || pathname === '/studio' || pathname === '/studio/image' || pathname === '/studio/video' || pathname === '/images' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings' || pathname === '/noa') {
         const nextView = getAppViewFromPath(pathname);
-        setCurrentView(nextView);
-        setActiveConversationId(getConversationIdFromPath(pathname));
-        setSidebarOpen(nextView === 'chat' && isDesktopChatLayout());
+        startTransition(() => {
+          setCurrentView(nextView);
+          setActiveConversationId(getConversationIdFromPath(pathname));
+          setSidebarOpen(nextView === 'chat' && isDesktopChatLayout());
+        });
         if (!loadProfile() && !new URLSearchParams(window.location.search).get('auth')) {
           window.location.replace('/');
         }
@@ -3380,9 +3396,11 @@ notify.error(message);
             </button>
           </div>
         ) : null}
-        {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
-        {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} /> : null}
-        {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} /> : null}
+        <Suspense fallback={<StudioRouteFallback />}>
+          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
+          {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} /> : null}
+          {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} /> : null}
+        </Suspense>
         {false ? (
           <main className="generate-page">
             <header className="generate-page-header">

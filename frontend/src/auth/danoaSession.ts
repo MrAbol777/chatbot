@@ -90,7 +90,13 @@ export async function loadDanoaSession(storedBearer = ''): Promise<DanoaSessionR
 export async function loadVianaConfig(): Promise<{ enabled: boolean; providerLabel: string }> {
   const response = await fetch('/api/auth/viana/config', { credentials: 'include' });
   if (!response.ok) return { enabled: false, providerLabel: 'Viana' };
-  const body = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    console.warn('[auth] viana config returned a non-JSON response', { status: response.status, contentType });
+    return { enabled: false, providerLabel: 'Viana' };
+  }
+  const body = await response.json().catch(() => null);
+  if (!body || typeof body !== 'object') return { enabled: false, providerLabel: 'Viana' };
   return {
     enabled: body?.enabled === true,
     providerLabel: typeof body?.providerLabel === 'string' ? body.providerLabel : 'Viana'
