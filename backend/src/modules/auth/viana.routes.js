@@ -18,6 +18,14 @@ function createVianaRouter({
 }) {
   const router = express.Router();
   const secure = process.env.NODE_ENV === 'production';
+  let flowCookieDomain = '';
+  if (secure && config.redirectUri) {
+    try {
+      flowCookieDomain = new URL(config.redirectUri).hostname;
+    } catch {
+      // Runtime config validates this URL before the router is created.
+    }
+  }
   const sessionCookie = {
     httpOnly: true,
     secure,
@@ -28,9 +36,13 @@ function createVianaRouter({
   const flowCookie = {
     httpOnly: true,
     secure,
-    sameSite: 'lax',
+    // Viana returns from a different site. Some mobile in-app browsers do not
+    // treat that callback as a top-level Lax navigation, so preserve the
+    // browser binding cookie explicitly for the OAuth callback only.
+    sameSite: secure ? 'none' : 'lax',
     path: '/api/auth/viana',
-    maxAge: 10 * 60 * 1000
+    maxAge: 10 * 60 * 1000,
+    ...(flowCookieDomain ? { domain: flowCookieDomain } : {})
   };
   const noticeCookie = {
     httpOnly: true,
@@ -103,6 +115,12 @@ function createVianaRouter({
         environmentKey: config.environmentKey
       });
       if (!pending.valid) {
+        logger.warn?.('[VIANA] callback flow rejected', {
+          requestId: res.locals.requestId,
+          phase,
+          reason: pending.reason || 'unknown',
+          durationMs: Date.now() - startedAt
+        });
         setNotice(res, 'invalid_or_expired');
         return redirectHome();
       }

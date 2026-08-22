@@ -8,6 +8,7 @@ const config = {
   environmentKey: 'development',
   providerLabel: 'Viana',
   clientId: 'development-client',
+  redirectUri: 'https://danoa.ir/api/auth/viana/callback',
   postLoginPath: '/',
   sessionAbsoluteTimeoutSeconds: 2592000,
   sessionCookieName: 'danoa_auth_session',
@@ -130,9 +131,30 @@ test('start persists browser-bound state and redirects with no-store without tou
   assert.equal(res.output.cleared.length, 0);
 });
 
+test('production flow cookie survives the external Viana callback and is scoped to Danoa', async () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    const handler = routeHandler(createRouter(), 'GET', '/api/auth/viana/start');
+    const res = responseRecorder();
+    await handler({ cookies: {}, query: {} }, res, assert.fail);
+    const flowCookie = res.output.cookies.find((item) => item.name === 'danoa_viana_flow');
+    assert.equal(flowCookie.options.httpOnly, true);
+    assert.equal(flowCookie.options.secure, true);
+    assert.equal(flowCookie.options.sameSite, 'none');
+    assert.equal(flowCookie.options.domain, 'danoa.ir');
+    assert.equal(flowCookie.options.path, '/api/auth/viana');
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  }
+});
+
 test('callback validates state before trusting an OAuth error and always redirects cleanly', async () => {
   let exchangeCalls = 0;
+  const entries = [];
   const router = createRouter({
+    logger: { error() {}, warn: (_message, details) => entries.push(details) },
     vianaService: {
       exchangeCode: async () => {
         exchangeCalls += 1;
@@ -156,6 +178,14 @@ test('callback validates state before trusting an OAuth error and always redirec
   assert.equal(res.output.statusCode, 303);
   assert.equal(res.output.headers['referrer-policy'], 'no-referrer');
   assert.ok(!res.output.redirect.includes('?'));
+  assert.deepEqual(entries[0], {
+    requestId: 'safe-correlation-id',
+    phase: 'state',
+    reason: 'unknown_or_replayed',
+    durationMs: entries[0].durationMs
+  });
+  assert.equal(JSON.stringify(entries[0]).includes('attacker-state'), false);
+  assert.equal(JSON.stringify(entries[0]).includes('must-not-run'), false);
 });
 
 test('valid consent denial creates no session and does not clear an existing OTP credential', async () => {
