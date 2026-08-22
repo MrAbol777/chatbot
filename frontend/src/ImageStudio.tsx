@@ -109,15 +109,13 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
   const [imageToImagePriceNoa, setImageToImagePriceNoa] = useState('');
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [referencePickerOpen, setReferencePickerOpen] = useState(false);
+  const [imageSettingsOpen, setImageSettingsOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [sortOpen, setSortOpen] = useState(false);
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const inFlight = useRef(false);
   const promptInputRef = useRef<HTMLTextAreaElement | null>(null);
   const referenceInputRef = useRef<HTMLInputElement | null>(null);
   const referenceUrlsRef = useRef<string[]>([]);
-  const mobileSettingsTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const mobileSettingsCloseRef = useRef<HTMLButtonElement | null>(null);
   const editSourceToRestoreRef = useRef(savedSession.editSourceId);
 
   useEffect(() => {
@@ -222,45 +220,6 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       document.body.classList.remove('studio-viewer-open');
     };
   }, [selected]);
-  useEffect(() => {
-    if (!mobileSettingsOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('studio-output-settings-open');
-    const focusFrame = window.requestAnimationFrame(() => mobileSettingsCloseRef.current?.focus());
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setMobileSettingsOpen(false);
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const dialog = document.getElementById('studio-mobile-output-settings-dialog');
-      if (!dialog) return;
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      ));
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.cancelAnimationFrame(focusFrame);
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      document.body.classList.remove('studio-output-settings-open');
-      window.requestAnimationFrame(() => mobileSettingsTriggerRef.current?.focus());
-    };
-  }, [mobileSettingsOpen]);
-
   const submit = async (event: FormEvent) => {
     event.preventDefault(); const value = prompt.trim();
     if (value.length < 8 || inFlight.current) { if (value.length < 8) setError('توضیحت را کمی کامل‌تر بنویس.'); return; }
@@ -320,14 +279,39 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       return current.filter((reference) => reference.id !== id);
     });
   };
-  const referencePicker = (compact = false) => <section className={`studio-reference-picker${compact ? ' compact' : ''}`} aria-label="تصاویر مرجع">
-    <button type="button" className="studio-reference-picker__summary" onClick={() => setReferencePickerOpen((open) => !open)} aria-expanded={referencePickerOpen}>
-      <span><strong>تصاویر مرجع</strong><small>{referenceImages.length ? `${referenceImages.length} از ۴ تصویر انتخاب شده` : 'بدون تصویر · ساخت از متن'}</small></span><span aria-hidden="true">{referencePickerOpen ? '⌃' : '⌄'}</span>
+  const referencePicker = (compact = false) => <section className={`studio-reference-picker${compact ? ' compact' : ''}`} aria-label="تصویر مرجع">
+    {referenceImages.length === 0 ? <button type="button" className="studio-reference-picker__empty" onClick={() => referenceInputRef.current?.click()} disabled={busy}>
+      <span className="studio-reference-picker__empty-icon" aria-hidden="true"><Icon name="upload" size={18} /></span>
+      <span><strong>افزودن تصویر مرجع</strong><small>اختیاری · برای ویرایش یا ترکیب عکس با متن</small></span>
+      <span className="studio-reference-picker__empty-action" aria-hidden="true">افزودن</span>
+    </button> : <>
+      <button type="button" className="studio-reference-picker__summary" onClick={() => setReferencePickerOpen((open) => !open)} aria-expanded={referencePickerOpen}>
+        <span><strong>{referenceImages.length} تصویر مرجع</strong><small>برای ویرایش با تصویر آماده است</small></span><span className="studio-reference-picker__manage">{referencePickerOpen ? 'بستن' : 'مدیریت'}</span>
+      </button>
+      {referencePickerOpen && <div className="studio-reference-picker__content">
+        <p>تصویر اول مبنای ویرایش است؛ تا سه تصویر دیگر فقط مرجع‌اند.</p>
+        <div className="studio-reference-grid">{referenceImages.map((item, index) => <figure key={item.id} className={index === 0 ? 'primary' : ''}><img src={item.previewUrl} alt={index === 0 ? 'تصویر اصلی' : `تصویر مرجع ${index + 1}`} /><figcaption>{index === 0 ? 'تصویر اصلی ۱' : `تصویر مرجع ${index + 1}`}</figcaption><button type="button" onClick={() => removeReferenceImage(item.id)} aria-label={`حذف تصویر ${index + 1}`}>×</button></figure>)}</div>
+        {referenceImages.length < MAX_REFERENCE_IMAGES && <button type="button" className="studio-reference-picker__add" onClick={() => referenceInputRef.current?.click()} disabled={busy}>＋ افزودن تصویر دیگر</button>}
+      </div>}
+    </>}
+  </section>;
+  const imageSettings = (compact = false) => <section className={`studio-settings-accordion${compact ? ' compact' : ''}`} aria-label="تنظیمات تصویر">
+    <button type="button" className="studio-settings-accordion__summary" onClick={() => setImageSettingsOpen((open) => !open)} aria-expanded={imageSettingsOpen} disabled={busy}>
+      <span className="studio-settings-accordion__title"><span className="studio-settings-icon" aria-hidden="true"><Icon name="settings" size={18} /></span><span><strong>تنظیمات تصویر</strong><small>نسبت و قاب خروجی</small></span></span>
+      <span className="studio-settings-accordion__value"><b>{ratios.find((item) => item.value === ratio)?.label}</b><small>{ratio}</small></span>
+      <span className={`studio-settings-accordion__chevron${imageSettingsOpen ? ' is-open' : ''}`} aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m7 10 5 5 5-5" /></svg></span>
     </button>
-    {referencePickerOpen && <div className="studio-reference-picker__content">
-      <p>تصویر اول مبنای ویرایش است؛ تا سه تصویر دیگر فقط مرجع‌اند.</p>
-      {referenceImages.length > 0 && <div className="studio-reference-grid">{referenceImages.map((item, index) => <figure key={item.id} className={index === 0 ? 'primary' : ''}><img src={item.previewUrl} alt={index === 0 ? 'تصویر اصلی' : `تصویر مرجع ${index + 1}`} /><figcaption>{index === 0 ? 'تصویر اصلی ۱' : `تصویر مرجع ${index + 1}`}</figcaption><button type="button" onClick={() => removeReferenceImage(item.id)} aria-label={`حذف تصویر ${index + 1}`}>×</button></figure>)}</div>}
-      {referenceImages.length < MAX_REFERENCE_IMAGES && <button type="button" className="studio-reference-picker__add" onClick={() => referenceInputRef.current?.click()} disabled={busy}>＋ افزودن تصویر</button>}
+    {imageSettingsOpen && <div className="studio-settings-accordion__content">
+      <fieldset className="ratio-field">
+        <legend>نسبت تصویر</legend>
+        <div className="ratio-options" role="group" aria-label="انتخاب نسبت تصویر">
+          {ratios.map((option) => <button type="button" key={option.value} className={ratio === option.value ? 'active' : ''} aria-pressed={ratio === option.value} onClick={() => setRatio(option.value)} disabled={busy}>
+            <i className={`ratio-shape ratio-${option.value.replace(':', '-')}`} aria-hidden="true" />
+            <span>{option.label}</span><small>{option.value}</small>{ratio === option.value ? <Icon name="check" size="1em" aria-hidden="true" /> : null}
+          </button>)}
+        </div>
+      </fieldset>
+      <section className="studio-output-summary" aria-label="خلاصه خروجی"><span>خروجی انتخاب‌شده</span><strong>{ratios.find((item) => item.value === ratio)?.label} <em>{ratio}</em></strong><p>{ratios.find((item) => item.value === ratio)?.description}</p></section>
     </div>}
   </section>;
   const imageToImageActive = referenceImages.length > 0;
@@ -368,6 +352,10 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
             <label htmlFor="studio-prompt"><span>{imageToImageActive || editSource ? 'چه تغییری می‌خواهی؟' : 'چی توی ذهنت داری؟'}</span><small>{prompt.length}/۷۰۰</small></label>
             <p className="studio-field-help">سوژه، سبک، نور و حس تصویر را با چند کلمه توضیح بده.</p>
             <div className="studio-textarea-wrap"><Icon name="sparkle" size="1em" className="studio-input-spark" aria-hidden="true" /><textarea ref={promptInputRef} id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, 700)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} maxLength={700} /></div>
+            <div className="studio-mobile-create-controls">
+              {imageSettings(true)}
+              {referencePicker(true)}
+            </div>
             <div className="studio-idea-section">
               <span>برای شروع، یکی را انتخاب کن</span>
               <div className="studio-ideas" aria-label="ایده‌های پیشنهادی" aria-describedby="studio-ideas-hint">
@@ -391,88 +379,13 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
           <div className="studio-submit-dock">
             <button className="studio-submit" disabled={busy || prompt.trim().length < 8}><Icon name="sparkle" size={18} className="studio-submit-icon" aria-hidden="true" /><span>{busy ? 'در حال ارسال درخواست...' : imageToImageActive || editSource ? 'ویرایش با تصویر' : 'ساخت تصویر'}</span>{busy && <i aria-hidden="true" />}</button>
             <small>{activePriceNoa ? `هزینه این عملیات ${formatDecimalFa(activePriceNoa)} نوآ است؛ قیمت از تنظیم زنده سامانه خوانده می‌شود.` : imageToImageActive ? 'قیمت ویرایش تصویر پیش از ثبت در سرور بررسی می‌شود.' : editSource ? 'تصویر اصلی شما بدون تغییر باقی می‌ماند.' : 'قیمت زنده پیش از ثبت در سرور بررسی می‌شود.'}</small>
-            <button
-              ref={mobileSettingsTriggerRef}
-              type="button"
-              className="studio-mobile-settings-trigger"
-              onClick={() => setMobileSettingsOpen(true)}
-              disabled={busy}
-              aria-haspopup="dialog"
-              aria-controls="studio-mobile-output-settings-dialog"
-              aria-expanded={mobileSettingsOpen}
-            >
-              <Icon name="settings" size={18} aria-hidden="true" />
-              <span>تنظیمات خروجی</span>
-              <span className="studio-mobile-settings-trigger__chevron" aria-hidden="true">⌃</span>
-            </button>
           </div>
         </section>
         <aside className="studio-settings-card" aria-label="تنظیمات تصویر">
-          <div className="studio-settings-heading"><Icon name="sparkle" size="1em" className="studio-settings-icon" aria-hidden="true" /><div><h2>تنظیمات تصویر</h2><p>قاب مناسب خروجی را انتخاب کن</p></div></div>
+          {imageSettings()}
           {referencePicker()}
-          <fieldset className="ratio-field">
-            <legend>نسبت تصویر</legend>
-            <div className="ratio-options" role="group" aria-label="انتخاب نسبت تصویر">
-              {ratios.map((option) => <button type="button" key={option.value} className={ratio === option.value ? 'active' : ''} aria-pressed={ratio === option.value} onClick={() => setRatio(option.value)} disabled={busy}>
-                <i className={`ratio-shape ratio-${option.value.replace(':', '-')}`} aria-hidden="true" />
-                <span>{option.label}</span><small>{option.value}</small>{ratio === option.value ? <Icon name="check" size="1em" aria-hidden="true" /> : null}
-              </button>)}
-            </div>
-          </fieldset>
-          <section className="studio-output-summary" aria-label="خلاصه خروجی">
-            <span>خروجی انتخاب‌شده</span>
-            <strong>{ratios.find((item) => item.value === ratio)?.label} <em>{ratio}</em></strong>
-            <p>{ratios.find((item) => item.value === ratio)?.description}</p>
-           </section>
-         </aside>
-       </div>
-       {mobileSettingsOpen && <div
-         className="studio-mobile-settings-modal"
-         role="presentation"
-         onClick={(event) => {
-           if (event.target === event.currentTarget) setMobileSettingsOpen(false);
-         }}
-       >
-         <section
-           id="studio-mobile-output-settings-dialog"
-           className="studio-mobile-settings-panel"
-           role="dialog"
-           aria-modal="true"
-           aria-labelledby="studio-mobile-output-settings-title"
-         >
-           <div className="studio-mobile-settings-panel__header">
-             <h2 id="studio-mobile-output-settings-title">تنظیمات خروجی</h2>
-             <button
-               ref={mobileSettingsCloseRef}
-               type="button"
-               className="studio-mobile-settings-panel__close"
-               onClick={() => setMobileSettingsOpen(false)}
-               aria-label="بستن تنظیمات خروجی"
-             >
-               <Icon name="x-close" size={18} aria-hidden="true" />
-             </button>
-           </div>
-           {referencePicker(true)}
-           <fieldset className="studio-mobile-settings-panel__ratio-field">
-             <legend>نسبت تصویر</legend>
-             <div className="ratio-options" role="group" aria-label="انتخاب نسبت تصویر">
-               {ratios.map((option) => <button
-                 type="button"
-                 key={option.value}
-                 className={ratio === option.value ? 'active' : ''}
-                 aria-pressed={ratio === option.value}
-                 onClick={() => setRatio(option.value)}
-                 disabled={busy}
-               >
-                 <i className={`ratio-shape ratio-${option.value.replace(':', '-')}`} aria-hidden="true" />
-                 <span>{option.label}</span>
-                 <small>{option.value}</small>
-                 {ratio === option.value ? <Icon name="check" size="1em" aria-hidden="true" /> : null}
-               </button>)}
-             </div>
-           </fieldset>
-         </section>
-       </div>}
+        </aside>
+      </div>
      </form> : <section className="studio-gallery">
       <div className="gallery-panel">
         {loading ? <div className="gallery-grid">{Array.from({ length: 8 }).map((_, i) => <div className="image-card skeleton" key={i} />)}</div> : items.length === 0 ? <div className="studio-empty"><strong>هنوز تصویری نساختی</strong><button type="button" onClick={() => setTab('create')}>اولین تصویر را بساز</button></div> : <>
