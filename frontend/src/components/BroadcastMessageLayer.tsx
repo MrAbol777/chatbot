@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Icon from './Icon';
+import { useNotification } from '../design-system/components';
 import './BroadcastMessageLayer.css';
 
 type DisplayMode = 'toast' | 'notification' | 'dismissible_modal' | 'required_modal' | 'modal_and_notification';
@@ -25,6 +26,32 @@ type BroadcastNotification = {
 
 type Props = { userId?: string | number; enabled: boolean; placement?: 'floating' | 'header' | 'profile' | 'hidden' };
 
+const UPDATE_SUCCESS_MESSAGE = 'به‌روزرسانی با موفقیت انجام شد. نسخه اول دانا برای شما فعال شد و قابلیت‌های جدید در نسخه‌های بعدی اضافه می‌شوند.';
+
+const isUpdateAction = (label?: string | null) => {
+  const normalized = String(label || '').trim().toLocaleLowerCase('fa-IR');
+  return /به[‌\u200c ]?روز|بروز|آپدیت|update|refresh/.test(normalized);
+};
+
+const sessionKey = (prefix: string, userId: string | number, messageId: string) =>
+  `danoa:broadcast:${prefix}:${String(userId)}:${messageId}`;
+
+const readSessionFlag = (key: string) => {
+  try {
+    return window.sessionStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const writeSessionFlag = (key: string) => {
+  try {
+    window.sessionStorage.setItem(key, '1');
+  } catch {
+    // Session storage is an optional convenience; server state remains authoritative.
+  }
+};
+
 const postAction = async (id: string, action: 'view' | 'dismiss' | 'acknowledge' | 'click') => {
   try {
     await fetch(`/api/notifications/${encodeURIComponent(id)}/${action}`, { method: 'POST', credentials: 'include' });
@@ -34,11 +61,27 @@ const postAction = async (id: string, action: 'view' | 'dismiss' | 'acknowledge'
 };
 
 export default function BroadcastMessageLayer({ userId, enabled, placement = 'floating' }: Props) {
+  const { notify } = useNotification();
   const [items, setItems] = useState<BroadcastNotification[]>([]);
   const [toastItem, setToastItem] = useState<BroadcastNotification | null>(null);
+  const [updateItem, setUpdateItem] = useState<BroadcastNotification | null>(null);
   const [modalItem, setModalItem] = useState<BroadcastNotification | null>(null);
   const [centerOpen, setCenterOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled || !userId) return;
+    const successKey = `danoa:broadcast:update-success:${String(userId)}`;
+    if (!readSessionFlag(successKey)) return;
+    try {
+      window.sessionStorage.removeItem(successKey);
+    } catch {
+      // Session storage is optional.
+    }
+    const timer = window.setTimeout(() => notify.success(UPDATE_SUCCESS_MESSAGE, { title: 'به‌روزرسانی موفق' }), 0);
+    return () => window.clearTimeout(timer);
+  }, [enabled, notify, userId]);
 
   const loadNotifications = useCallback(async () => {
     if (!enabled || !userId) return;
@@ -49,6 +92,16 @@ export default function BroadcastMessageLayer({ userId, enabled, placement = 'fl
       const payload = (await response.json()) as { items?: BroadcastNotification[] };
       const nextItems = Array.isArray(payload.items) ? payload.items : [];
       setItems(nextItems);
+      const nextUpdate = nextItems.find((item) =>
+        item.displayMode === 'notification'
+        && isUpdateAction(item.actionLabel)
+        && !readSessionFlag(sessionKey('update-shown', userId, item.id))
+      );
+      if (!updateItem && nextUpdate) {
+        setUpdateItem(nextUpdate);
+        writeSessionFlag(sessionKey('update-shown', userId, nextUpdate.id));
+        void postAction(nextUpdate.id, 'view');
+      }
       const nextModal = nextItems.find((item) => item.displayMode === 'required_modal')
         || nextItems.find((item) => item.displayMode === 'dismissible_modal' || item.displayMode === 'modal_and_notification');
       if (!modalItem && nextModal) {
@@ -56,14 +109,14 @@ export default function BroadcastMessageLayer({ userId, enabled, placement = 'fl
         void postAction(nextModal.id, 'view');
       }
       const nextToast = nextItems.find((item) => item.displayMode === 'toast' && item.unread);
-      if (!toastItem && !modalItem && nextToast) {
+      if (!toastItem && !modalItem && !updateItem && nextToast) {
         setToastItem(nextToast);
         void postAction(nextToast.id, 'view');
       }
     } finally {
       setLoading(false);
     }
-  }, [enabled, userId, modalItem, toastItem]);
+  }, [enabled, userId, modalItem, toastItem, updateItem]);
 
   useEffect(() => {
     if (!enabled || !userId) return;
@@ -105,10 +158,45 @@ export default function BroadcastMessageLayer({ userId, enabled, placement = 'fl
     if (item.actionUrl) window.location.assign(item.actionUrl);
   };
 
+  const dismissUpdate = () => {
+    if (!updateItem || !userId) return;
+    writeSessionFlag(sessionKey('update-dismissed', userId, updateItem.id));
+    setUpdateItem(null);
+  };
+
+  const applyUpdate = async () => {
+    if (!updateItem || !userId || updatingId) return;
+    const item = updateItem;
+    setUpdatingId(item.id);
+    try {
+      await Promise.all([postAction(item.id, 'click'), postAction(item.id, 'acknowledge')]);
+      writeSessionFlag(`danoa:broadcast:update-success:${String(userId)}`);
+      window.location.reload();
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   if (!enabled || !userId) return null;
 
   return (
     <>
+      {updateItem ? (
+        <section className="broadcast-user-update" role="status" aria-live="polite" aria-labelledby="broadcast-user-update-title">
+          <div className="broadcast-user-update__icon" aria-hidden="true"><Icon name="retry" size={21} /></div>
+          <div className="broadcast-user-update__content">
+            <strong id="broadcast-user-update-title">{updateItem.title || 'نسخه جدید دانا آماده است'}</strong>
+            <p>{updateItem.message}</p>
+            <button type="button" className="broadcast-user-update__action" onClick={() => void applyUpdate()} disabled={Boolean(updatingId)} aria-busy={Boolean(updatingId)}>
+              {updatingId ? 'در حال به‌روزرسانی…' : updateItem.actionLabel || 'به‌روزرسانی'}
+            </button>
+          </div>
+          <button type="button" className="broadcast-user-update__close" onClick={dismissUpdate} aria-label="بستن اعلان به‌روزرسانی">
+            <Icon name="x-close" size={18} aria-hidden="true" />
+          </button>
+        </section>
+      ) : null}
+
       {toastItem ? (
         <div className={`broadcast-user-toast broadcast-user-toast--${toastItem.priority}`} role="status" aria-live="polite">
           <div className="broadcast-user-toast__icon" aria-hidden="true"><Icon name="bell" size={21} /></div>

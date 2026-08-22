@@ -3075,7 +3075,7 @@ notify.error(message);
       <div className="bg-blob blob-purple" />
       {currentView === 'chat' ? <a className="app-skip-link" href="#chat-messages">رفتن به پیام‌ها</a> : null}
       {currentView !== 'profile' ? (
-        <BroadcastMessageLayer userId={profile.id} enabled={Boolean(hasAuthToken && profile.id)} placement="hidden" />
+        <BroadcastMessageLayer userId={profile.id} enabled={Boolean(hasAuthToken && profile.id)} placement="floating" />
       ) : null}
 
       {currentView === 'chat' && conversationSearchOpen ? (() => {
