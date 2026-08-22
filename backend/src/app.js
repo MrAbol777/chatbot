@@ -18,6 +18,7 @@ const { createSmsRouter } = require('./modules/sms/sms.routes');
 const { createSmsService } = require('./modules/sms/sms.service');
 const { createAiRouter } = require('./modules/ai/ai.routes');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
+const { createImageToImageRouter } = require('./modules/image-to-image/image-to-image.routes');
 const { createAuthMiddleware } = require('./modules/image-generation/auth.middleware');
 const { createImageUnderstandingRouter } = require('./modules/image-understanding/image-understanding.routes');
 const { createIntentRouterService } = require('./modules/intent-router/intent-router.service');
@@ -449,6 +450,17 @@ function createApp({ repositories, runtimeConfig }) {
   app.use('/api/images', imageGenerationModule.publicRouter);
   app.use('/api/images', imageGenerationModule.router);
 
+  // Image-to-image is intentionally a separate bounded context. It owns its
+  // inputs, jobs, files, pricing action, and provider worker.
+  const imageToImageModule = createImageToImageRouter({
+    httpClient: axios,
+    db: repositories.db,
+    noaBillingService,
+    principalResolver,
+    config: ai.imageToImage
+  });
+  app.use('/api/image-to-image', imageToImageModule.router);
+
   // Video generation
   const videoGenerationModule = createVideoGenerationRouter({
     httpClient: axios,
@@ -501,6 +513,7 @@ function createApp({ repositories, runtimeConfig }) {
     memoryConfig: ai.conversationMemory,
     chatConfig: ai.chat,
     conversationMemoryService,
+    imageToImageModule,
     logger: console
   });
 

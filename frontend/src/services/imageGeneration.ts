@@ -65,9 +65,10 @@ export async function startImageGeneration(prompt: string, options: { aspectRati
 
 export type GalleryImage = {
   id: string; taskId: string; originalPrompt: string; refinedPrompt: string;
-  model?: string | null; aspectRatio: '1:1' | '9:16' | '16:9'; operation: 'generate' | 'edit';
+  model?: string | null; aspectRatio: '1:1' | '4:3' | '3:4' | '9:16' | '16:9'; operation: 'generate' | 'edit';
   conversationId?: string | null; parentImageId?: string | null; status: ImageTaskStatus;
   imageUrl?: string | null; error?: string | null; createdAt: string; updatedAt: string;
+  source?: 'image-generation' | 'image-to-image'; inputCount?: number;
 };
 
 export async function listGalleryImages(cursor = 0) {

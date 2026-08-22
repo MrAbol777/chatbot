@@ -52,7 +52,8 @@ type ReceiptPreview = {
 const ACTION_LABELS: Record<string, string> = {
   text_chat: 'گفتگوی متنی',
   image_understanding: 'تحلیل تصویر',
-  image_generation: 'ساخت یا ویرایش تصویر',
+  image_generation: 'ساخت تصویر از متن',
+  image_to_image: 'ویرایش تصویر با مرجع',
   video_generation: 'ساخت ویدیو'
 };
 

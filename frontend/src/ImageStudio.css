@@ -1149,6 +1149,23 @@ body.studio-output-settings-open .chat-studio-switcher {
 .studio-settings-heading p { margin: 0; }
 .studio-settings-heading h2 { color: var(--text-main); font-size: .98rem; font-weight: 850; }
 .studio-settings-heading p { margin-top: 3px; color: color-mix(in srgb, var(--text-main) 74%, transparent); font-size: .875rem; }
+.studio-reference-input { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.studio-reference-picker { margin: 0 0 20px; border: 1px solid color-mix(in srgb, var(--primary) 17%, var(--surface-border)); border-radius: 16px; overflow: hidden; background: color-mix(in srgb, var(--primary) 3%, var(--card-bg)); }
+.studio-reference-picker__summary { width: 100%; min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 0; color: var(--text-main); background: transparent; font: inherit; text-align: right; cursor: pointer; }
+.studio-reference-picker__summary > span:first-child { display: grid; gap: 2px; }
+.studio-reference-picker__summary strong { font-size: .86rem; font-weight: 850; }
+.studio-reference-picker__summary small { color: color-mix(in srgb, var(--text-main) 65%, transparent); font-size: .75rem; }
+.studio-reference-picker__summary > span:last-child { color: var(--primary-dark); font-size: 1.1rem; }
+.studio-reference-picker__content { display: grid; gap: 10px; padding: 0 12px 12px; border-top: 1px solid color-mix(in srgb, var(--primary) 12%, transparent); }
+.studio-reference-picker__content > p { margin: 10px 0 0; color: color-mix(in srgb, var(--text-main) 69%, transparent); font-size: .75rem; line-height: 1.65; }
+.studio-reference-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.studio-reference-grid figure { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); align-items: center; gap: 7px; min-height: 54px; margin: 0; padding: 5px; border: 1px solid var(--surface-border); border-radius: 11px; background: var(--card-bg); overflow: hidden; }
+.studio-reference-grid figure.primary { grid-column: 1 / -1; border-color: color-mix(in srgb, var(--primary) 42%, var(--surface-border)); }
+.studio-reference-grid img { width: 46px; height: 42px; border-radius: 7px; object-fit: cover; background: var(--surface-soft); }
+.studio-reference-grid figcaption { min-width: 0; overflow: hidden; color: var(--text-main); font-size: .7rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.studio-reference-grid figure > button { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 7px; color: var(--text-main); background: rgba(255,255,255,.85); font-size: 1rem; line-height: 1; cursor: pointer; }
+.studio-reference-picker__add { min-height: 42px; border: 1px dashed color-mix(in srgb, var(--primary) 52%, var(--surface-border)); border-radius: 11px; color: var(--primary-dark); background: color-mix(in srgb, var(--primary) 5%, var(--card-bg)); font: 750 .8rem inherit; cursor: pointer; }
+.studio-reference-picker__add:hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 10%, var(--card-bg)); }
 .ratio-field > legend {
   margin-bottom: 11px;
   color: color-mix(in srgb, var(--text-main) 72%, transparent);
@@ -1293,6 +1310,8 @@ body.studio-output-settings-open .chat-studio-switcher {
   .studio-mobile-settings-panel .ratio-options button > span { grid-row: 2; }
   .studio-mobile-settings-panel .ratio-options button > small { grid-row: 3; }
   .studio-mobile-settings-panel .ratio-options button > svg { position: absolute; inset-inline-start: 9px; inset-block-start: 8px; color: var(--primary); }
+  .studio-reference-picker.compact { margin-top: 0; }
+  .studio-reference-picker.compact .studio-reference-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 420px) {

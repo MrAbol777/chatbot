@@ -47,10 +47,13 @@ docker compose run --rm --no-deps --entrypoint npm app --prefix backend run db:m
 log "Archiving legacy billing and migrating active subscriptions to Noa"
 docker compose run --rm --no-deps --entrypoint npm app --prefix backend run db:migrate-noa
 
+log "Applying image-to-image migration"
+docker compose run --rm --no-deps --entrypoint npm app --prefix backend run db:migrate-image-to-image
+
 log "Activating the BananaAI Grok image-to-video route"
 docker compose run --rm --no-deps --entrypoint npm app --prefix backend run admin:activate-bananaai-video
 
-log "Starting the application and embedded video worker"
+log "Starting the application and embedded workers"
 docker compose up -d app
 
 log "Waiting for the local health endpoint"

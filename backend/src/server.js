@@ -12,6 +12,7 @@ const { createRepositories } = require('./repositories');
 const { createApp } = require('./app');
 const { initBaleMonitor } = require('./modules/bale_monitor');
 const { createConfiguredVideoWorkerRuntime } = require('./modules/video-generation/worker/video-worker.bootstrap');
+const { createConfiguredImageToImageRuntime } = require('./modules/image-to-image/worker/image-to-image.bootstrap');
 const { reconcileExpiredNoaOperations } = require('./modules/noa');
 
 const runtimeConfig = loadRuntimeConfig(process.env);
@@ -22,6 +23,7 @@ const { app, noaBillingService, conversationMemoryService, setVideoWorkerRuntime
 });
 
 let videoWorkerRuntime = null;
+let imageToImageWorkerRuntime = null;
 let serverSignalHandlersInstalled = false;
 setVideoWorkerRuntimeGetter(() => videoWorkerRuntime);
 
@@ -34,6 +36,7 @@ async function startServer({ installSignalHandlers = true } = {}) {
     if (shutdownPromise) return shutdownPromise;
     shutdownPromise = (async () => {
       console.log('[BOOT] Starting graceful shutdown...');
+      await imageToImageWorkerRuntime?.stop?.();
       await videoWorkerRuntime?.stop?.();
       if (noaExpiryTimer) clearInterval(noaExpiryTimer);
       if (server) await new Promise((resolve) => server.close(resolve));
@@ -64,6 +67,16 @@ async function startServer({ installSignalHandlers = true } = {}) {
       logger: console
     });
     await videoWorkerRuntime.start();
+
+    imageToImageWorkerRuntime = createConfiguredImageToImageRuntime({
+      db: repositories.db,
+      httpClient: axios,
+      noaBillingService,
+      config: runtimeConfig.ai.imageToImage,
+      role: 'embedded',
+      logger: console
+    });
+    await imageToImageWorkerRuntime.start();
 
     const sweepExpiredNoaReservations = async () => {
       const released = await noaBillingService.releaseExpiredReservations({ limit: 250 });
@@ -112,7 +125,7 @@ async function startServer({ installSignalHandlers = true } = {}) {
     process.once('SIGTERM', handler);
   }
 
-  return { app, server, videoWorkerRuntime, shutdown };
+  return { app, server, videoWorkerRuntime, imageToImageWorkerRuntime, shutdown };
 }
 
 if (require.main === module) {

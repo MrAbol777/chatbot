@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteGalleryImage, fetchProtectedImageBlobUrl, GalleryImage, getImageGenerationStatus, listGalleryImages, startImageEdit, startImageGeneration } from './services/imageGeneration';
+import { getImageToImageJob, ImageToImageJob, listImageToImageJobs, startImageToImage } from './services/imageToImage';
 import ImageViewer from './ImageViewer';
 import Icon from './components/Icon';
 import { formatDecimalFa } from './noa/decimal';
@@ -17,6 +18,11 @@ const editIdeas = ['پس‌زمینه را سینمایی کن', 'نور را ط
 const pendingText = ['دارم ایده‌ات رو آماده می‌کنم...', 'جزئیات تصویر در حال ساخته‌شدنه...', 'تقریباً آماده است...'];
 const requestKey = () => crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 const STUDIO_SESSION_KEY = 'danoa:image-studio-state';
+const MAX_REFERENCE_IMAGES = 4;
+const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
+const REFERENCE_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+type ReferenceImage = { id: string; file: File; previewUrl: string };
 
 type StudioSessionState = {
   tab: 'create' | 'gallery';
@@ -70,6 +76,21 @@ function ProtectedImage({ src, alt }: { src: string; alt: string }) {
 type SortOrder = 'newest' | 'oldest';
 
 const completeCount = (list: GalleryImage[]) => list.filter((x) => x.status === 'COMPLETED').length;
+const asGalleryImage = (job: ImageToImageJob): GalleryImage => ({
+  id: job.id,
+  taskId: job.id,
+  originalPrompt: job.prompt,
+  refinedPrompt: job.prompt,
+  aspectRatio: job.aspectRatio,
+  operation: 'edit',
+  status: job.status === 'succeeded' ? 'COMPLETED' : job.status === 'failed' ? 'ERROR' : job.status === 'submitted' ? 'RUNNING' : 'QUEUE',
+  imageUrl: job.result?.contentUrl || null,
+  error: job.safeErrorMessage,
+  createdAt: job.createdAt,
+  updatedAt: job.updatedAt,
+  source: 'image-to-image',
+  inputCount: job.inputCount
+});
 
 export default function ImageStudio({ onBack, backLabel = 'بازگشت به چت' }: { onBack: () => void; backLabel?: string }) {
   const [savedSession] = useState(readStudioSession);
@@ -85,11 +106,16 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
   const [error, setError] = useState('');
   const [galleryError, setGalleryError] = useState('');
   const [imagePriceNoa, setImagePriceNoa] = useState('');
+  const [imageToImagePriceNoa, setImageToImagePriceNoa] = useState('');
+  const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
+  const [referencePickerOpen, setReferencePickerOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [sortOpen, setSortOpen] = useState(false);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const inFlight = useRef(false);
   const promptInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const referenceInputRef = useRef<HTMLInputElement | null>(null);
+  const referenceUrlsRef = useRef<string[]>([]);
   const mobileSettingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mobileSettingsCloseRef = useRef<HTMLButtonElement | null>(null);
   const editSourceToRestoreRef = useRef(savedSession.editSourceId);
@@ -111,10 +137,21 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
     input.style.height = `${Math.min(Math.max(input.scrollHeight, 164), 300)}px`;
   }, [prompt]);
 
+  useEffect(() => () => {
+    referenceUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
+
   const load = async (cursor = 0) => {
     try {
-      const data = await listGalleryImages(cursor);
-      setItems((old) => cursor ? [...old, ...data.items] : data.items);
+      const [data, imageToImageJobs] = await Promise.all([
+        listGalleryImages(cursor),
+        cursor ? Promise.resolve([]) : listImageToImageJobs().catch(() => [])
+      ]);
+      const generated = data.items.map((item) => ({ ...item, source: 'image-generation' as const }));
+      const nextItems = cursor ? generated : [...generated, ...imageToImageJobs.map(asGalleryImage)];
+      setItems((old) => cursor
+        ? [...old, ...nextItems.filter((item) => !old.some((current) => current.id === item.id && current.source === item.source))]
+        : nextItems);
       setNextCursor(data.nextCursor);
       setGalleryError('');
     } catch (e) { setGalleryError(e instanceof Error ? e.message : 'دریافت تصاویر انجام نشد.'); }
@@ -127,10 +164,12 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       .then((config) => {
         if (!active) return;
         const price = config.pricingConfigs.find((item) => item.actionKey === 'image_generation' && item.isActive);
+        const imageToImagePrice = config.pricingConfigs.find((item) => item.actionKey === 'image_to_image' && item.isActive);
         setImagePriceNoa(price?.unitPrice || '');
+        setImageToImagePriceNoa(imageToImagePrice?.unitPrice || '');
       })
       .catch(() => {
-        if (active) setImagePriceNoa('');
+        if (active) { setImagePriceNoa(''); setImageToImagePriceNoa(''); }
       });
     return () => { active = false; };
   }, []);
@@ -145,13 +184,14 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       editSourceToRestoreRef.current = null;
     }
   }, [items, loading]);
-  const pendingIds = useMemo(() => items.filter((x) => ['QUEUE', 'WAITING', 'RUNNING'].includes(x.status)).map((x) => x.id), [items]);
+  const generationPendingIds = useMemo(() => items.filter((x) => x.source !== 'image-to-image' && ['QUEUE', 'WAITING', 'RUNNING'].includes(x.status)).map((x) => x.id), [items]);
+  const imageToImagePendingIds = useMemo(() => items.filter((x) => x.source === 'image-to-image' && ['QUEUE', 'WAITING', 'RUNNING'].includes(x.status)).map((x) => x.id), [items]);
   useEffect(() => {
-    if (!pendingIds.length) return;
+    if (!generationPendingIds.length && !imageToImagePendingIds.length) return;
     let stopped = false; let delay = 1800;
     const poll = async () => {
       let hasPending = false;
-      for (const id of pendingIds) {
+      for (const id of generationPendingIds) {
         try {
           const result = await getImageGenerationStatus(id);
           if (['QUEUE', 'WAITING', 'RUNNING'].includes(result.status)) hasPending = true;
@@ -159,11 +199,19 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
           if (['COMPLETED', 'ERROR'].includes(result.status)) window.dispatchEvent(new Event('noa:wallet-changed'));
         } catch { hasPending = true; }
       }
+      for (const id of imageToImagePendingIds) {
+        try {
+          const job = asGalleryImage(await getImageToImageJob(id));
+          if (['QUEUE', 'WAITING', 'RUNNING'].includes(job.status)) hasPending = true;
+          if (!stopped) setItems((old) => old.map((item) => item.id === id && item.source === 'image-to-image' ? job : item));
+          if (['COMPLETED', 'ERROR'].includes(job.status)) window.dispatchEvent(new Event('noa:wallet-changed'));
+        } catch { hasPending = true; }
+      }
       if (!stopped && hasPending) { delay = Math.min(8000, Math.round(delay * 1.35)); window.setTimeout(poll, delay); }
     };
     const timer = window.setTimeout(poll, delay);
     return () => { stopped = true; window.clearTimeout(timer); };
-  }, [pendingIds.join(',')]);
+  }, [generationPendingIds.join(','), imageToImagePendingIds.join(',')]);
   useEffect(() => {
     if (!selected) return;
     const previousOverflow = document.body.style.overflow;
@@ -219,15 +267,20 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
     inFlight.current = true; setBusy(true); setError('');
     try {
       const key = requestKey();
-      const { taskId } = editSource ? await startImageEdit(editSource.id, value, ratio, key) : await startImageGeneration(value, { aspectRatio: ratio, idempotencyKey: key });
+      const submitted = referenceImages.length > 0
+        ? asGalleryImage(await startImageToImage({ prompt: value, aspectRatio: ratio, files: referenceImages.map((item) => item.file), idempotencyKey: key }))
+        : null;
+      const { taskId } = submitted ? { taskId: submitted.id } : editSource ? await startImageEdit(editSource.id, value, ratio, key) : await startImageGeneration(value, { aspectRatio: ratio, idempotencyKey: key });
       window.dispatchEvent(new Event('noa:wallet-changed'));
-      const optimistic: GalleryImage = { id: taskId, taskId, originalPrompt: value, refinedPrompt: value, aspectRatio: ratio, operation: editSource ? 'edit' : 'generate', parentImageId: editSource?.id, status: 'QUEUE', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-      setItems((old) => [optimistic, ...old.filter((x) => x.id !== taskId)]); setTab('gallery'); setEditSource(null);
+      const optimistic: GalleryImage = submitted || { id: taskId, taskId, originalPrompt: value, refinedPrompt: value, aspectRatio: ratio, operation: editSource ? 'edit' : 'generate', parentImageId: editSource?.id, status: 'QUEUE', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'image-generation' };
+      setItems((old) => [optimistic, ...old.filter((item) => item.id !== taskId || item.source !== optimistic.source)]);
+      referenceUrlsRef.current.forEach((url) => URL.revokeObjectURL(url)); referenceUrlsRef.current = [];
+      setReferenceImages([]); setReferencePickerOpen(false); setTab('gallery'); setEditSource(null);
     } catch (e) { setError(e instanceof Error ? e.message : 'درخواست انجام نشد.'); }
     finally { inFlight.current = false; setBusy(false); }
   };
-  const reuse = (item: GalleryImage, edit = false) => { setPrompt(edit ? '' : getUserFacingPrompt(item.originalPrompt)); setRatio(item.aspectRatio); setEditSource(edit ? item : null); setSelected(null); setError(''); setTab('create'); };
-  const remove = async (item: GalleryImage) => { if (!confirm('این تصویر از گالری حذف شود؟')) return; try { await deleteGalleryImage(item.id); setItems((old) => old.filter((x) => x.id !== item.id)); setSelected(null); } catch (e) { setError(e instanceof Error ? e.message : 'حذف انجام نشد.'); } };
+  const reuse = (item: GalleryImage, edit = false) => { setPrompt(edit ? '' : getUserFacingPrompt(item.originalPrompt)); setRatio(item.aspectRatio === '9:16' || item.aspectRatio === '16:9' ? item.aspectRatio : '1:1'); setEditSource(edit ? item : null); setSelected(null); setError(''); setTab('create'); };
+  const remove = async (item: GalleryImage) => { if (item.source === 'image-to-image') return; if (!confirm('این تصویر از گالری حذف شود؟')) return; try { await deleteGalleryImage(item.id); setItems((old) => old.filter((x) => x.id !== item.id)); setSelected(null); } catch (e) { setError(e instanceof Error ? e.message : 'حذف انجام نشد.'); } };
   const download = async (item: GalleryImage) => { if (!item.imageUrl) return; const url = await fetchProtectedImageBlobUrl(item.imageUrl); const a = document.createElement('a'); a.href = url; a.download = `danoa-${item.id}.jpg`; a.click(); if (url.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(url), 0); };
 
   const sortedItems = useMemo(() => {
@@ -244,10 +297,41 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
     e.stopPropagation();
     if (action === 'view') setSelected(item);
     else if (action === 'download') void download(item);
-    else if (action === 'edit') reuse(item, true);
+    else if (action === 'edit' && item.source !== 'image-to-image') reuse(item, true);
     else if (action === 'similar') reuse(item);
     else if (action === 'delete') void remove(item);
   }, [download, reuse, remove]);
+
+  const addReferenceFiles = (files: FileList | File[]) => {
+    const incoming = Array.from(files);
+    const available = MAX_REFERENCE_IMAGES - referenceImages.length;
+    if (!available) { setError('حداکثر ۴ تصویر مرجع می‌توانی اضافه کنی.'); return; }
+    if (incoming.some((file) => !REFERENCE_IMAGE_TYPES.has(file.type) || file.size > MAX_REFERENCE_IMAGE_BYTES)) {
+      setError('فقط JPEG، PNG یا WebP با حجم حداکثر ۱۰ مگابایت قابل انتخاب است.'); return;
+    }
+    const accepted = incoming.slice(0, available).map((file) => ({ id: requestKey(), file, previewUrl: URL.createObjectURL(file) }));
+    referenceUrlsRef.current.push(...accepted.map((item) => item.previewUrl));
+    setReferenceImages((current) => [...current, ...accepted]); setReferencePickerOpen(true); setError('');
+  };
+  const removeReferenceImage = (id: string) => {
+    setReferenceImages((current) => {
+      const item = current.find((reference) => reference.id === id);
+      if (item) { URL.revokeObjectURL(item.previewUrl); referenceUrlsRef.current = referenceUrlsRef.current.filter((url) => url !== item.previewUrl); }
+      return current.filter((reference) => reference.id !== id);
+    });
+  };
+  const referencePicker = (compact = false) => <section className={`studio-reference-picker${compact ? ' compact' : ''}`} aria-label="تصاویر مرجع">
+    <button type="button" className="studio-reference-picker__summary" onClick={() => setReferencePickerOpen((open) => !open)} aria-expanded={referencePickerOpen}>
+      <span><strong>تصاویر مرجع</strong><small>{referenceImages.length ? `${referenceImages.length} از ۴ تصویر انتخاب شده` : 'بدون تصویر · ساخت از متن'}</small></span><span aria-hidden="true">{referencePickerOpen ? '⌃' : '⌄'}</span>
+    </button>
+    {referencePickerOpen && <div className="studio-reference-picker__content">
+      <p>تصویر اول مبنای ویرایش است؛ تا سه تصویر دیگر فقط مرجع‌اند.</p>
+      {referenceImages.length > 0 && <div className="studio-reference-grid">{referenceImages.map((item, index) => <figure key={item.id} className={index === 0 ? 'primary' : ''}><img src={item.previewUrl} alt={index === 0 ? 'تصویر اصلی' : `تصویر مرجع ${index + 1}`} /><figcaption>{index === 0 ? 'تصویر اصلی ۱' : `تصویر مرجع ${index + 1}`}</figcaption><button type="button" onClick={() => removeReferenceImage(item.id)} aria-label={`حذف تصویر ${index + 1}`}>×</button></figure>)}</div>}
+      {referenceImages.length < MAX_REFERENCE_IMAGES && <button type="button" className="studio-reference-picker__add" onClick={() => referenceInputRef.current?.click()} disabled={busy}>＋ افزودن تصویر</button>}
+    </div>}
+  </section>;
+  const imageToImageActive = referenceImages.length > 0;
+  const activePriceNoa = imageToImageActive ? imageToImagePriceNoa : imagePriceNoa;
 
   return <main className="studio" dir="rtl">
     <div className="studio-shell">
@@ -272,6 +356,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
     <div className="studio-tabs" role="tablist" aria-label="بخش‌های استودیوی تصویر"><span className={`studio-tab-indicator ${tab === 'gallery' ? 'gallery' : ''}`} aria-hidden="true" /><button type="button" role="tab" aria-selected={tab === 'create'} className={tab === 'create' ? 'active' : ''} onClick={() => setTab('create')}>ساخت تصویر</button><button type="button" role="tab" aria-selected={tab === 'gallery'} className={tab === 'gallery' ? 'active' : ''} onClick={() => setTab('gallery')}>تصاویر من</button></div>
     {(error || (tab === 'gallery' && galleryError)) && <div className="studio-error" role="alert"><span className="studio-error-icon" aria-hidden="true">!</span><span>{error || galleryError}</span><button type="button" onClick={() => { setError(''); setGalleryError(''); }} aria-label="بستن پیام"><Icon name="x-close" size="1em" /></button></div>}
     {tab === 'create' ? <form className="studio-create" onSubmit={submit}>
+      <input ref={referenceInputRef} className="studio-reference-input" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { if (event.target.files) addReferenceFiles(event.target.files); event.currentTarget.value = ''; }} />
       {editSource && <section className="studio-edit-workspace" aria-label="تصویر مبدا ویرایش">
         <div className="studio-source-preview">{editSource.imageUrl && <ProtectedImage src={editSource.imageUrl} alt="تصویر مبدا ویرایش" />}<span aria-hidden="true">اصل</span></div>
         <div className="studio-source-copy"><small>ویرایش تصویر</small><strong>یک نسخه‌ی تازه می‌سازیم</strong><p>تصویر اصلی بدون تغییر در گالری می‌ماند.</p></div>
@@ -280,13 +365,13 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       <div className="studio-create-grid">
         <section className="studio-prompt-card">
           <div className="studio-prompt-block">
-            <label htmlFor="studio-prompt"><span>{editSource ? 'چه تغییری می‌خواهی؟' : 'چی توی ذهنت داری؟'}</span><small>{prompt.length}/۷۰۰</small></label>
+            <label htmlFor="studio-prompt"><span>{imageToImageActive || editSource ? 'چه تغییری می‌خواهی؟' : 'چی توی ذهنت داری؟'}</span><small>{prompt.length}/۷۰۰</small></label>
             <p className="studio-field-help">سوژه، سبک، نور و حس تصویر را با چند کلمه توضیح بده.</p>
             <div className="studio-textarea-wrap"><Icon name="sparkle" size="1em" className="studio-input-spark" aria-hidden="true" /><textarea ref={promptInputRef} id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, 700)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} maxLength={700} /></div>
             <div className="studio-idea-section">
               <span>برای شروع، یکی را انتخاب کن</span>
               <div className="studio-ideas" aria-label="ایده‌های پیشنهادی" aria-describedby="studio-ideas-hint">
-                {(editSource ? editIdeas : promptIdeas).map((idea) => (
+                {(imageToImageActive || editSource ? editIdeas : promptIdeas).map((idea) => (
                   <button
                     type="button"
                     key={idea}
@@ -304,8 +389,8 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
             </div>
           </div>
           <div className="studio-submit-dock">
-            <button className="studio-submit" disabled={busy || prompt.trim().length < 8}><Icon name="sparkle" size={18} className="studio-submit-icon" aria-hidden="true" /><span>{busy ? 'در حال ساخت تصویر...' : editSource ? 'ویرایش تصویر' : 'ساخت تصویر'}</span>{busy && <i aria-hidden="true" />}</button>
-            <small>{imagePriceNoa ? `هزینه این عملیات ${formatDecimalFa(imagePriceNoa)} نوآ است؛ قیمت از تنظیم زنده سامانه خوانده می‌شود.` : editSource ? 'تصویر اصلی شما بدون تغییر باقی می‌ماند.' : 'قیمت زنده پیش از ثبت در سرور بررسی می‌شود.'}</small>
+            <button className="studio-submit" disabled={busy || prompt.trim().length < 8}><Icon name="sparkle" size={18} className="studio-submit-icon" aria-hidden="true" /><span>{busy ? 'در حال ارسال درخواست...' : imageToImageActive || editSource ? 'ویرایش با تصویر' : 'ساخت تصویر'}</span>{busy && <i aria-hidden="true" />}</button>
+            <small>{activePriceNoa ? `هزینه این عملیات ${formatDecimalFa(activePriceNoa)} نوآ است؛ قیمت از تنظیم زنده سامانه خوانده می‌شود.` : imageToImageActive ? 'قیمت ویرایش تصویر پیش از ثبت در سرور بررسی می‌شود.' : editSource ? 'تصویر اصلی شما بدون تغییر باقی می‌ماند.' : 'قیمت زنده پیش از ثبت در سرور بررسی می‌شود.'}</small>
             <button
               ref={mobileSettingsTriggerRef}
               type="button"
@@ -324,6 +409,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
         </section>
         <aside className="studio-settings-card" aria-label="تنظیمات تصویر">
           <div className="studio-settings-heading"><Icon name="sparkle" size="1em" className="studio-settings-icon" aria-hidden="true" /><div><h2>تنظیمات تصویر</h2><p>قاب مناسب خروجی را انتخاب کن</p></div></div>
+          {referencePicker()}
           <fieldset className="ratio-field">
             <legend>نسبت تصویر</legend>
             <div className="ratio-options" role="group" aria-label="انتخاب نسبت تصویر">
@@ -366,6 +452,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
                <Icon name="x-close" size={18} aria-hidden="true" />
              </button>
            </div>
+           {referencePicker(true)}
            <fieldset className="studio-mobile-settings-panel__ratio-field">
              <legend>نسبت تصویر</legend>
              <div className="ratio-options" role="group" aria-label="انتخاب نسبت تصویر">
@@ -413,15 +500,13 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
               )}
             </div>
           </div>
-          <div className="gallery-grid">{sortedItems.map((item) => <button type="button" className={`image-card ${item.status.toLowerCase()}`} style={{ aspectRatio: item.aspectRatio.replace(':', '/') }} key={item.id} onClick={() => item.status === 'COMPLETED' && setSelected(item)}>{item.status === 'COMPLETED' && item.imageUrl ? <>
+          <div className="gallery-grid">{sortedItems.map((item) => <button type="button" className={`image-card ${item.status.toLowerCase()}`} style={{ aspectRatio: item.aspectRatio.replace(':', '/') }} key={`${item.source || 'image-generation'}:${item.id}`} onClick={() => item.status === 'COMPLETED' && setSelected(item)}>{item.status === 'COMPLETED' && item.imageUrl ? <>
             <ProtectedImage src={item.imageUrl} alt={item.originalPrompt} />
             <div className="card-overlay" aria-hidden="true">
               <div className="card-overlay-actions">
                 <button type="button" onClick={(e) => handleCardAction(e, item, 'view')} aria-label="مشاهده تصویر">مشاهده</button>
                 <button type="button" onClick={(e) => handleCardAction(e, item, 'download')} aria-label="دانلود تصویر">دانلود</button>
-                <button type="button" onClick={(e) => handleCardAction(e, item, 'edit')} aria-label="ویرایش تصویر">ویرایش</button>
-                <button type="button" onClick={(e) => handleCardAction(e, item, 'similar')} aria-label="ساخت مشابه">مشابه</button>
-                <button type="button" onClick={(e) => handleCardAction(e, item, 'delete')} aria-label="حذف تصویر">حذف</button>
+                {item.source !== 'image-to-image' && <><button type="button" onClick={(e) => handleCardAction(e, item, 'edit')} aria-label="ویرایش تصویر">ویرایش</button><button type="button" onClick={(e) => handleCardAction(e, item, 'similar')} aria-label="ساخت مشابه">مشابه</button><button type="button" onClick={(e) => handleCardAction(e, item, 'delete')} aria-label="حذف تصویر">حذف</button></>}
               </div>
             </div>
           </> : <><span className="shimmer" /><strong>{item.status === 'ERROR' ? 'ساخت تصویر ناموفق بود' : pendingText[items.indexOf(item) % pendingText.length]}</strong>{item.status === 'ERROR' && <span onClick={(e) => { e.stopPropagation(); reuse(item); }}>تلاش دوباره</span>}</>}</button>)}</div>

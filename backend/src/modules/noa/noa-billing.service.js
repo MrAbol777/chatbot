@@ -63,7 +63,7 @@ function normalizeQuantity(actionKey, value) {
   const one = decimal('1', 'quantity');
 
   if (
-    (actionKey === NOA_ACTIONS.TEXT_CHAT || actionKey === NOA_ACTIONS.IMAGE_GENERATION) &&
+    (actionKey === NOA_ACTIONS.TEXT_CHAT || actionKey === NOA_ACTIONS.IMAGE_GENERATION || actionKey === NOA_ACTIONS.IMAGE_TO_IMAGE) &&
     quantity.units !== one.units
   ) {
     throw noaError(

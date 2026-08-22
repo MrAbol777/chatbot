@@ -93,4 +93,26 @@ describe('NoaFinanceAdmin user wallet management', () => {
     });
     expect(screen.getByText('کارت مقصد واریز بانکی ذخیره شد.')).toBeInTheDocument();
   });
+
+  it('shows and saves the separate image-to-image price through the existing pricing form', async () => {
+    vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === '/api/admin/noa/pricing') return response({ items: [{ actionKey: 'image_to_image', unit: 'image', unitPrice: '2.500000', isActive: true, version: '4', updatedAt: null }] });
+      if (url === '/api/admin/noa/config') return response({ tomanPerNoa: '10000', version: '1' });
+      if (url === '/api/admin/noa/bank-account') return response({ bankTransferAccount: null });
+      if (url.startsWith('/api/admin/noa/receipts?')) return response({ items: [] });
+      if (url === '/api/admin/noa/pricing/image_to_image' && init?.method === 'PATCH') return response({ actionKey: 'image_to_image', unit: 'image', unitPrice: '3.250000', isActive: true, version: '5', updatedAt: null });
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    const user = userEvent.setup();
+    render(<ToastProvider><NoaFinanceAdmin /></ToastProvider>);
+    await screen.findByText('ویرایش تصویر با مرجع');
+    const price = screen.getByLabelText('هزینه (نوآ)');
+    await user.clear(price);
+    await user.type(price, '3.25');
+    await user.click(screen.getByRole('button', { name: 'ذخیره' }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url, init]) => String(url) === '/api/admin/noa/pricing/image_to_image' && init?.method === 'PATCH')).toBe(true));
+    const call = vi.mocked(fetch).mock.calls.find(([url, init]) => String(url) === '/api/admin/noa/pricing/image_to_image' && init?.method === 'PATCH');
+    expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ unitPrice: '3.25', isActive: true, expectedVersion: '4' });
+  });
 });

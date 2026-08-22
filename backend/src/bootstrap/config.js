@@ -17,6 +17,13 @@ const normalizePathValue = (value, fallback) => {
   return normalized || fallback;
 };
 
+const positiveNumber = (value, fallback, minimum = 1) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= minimum ? parsed : fallback;
+};
+
+const splitList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+
 const normalizeProvider = (value, fallback = 'metis') => {
   const normalized = String(value || fallback).trim().toLowerCase();
   if (['metis', 'gemini', 'xai', 'openai'].includes(normalized)) return normalized;
@@ -113,6 +120,10 @@ function loadRuntimeConfig(env = process.env) {
     env.NODE_ENV === 'production'
       ? '/var/lib/danoa/generated-images'
       : path.join(__dirname, '../../storage/generated-images');
+  const defaultImageToImageStorageDir =
+    env.NODE_ENV === 'production'
+      ? '/var/lib/danoa/image-to-image'
+      : path.join(__dirname, '../../storage/image-to-image');
 
   const imageBaseUrlCandidate = env.IMAGE_BASE_URL || env.GEMINI_BASE_URL || '';
   const imageProvider = normalizeProvider(
@@ -141,6 +152,11 @@ function loadRuntimeConfig(env = process.env) {
     xai: pickApiKey([{ source: 'XAI_IMAGE_API_KEY', value: env.XAI_IMAGE_API_KEY }])
   };
   const imageKey = imageKeys[imageProvider] || pickApiKey([]);
+  const imageToImageKey = pickApiKey([
+    { source: 'METIS_IMAGE_TO_IMAGE_API_KEY', value: env.METIS_IMAGE_TO_IMAGE_API_KEY },
+    { source: 'METIS_IMAGE_API_KEY', value: env.METIS_IMAGE_API_KEY },
+    { source: 'legacy METIS_API_KEY', value: env.METIS_API_KEY }
+  ]);
   const imageRuntimeModel = resolveImageRuntimeModel(imageModel, imageProvider);
   const promptRefinerKey = pickApiKey([
     { source: 'METIS_PROMPT_REFINER_API_KEY', value: env.METIS_PROMPT_REFINER_API_KEY }
@@ -209,6 +225,27 @@ function loadRuntimeConfig(env = process.env) {
         apiKeySource: promptRefinerKey.apiKeySource,
         apiKeyFingerprint: promptRefinerKey.apiKeyFingerprint
       }
+    },
+    imageToImage: {
+      enabled: env.IMAGE_TO_IMAGE_ENABLED === 'true',
+      provider: 'metis',
+      baseUrl: normalizeBaseUrl(env.IMAGE_TO_IMAGE_BASE_URL || env.METIS_IMAGE_TO_IMAGE_BASE_URL || env.IMAGE_BASE_URL, 'https://api.metisai.ir'),
+      apiKey: imageToImageKey.apiKey,
+      apiKeySource: imageToImageKey.apiKeySource,
+      apiKeyFingerprint: imageToImageKey.apiKeyFingerprint,
+      model: env.IMAGE_TO_IMAGE_MODEL || 'nano-banana',
+      resolution: env.IMAGE_TO_IMAGE_RESOLUTION || '1K',
+      outputFormat: env.IMAGE_TO_IMAGE_OUTPUT_FORMAT || 'jpg',
+      storageDir: normalizePathValue(env.IMAGE_TO_IMAGE_STORAGE_DIR, defaultImageToImageStorageDir),
+      maxInputBytes: positiveNumber(env.IMAGE_TO_IMAGE_MAX_INPUT_MB, 10) * 1024 * 1024,
+      maxResultBytes: positiveNumber(env.IMAGE_TO_IMAGE_MAX_RESULT_MB, 10) * 1024 * 1024,
+      resultAllowedHosts: splitList(env.IMAGE_TO_IMAGE_RESULT_ALLOWED_HOSTS || 'api.metisai.ir'),
+      pollIntervalSeconds: positiveNumber(env.IMAGE_TO_IMAGE_POLL_INTERVAL_SECONDS, 3, 2),
+      pollTimeoutMs: positiveNumber(env.IMAGE_TO_IMAGE_POLL_TIMEOUT_MS, 300_000, 30_000),
+      jobTimeoutMinutes: positiveNumber(env.IMAGE_TO_IMAGE_JOB_TIMEOUT_MINUTES, 30, 5),
+      workerIntervalMs: positiveNumber(env.IMAGE_TO_IMAGE_WORKER_INTERVAL_MS, 3_000, 1_000),
+      leaseSeconds: positiveNumber(env.IMAGE_TO_IMAGE_WORKER_LEASE_SECONDS, 180, 60),
+      runImmediately: env.IMAGE_TO_IMAGE_WORKER_RUN_IMMEDIATELY === 'true'
     },
     vision: {
       enabled: env.VISION_ENABLED !== 'false',

@@ -223,6 +223,11 @@ const NOA_SEED_DML = Object.freeze([
   `
     INSERT IGNORE INTO app_noa_pricing_configs
       (action_key, unit, unit_price, is_active, version, created_at, updated_at)
+    VALUES ('image_to_image', 'image', '1.700000', 1, 1, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))
+  `,
+  `
+    INSERT IGNORE INTO app_noa_pricing_configs
+      (action_key, unit, unit_price, is_active, version, created_at, updated_at)
     VALUES ('video_generation', 'second', '0.800000', 1, 1, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))
   `,
   `

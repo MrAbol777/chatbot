@@ -41,6 +41,11 @@ test('action quantities reject fractional video/image-analysis durations and mul
     () => normalizeQuantity('image_generation', '2'),
     { code: 'NOA_INVALID_QUANTITY', status: 400 }
   );
+  assert.equal(normalizeQuantity('image_to_image', '1').value, '1.000000');
+  assert.throws(
+    () => normalizeQuantity('image_to_image', '2'),
+    { code: 'NOA_INVALID_QUANTITY', status: 400 }
+  );
   assert.throws(
     () => normalizeQuantity('text_chat', '0'),
     { code: 'NOA_INVALID_DECIMAL', status: 400 }
