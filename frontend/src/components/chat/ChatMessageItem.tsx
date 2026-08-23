@@ -39,6 +39,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   return (
     <div
       className={`message-row ${message.role} ${message.streamStatus ? `stream-${message.streamStatus}` : ''} ${Array.isArray(message.images) && message.images.length > 0 ? 'has-images' : ''}`}
+      data-clarity-mask="true"
       ref={(node) => {
         if (lastMessageRef && typeof lastMessageRef === 'function') {
           lastMessageRef(node);

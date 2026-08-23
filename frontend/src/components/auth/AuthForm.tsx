@@ -120,7 +120,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   return (
     <>
       {includeLanding && landingStep === 'landing' ? (
-        <form className={`${authCardClass} auth-card--entry`} onSubmit={onRegisterStepOne}>
+        <form className={`${authCardClass} auth-card--entry`} onSubmit={onRegisterStepOne} data-clarity-mask="true">
           <div className="auth-brand">
             <span className="auth-logo-mark" aria-hidden="true">د</span>
             <div>
@@ -162,7 +162,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           </p>
         </form>
       ) : registrationStep === 1 ? (
-        <form className={authCardClass} onSubmit={onRegisterStepOne}>
+        <form className={authCardClass} onSubmit={onRegisterStepOne} data-clarity-mask="true">
           {includeLanding ? (
             <button
               type="button"
@@ -203,7 +203,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           {renderVianaAction()}
         </form>
       ) : registrationStep === 2 ? (
-        <form className={authCardClass} onSubmit={onVerifyCode}>
+        <form className={authCardClass} onSubmit={onVerifyCode} data-clarity-mask="true">
           <button
             type="button"
             className="auth-back-btn"
@@ -246,7 +246,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           </div>
         </form>
       ) : (
-        <form className={authCardClass} onSubmit={onCompleteProfile}>
+        <form className={authCardClass} onSubmit={onCompleteProfile} data-clarity-mask="true">
           <button
             type="button"
             className="auth-back-btn"

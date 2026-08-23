@@ -15,8 +15,10 @@ import './theme/colorMode.css';
 import { installAuthenticatedFetch } from './auth/danoaSession';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ToastProvider } from './design-system/components';
+import { initializeClarity } from './analytics/clarity';
 
 installAuthenticatedFetch();
+initializeClarity();
 
 const preloadRetryKey = `danoa:preload-retry:${window.location.pathname}`;
 window.addEventListener('vite:preloadError', (event) => {

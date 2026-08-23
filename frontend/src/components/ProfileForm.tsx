@@ -47,7 +47,7 @@ function ProfileForm({
   };
 
   return (
-    <div className="profile-form">
+    <div className="profile-form" data-clarity-mask="true">
       <div className="profile-form-heading">
         <div className="profile-form-avatar" aria-hidden="true">
           <span className="profile-form-avatar-ring" />
