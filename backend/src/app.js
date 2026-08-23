@@ -48,6 +48,7 @@ const {
   createNoaUserRouter
 } = require('./modules/noa');
 const { createUserBroadcastMessagesRouter } = require('./modules/broadcast-messages/broadcast-messages.routes');
+const { createUploadsReadRouter } = require('./modules/uploads/uploads.routes');
 
 function createApp({ repositories, runtimeConfig }) {
   const app = express();
@@ -220,6 +221,11 @@ function createApp({ repositories, runtimeConfig }) {
       principalResolver
     })
   });
+  const requireAuthenticatedUpload = createAuthMiddleware({
+    jwtSecret: authJwtSecret,
+    db: repositories.db,
+    principalResolver
+  });
 
   try {
     fs.ensureDirSync(ai.image.storageDir);
@@ -336,21 +342,11 @@ function createApp({ repositories, runtimeConfig }) {
 
   // Upload Router
   const uploadRouter = express.Router();
-  uploadRouter.get('/images/:imageId', async (req, res, next) => {
-    try {
-      const image = await getUploadedImageById(String(req.params.imageId || ''));
-      if (!image) {
-        return res.status(404).json({ error: 'تصویر پیدا نشد.', code: 'UPLOAD_NOT_FOUND' });
-      }
-
-      res.setHeader('Content-Type', image.mimeType);
-      res.setHeader('Cache-Control', 'private, max-age=300');
-      return res.send(Buffer.from(image.base64, 'base64'));
-    } catch (error) {
-      return next(error);
-    }
-  });
-  uploadRouter.post('/images', async (req, res) => {
+  uploadRouter.use(createUploadsReadRouter({
+    requireAuthenticated: requireAuthenticatedUpload,
+    getUploadedImageById
+  }));
+  uploadRouter.post('/images', requireAuthenticatedUpload, async (req, res) => {
     const uploadSettings = await getUploadSettings();
     const uploadMiddleware = createUploadImagesMiddleware(uploadSettings).array('images', uploadSettings.maxFiles);
 

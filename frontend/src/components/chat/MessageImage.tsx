@@ -59,7 +59,11 @@ export const MessageImage: React.FC<MessageImageProps> = ({
       protectedBlobUrlRef.current = null;
     }
 
-    if (!src.startsWith('/api/images/result/') && !src.startsWith('/api/images/serve/')) {
+    if (
+      !src.startsWith('/api/images/result/') &&
+      !src.startsWith('/api/images/serve/') &&
+      !src.startsWith('/api/uploads/images/')
+    ) {
       return;
     }
 
