@@ -9,6 +9,7 @@ import { Button, Dialog, useNotification } from './design-system/components';
 import Icon from './components/Icon';
 import type { IconName } from './components/Icon';
 import ProfileForm from './components/ProfileForm';
+import { getInitialColorMode, persistColorMode, type ColorMode } from './theme/colorMode';
 import NoaWalletPanel from './noa/NoaWalletPanel';
 import { formatDecimalFa } from './noa/decimal';
 import { fetchPendingNoaNotifications } from './noa/noa.service';
@@ -559,6 +560,14 @@ function ChatApp() {
   const [profileFormName, setProfileFormName] = useState('');
   const [profileFormAge, setProfileFormAge] = useState('');
   const [profileFormErrors, setProfileFormErrors] = useState<{ name?: string; age?: string }>({});
+  const [colorMode, setColorMode] = useState<ColorMode>(() =>
+    typeof window === 'undefined' ? 'light' : getInitialColorMode()
+  );
+
+  const handleColorModeChange = (nextMode: ColorMode) => {
+    setColorMode(nextMode);
+    persistColorMode(nextMode);
+  };
   const [, setTheme] = useState<'energy' | 'calm'>('energy');
   const { notify, confirm } = useNotification();
 
@@ -2654,34 +2663,6 @@ function ChatApp() {
     navigateToView('chat');
   };
 
-  const handleDownloadActiveConversation = () => {
-    if (!activeConversation) {
-      notify.warning('گفتگوی فعالی برای ذخیره وجود ندارد.');
-      return;
-    }
-
-    const today = new Date().toISOString().slice(0, 10);
-    const exportTime = new Date().toLocaleString('fa-IR');
-    const safeTitle = (activeConversation.title || DEFAULT_TITLE).trim();
-    const messagesText = activeConversation.messages
-      .map((message) => `${message.role === 'user' ? 'شما' : 'دانوآ'}: ${message.content}`)
-      .join('\n\n');
-
-    const content = [`عنوان گفتگو: ${safeTitle}`, `تاریخ ذخیره: ${exportTime}`, '', messagesText || 'این گفتگو هنوز پیامی ندارد.'].join(
-      '\n'
-    );
-
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    const objectUrl = URL.createObjectURL(blob);
-    link.href = objectUrl;
-    link.download = `گفتگو-${today}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
-  };
-
   const handleLogout = async () => {
     const confirmed = await confirm({
       message: 'از حساب خارج می شوی؟ همه اطلاعات گفتگو پاک می شود.',
@@ -3074,10 +3055,6 @@ notify.error(message);
       <div className="bg-blob blob-yellow" />
       <div className="bg-blob blob-purple" />
       {currentView === 'chat' ? <a className="app-skip-link" href="#chat-messages">رفتن به پیام‌ها</a> : null}
-      {currentView !== 'profile' ? (
-        <BroadcastMessageLayer userId={profile.id} enabled={Boolean(hasAuthToken && profile.id)} placement="floating" />
-      ) : null}
-
       {currentView === 'chat' && conversationSearchOpen ? (() => {
         const searchQuery = conversationSearchTerm.trim();
         const searchModalResults = searchQuery
@@ -3290,8 +3267,6 @@ notify.error(message);
             onOpenSidebar={() => setSidebarOpen(true)}
             chatSidebarToggleRef={chatSidebarToggleRef}
             activeConversationTitle={activeConversation?.title || DEFAULT_TITLE}
-            hasMessages={Boolean(activeConversation && visibleMessages.length > 0)}
-            onDownloadConversation={handleDownloadActiveConversation}
             noaBalanceText={noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ` : undefined}
             onOpenNoaWallet={handleOpenNoaWallet}
             profileName={profile?.name || 'ع'}
@@ -3524,6 +3499,8 @@ notify.error(message);
                   profileFormName={profileFormName}
                   profileFormAge={profileFormAge}
                   profileFormErrors={profileFormErrors}
+                  colorMode={colorMode}
+                  onColorModeChange={handleColorModeChange}
                   onNameChange={(event) => setProfileFormName(event.target.value)}
                   onAgeChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
                   onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات با موفقیت ذخیره شد'); }}
@@ -3686,6 +3663,8 @@ notify.error(message);
                 profileFormName={profileFormName}
                 profileFormAge={profileFormAge}
                 profileFormErrors={profileFormErrors}
+                colorMode={colorMode}
+                onColorModeChange={handleColorModeChange}
                 onNameChange={(event) => setProfileFormName(event.target.value)}
                 onAgeChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
                 onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات ذخیره شد'); }}

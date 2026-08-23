@@ -1,0 +1,1373 @@
+/*
+ * Color-mode compatibility layer.
+ *
+ * The product has several legacy page stylesheets that are loaded lazily and
+ * still contain light-only colors. Keep the existing geometry and component
+ * styles intact, but give dark mode one authoritative semantic color layer.
+ */
+
+html[data-color-mode='dark'] body,
+html[data-color-mode='dark'] #root {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Keep older page styles on the same semantic palette as the token system. */
+html[data-color-mode='dark'] {
+  --chat-send-text: #ffffff;
+  --chat-send-gradient: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 52%, #6d28d9 100%);
+  --chat-field-text: var(--color-text);
+  --chat-field-placeholder: var(--color-muted);
+  --surface-soft: var(--color-surface-container);
+  --surface-muted: var(--color-surface-container-high);
+  --surface-strong: var(--color-surface-container-highest);
+  --surface-border: var(--color-border);
+  --border-color: var(--color-border);
+  --card-bg: var(--color-surface-container-low);
+  --bg: var(--color-bg);
+  --bg-soft: var(--color-bg);
+  --text-main: var(--color-text);
+  --text: var(--color-text);
+}
+
+html[data-color-mode='dark'] .app-shell {
+  color: var(--color-text);
+}
+
+html[data-color-mode='dark'] :where(
+  .chat-card,
+  .sidebar,
+  .top-bar,
+  .input-area,
+  .modal-content,
+  .ds-dialog-panel,
+  .profile-page-card,
+  .profile-stat-card,
+  .profile-form-theme,
+  .profile-form-id,
+  .studio-prompt-card,
+  .studio-settings-card,
+  .gallery-panel,
+  .video-prompt-card,
+  .video-settings-card,
+  .video-gallery,
+  .video-style-step,
+  .video-review,
+  .noa-receipt-form,
+  .noa-receipts,
+  .noa-bank-transfer,
+  .noa-upload-card,
+  .noa-receipt-item
+) {
+  color: var(--color-text);
+  background: var(--color-surface-container-low);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] :where(
+  .profile-page-header,
+  .danoa-studio-page__header,
+  .studio-header,
+  .video-generation-page__header,
+  .noa-page__header
+) {
+  color: var(--color-text);
+  background: var(--color-surface-container-low);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Profile ----------------------------------------------------------------- */
+html[data-color-mode='dark'] :where(
+  .profile-page-header h1,
+  .profile-form-heading h2,
+  .profile-form-fields .ds-field__label,
+  .profile-stat-card strong,
+  .profile-quick-actions-header,
+  .profile-quick-action-btn,
+  .profile-form-id__copy-btn
+) {
+  color: var(--color-text);
+}
+
+html[data-color-mode='dark'] :where(
+  .profile-form-heading p,
+  .profile-form-fields .ds-field__help,
+  .profile-stat-card span:last-child,
+  .profile-form-theme__label,
+  .profile-form-id__info span
+) {
+  color: var(--color-muted);
+}
+
+html[data-color-mode='dark'] :where(
+  .profile-quick-action-btn,
+  .profile-form-fields .ds-field__input,
+  .profile-form-fields .ds-field__textarea,
+  .profile-form-id__copy-btn
+) {
+  background: var(--color-surface-container);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] :where(
+  .profile-form-fields .ds-field__input,
+  .profile-form-fields .ds-field__textarea
+) {
+  color: var(--color-text);
+}
+
+html[data-color-mode='dark'] :where(
+  .profile-form-fields .ds-field__input::placeholder,
+  .profile-form-fields .ds-field__textarea::placeholder
+) {
+  color: var(--color-muted);
+}
+
+html[data-color-mode='dark'] .profile-quick-action-btn:hover {
+  color: var(--color-primary);
+  background: var(--color-surface-container-high);
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+}
+
+html[data-color-mode='dark'] .profile-form-theme__status {
+  color: var(--color-primary);
+  background: var(--color-surface-container-high);
+  border-color: var(--color-border);
+}
+
+/* Creative studio --------------------------------------------------------- */
+html[data-color-mode='dark'] .danoa-studio-page {
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(124, 58, 237, .16), transparent 30%),
+    radial-gradient(circle at 88% 72%, rgba(45, 212, 191, .1), transparent 28%),
+    var(--color-bg);
+}
+
+html[data-color-mode='dark'] :where(
+  .danoa-studio-page__hero-title,
+  .danoa-studio-page__title,
+  .studio-tool-card__copy h2,
+  .studio-tool-card__topline
+) {
+  color: var(--color-text);
+}
+
+html[data-color-mode='dark'] :where(
+  .danoa-studio-page__hero p,
+  .studio-tool-card__copy p
+) {
+  color: var(--color-muted);
+}
+
+html[data-color-mode='dark'] .studio-tool-card.ds-card {
+  color: var(--color-text);
+  background:
+    linear-gradient(135deg, var(--color-surface-container), var(--color-surface-container-low)),
+    var(--color-surface-container);
+  border-color: color-mix(in srgb, var(--studio-card-accent, var(--color-primary)) 30%, var(--color-border));
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-color-mode='dark'] .studio-tool-card__icon {
+  background: color-mix(in srgb, var(--studio-card-accent, var(--color-primary)) 18%, var(--color-surface-container));
+  box-shadow: 0 10px 20px rgba(0, 0, 0, .22);
+}
+
+html[data-color-mode='dark'] :where(
+  .studio-prompt-card,
+  .studio-settings-card,
+  .studio-reference-picker__content,
+  .studio-settings-accordion__content,
+  .studio-output-summary,
+  .studio-edit-workspace,
+  .studio-textarea-wrap,
+  .studio-ideas,
+  .studio-idea-card
+) {
+  color: var(--color-text);
+  background: var(--color-surface-container-low);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] :where(.studio-textarea-wrap textarea, .studio-prompt-card textarea) {
+  color: var(--color-text);
+  background: var(--color-surface-container-lowest);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] :where(
+  .studio-create,
+  .studio-create-grid,
+  .studio-shell,
+  .studio-gallery,
+  .studio-tabs,
+  .ratio-options,
+  .ratio-picker-options,
+  .studio-source-preview,
+  .studio-empty,
+  .studio-modal-panel
+) {
+  color: var(--color-text);
+}
+
+html[data-color-mode='dark'] :where(
+  .studio-tabs,
+  .ratio-options button,
+  .ratio-picker-trigger,
+  .ratio-picker-options,
+  .ratio-picker-options button,
+  .studio-ideas button,
+  .studio-empty,
+  .studio-source-preview,
+  .studio-modal-panel,
+  .studio-modal-details,
+  .modal-actions button
+) {
+  background: var(--color-surface-container-low);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] :where(
+  .studio-create textarea,
+  .studio-textarea-wrap textarea,
+  .studio-settings-accordion,
+  .studio-reference-picker,
+  .studio-reference-grid figure,
+  .studio-settings-accordion__summary,
+  .studio-reference-picker__empty,
+  .studio-reference-picker__summary,
+  .studio-reference-picker__add
+) {
+  color: var(--color-text);
+  background: var(--color-surface-container-lowest);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] :where(
+  .studio-create textarea::placeholder,
+  .studio-field-help,
+  .studio-ideas-scroll-hint,
+  .ratio-options button > small,
+  .ratio-picker-trigger > small,
+  .ratio-picker-options button small,
+  .studio-reference-picker__empty small,
+  .studio-reference-picker__summary small,
+  .studio-reference-picker__content > p,
+  .studio-settings-accordion__title small,
+  .studio-settings-accordion__value small,
+  .studio-output-summary > span,
+  .studio-output-summary p,
+  .studio-source-copy p
+) {
+  color: var(--color-muted);
+}
+
+html[data-color-mode='dark'] :where(
+  .studio-ideas button:hover,
+  .ratio-options button:hover,
+  .ratio-options button.active,
+  .ratio-picker-options button:hover,
+  .ratio-picker-options button.active,
+  .studio-reference-picker__empty:hover:not(:disabled),
+  .studio-reference-picker__add:hover:not(:disabled),
+  .studio-empty button:hover,
+  .load-more:hover,
+  .modal-actions button:hover
+) {
+  color: var(--color-primary);
+  background: var(--color-surface-container-high);
+  border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border));
+}
+
+html[data-color-mode='dark'] :where(
+  .studio-settings-accordion__content,
+  .studio-reference-picker__content,
+  .studio-output-summary
+) {
+  background: var(--color-surface-container-low);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] .studio-reference-grid figure > button {
+  color: var(--color-text);
+  background: rgba(15, 10, 26, .86);
+}
+
+html[data-color-mode='dark'] :where(.studio-submit, .video-generation-form__submit) {
+  color: var(--color-on-primary);
+}
+
+/* Lazy image-studio CSS is injected after this file and contains a few
+ * legacy light-only declarations. The extra class keeps this compatibility
+ * layer authoritative without changing the page geometry. */
+html[data-color-mode='dark'] .studio .studio-create textarea,
+html[data-color-mode='dark'] .studio .studio-textarea-wrap textarea {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-lowest) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .studio .studio-prompt-card,
+html[data-color-mode='dark'] .studio .studio-settings-card,
+html[data-color-mode='dark'] .studio .studio-gallery,
+html[data-color-mode='dark'] .studio .gallery-panel,
+html[data-color-mode='dark'] .studio .studio-edit-workspace {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .studio .studio-settings-accordion,
+html[data-color-mode='dark'] .studio .studio-reference-picker,
+html[data-color-mode='dark'] .studio .studio-output-summary,
+html[data-color-mode='dark'] .studio .studio-ideas button,
+html[data-color-mode='dark'] .studio .ratio-options button,
+html[data-color-mode='dark'] .studio .ratio-picker-trigger,
+html[data-color-mode='dark'] .studio .ratio-picker-options {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-lowest) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .studio .studio-settings-accordion__content,
+html[data-color-mode='dark'] .studio .studio-reference-picker__content,
+html[data-color-mode='dark'] .studio .studio-reference-grid figure {
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .studio .studio-ideas button:hover,
+html[data-color-mode='dark'] .studio .ratio-options button:hover,
+html[data-color-mode='dark'] .studio .ratio-options button.active,
+html[data-color-mode='dark'] .studio .ratio-picker-options button:hover,
+html[data-color-mode='dark'] .studio .ratio-picker-options button.active {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* The main chat has several historical surfaces with hard-coded white
+ * fallbacks; keep them on the same dark scale as the newer pages. */
+html[data-color-mode='dark'] .chat-shell .chat-card,
+html[data-color-mode='dark'] .chat-shell .top-bar,
+html[data-color-mode='dark'] .chat-shell .messages-area,
+html[data-color-mode='dark'] .chat-shell .input-area,
+html[data-color-mode='dark'] .chat-shell .composer-card,
+html[data-color-mode='dark'] .chat-shell .message-field,
+html[data-color-mode='dark'] .chat-shell .sidebar {
+  color: var(--color-text);
+  background-color: var(--color-surface-container-low);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] .chat-shell .message-field textarea,
+html[data-color-mode='dark'] .chat-shell .message-field input {
+  color: var(--color-text);
+  background: var(--color-surface-container-lowest);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] .chat-shell .message-field textarea::placeholder,
+html[data-color-mode='dark'] .chat-shell .message-field input::placeholder {
+  color: var(--color-muted);
+}
+
+/* The active conversation composer uses the newer capsule classes, which
+ * have their own light-mode !important declarations. Override that capsule
+ * and its attach control explicitly so typing never exposes a white ring. */
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-composer-capsule {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-composer-capsule:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 56%, var(--color-border)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent), var(--shadow-sm) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-attach-circle {
+  color: var(--color-muted) !important;
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-attach-circle:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-attach-circle:focus-visible,
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-attach-circle.is-open {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-composer-inner .message-field textarea {
+  color: var(--color-text) !important;
+  caret-color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-composer-inner .message-field textarea::placeholder {
+  color: var(--color-muted) !important;
+}
+
+/* Video and image creation ------------------------------------------------ */
+html[data-color-mode='dark'] .video-generation-page,
+html[data-color-mode='dark'] .studio {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+html[data-color-mode='dark'] :where(
+  .video-generation-page h1,
+  .video-generation-page h2,
+  .video-generation-page h3,
+  .video-generation-page label,
+  .video-generation-page strong,
+  .studio h1,
+  .studio h2,
+  .studio h3,
+  .studio label,
+  .studio strong
+) {
+  color: var(--color-text);
+}
+
+html[data-color-mode='dark'] :where(
+  .video-generation-page p,
+  .video-generation-page small,
+  .video-generation-page dt,
+  .studio p,
+  .studio small
+) {
+  color: var(--color-muted);
+}
+
+html[data-color-mode='dark'] :where(
+  .video-style-card,
+  .video-gallery-card,
+  .video-option-cards button,
+  .video-resolution-options button,
+  .video-textarea-wrap,
+  .video-upload-dropzone,
+  .video-media-field,
+  .video-media-preview,
+  .video-selected-style
+) {
+  color: var(--color-text);
+  background: var(--color-surface-container-low);
+  border-color: var(--color-border);
+}
+
+html[data-color-mode='dark'] :where(
+  .video-textarea-wrap textarea,
+  .video-duration-number input
+) {
+  color: var(--color-text);
+  background: var(--color-surface-container-lowest);
+  border-color: var(--color-border);
+}
+
+/* Wallet ------------------------------------------------------------------ */
+html[data-color-mode='dark'] .noa-page {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+html[data-color-mode='dark'] .noa-wallet__balance {
+  color: var(--color-on-primary);
+}
+
+html[data-color-mode='dark'] :where(
+  .noa-wallet__balance-main strong,
+  .noa-wallet__balance-main span,
+  .noa-wallet__balance-meta dt,
+  .noa-wallet__balance-meta dd
+) {
+  color: var(--color-on-primary);
+}
+
+html[data-color-mode='dark'] :where(
+  .noa-receipt-form,
+  .noa-receipts,
+  .noa-bank-transfer,
+  .noa-upload-card,
+  .noa-receipt-item,
+  .noa-receipts__toggle,
+  .noa-card-number__copy
+) {
+  color: var(--color-text);
+}
+
+/* Native fields and feedback surfaces ------------------------------------ */
+html[data-color-mode='dark'] :where(
+  input:not([type='range']):not([type='file']),
+  textarea,
+  select
+) {
+  color-scheme: dark;
+}
+
+html[data-color-mode='dark'] :where(
+  .ds-dialog-panel,
+  .modal-content,
+  .ds-confirm,
+  .ds-toast
+) {
+  color: var(--color-text);
+  background: var(--color-surface-container-low);
+  border-color: var(--color-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-color-mode='dark'] *,
+  html[data-color-mode='dark'] *::before,
+  html[data-color-mode='dark'] *::after {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
+
+/* Chat home and history sidebar ------------------------------------------ */
+html[data-color-mode='dark'] {
+  --danoa-chat-bg: var(--color-bg);
+  --danoa-chat-surface: var(--color-surface-container-low);
+  --danoa-chat-subtle: var(--color-surface-container);
+  --danoa-chat-border: var(--color-border);
+  --danoa-chat-text: var(--color-text);
+  --danoa-chat-muted: var(--color-muted);
+  --danoa-chat-accent: var(--color-primary);
+  --danoa-chat-accent-hover: var(--color-primary-container);
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card,
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar,
+html[data-color-mode='dark'] .chat-shell.view-chat .messages-area,
+html[data-color-mode='dark'] .chat-shell.view-chat .input-area {
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card {
+  background: var(--color-bg) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar {
+  background: var(--color-surface-container-low) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .messages-area {
+  background: var(--color-surface-container-lowest) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .input-area {
+  background: var(--color-bg) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
+  color: var(--color-text) !important;
+  border-inline-start-color: var(--color-border) !important;
+  background: var(--color-surface-container-low) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-header,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-group-card,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-nav,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-search-panel,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-search {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-search-input,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-search input {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-lowest) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card-title,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-group-card strong {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card-preview,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card small,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card time,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item small {
+  color: var(--color-muted) !important;
+}
+
+/* Chat empty home --------------------------------------------------------- */
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-hero-title,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-title {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-hero-subtitle,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-desc {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-arrow {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-composer-capsule {
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-composer-inner .message-field textarea {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-composer-inner .message-field textarea::placeholder {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-attach-circle {
+  color: var(--color-muted) !important;
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Assistant messages must use the same dark surface contract as the rest of
+ * the conversation. This also covers markdown blocks and image-related
+ * paragraphs that had their own legacy white bubble styles. */
+html[data-color-mode='dark'] .chat-shell.view-chat .bot-avatar {
+  background: transparent !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .bubble,
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant.has-images .bubble,
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant.has-images .markdown-body > p:not(:empty) {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .message-time {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body h1,
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body h2,
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body h3,
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body h4,
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body li,
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body p {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body a {
+  color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body code,
+html[data-color-mode='dark'] .chat-shell.view-chat .message-row.assistant .markdown-body pre {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-highest) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Empty history in the sidebar is also a product surface, not a light card. */
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-search-empty {
+  color: var(--color-muted) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-search-empty .empty-state {
+  color: var(--color-text) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-search-empty .empty-state__title {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-search-empty .empty-state__description {
+  color: var(--color-muted) !important;
+}
+
+/* Profile/wallet back controls should read as dark-shell controls, not
+ * leftover light circular tiles. */
+html[data-color-mode='dark'] .chat-shell.view-profile .generate-page-back,
+html[data-color-mode='dark'] .chat-shell.view-noa .generate-page-back,
+html[data-color-mode='dark'] .chat-shell.view-generate .generate-page-back {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-profile .generate-page-back:hover,
+html[data-color-mode='dark'] .chat-shell.view-profile .generate-page-back:focus-visible,
+html[data-color-mode='dark'] .chat-shell.view-noa .generate-page-back:hover,
+html[data-color-mode='dark'] .chat-shell.view-noa .generate-page-back:focus-visible,
+html[data-color-mode='dark'] .chat-shell.view-generate .generate-page-back:hover,
+html[data-color-mode='dark'] .chat-shell.view-generate .generate-page-back:focus-visible {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Uploaded image previews are part of the composer surface. Keep pending,
+ * error, retry and remove states readable without a light card leaking in. */
+html[data-color-mode='dark'] .chat-shell.view-chat .image-thumb-wrap {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .image-thumb-copy strong {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .image-thumb-copy span {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .remove-thumb-btn {
+  color: var(--color-muted) !important;
+  background: var(--color-surface-container-high) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .remove-thumb-btn:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .remove-thumb-btn:focus-visible {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-highest) !important;
+  border-color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .retry-thumb-btn {
+  color: var(--color-on-primary) !important;
+  background: var(--color-primary) !important;
+}
+
+/* Shared empty state used by video history. */
+html[data-color-mode='dark'] .video-generation-page .empty-state,
+html[data-color-mode='dark'] .video-generation-page .video-empty-state {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+html[data-color-mode='dark'] .video-generation-page .empty-state__title {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .video-generation-page .empty-state__description {
+  color: var(--color-muted) !important;
+}
+
+/* Profile destructive actions should remain part of the dark surface; only
+ * their semantic danger color stays red. */
+html[data-color-mode='dark'] .profile-danger-zone .profile-danger-btn {
+  color: var(--color-danger) !important;
+  background: var(--color-surface-container-lowest) !important;
+  border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-border)) !important;
+}
+
+html[data-color-mode='dark'] .profile-danger-zone .profile-danger-btn:hover {
+  color: var(--color-danger) !important;
+  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface-container)) !important;
+  border-color: var(--color-danger) !important;
+}
+
+/* Sidebar typography and grouped history rows. These selectors intentionally
+ * mirror the legacy sidebar specificity so hard-coded light text cannot win. */
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__text strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section__heading h2,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-row.conversation-card .conversation-main p {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__text small,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section__heading,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item small,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-row.conversation-card .conversation-main small,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card-date {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section__heading svg,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-more-trigger,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card-date {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card-icon {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section__heading {
+  background: transparent !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card.active {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-border)) !important;
+}
+
+/* Bottom navigation actions get a deliberate purple hover/focus treatment;
+ * never fall back to the white legacy hover tile. */
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:focus-visible,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:active {
+  color: var(--color-primary) !important;
+  background: color-mix(in srgb, var(--color-primary) 16%, var(--color-surface-container-low)) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border)) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:hover strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:focus-visible strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:active strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:hover svg,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:focus-visible svg,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:active svg {
+  color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:hover small,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:focus-visible small,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:active small {
+  color: #c4b5fd !important;
+}
+
+/* Composer suggestion chips are separate from the shortcut cards above. */
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-suggestion-chip,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-suggestion-chip {
+  color: var(--color-muted) !important;
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-suggestion-chip svg,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-suggestion-chip svg {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-suggestion-chip:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-suggestion-chip:hover {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border)) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-disclaimer {
+  color: var(--color-muted) !important;
+}
+
+/* Chat header: remove the remaining light-mode literals from the legacy
+ * toolbar while preserving its existing dimensions and alignment. */
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-top-bar__title-text {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-top-action-btn,
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .chat-sidebar-toggle,
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-mobile-sidebar-btn {
+  color: var(--color-muted) !important;
+  background: transparent !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-top-action-btn:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .chat-sidebar-toggle:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-mobile-sidebar-btn:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-top-action-btn:focus-visible,
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .chat-sidebar-toggle:focus-visible,
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-mobile-sidebar-btn:focus-visible {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill__label,
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill__icon {
+  color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill__add {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-avatar-badge {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* The sidebar brand is a logo, not an icon button. Keep the transparent
+ * artwork visible directly on the dark sidebar instead of placing it inside
+ * the legacy lavender tile. The collapsed rail keeps a subtle hover/focus
+ * surface only while it is being used to reopen the sidebar. */
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__mark {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__reopen-icon {
+  background: transparent !important;
+  color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar.is-collapsed .conversation-home-brand__mark:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar.is-collapsed .conversation-home-brand__mark:focus-visible {
+  background: var(--color-surface-container) !important;
+  border-radius: 10px !important;
+}
+
+/* Sidebar light-mode declarations appear in both the desktop and mobile
+ * branches of ChatExperience.css, so the route-scoped rules must be last. */
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__text strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section__heading h2,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-row.conversation-card .conversation-main p {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__text small,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section__heading,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item small,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item > svg:last-child,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-row.conversation-card .conversation-main small,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card-date {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-section__heading,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-group-card,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card {
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card-icon {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-card.active,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:active {
+  background: var(--color-surface-container-high) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border)) !important;
+}
+
+/* The three composer suggestions must not look like leftover light pills. */
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-suggestion-chip,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-suggestion-chip {
+  color: var(--color-muted) !important;
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-suggestion-chip svg,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-suggestion-chip svg {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .danoa-suggestion-chip:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-suggestion-chip:hover {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Notifications, announcement center and dialogs ------------------------ */
+html[data-color-mode='dark'] .app-shell .broadcast-user-update,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__panel,
+html[data-color-mode='dark'] .app-shell .broadcast-user-modal {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .broadcast-user-update__content strong,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__header,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__item strong,
+html[data-color-mode='dark'] .app-shell .broadcast-user-modal h2 {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .broadcast-user-update__content p,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__item p,
+html[data-color-mode='dark'] .app-shell .broadcast-user-modal__message,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__empty,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__loading {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__item:hover,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__item.is-unread,
+html[data-color-mode='dark'] .app-shell .broadcast-user-modal__secondary:hover {
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__header,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center__item,
+html[data-color-mode='dark'] .app-shell .broadcast-user-modal__secondary {
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .broadcast-user-bell,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center--header .broadcast-user-bell,
+html[data-color-mode='dark'] .app-shell .broadcast-user-center--profile .broadcast-user-bell {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* Authentication and account entry surfaces. */
+html[data-color-mode='dark'] .auth-shell .auth-card,
+html[data-color-mode='dark'] .auth-shell .register-card,
+html[data-color-mode='dark'] .auth-shell .viana-auth-section,
+html[data-color-mode='dark'] .auth-shell .auth-step-row,
+html[data-color-mode='dark'] .auth-shell .auth-phone-badge {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .auth-shell h1,
+html[data-color-mode='dark'] .auth-shell h2,
+html[data-color-mode='dark'] .auth-shell h3,
+html[data-color-mode='dark'] .auth-shell label,
+html[data-color-mode='dark'] .auth-shell .auth-step-row span,
+html[data-color-mode='dark'] .auth-shell .auth-brand strong {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .auth-shell p,
+html[data-color-mode='dark'] .auth-shell small,
+html[data-color-mode='dark'] .auth-shell .auth-step-row p,
+html[data-color-mode='dark'] .auth-shell .auth-eyebrow,
+html[data-color-mode='dark'] .auth-shell .auth-divider span {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .auth-shell input,
+html[data-color-mode='dark'] .auth-shell textarea,
+html[data-color-mode='dark'] .auth-shell select {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-lowest) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Any remaining generic dialog/overlay in the user shell gets the same
+ * surface contract as the design-system dialog. */
+html[data-color-mode='dark'] .app-shell .modal-content,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal,
+html[data-color-mode='dark'] .app-shell .danoa-search-modal,
+html[data-color-mode='dark'] .app-shell .conversation-context-menu {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .modal-content h1,
+html[data-color-mode='dark'] .app-shell .modal-content h2,
+html[data-color-mode='dark'] .app-shell .modal-content h3,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal h2,
+html[data-color-mode='dark'] .app-shell .conversation-context-menu button {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .modal-content p,
+html[data-color-mode='dark'] .app-shell .modal-content label,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__results-heading,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__empty,
+html[data-color-mode='dark'] .app-shell .conversation-context-menu__separator {
+  color: var(--color-muted) !important;
+}
+
+/* Context menus and attachment pickers are overlays, so their legacy
+ * light-mode icon tiles can otherwise remain visible above the dark shell. */
+html[data-color-mode='dark'] .app-shell .conversation-context-menu button {
+  color: var(--color-text) !important;
+  background: transparent !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-context-menu button:hover,
+html[data-color-mode='dark'] .app-shell .conversation-context-menu button:focus-visible,
+html[data-color-mode='dark'] .app-shell .conversation-context-menu button.is-active {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-context-menu__icon {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-context-menu button.is-danger {
+  color: var(--color-danger) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-context-menu button.is-danger:hover,
+html[data-color-mode='dark'] .app-shell .conversation-context-menu button.is-danger:focus-visible {
+  color: var(--color-danger) !important;
+  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface-container)) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-context-menu button.is-danger .conversation-context-menu__icon {
+  color: var(--color-danger) !important;
+  background: color-mix(in srgb, var(--color-danger) 14%, var(--color-surface-container-high)) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .attachment-popup {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .attachment-popup button {
+  color: var(--color-text) !important;
+  background: transparent !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .attachment-popup button:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .attachment-popup button:focus-visible {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .attachment-popup__icon {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .attachment-popup__copy strong {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .attachment-popup__copy small {
+  color: var(--color-muted) !important;
+}
+
+/* Search dialog: keep every control and result on the dark surface. */
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__header,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__results,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__result-list {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__field {
+  color: var(--color-muted) !important;
+  background: var(--color-surface-container-lowest) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__field:focus-within {
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__field input {
+  color: var(--color-text) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  caret-color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__field input::placeholder {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__field svg {
+  color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__results-heading {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__results-heading span:last-child {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__result {
+  color: var(--color-text) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__result:hover,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__result:focus-visible,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__result.is-active {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border)) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__result-icon,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__empty-icon {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__result-copy strong,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__empty strong {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__result-copy small,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__result time,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__empty > span:last-child {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__empty {
+  color: var(--color-muted) !important;
+  background: var(--color-surface-container) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__clear,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__close {
+  color: var(--color-muted) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__clear:hover,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__clear:focus-visible,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__close:hover,
+html[data-color-mode='dark'] .app-shell .conversation-search-modal__close:focus-visible {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Sidebar bottom navigation: keep Studio and Wallet icons visible in both
+ * the expanded list and the collapsed rail. */
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-nav {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item {
+  color: var(--color-text) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item > svg {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item > svg:first-child {
+  color: var(--color-primary) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item__icon {
+  color: var(--color-surface-tint) !important;
+  fill: none !important;
+  stroke: var(--color-surface-tint) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item > svg:last-child {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item strong {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item small {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:focus-visible,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:active {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border)) !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:hover strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:focus-visible strong,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-nav-item:active strong {
+  color: var(--color-primary) !important;
+}
+
+/* Sidebar header controls: never fall back to the light lavender hover tile. */
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-toggle-btn,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-close {
+  color: var(--color-muted) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle:focus-visible,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle:active,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle.is-active,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-toggle-btn:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-toggle-btn:focus-visible,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-toggle-btn:active,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-close:hover,
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-close:focus-visible {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}

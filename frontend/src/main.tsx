@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './theme/colorMode';
 import App from './App';
 import './styles/fonts.css';
 import './design-system/tokens/tokens.css';
@@ -9,6 +10,7 @@ import './styles.css';
 import './ChatExperience.css';
 import './components/AppShellState.css';
 import './PageExperience.css';
+import './theme/colorMode.css';
 import { installAuthenticatedFetch } from './auth/danoaSession';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ToastProvider } from './design-system/components';

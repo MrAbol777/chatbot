@@ -6,8 +6,6 @@ interface ChatHeaderProps {
   onOpenSidebar: () => void;
   chatSidebarToggleRef?: React.RefObject<HTMLButtonElement>;
   activeConversationTitle?: string;
-  hasMessages: boolean;
-  onDownloadConversation: () => void;
   noaBalanceText?: string;
   onOpenNoaWallet: () => void;
   profileName?: string;
@@ -19,8 +17,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onOpenSidebar,
   chatSidebarToggleRef,
   activeConversationTitle = 'گفتگوی جدید',
-  hasMessages,
-  onDownloadConversation,
   noaBalanceText,
   onOpenNoaWallet,
   profileName = 'ع',
@@ -52,18 +48,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
 
       <div className="danoa-top-bar__actions">
-        {hasMessages ? (
-          <button
-            className="header-action-btn danoa-top-action-btn"
-            type="button"
-            onClick={onDownloadConversation}
-            aria-label="دانلود گفتگو"
-            title="دانلود گفتگو"
-          >
-            <Icon name="download" size={17} aria-hidden="true" />
-          </button>
-        ) : null}
-
         <div className="danoa-noa-pill" role="status" aria-label="اعتبار نوآ">
           <button
             type="button"

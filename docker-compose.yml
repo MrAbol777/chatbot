@@ -31,6 +31,7 @@ services:
       PORT: 3000
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       IMAGE_STORAGE_DIR: /var/lib/danoa/generated-images
+      IMAGE_TO_IMAGE_STORAGE_DIR: /var/lib/danoa/image-to-image
       CONVERSATION_MEMORY_STORAGE_DIR: /var/lib/danoa/conversation-memory
       VIDEO_INPUT_STORAGE_ROOT: /var/lib/danoa/video-inputs
       VIDEO_STORAGE_ROOT: /var/lib/danoa/video-results
@@ -41,6 +42,7 @@ services:
     volumes:
       - app-uploads:/app/backend/uploads
       - ./data/generated-images:/var/lib/danoa/generated-images
+      - image-to-image:/var/lib/danoa/image-to-image
       - ./data/conversation-memory:/var/lib/danoa/conversation-memory
       - video-inputs:/var/lib/danoa/video-inputs
       - video-results:/var/lib/danoa/video-results
@@ -48,5 +50,6 @@ services:
 volumes:
   mysql-data:
   app-uploads:
+  image-to-image:
   video-inputs:
   video-results:

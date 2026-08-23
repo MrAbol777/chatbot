@@ -737,6 +737,60 @@
   }
 }
 
+/* Dark mode is intentionally a color-only variant of the existing studio. */
+html[data-color-mode='dark'] .danoa-studio-page {
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(124, 58, 237, .16), transparent 30%),
+    radial-gradient(circle at 88% 72%, rgba(45, 212, 191, .1), transparent 28%),
+    var(--color-bg);
+}
+
+html[data-color-mode='dark'] .danoa-studio-page__header {
+  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-2) 94%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-color-mode='dark'] .danoa-studio-page__hero-title,
+html[data-color-mode='dark'] .danoa-studio-page__title,
+html[data-color-mode='dark'] .studio-tool-card__copy h2 {
+  color: var(--color-text);
+}
+
+html[data-color-mode='dark'] .danoa-studio-page__hero p,
+html[data-color-mode='dark'] .studio-tool-card__copy p {
+  color: var(--color-muted);
+}
+
+html[data-color-mode='dark'] .studio-tool-card.ds-card {
+  border-color: color-mix(in srgb, var(--studio-card-accent, var(--color-primary)) 28%, var(--color-border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-surface-2) 94%, transparent), var(--color-surface-container-low)),
+    var(--color-surface-2);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-color-mode='dark'] .studio-tool-card.ds-card::before {
+  opacity: .42;
+}
+
+html[data-color-mode='dark'] .studio-tool-card__topline,
+html[data-color-mode='dark'] .studio-tool-card__type,
+html[data-color-mode='dark'] .studio-tool-card__index {
+  color: color-mix(in srgb, var(--studio-card-accent, var(--color-primary)) 78%, var(--color-text));
+}
+
+html[data-color-mode='dark'] .studio-tool-card__index {
+  background: color-mix(in srgb, var(--studio-card-accent, var(--color-primary)) 14%, var(--color-surface-2));
+  border-color: color-mix(in srgb, var(--studio-card-accent, var(--color-primary)) 34%, var(--color-border));
+}
+
+html[data-color-mode='dark'] .studio-tool-card__icon {
+  background: color-mix(in srgb, var(--studio-card-accent, var(--color-primary)) 18%, var(--color-surface-2));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .06), 0 10px 20px rgba(0, 0, 0, .22);
+}
+
 /* Tool cards v2 ------------------------------------------------------------
    Give each tool a clear visual identity while keeping the whole card one
    accessible button. The mobile layout is intentionally bento-like instead

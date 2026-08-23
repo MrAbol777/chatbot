@@ -103,19 +103,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <small>همراه هوشمند تو</small>
           </div>
         </div>
-        {sidebarOpen ? (
-          <div className="conversation-home-header-actions">
-            <button
-              ref={conversationSearchToggleRef}
-              type="button"
-              className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
-              onClick={onOpenSearch}
-              aria-label="جستجوی گفتگوها"
-              title="جستجوی گفتگوها"
-              aria-pressed={conversationSearchOpen}
-            >
-              <Icon name="search" size={20} aria-hidden="true" />
-            </button>
+        <div className="conversation-home-header-actions">
+          <button
+            ref={conversationSearchToggleRef}
+            type="button"
+            className={`conversation-home-search-toggle ${conversationSearchOpen ? 'is-active' : ''}`}
+            onClick={onOpenSearch}
+            aria-label="جستجوی گفتگوها"
+            title="جستجوی گفتگوها"
+            aria-pressed={conversationSearchOpen}
+          >
+            <Icon name="search" size={20} aria-hidden="true" />
+          </button>
+          {sidebarOpen ? (
             <button
               type="button"
               className="conversation-sidebar-toggle-btn"
@@ -126,8 +126,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             >
               <Icon name={isDesktopLayout ? 'chevron-right' : 'x-close'} size={18} aria-hidden="true" />
             </button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </header>
 
       <div className="conversation-home-primary-actions">
@@ -233,7 +233,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           title={!sidebarOpen ? 'ابزارها' : undefined}
           aria-label="ابزارها"
         >
-          <Icon name="grid" size={21} aria-hidden="true" />
+          <Icon name="grid" size={21} className="conversation-nav-item__icon" aria-hidden="true" />
           <span>
             <strong>ابزارها</strong>
             <small>ساخت تصویر و ویدیو</small>
@@ -248,7 +248,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           title={!sidebarOpen ? 'کیف پول نوآ' : undefined}
           aria-label="کیف پول نوآ"
         >
-          <Icon name="credit-card" size={21} aria-hidden="true" />
+          <Icon name="credit-card" size={21} className="conversation-nav-item__icon" aria-hidden="true" />
           <span>
             <strong>کیف پول نوآ</strong>
             <small>{noaBalanceText || 'مدیریت اعتبار'}</small>
