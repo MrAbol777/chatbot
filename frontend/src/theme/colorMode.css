@@ -1348,6 +1348,59 @@ html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conver
   color: var(--color-primary) !important;
 }
 
+/* The empty/new-conversation page uses .view-home instead of .view-chat.
+ * Keep the same bottom-nav contract there too. */
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-sidebar-nav {
+  color: var(--color-text) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-border) !important;
+}
+
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-nav-item {
+  color: var(--color-text) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-nav-item__icon,
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-nav-item > svg:first-child {
+  color: var(--color-surface-tint) !important;
+  fill: none !important;
+  stroke: var(--color-surface-tint) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-nav-item > svg:last-child {
+  color: var(--color-muted) !important;
+  stroke: currentColor !important;
+}
+
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-nav-item strong {
+  color: var(--color-text) !important;
+}
+
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-nav-item small {
+  color: var(--color-muted) !important;
+}
+
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-nav-item:hover,
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-nav-item:focus-visible,
+html[data-color-mode='dark'] .app-shell.chat-shell .chat-history-sidebar .conversation-nav-item:active {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-high) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border)) !important;
+}
+
+/* Direct fallback for the two visible right-side row icons. */
+html[data-color-mode='dark'] .conversation-nav-item__icon {
+  color: #ffffff !important;
+  fill: none !important;
+  stroke: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 /* Sidebar header controls: never fall back to the light lavender hover tile. */
 html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-home-search-toggle,
 html[data-color-mode='dark'] .chat-shell.view-chat .chat-history-sidebar .conversation-sidebar-toggle-btn,
