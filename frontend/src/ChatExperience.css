@@ -3664,7 +3664,7 @@
   height: 38px;
   flex: 0 0 38px;
   border-radius: 10px;
-  background: #f6f2fc;
+  background: transparent;
   color: #7c3aed;
   display: flex;
   align-items: center;
@@ -3673,7 +3673,7 @@
 }
 
 .danoa-shortcut-card:hover .danoa-shortcut-icon {
-  background: #eee6fa;
+  background: transparent;
   color: #6d28d9;
 }
 

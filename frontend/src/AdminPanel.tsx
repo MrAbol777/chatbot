@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import './styles.css';
 import Icon from './components/Icon';
 import { fetchAdminIdentity } from './noa/noa.service';
 import type { AdminIdentity, AdminRole, AdminTab } from './admin/admin.types';

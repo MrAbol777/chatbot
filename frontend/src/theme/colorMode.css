@@ -624,7 +624,7 @@ html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .
 
 html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon {
   color: var(--color-primary) !important;
-  background: var(--color-surface-container-high) !important;
+  background: transparent !important;
 }
 
 html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-arrow {

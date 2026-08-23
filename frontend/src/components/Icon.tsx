@@ -11,6 +11,7 @@ export type IconName =
   | 'chat-dots'
   | 'grid'
   | 'sidebar'
+  | 'sidebar-open'
   | 'send'
   | 'bell'
   | 'sparkle'
@@ -122,6 +123,9 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
 
     case 'sidebar':
       return <svg {...commonProps}><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><path d="M15.5 4.5v15M7.5 8h4M7.5 12h4M7.5 16h4" /></svg>;
+
+    case 'sidebar-open':
+      return <svg {...commonProps}><rect x="3" y="3" width="18" height="18" rx="2.5" /><path d="M15 3v18" /><path d="m8 9 3 3-3 3" /></svg>;
 
     case 'send':
       return <svg {...commonProps}><path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" /></svg>;

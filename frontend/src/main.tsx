@@ -1,17 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './theme/colorMode';
-import App from './App';
-import LandingPage from './Landing';
 import './styles/fonts.css';
 import './design-system/tokens/tokens.css';
 import './design-system/styles/base.css';
 import './design-system/styles/components.css';
-import './styles.css';
-import './ChatExperience.css';
-import './components/AppShellState.css';
-import './PageExperience.css';
-import './theme/colorMode.css';
 import { installAuthenticatedFetch } from './auth/danoaSession';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ToastProvider } from './design-system/components';
@@ -42,6 +35,8 @@ window.addEventListener('error', (event) => {
 const ADMIN_PANEL_PATH = '/admin-secure-9x7k';
 const isAdminEntry = window.location.pathname === ADMIN_PANEL_PATH || window.location.pathname === '/admin/login' || window.location.pathname.startsWith('/admin/');
 const isLandingEntry = window.location.pathname === '/landing';
+const LazyApp = React.lazy(() => import('./App'));
+const LazyLandingPage = React.lazy(() => import('./Landing'));
 const LazyAdminLogin = React.lazy(() => import('./AdminLogin'));
 const LazyAdminPanel = React.lazy(() => import('./AdminPanel'));
 
@@ -74,13 +69,15 @@ function AdminEntry() {
   );
 }
 
-const Root = isAdminEntry ? AdminEntry : isLandingEntry ? LandingPage : App;
+const Root = isAdminEntry ? AdminEntry : isLandingEntry ? LazyLandingPage : LazyApp;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AppErrorBoundary>
       <ToastProvider>
-        <Root />
+        <React.Suspense fallback={<main className="app-route-loading" role="status" aria-live="polite"><strong>در حال آماده‌سازی دانوآ…</strong></main>}>
+          <Root />
+        </React.Suspense>
       </ToastProvider>
     </AppErrorBoundary>
   </React.StrictMode>
