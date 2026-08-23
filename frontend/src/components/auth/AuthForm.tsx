@@ -19,6 +19,7 @@ interface AuthFormProps {
   hasSavedAccount: boolean;
   phone: string;
   verificationCode: string;
+  verificationNotice?: string;
   name: string;
   age: string;
   errors: Record<string, string | undefined>;
@@ -65,6 +66,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   hasSavedAccount,
   phone,
   verificationCode,
+  verificationNotice,
   name,
   age,
   errors,
@@ -215,6 +217,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           </div>
           <h1>کد تایید</h1>
           <p className="subtitle">کدی که برای شماره زیر پیامک شده را وارد کن.</p>
+          {verificationNotice ? <InlineMessage text={verificationNotice} variant="warning" /> : null}
           <p className="auth-phone-badge" dir="ltr">{phone || '09XXXXXXXXX'}</p>
 
           <TextField

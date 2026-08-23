@@ -116,6 +116,10 @@ function createAiCapabilityRouteResolver({ repository, registry, env = process.e
     async publicModelFor(capabilityValue) {
       const snapshot = await this.resolve(capabilityValue);
       return repository.getModel(snapshot.internalModelKey);
+    },
+    async publicRouteFor(capabilityValue) {
+      const snapshot = await this.resolve(capabilityValue);
+      return { snapshot, model: await repository.getModel(snapshot.internalModelKey) };
     }
   };
 }

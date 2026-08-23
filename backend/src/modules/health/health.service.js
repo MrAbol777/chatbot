@@ -2,7 +2,7 @@ const fs = require('fs/promises');
 const { constants: fsConstants } = require('fs');
 const { loadVideoStorageConfig } = require('../video-generation/storage/video-storage.config');
 
-function createHealthService({ metisBaseUrl, defaultModel, videoWorkerState, db = null, env = process.env }) {
+function createHealthService({ metisBaseUrl, metisApiKey, defaultModel, videoWorkerState, db = null, env = process.env }) {
   const getStatus = () => ({
     ok: true,
     service: 'hemraz-backend',
@@ -11,13 +11,26 @@ function createHealthService({ metisBaseUrl, defaultModel, videoWorkerState, db 
     ...(typeof videoWorkerState === 'function' ? { videoWorker: videoWorkerState() } : {})
   });
 
-  // Provider health/model probes may consume rate limits or disclose provider
-  // behaviour. Deployment readiness is intentionally local-only instead.
-  const checkUpstream = async () => ({
-    ok: false,
-    statusCode: 501,
-    body: { ok: false, code: 'UPSTREAM_HEALTH_DISABLED', message: 'بررسی زندهٔ Provider غیرفعال است.' }
-  });
+  // Keep this probe local: live provider calls can consume credits/rate limits
+  // and can leak provider behaviour. The response still gives monitoring a
+  // useful, deterministic readiness signal instead of an opaque 501.
+  const checkUpstream = async () => {
+    const configured = /^https?:\/\//i.test(String(metisBaseUrl || '').trim())
+      && Boolean(String(metisApiKey || '').trim());
+    return {
+      ok: configured,
+      statusCode: configured ? 200 : 503,
+      body: {
+        ok: configured,
+        ready: configured,
+        liveProbe: false,
+        code: configured ? 'UPSTREAM_CONFIGURED' : 'UPSTREAM_NOT_CONFIGURED',
+        message: configured
+          ? 'تنظیمات اتصال به Provider آماده است؛ بررسی زنده انجام نشده است.'
+          : 'تنظیمات اتصال به Provider کامل نیست.'
+      }
+    };
+  };
 
   const getVideoGenerationHealth = async () => {
     const storage = loadVideoStorageConfig(env);

@@ -29,7 +29,8 @@ export type VideoCapabilityOption = {
 };
 export type VideoPromptProfile = { id: string; profileKey: 'cinematic' | 'animation' | string; displayName: string; publicDescription: string; visualKey: string; displayOrder: number; currentVersion: number | null; checksum?: string | null };
 export type VideoNoaPricing = { actionKey: 'video_generation'; unit: 'second'; quantity: string; unitPriceNoa: string; amountNoa: string; pricingVersion: number };
-export type VideoGenerationOptions = { models?: VideoGenerationOption[]; enabled?: boolean; capabilities?: Record<string, VideoCapabilityOption>; promptProfiles?: VideoPromptProfile[]; pricing?: VideoNoaPricing };
+export type VideoGenerationReadiness = { available: boolean; providerKey?: string | null; gateCode?: string | null };
+export type VideoGenerationOptions = { models?: VideoGenerationOption[]; enabled?: boolean; capabilities?: Record<string, VideoCapabilityOption>; readiness?: Record<string, VideoGenerationReadiness>; promptProfiles?: VideoPromptProfile[]; pricing?: VideoNoaPricing };
 export type VideoGenerationResult = { contentUrl: string; downloadUrl: string; mimeType?: string | null; sizeBytes?: number | null; storedAt?: string | null };
 export type VideoGenerationListItem = {
   id: string; mode: VideoGenerationMode; model_key?: string; status: VideoGenerationStatus | string;

@@ -53,6 +53,7 @@ import { ChatMessageItem } from './components/chat/ChatMessageItem';
 import { ChatInputBar } from './components/chat/ChatInputBar';
 import BroadcastMessageLayer from './components/BroadcastMessageLayer';
 import { AuthForm } from './components/auth/AuthForm';
+import NotFound from './NotFound';
 import {
   THEME_KEY,
   SIDEBAR_COLLAPSED_KEY,
@@ -142,6 +143,21 @@ const removeLegacyLocalDevelopmentCredentials = () => {
   }
 };
 
+const isKnownAppPath = (pathname: string) => (
+  pathname === '/' ||
+  pathname === '/chat' ||
+  /^\/c\/[^/]+$/.test(pathname) ||
+  pathname === '/studio' ||
+  pathname === '/studio/image' ||
+  pathname === '/studio/video' ||
+  pathname === '/images' ||
+  pathname === '/generate' ||
+  pathname === '/photos' ||
+  pathname === '/profile' ||
+  pathname === '/settings' ||
+  pathname === '/noa'
+);
+
 const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
   if (pathname === '/studio') return 'studio';
@@ -221,7 +237,9 @@ const PUBLIC_SETTINGS_DEFAULTS = {
 };
 type PublicSettings = typeof PUBLIC_SETTINGS_DEFAULTS & Record<string, any>;
 
-const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void> => {
+type VerificationDeliveryResult = { deliveryStatus?: 'sent' | 'uncertain' };
+
+const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<VerificationDeliveryResult> => {
   const response = await safeFetch('/api/send-verification-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -244,6 +262,11 @@ const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<void
       payload.retryAfterSeconds ?? payload.retryAfter
     );
   }
+
+  const payload = await response.json().catch(() => ({}));
+  return {
+    deliveryStatus: payload?.deliveryStatus === 'uncertain' ? 'uncertain' : 'sent'
+  };
 };
 
 const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<VerifyCodeResult> => {
@@ -480,6 +503,9 @@ function ChatApp() {
   const [currentView, setCurrentView] = useState<AppView>(() =>
     typeof window === 'undefined' ? 'chat' : getAppViewFromPath(window.location.pathname)
   );
+  const [isNotFoundPath, setIsNotFoundPath] = useState(() => (
+    typeof window !== 'undefined' && !isKnownAppPath(window.location.pathname)
+  ));
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
   const [hasCookieSession, setHasCookieSession] = useState(false);
 
@@ -510,6 +536,7 @@ function ChatApp() {
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [verificationRetrySeconds, setVerificationRetrySeconds] = useState(0);
+  const [verificationNotice, setVerificationNotice] = useState('');
   const [errors, setErrors] = useState<{ name?: string; age?: string; phone?: string; code?: string }>({});
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -1225,9 +1252,10 @@ function ChatApp() {
   useEffect(() => {
     const handlePopState = () => {
       const pathname = window.location.pathname;
-      if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname) || pathname === '/studio' || pathname === '/studio/image' || pathname === '/studio/video' || pathname === '/images' || pathname === '/generate' || pathname === '/photos' || pathname === '/profile' || pathname === '/settings' || pathname === '/noa') {
+      if (isKnownAppPath(pathname)) {
         const nextView = getAppViewFromPath(pathname);
         startTransition(() => {
+          setIsNotFoundPath(false);
           setCurrentView(nextView);
           setActiveConversationId(getConversationIdFromPath(pathname));
           setSidebarOpen(nextView === 'chat' && isDesktopChatLayout());
@@ -1238,7 +1266,9 @@ function ChatApp() {
         return;
       }
 
-      window.location.href = pathname || '/';
+      startTransition(() => {
+        setIsNotFoundPath(true);
+      });
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -1806,9 +1836,14 @@ function ChatApp() {
       const nextAuthMode = phoneStatus.recommendedMode || authMode;
       setAuthMode(nextAuthMode);
       setLandingStep(nextAuthMode);
-      await sendVerificationCode(normalizedPhone, nextAuthMode);
+      const delivery = await sendVerificationCode(normalizedPhone, nextAuthMode);
 
       setVerificationCode('');
+      setVerificationNotice(
+        delivery.deliveryStatus === 'uncertain'
+          ? 'ارسال پیامک هنوز از طرف سرویس تأیید نشده است. اگر کد را دریافت کردی همین‌جا واردش کن؛ فعلاً کد دیگری خودکار ارسال نمی‌کنیم.'
+          : ''
+      );
       setErrors({});
       setRegistrationStep(2);
     } catch (error) {
@@ -2909,6 +2944,7 @@ notify.error(message);
       hasSavedAccount={hasSavedAccount}
       phone={phone}
       verificationCode={verificationCode}
+      verificationNotice={verificationNotice}
       name={name}
       age={age}
       errors={errors}
@@ -2928,10 +2964,12 @@ notify.error(message);
         setLandingStep('landing');
         setErrors({});
         setSignupToken('');
+        setVerificationNotice('');
       }}
       onBackToStep1={() => {
         setRegistrationStep(1);
         setVerificationCode('');
+        setVerificationNotice('');
         setErrors({});
       }}
       onBackToStep2={() => {
@@ -3023,6 +3061,10 @@ notify.error(message);
       </div>
     );
   };
+
+  if (isNotFoundPath) {
+    return <NotFound />;
+  }
 
   if (!hasCheckedSession && !profile) {
     return null;

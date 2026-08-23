@@ -67,9 +67,13 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
       if (!isFeatureEnabled()) return { enabled: false, models: [], pricing };
       if (!routeResolver) return { enabled: true, models: (await repository.listModels()).map(modelDto), pricing };
       const capabilities = {};
+      const readiness = {};
       for (const capability of ['video.text_to_video', 'video.image_to_video']) {
         try {
-          const model = await routeResolver.publicModelFor(capability);
+          const route = typeof routeResolver.publicRouteFor === 'function'
+            ? await routeResolver.publicRouteFor(capability)
+            : { model: await routeResolver.publicModelFor(capability) };
+          const model = route.model;
           if (model) {
             const dto = modelDto(model);
             capabilities[capability] = {
@@ -81,11 +85,24 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
               supportsNegativePrompt: dto.supportsNegativePrompt,
               supportsAudio: dto.supportsAudio
             };
+            readiness[capability] = {
+              available: true,
+              providerKey: route.snapshot?.providerKey || null,
+              gateCode: null
+            };
+          } else {
+            readiness[capability] = { available: false, providerKey: null, gateCode: 'AI_MODEL_NOT_FOUND' };
           }
-        } catch (_) {}
+        } catch (error) {
+          readiness[capability] = {
+            available: false,
+            providerKey: null,
+            gateCode: String(error?.code || 'AI_ROUTE_UNAVAILABLE')
+          };
+        }
       }
       const promptProfiles = promptProfileRepository ? await promptProfileRepository.listPublic() : [];
-      return { enabled: Boolean(capabilities['video.image_to_video']), models: [], capabilities, promptProfiles, pricing };
+      return { enabled: Boolean(capabilities['video.image_to_video']), models: [], capabilities, readiness, promptProfiles, pricing };
     },
     list: async (userId) => (await repository.listForUser(userId)).map(jobDto),
     get: async (id,userId) => jobDto(await repository.getForUser(id,userId)),

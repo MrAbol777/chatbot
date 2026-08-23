@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './theme/colorMode';
 import App from './App';
+import LandingPage from './Landing';
 import './styles/fonts.css';
 import './design-system/tokens/tokens.css';
 import './design-system/styles/base.css';
@@ -38,6 +39,7 @@ window.addEventListener('error', (event) => {
 
 const ADMIN_PANEL_PATH = '/admin-secure-9x7k';
 const isAdminEntry = window.location.pathname === ADMIN_PANEL_PATH || window.location.pathname === '/admin/login' || window.location.pathname.startsWith('/admin/');
+const isLandingEntry = window.location.pathname === '/landing';
 const LazyAdminLogin = React.lazy(() => import('./AdminLogin'));
 const LazyAdminPanel = React.lazy(() => import('./AdminPanel'));
 
@@ -70,7 +72,7 @@ function AdminEntry() {
   );
 }
 
-const Root = isAdminEntry ? AdminEntry : App;
+const Root = isAdminEntry ? AdminEntry : isLandingEntry ? LandingPage : App;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

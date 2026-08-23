@@ -65,7 +65,7 @@ describe('colorMode utility', () => {
     expect(getSystemColorMode()).toBe('light');
   });
 
-  it('prioritizes stored mode over system preference in getInitialColorMode', () => {
+  it('defaults to light mode and prioritizes a stored user preference', () => {
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       matches: query === '(prefers-color-scheme: dark)',
       media: query,
@@ -77,8 +77,8 @@ describe('colorMode utility', () => {
       dispatchEvent: vi.fn()
     }));
 
-    // No stored mode -> use system (dark)
-    expect(getInitialColorMode()).toBe('dark');
+    // No stored mode -> use the product default, regardless of system mode.
+    expect(getInitialColorMode()).toBe('light');
 
     // Stored mode = light -> use light even though system is dark
     localStorage.setItem(COLOR_MODE_STORAGE_KEY, 'light');

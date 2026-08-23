@@ -336,6 +336,20 @@ function createApp({ repositories, runtimeConfig }) {
 
   // Upload Router
   const uploadRouter = express.Router();
+  uploadRouter.get('/images/:imageId', async (req, res, next) => {
+    try {
+      const image = await getUploadedImageById(String(req.params.imageId || ''));
+      if (!image) {
+        return res.status(404).json({ error: 'تصویر پیدا نشد.', code: 'UPLOAD_NOT_FOUND' });
+      }
+
+      res.setHeader('Content-Type', image.mimeType);
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      return res.send(Buffer.from(image.base64, 'base64'));
+    } catch (error) {
+      return next(error);
+    }
+  });
   uploadRouter.post('/images', async (req, res) => {
     const uploadSettings = await getUploadSettings();
     const uploadMiddleware = createUploadImagesMiddleware(uploadSettings).array('images', uploadSettings.maxFiles);
@@ -373,6 +387,8 @@ function createApp({ repositories, runtimeConfig }) {
     });
   });
   app.use('/api/upload', uploadRouter);
+  // Keep the plural route used by the current frontend and generated message URLs.
+  app.use('/api/uploads', uploadRouter);
 
   // Auth & Session routes
   // These routers already define their complete public /api/... paths.
@@ -632,6 +648,17 @@ function createApp({ repositories, runtimeConfig }) {
       return { enabled: Boolean(state?.enabled), mode: state?.mode || 'disabled', state: state?.state || 'disabled' };
     }
   }));
+
+  // API clients must never receive the SPA shell for an unknown API endpoint.
+  // This also makes failed requests observable and parseable by the frontend.
+  app.use('/api', (req, res) => {
+    res.status(404).json({
+      error: 'مسیر API پیدا نشد.',
+      code: 'API_NOT_FOUND',
+      path: req.originalUrl,
+      requestId: res.locals.requestId || 'unknown'
+    });
+  });
 
   // Static Assets & SPA Fallback
   app.use('/brand', express.static(path.join(frontendDistPath, 'brand'), {

@@ -33,7 +33,7 @@ export function getInitialColorMode(): ColorMode {
   if (stored) {
     return stored;
   }
-  return getSystemColorMode();
+  return 'light';
 }
 
 export function applyColorMode(mode: ColorMode): void {
