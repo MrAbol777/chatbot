@@ -118,9 +118,9 @@
 .image-viewer-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid rgba(255, 255, 255, .15);
-  border-top-color: rgba(255, 255, 255, .85);
-  border-radius: 50%;
+  display: block;
+  color: rgba(255, 255, 255, .85);
+  stroke-width: 1.8;
   animation: image-viewer-spin 700ms linear infinite;
 }
 

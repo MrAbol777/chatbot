@@ -1,0 +1,171 @@
+.generation-stepper {
+  --generation-step-count: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--generation-step-count), minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  direction: rtl;
+}
+
+.generation-step {
+  position: relative;
+  z-index: 0;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 9px;
+  min-width: 0;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.generation-step__indicator {
+  position: relative;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  border-radius: 50%;
+  color: var(--color-muted);
+  background: var(--color-surface-2);
+  font-size: .75rem;
+  font-weight: 850;
+  transition: color var(--motion-normal) var(--motion-ease-standard), background var(--motion-normal) var(--motion-ease-standard), border-color var(--motion-normal) var(--motion-ease-standard), box-shadow var(--motion-normal) var(--motion-ease-standard), transform var(--motion-normal) var(--motion-ease-standard);
+}
+
+.generation-step__indicator svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.generation-step__label {
+  max-width: 112px;
+  color: inherit;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.generation-step__connector {
+  position: absolute;
+  z-index: 1;
+  top: 16px;
+  inset-inline-start: 50%;
+  width: 100%;
+  height: 2px;
+  background: color-mix(in srgb, var(--color-border) 88%, transparent);
+  transition: background var(--motion-normal) var(--motion-ease-standard);
+}
+
+.generation-step__connector.is-complete {
+  background: color-mix(in srgb, var(--color-primary) 72%, var(--color-border));
+}
+
+.generation-step--active,
+.generation-step--success,
+.generation-step--error,
+.generation-step--warning {
+  color: var(--color-text);
+}
+
+.generation-step--active .generation-step__indicator {
+  border-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-primary) 15%, transparent), 0 8px 18px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  animation: generation-step-pulse 1.8s ease-in-out infinite;
+}
+
+.generation-step--complete .generation-step__indicator,
+.generation-step--success .generation-step__indicator {
+  border-color: var(--color-success);
+  color: var(--color-on-secondary);
+  background: var(--color-success);
+}
+
+.generation-step--error {
+  color: var(--color-danger);
+}
+
+.generation-step--error .generation-step__indicator {
+  border-color: var(--color-danger);
+  color: var(--color-on-error);
+  background: var(--color-danger);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-danger) 13%, transparent);
+}
+
+.generation-step--warning .generation-step__indicator {
+  border-color: var(--color-warning);
+  color: var(--color-on-tertiary);
+  background: var(--color-warning);
+}
+
+.generation-step--complete .generation-step__label,
+.generation-step--success .generation-step__label {
+  color: color-mix(in srgb, var(--color-text) 82%, transparent);
+}
+
+.generation-stepper--compact .generation-step {
+  gap: 6px;
+}
+
+.generation-stepper--compact .generation-step__indicator {
+  width: 27px;
+  height: 27px;
+  font-size: .65rem;
+}
+
+.generation-stepper--compact .generation-step__indicator svg {
+  width: 13px;
+  height: 13px;
+}
+
+.generation-stepper--compact .generation-step__connector {
+  top: 13px;
+}
+
+.generation-stepper--compact .generation-step__label {
+  max-width: 84px;
+  font-size: .64rem;
+}
+
+@keyframes generation-step-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+@media (max-width: 560px) {
+  .generation-step__label {
+    max-width: 72px;
+    font-size: .64rem;
+  }
+
+  .generation-step__indicator {
+    width: 30px;
+    height: 30px;
+  }
+
+  .generation-step__connector {
+    top: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .generation-step__indicator,
+  .generation-step__connector {
+    transition-duration: .001ms;
+  }
+
+  .generation-step--active .generation-step__indicator {
+    animation: none;
+  }
+}

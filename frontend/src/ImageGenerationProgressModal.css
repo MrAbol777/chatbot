@@ -1,0 +1,71 @@
+.image-progress-modal__backdrop {
+  position: fixed;
+  z-index: var(--z-modal);
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding: clamp(18px, 4vh, 48px) clamp(12px, 3vw, 32px) 32px;
+  background: rgba(7, 4, 15, .58);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: image-progress-backdrop-in 180ms ease-out both;
+}
+
+.image-progress-modal {
+  width: min(100%, 720px);
+  max-height: calc(100dvh - 64px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--surface-border));
+  border-radius: 26px;
+  color: var(--text-main);
+  background: radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 34%), linear-gradient(145deg, color-mix(in srgb, var(--card-bg) 98%, white), var(--card-bg));
+  box-shadow: 0 22px 68px rgba(0, 0, 0, .38), 0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent) inset;
+  animation: image-progress-modal-in 260ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.image-progress-modal__header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.image-progress-modal__eyebrow { display: block; margin-bottom: 6px; color: var(--primary); font-size: .76rem; font-weight: 850; }
+.image-progress-modal h2 { margin: 0; font-size: clamp(1.25rem, 3vw, 1.72rem); line-height: 1.45; }
+.image-progress-modal__close { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--surface-border); border-radius: 13px; color: var(--text-main); background: var(--card-bg); cursor: pointer; transition: color 140ms ease, border-color 140ms ease, background 140ms ease, transform 140ms ease; }
+.image-progress-modal__close:hover { color: var(--primary); border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, var(--card-bg)); transform: translateY(-1px); }
+.image-progress-modal__close:focus-visible, .image-progress-modal__backdrop button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.image-progress-modal__close svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.image-progress-modal__description { margin: 10px 0 28px; color: color-mix(in srgb, var(--text-main) 66%, transparent); font-size: .88rem; line-height: 1.85; }
+.image-progress-modal > .generation-stepper { margin-block: 8px 30px; }
+.image-progress-modal__status { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; padding: 13px 14px; border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--surface-border)); border-radius: 16px; background: color-mix(in srgb, var(--primary) 5%, var(--card-bg)); }
+.image-progress-modal__status > span:last-child { color: color-mix(in srgb, var(--text-main) 60%, transparent); font-size: .76rem; }
+.image-progress-modal__status-badge { min-height: 30px; display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border: 1px solid var(--surface-border); border-radius: 999px; color: var(--primary); background: var(--card-bg); font-size: .8rem; font-weight: 800; }
+.image-progress-modal__status-badge i { width: 13px; height: 13px; border: 2px solid currentColor; border-left-color: transparent; border-radius: 50%; animation: image-progress-spin .8s linear infinite; }
+.image-progress-modal__status-badge svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.image-progress-modal__status-badge strong { width: 15px; height: 15px; display: grid; place-items: center; border-radius: 50%; color: var(--card-bg); background: currentColor; font-size: .65rem; }
+.image-progress-modal__status-badge--completed { color: var(--success, #4edcd0); }
+.image-progress-modal__status-badge--error { color: var(--danger, #ffb4ab); }
+.image-progress-modal__error { display: grid; gap: 4px; margin-top: 12px; padding: 13px 14px; border: 1px solid color-mix(in srgb, var(--danger, #ffb4ab) 30%, var(--surface-border)); border-radius: 15px; color: var(--danger, #ffb4ab); background: color-mix(in srgb, var(--danger, #ffb4ab) 6%, var(--card-bg)); font-size: .78rem; line-height: 1.7; }
+.image-progress-modal__error span { color: color-mix(in srgb, var(--text-main) 78%, transparent); }
+.image-progress-modal__hint { margin: 14px 0 0; color: color-mix(in srgb, var(--text-main) 60%, transparent); font-size: .76rem; line-height: 1.8; }
+.image-progress-modal__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.image-progress-modal__actions button { min-height: 46px; }
+@keyframes image-progress-backdrop-in { from { opacity: 0; } }
+@keyframes image-progress-modal-in { from { opacity: 0; transform: translateY(12px) scale(.98); } }
+@keyframes image-progress-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 560px) {
+  .image-progress-modal__backdrop { place-items: end center; padding: 0; }
+  .image-progress-modal { width: 100%; max-height: 90dvh; padding: 22px 16px calc(22px + env(safe-area-inset-bottom, 0px)); border-radius: 24px 24px 0 0; }
+  .image-progress-modal__description { margin-bottom: 24px; }
+  .image-progress-modal__status { align-items: start; flex-direction: column; }
+  .image-progress-modal__actions { display: grid; grid-template-columns: 1fr; }
+  .image-progress-modal__actions button { width: 100%; }
+}
+
+@media (min-width: 561px) and (max-width: 900px) {
+  .image-progress-modal__backdrop { padding-top: 24px; padding-bottom: 24px; }
+  .image-progress-modal { max-height: calc(100dvh - 48px); padding: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-progress-modal__backdrop, .image-progress-modal, .image-progress-modal__status-badge i { animation: none; }
+  .image-progress-modal__close { transition-duration: .001ms; }
+}

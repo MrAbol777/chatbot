@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, InlineMessage } from '../../design-system/components';
+import Icon from '../../components/Icon';
 import './VideoGenerationsAdmin.css';
 
 type VideoStatus =
@@ -306,7 +307,7 @@ function VideoDetailDrawer({
 
         {loading ? (
           <div className="video-admin-detail-loading" role="status">
-            <span className="video-admin-spinner" aria-hidden="true" />
+            <Icon name="spinner" size={22} className="video-admin-spinner" aria-hidden="true" />
             در حال دریافت همه جزئیات…
           </div>
         ) : null}

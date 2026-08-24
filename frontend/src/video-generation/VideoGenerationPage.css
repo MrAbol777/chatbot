@@ -390,3 +390,5 @@ main.video-generation-page .video-generation-workspace {
     box-shadow: 0 10px 24px color-mix(in srgb, var(--color-primary) 24%, transparent);
   }
 }
+/* SVG status indicator replaces the legacy CSS ring while keeping the same footprint. */
+.video-status__spinner { display: block; flex: 0 0 auto; border: 0; color: currentColor; stroke-width: 1.8; }

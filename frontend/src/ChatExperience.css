@@ -3575,6 +3575,8 @@
   user-select: none;
 }
 
+.danoa-sparkle__icon { width: 1em; height: 1em; display: block; }
+
 .danoa-sparkle-1 {
   top: 10%;
   left: 36%;

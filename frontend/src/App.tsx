@@ -3451,9 +3451,9 @@ notify.error(message);
                     <Icon name="sparkle" size={32} />
                   </span>
                 </span>
-                <span className="image-gen-star image-gen-star--one" />
-                <span className="image-gen-star image-gen-star--two" />
-                <span className="image-gen-star image-gen-star--three" />
+                <Icon name="sparkle" size={12} className="image-gen-star image-gen-star--one" aria-hidden="true" />
+                <Icon name="sparkle" size={9} className="image-gen-star image-gen-star--two" aria-hidden="true" />
+                <Icon name="sparkle" size={8} className="image-gen-star image-gen-star--three" aria-hidden="true" />
               </div>
 
               <div className="image-gen-copy">
@@ -3754,9 +3754,9 @@ notify.error(message);
                     <Icon name="sparkle" size={32} />
                   </span>
                </span>
-               <span className="image-gen-star image-gen-star--one" />
-               <span className="image-gen-star image-gen-star--two" />
-               <span className="image-gen-star image-gen-star--three" />
+               <Icon name="sparkle" size={12} className="image-gen-star image-gen-star--one" aria-hidden="true" />
+               <Icon name="sparkle" size={9} className="image-gen-star image-gen-star--two" aria-hidden="true" />
+               <Icon name="sparkle" size={8} className="image-gen-star image-gen-star--three" aria-hidden="true" />
              </div>
 
              <div className="image-gen-copy">
@@ -3854,10 +3854,10 @@ notify.error(message);
           ) : (
             <div className="danoa-empty-hero">
               <div className="danoa-hero-sparkles" aria-hidden="true">
-                <span className="danoa-sparkle danoa-sparkle-1">✦</span>
-                <span className="danoa-sparkle danoa-sparkle-2">✦</span>
-                <span className="danoa-sparkle danoa-sparkle-3">✦</span>
-                <span className="danoa-sparkle danoa-sparkle-4">✦</span>
+                <Icon name="sparkle" className="danoa-sparkle danoa-sparkle-1 danoa-sparkle__icon" aria-hidden="true" />
+                <Icon name="sparkle" className="danoa-sparkle danoa-sparkle-2 danoa-sparkle__icon" aria-hidden="true" />
+                <Icon name="sparkle" className="danoa-sparkle danoa-sparkle-3 danoa-sparkle__icon" aria-hidden="true" />
+                <Icon name="sparkle" className="danoa-sparkle danoa-sparkle-4 danoa-sparkle__icon" aria-hidden="true" />
               </div>
 
               <div className="danoa-hero-heading-block">

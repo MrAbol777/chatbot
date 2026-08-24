@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import { deleteGalleryImage, fetchProtectedImageBlobUrl, GalleryImage, getImageGenerationStatus, listGalleryImages, startImageEdit, startImageGeneration } from './services/imageGeneration';
 import { getImageToImageJob, ImageToImageJob, listImageToImageJobs, startImageToImage } from './services/imageToImage';
 import ImageViewer from './ImageViewer';
+import ImageGenerationProgressModal from './ImageGenerationProgressModal';
 import Icon from './components/Icon';
 import { formatDecimalFa } from './noa/decimal';
 import { fetchNoaPublicConfig } from './noa/noa.service';
@@ -69,7 +70,7 @@ function ProtectedImage({ src, alt }: { src: string; alt: string }) {
     return () => { active = false; if (created && created.startsWith('blob:')) URL.revokeObjectURL(created); };
   }, [src]);
   if (blobUrl) return <img src={blobUrl} alt={alt} loading="lazy" />;
-  if (failed) return <span className="image-card-error" aria-label="بارگذاری تصویر انجام نشد">!</span>;
+  if (failed) return <span className="image-card-error" aria-label="بارگذاری تصویر انجام نشد"><Icon name="alert-triangle" size={22} /></span>;
   return <span className="shimmer" aria-label="در حال بارگذاری تصویر" />;
 }
 
@@ -102,6 +103,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
   const [loading, setLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [selected, setSelected] = useState<GalleryImage | null>(null);
+  const [progressItemKey, setProgressItemKey] = useState<{ id: string; source?: GalleryImage['source'] } | null>(null);
   const [editSource, setEditSource] = useState<GalleryImage | null>(null);
   const [error, setError] = useState('');
   const [galleryError, setGalleryError] = useState('');
@@ -184,6 +186,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
   }, [items, loading]);
   const generationPendingIds = useMemo(() => items.filter((x) => x.source !== 'image-to-image' && ['QUEUE', 'WAITING', 'RUNNING'].includes(x.status)).map((x) => x.id), [items]);
   const imageToImagePendingIds = useMemo(() => items.filter((x) => x.source === 'image-to-image' && ['QUEUE', 'WAITING', 'RUNNING'].includes(x.status)).map((x) => x.id), [items]);
+  const progressItem = useMemo(() => progressItemKey ? items.find((item) => item.id === progressItemKey.id && item.source === progressItemKey.source) || null : null, [items, progressItemKey]);
   useEffect(() => {
     if (!generationPendingIds.length && !imageToImagePendingIds.length) return;
     let stopped = false; let delay = 1800;
@@ -233,6 +236,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       window.dispatchEvent(new Event('noa:wallet-changed'));
       const optimistic: GalleryImage = submitted || { id: taskId, taskId, originalPrompt: value, refinedPrompt: value, aspectRatio: ratio, operation: editSource ? 'edit' : 'generate', parentImageId: editSource?.id, status: 'QUEUE', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), source: 'image-generation' };
       setItems((old) => [optimistic, ...old.filter((item) => item.id !== taskId || item.source !== optimistic.source)]);
+      setProgressItemKey({ id: optimistic.id, source: optimistic.source });
       referenceUrlsRef.current.forEach((url) => URL.revokeObjectURL(url)); referenceUrlsRef.current = [];
       setReferenceImages([]); setReferencePickerOpen(false); setTab('gallery'); setEditSource(null);
     } catch (e) { setError(e instanceof Error ? e.message : 'درخواست انجام نشد.'); }
@@ -290,7 +294,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       </button>
       {referencePickerOpen && <div className="studio-reference-picker__content">
         <p>تصویر اول مبنای ویرایش است؛ تا سه تصویر دیگر فقط مرجع‌اند.</p>
-        <div className="studio-reference-grid">{referenceImages.map((item, index) => <figure key={item.id} className={index === 0 ? 'primary' : ''}><img src={item.previewUrl} alt={index === 0 ? 'تصویر اصلی' : `تصویر مرجع ${index + 1}`} /><figcaption>{index === 0 ? 'تصویر اصلی ۱' : `تصویر مرجع ${index + 1}`}</figcaption><button type="button" onClick={() => removeReferenceImage(item.id)} aria-label={`حذف تصویر ${index + 1}`}>×</button></figure>)}</div>
+<div className="studio-reference-grid">{referenceImages.map((item, index) => <figure key={item.id} className={index === 0 ? 'primary' : ''}><img src={item.previewUrl} alt={index === 0 ? 'تصویر اصلی' : `تصویر مرجع ${index + 1}`} /><figcaption>{index === 0 ? 'تصویر اصلی ۱' : `تصویر مرجع ${index + 1}`}</figcaption><button type="button" onClick={() => removeReferenceImage(item.id)} aria-label={`حذف تصویر ${index + 1}`}><Icon name="x-close" size={15} aria-hidden="true" /></button></figure>)}</div>
         {referenceImages.length < MAX_REFERENCE_IMAGES && <button type="button" className="studio-reference-picker__add" onClick={() => referenceInputRef.current?.click()} disabled={busy}>＋ افزودن تصویر دیگر</button>}
       </div>}
     </>}
@@ -338,7 +342,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       <span className="studio-header-spacer" aria-hidden="true" />
     </header>
     <div className="studio-tabs" role="tablist" aria-label="بخش‌های استودیوی تصویر"><span className={`studio-tab-indicator ${tab === 'gallery' ? 'gallery' : ''}`} aria-hidden="true" /><button type="button" role="tab" aria-selected={tab === 'create'} className={tab === 'create' ? 'active' : ''} onClick={() => setTab('create')}>ساخت تصویر</button><button type="button" role="tab" aria-selected={tab === 'gallery'} className={tab === 'gallery' ? 'active' : ''} onClick={() => setTab('gallery')}>تصاویر من</button></div>
-    {(error || (tab === 'gallery' && galleryError)) && <div className="studio-error" role="alert"><span className="studio-error-icon" aria-hidden="true">!</span><span>{error || galleryError}</span><button type="button" onClick={() => { setError(''); setGalleryError(''); }} aria-label="بستن پیام"><Icon name="x-close" size="1em" /></button></div>}
+{(error || (tab === 'gallery' && galleryError)) && <div className="studio-error" role="alert"><span className="studio-error-icon" aria-hidden="true"><Icon name="alert-triangle" size={18} /></span><span>{error || galleryError}</span><button type="button" onClick={() => { setError(''); setGalleryError(''); }} aria-label="بستن پیام"><Icon name="x-close" size="1em" /></button></div>}
     {tab === 'create' ? <form className="studio-create" onSubmit={submit}>
       <input ref={referenceInputRef} className="studio-reference-input" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { if (event.target.files) addReferenceFiles(event.target.files); event.currentTarget.value = ''; }} />
       {editSource && <section className="studio-edit-workspace" aria-label="تصویر مبدا ویرایش">
@@ -377,7 +381,7 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
             </div>
           </div>
           <div className="studio-submit-dock">
-            <button className="studio-submit" disabled={busy || prompt.trim().length < 8}><Icon name="sparkle" size={18} className="studio-submit-icon" aria-hidden="true" /><span>{busy ? 'در حال ارسال درخواست...' : imageToImageActive || editSource ? 'ویرایش با تصویر' : 'ساخت تصویر'}</span>{busy && <i aria-hidden="true" />}</button>
+<button className="studio-submit" disabled={busy || prompt.trim().length < 8}><Icon name="sparkle" size={18} className="studio-submit-icon" aria-hidden="true" /><span>{busy ? 'در حال ارسال درخواست...' : imageToImageActive || editSource ? 'ویرایش با تصویر' : 'ساخت تصویر'}</span>{busy && <Icon name="spinner" size={17} className="studio-submit-spinner" aria-hidden="true" />}</button>
             <small>{activePriceNoa ? `هزینه این عملیات ${formatDecimalFa(activePriceNoa)} نوآ است؛ قیمت از تنظیم زنده سامانه خوانده می‌شود.` : imageToImageActive ? 'قیمت ویرایش تصویر پیش از ثبت در سرور بررسی می‌شود.' : editSource ? 'تصویر اصلی شما بدون تغییر باقی می‌ماند.' : 'قیمت زنده پیش از ثبت در سرور بررسی می‌شود.'}</small>
           </div>
         </section>
@@ -429,6 +433,12 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
     </section>}
     <div className="studio-bottom-spacer" aria-hidden="true" />
     {selected && <ImageViewer item={selected} onClose={() => setSelected(null)} onDownload={download} />}
+    {progressItem ? <ImageGenerationProgressModal
+      item={progressItem}
+      onClose={() => setProgressItemKey(null)}
+      onView={() => { setSelected(progressItem); setProgressItemKey(null); setTab('gallery'); }}
+      onRetry={() => { const item = progressItem; setProgressItemKey(null); reuse(item, item.operation === 'edit'); }}
+    /> : null}
     </div>
   </main>;
 }

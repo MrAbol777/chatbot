@@ -20,7 +20,7 @@
 .ds-button--danger { background: var(--color-danger); color: #fff; }
 .ds-button:active:not(:disabled) { transform: scale(0.98); }
 .ds-button--icon-only { width: 44px; min-width: 44px; padding: 0; }
-.ds-button__spinner { width: 1em; height: 1em; flex: 0 0 auto; border: 2px solid currentColor; border-inline-end-color: transparent; border-radius: 50%; animation: ds-spin .8s linear infinite; }
+.ds-button__spinner { width: 1em; height: 1em; display: block; flex: 0 0 auto; color: currentColor; stroke-width: 1.8; animation: ds-spin .8s linear infinite; }
 @keyframes ds-spin { to { transform: rotate(1turn); } }
 
 .ds-field { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }

@@ -578,9 +578,9 @@
 .video-admin-spinner {
   width: 22px;
   height: 22px;
-  border: 3px solid #ddd3ea;
-  border-top-color: var(--video-admin-purple);
-  border-radius: 50%;
+  display: block;
+  color: var(--video-admin-purple);
+  stroke-width: 1.8;
   animation: video-admin-spin 750ms linear infinite;
 }
 

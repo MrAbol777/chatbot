@@ -45,6 +45,7 @@ export type IconName =
   | 'story'
   | 'companion'
   | 'shield'
+  | 'alert-triangle'
   | 'question'
   | 'plus'
   | 'minus'
@@ -270,6 +271,9 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
 
     case 'shield':
       return <svg {...commonProps}><path d="M12 3.5 19 6v5.4c0 4.1-2.8 7.8-7 9.1-4.2-1.3-7-5-7-9.1V6l7-2.5Z" /><path d="m8.8 12.2 2.1 2.1 4.5-4.7" /></svg>;
+
+    case 'alert-triangle':
+      return <svg {...commonProps}><path d="m10.3 4.2-7.5 13a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3l-7.5-13a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 16h.01" /></svg>;
 
     case 'question':
       return <svg {...commonProps}><circle cx="12" cy="12" r="8" /><path d="M9.8 9.4a2.4 2.4 0 1 1 3.4 2.2c-.9.4-1.2.9-1.2 1.7" /><path d="M12 16.7h.1" /></svg>;

@@ -1,0 +1,205 @@
+.video-progress-modal__backdrop {
+  position: fixed;
+  z-index: var(--z-modal);
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding: clamp(18px, 4vh, 48px) clamp(12px, 3vw, 32px) 32px;
+  background: color-mix(in srgb, #07040f 58%, transparent);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: video-progress-backdrop-in 180ms ease-out both;
+}
+
+.video-progress-modal {
+  width: min(100%, 720px);
+  max-height: calc(100dvh - 64px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+  border-radius: 28px;
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 34%),
+    linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 98%, white), var(--color-surface));
+  box-shadow: 0 22px 68px color-mix(in srgb, #000 38%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-primary) 10%, transparent) inset;
+  animation: video-progress-modal-in 260ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.video-progress-modal__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.video-progress-modal__eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-primary);
+  font-size: .76rem;
+  font-weight: 850;
+}
+
+.video-progress-modal h2 {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.72rem);
+  line-height: 1.45;
+}
+
+.video-progress-modal__close {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 13px;
+  color: var(--color-muted);
+  background: var(--color-surface-2);
+  cursor: pointer;
+  transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease, background var(--motion-fast) ease, transform var(--motion-fast) ease;
+}
+
+.video-progress-modal__close:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  transform: translateY(-1px);
+}
+
+.video-progress-modal__close:focus-visible,
+.video-progress-modal__backdrop button:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.video-progress-modal__close svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.video-progress-modal__description {
+  margin: 10px 0 28px;
+  color: var(--color-muted);
+  font-size: .88rem;
+  line-height: 1.85;
+}
+
+.video-progress-modal > .generation-stepper {
+  margin-block: 8px 30px;
+}
+
+.video-progress-modal__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 13px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 16%, var(--color-border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface-2));
+}
+
+.video-progress-modal__status > span:last-child {
+  color: var(--color-muted);
+  font-size: .76rem;
+}
+
+.video-progress-modal__error {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 13px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
+  border-radius: 15px;
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 6%, var(--color-surface-2));
+  font-size: .78rem;
+  line-height: 1.7;
+}
+
+.video-progress-modal__error span {
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
+
+.video-progress-modal__hint {
+  margin: 14px 0 0;
+  color: var(--color-muted);
+  font-size: .76rem;
+  line-height: 1.8;
+}
+
+.video-progress-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.video-progress-modal__actions button {
+  min-height: 46px;
+}
+
+@keyframes video-progress-backdrop-in {
+  from { opacity: 0; }
+}
+
+@keyframes video-progress-modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(.98); }
+}
+
+@media (max-width: 560px) {
+  .video-progress-modal__backdrop {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .video-progress-modal {
+    width: 100%;
+    max-height: 90dvh;
+    padding: 22px 16px calc(22px + env(safe-area-inset-bottom, 0px));
+    border-radius: 24px 24px 0 0;
+  }
+
+  .video-progress-modal__description {
+    margin-bottom: 24px;
+  }
+
+  .video-progress-modal__status {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .video-progress-modal__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .video-progress-modal__actions button {
+    width: 100%;
+  }
+}
+
+@media (min-width: 561px) and (max-width: 900px) {
+  .video-progress-modal__backdrop { padding-top: 24px; padding-bottom: 24px; }
+  .video-progress-modal { max-height: calc(100dvh - 48px); padding: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-progress-modal__backdrop,
+  .video-progress-modal {
+    animation: none;
+  }
+
+  .video-progress-modal__close {
+    transition-duration: .001ms;
+  }
+}

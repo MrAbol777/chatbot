@@ -1,4 +1,5 @@
 import { ButtonHTMLAttributes, ReactNode } from 'react';
+import Icon from '../../components/Icon';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -39,7 +40,7 @@ function Button({
       aria-busy={loading || undefined}
       className={`ds-button ds-button--${variant} ds-button--${size} ${isIconOnly ? 'ds-button--icon-only' : ''} ${className}`.trim()}
     >
-      {loading ? <span className="ds-button__spinner" aria-hidden="true" /> : null}
+      {loading ? <Icon name="spinner" size="1em" className="ds-button__spinner" aria-hidden="true" /> : null}
       {startIcon ? <span aria-hidden="true">{startIcon}</span> : null}
       {isIconOnly ? null : <span>{loading ? 'در حال انجام...' : children}</span>}
       {endIcon ? <span aria-hidden="true">{endIcon}</span> : null}

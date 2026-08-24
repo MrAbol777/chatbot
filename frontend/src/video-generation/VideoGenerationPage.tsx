@@ -4,6 +4,7 @@ import { formatDecimalFa, multiplyDecimal } from '../noa/decimal';
 import { ACTIVE_GENERATION_HINT_KEY, POLL_DELAYS_MS } from './video-generation.constants';
 import VideoGenerationForm from './VideoGenerationForm';
 import VideoGenerationGallery from './VideoGenerationGallery';
+import VideoGenerationProgressModal from './VideoGenerationProgressModal';
 import VideoGenerationStatus from './VideoGenerationStatus';
 import VideoStyleSelection from './VideoStyleSelection';
 import { videoGenerationService } from './video-generation.service';
@@ -37,6 +38,7 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState('');
   const [active, setActive] = useState<VideoGenerationDetail | null>(null);
+  const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [prompt, setPrompt] = useState('');
@@ -136,7 +138,7 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
         response = await videoGenerationService.createVideoGeneration(input, idempotencyKey.current);
       }
       window.dispatchEvent(new Event('noa:wallet-changed'));
-      idempotencyKey.current = newIdempotencyKey(); saveHint(response.generationId); await loadHistory(); await selectGeneration(response.generationId); setActiveTab('history'); setCreateStep('style');
+      idempotencyKey.current = newIdempotencyKey(); saveHint(response.generationId); await loadHistory(); await selectGeneration(response.generationId); setActiveTab('history'); setCreateStep('style'); setProgressModalOpen(true);
     } catch (error) { setDetailError(error instanceof Error ? error.message : 'درخواست ثبت نشد. تنظیمات و اینترنت را بررسی کنید و دوباره تلاش کنید.'); }
     finally { submitInFlightRef.current = false; setSubmitting(false); }
   };
@@ -163,8 +165,14 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
     <div className="video-generation-workspace">{detailError ? <InlineMessage variant="error" text={detailError} /> : null}{localDemoMode ? <InlineMessage variant={demoComplete ? 'success' : 'help'} text={demoComplete ? 'تست محلی با موفقیت کامل شد؛ هیچ درخواست خارجی ارسال نشد.' : 'حالت تست محلی فعال است؛ فرم و بازبینی قابل آزمایش‌اند و هیچ اعتبار یا API خارجی مصرف نمی‌شود.'} /> : null}
       {activeTab === 'create' ? <>
         {optionsLoading ? <p className="video-loading" role="status">در حال آماده‌سازی استودیو…</p> : optionsError ? <div className="video-form-message"><InlineMessage variant="error" text={optionsError} /><Button variant="secondary" onClick={() => void loadOptions()}>دریافت دوباره</Button></div> : !featureEnabled ? <InlineMessage variant="help" text="پروفایل‌های عمومی ساخت ویدیو هنوز کامل نیستند." /> : routeUnavailable ? <div className="video-form-message"><InlineMessage variant="warning" text="سرویس ساخت ویدیو فعلاً آماده نیست؛ هزینه‌ای از شما کم نمی‌شود. کمی بعد دوباره دریافت کنید." /><Button variant="secondary" onClick={() => void loadOptions()}>بررسی دوباره</Button></div> : createStep === 'style' ? <VideoStyleSelection profiles={profiles} selectedKey={styleKey} onSelect={change(setStyleKey)} onContinue={() => setCreateStep('form')} /> : createStep === 'form' && selectedProfile ? <VideoGenerationForm capability={capability} profile={selectedProfile} featureEnabled={featureEnabled} loading={false} error="" onRetry={() => void loadOptions()} prompt={prompt} setPrompt={change(setPrompt)} aspectRatio={aspectRatio} setAspectRatio={change(setAspectRatio)} duration={duration} setDuration={change(setDuration)} resolution={resolution} setResolution={change(setResolution)} media={media} mediaPreviewUrl={mediaPreviewUrl} mediaFilename={mediaFilename} onMediaFile={(file) => void handleMediaFile(file)} onRemoveMedia={handleRemoveMedia} mediaUploading={mediaUploading} mediaError={mediaError} submitting={submitting} onBack={() => setCreateStep('style')} onReview={() => setCreateStep('review')} /> : selectedProfile && media ? <section className="video-review" aria-labelledby="video-review-title"><span>مرحله ۳ از ۳</span><h2 id="video-review-title">بازبینی درخواست</h2><dl><div><dt>سبک</dt><dd>{selectedProfile.displayName}</dd></div><div><dt>حرکت</dt><dd>{prompt}</dd></div><div><dt>خروجی</dt><dd>{duration} ثانیه · {resolution} · {aspectRatio} · بدون صدا</dd></div><div><dt>هزینه</dt><dd>{localDemoMode ? 'بدون هزینه در تست محلی' : unitPriceNoa ? `${formatDecimalFa(multiplyDecimal(unitPriceNoa, duration))} نوآ` : 'در حال دریافت قیمت'}</dd></div><div><dt>تصویر</dt><dd>{mediaFilename || (localDemoMode ? 'فایل محلی آزمایشی آماده است' : 'فایل خصوصی آماده است')}</dd></div></dl><p>{localDemoMode ? 'این بازبینی فقط برای تست رابط کاربری است و به Provider ارسال نمی‌شود.' : `قیمت هر ثانیه ${formatDecimalFa(unitPriceNoa)} نوآ است و هنگام ثبت از تنظیم زندهٔ پایگاه داده محاسبه می‌شود.`}</p><div><Button variant="secondary" onClick={() => { setDemoComplete(false); setCreateStep('form'); }} disabled={submitting}>ویرایش</Button><Button onClick={() => void handleSubmit()} loading={submitting} disabled={submitting || demoComplete}>{localDemoMode ? demoComplete ? 'تست تکمیل شد' : 'تکمیل تست محلی' : 'ثبت درخواست ساخت ویدیو'}</Button></div></section> : null}
-        {active && !isTerminalVideoStatus(active.status) ? <section className="video-active-status" aria-live="polite"><h2>آخرین درخواست</h2><VideoGenerationStatus status={active.status} live /><span className="video-active-status__elapsed">زمان سپری‌شده: {formatElapsed(active.created_at)}</span>{detailLoading ? <span className="video-loading">در حال دریافت جزئیات…</span> : null}</section> : null}
+        {active ? <section className="video-active-status" aria-live="polite"><h2>آخرین درخواست</h2><VideoGenerationStatus status={active.status} live /><span className="video-active-status__elapsed">زمان سپری‌شده: {formatElapsed(active.created_at)}</span>{detailLoading ? <span className="video-loading">در حال دریافت جزئیات…</span> : null}<Button type="button" variant="secondary" onClick={() => setProgressModalOpen(true)}>نمایش وضعیت ساخت</Button></section> : null}
       </> : <VideoGenerationGallery active={active} error={historyError} items={history} loading={historyLoading} onRetry={() => void loadHistory()} onSelect={(id) => void selectGeneration(id)} selectedId={active?.id} />}
     </div>
+    {progressModalOpen && active ? <VideoGenerationProgressModal
+      generation={active}
+      onClose={() => setProgressModalOpen(false)}
+      onView={() => { setProgressModalOpen(false); setActiveTab('history'); }}
+      onBackToForm={() => { setProgressModalOpen(false); setActiveTab('create'); setCreateStep('form'); }}
+    /> : null}
   </div></main>;
 }

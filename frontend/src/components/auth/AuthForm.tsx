@@ -2,6 +2,8 @@ import React from 'react';
 import { Button, TextField, InlineMessage } from '../../design-system/components';
 import { filterLocalizedDigits } from '../../utils/chatMessages';
 import { LandingStep } from '../../types/chat.types';
+import { PUBLIC_ASSETS } from '../../config/publicAssets';
+import Icon from '../Icon';
 
 interface AuthFormProps {
   includeLanding?: boolean;
@@ -122,7 +124,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       {includeLanding && landingStep === 'landing' ? (
         <form className={`${authCardClass} auth-card--entry`} onSubmit={onRegisterStepOne} data-clarity-mask="true">
           <div className="auth-brand">
-            <span className="auth-logo-mark" aria-hidden="true">د</span>
+            <span className="auth-logo-mark" aria-hidden="true"><img src={PUBLIC_ASSETS.brandMark} alt="" /></span>
             <div>
               <p className="auth-eyebrow">ورود به دانوآ</p>
               <h1>حساب کاربری</h1>
@@ -169,7 +171,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               className="auth-back-btn"
               onClick={onBackToLanding}
             >
-              ← بازگشت
+              <Icon name="chevron-left" size={18} aria-hidden="true" />
+              <span>بازگشت</span>
             </button>
           ) : null}
           <div className="auth-step-row">
@@ -209,7 +212,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             className="auth-back-btn"
             onClick={onBackToStep1}
           >
-            ← بازگشت
+            <Icon name="chevron-left" size={18} aria-hidden="true" />
+            <span>بازگشت</span>
           </button>
           <div className="auth-step-row">
             <span>2</span>
@@ -252,7 +256,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             className="auth-back-btn"
             onClick={onBackToStep2}
           >
-            ← بازگشت
+            <Icon name="chevron-left" size={18} aria-hidden="true" />
+            <span>بازگشت</span>
           </button>
           <div className="auth-step-row">
             <span>3</span>

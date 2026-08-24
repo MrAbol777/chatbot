@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fetchProtectedImageBlobUrl, GalleryImage } from './services/imageGeneration';
+import Icon from './components/Icon';
 import './ImageViewer.css';
 
 interface ImageViewerProps {
@@ -254,7 +255,7 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
           <button className="image-viewer-btn" type="button" onClick={() => { onDownload(item); }} aria-label="دانلود تصویر" title="دانلود">
             <svg viewBox="0 0 24 24"><path d="M12 15l-4-4h3V4h2v7h3l-4 4Zm-7 4v2h14v-2H5Z" /></svg>
           </button>
-          <button className="image-viewer-btn image-viewer-close" type="button" onClick={onClose} aria-label="بستن" title="بستن">×</button>
+          <button className="image-viewer-btn image-viewer-close" type="button" onClick={onClose} aria-label="بستن" title="بستن"><Icon name="x-close" size={18} aria-hidden="true" /></button>
         </div>
         <div
           ref={stageRef}
@@ -271,7 +272,7 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
         >
           {loading && (
             <div className="image-viewer-loading" aria-label="در حال بارگذاری تصویر">
-              <span className="image-viewer-spinner" />
+              <Icon name="spinner" size={36} className="image-viewer-spinner" aria-hidden="true" />
               <span>در حال بارگذاری...</span>
             </div>
           )}

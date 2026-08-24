@@ -202,7 +202,7 @@
 
 /* Pricing */
 .landing-pricing-status { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; margin: -12px auto 20px; color: var(--landing-muted); font-size: .84rem; }
-.landing-spinner { width: 16px; height: 16px; border: 2px solid color-mix(in srgb, var(--landing-primary) 20%, transparent); border-top-color: var(--landing-primary); border-radius: 50%; animation: landing-spin 800ms linear infinite; }
+.landing-spinner { width: 16px; height: 16px; display: block; flex: 0 0 auto; color: var(--landing-primary); stroke-width: 1.8; animation: landing-spin 800ms linear infinite; }
 @keyframes landing-spin { to { transform: rotate(1turn); } }
 .landing-noa-error { margin: -4px auto 20px; color: var(--color-danger, #ba1a1a); text-align: center; font-size: .84rem; }
 .landing-plans { display: grid; grid-template-columns: 1fr; gap: 14px; }
