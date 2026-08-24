@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Button, TextField, InlineMessage } from '../../design-system/components';
-import { filterLocalizedDigits } from '../../utils/chatMessages';
+import { filterLocalizedDigits, normalizeLocalizedDigits } from '../../utils/chatMessages';
 import { LandingStep } from '../../types/chat.types';
 import { PUBLIC_ASSETS } from '../../config/publicAssets';
 import Icon from '../Icon';
+import './AuthForm.css';
+
+type VerificationNoticeVariant = 'error' | 'success' | 'warning' | 'info';
 
 interface AuthFormProps {
   includeLanding?: boolean;
@@ -22,6 +25,7 @@ interface AuthFormProps {
   phone: string;
   verificationCode: string;
   verificationNotice?: string;
+  verificationNoticeVariant?: VerificationNoticeVariant;
   name: string;
   age: string;
   errors: Record<string, string | undefined>;
@@ -31,6 +35,7 @@ interface AuthFormProps {
   onAgeChange: (age: string) => void;
   onRegisterStepOne: (event: React.FormEvent) => void;
   onVerifyCode: (event: React.FormEvent) => void;
+  onResendVerification: () => void;
   onCompleteProfile: (event: React.FormEvent) => void;
   onBackToLanding: () => void;
   onBackToStep1: () => void;
@@ -52,6 +57,8 @@ const authNoticeMessage = (notice?: string): { text: string; variant: 'info' | '
   return { text: notice, variant: 'warning' };
 };
 
+const toPersianDigits = (value: number | string) => String(value).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]);
+
 export const AuthForm: React.FC<AuthFormProps> = ({
   includeLanding = true,
   landingStep,
@@ -69,6 +76,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   phone,
   verificationCode,
   verificationNotice,
+  verificationNoticeVariant = 'info',
   name,
   age,
   errors,
@@ -78,21 +86,37 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   onAgeChange,
   onRegisterStepOne,
   onVerifyCode,
+  onResendVerification,
   onCompleteProfile,
   onBackToLanding,
   onBackToStep1,
   onBackToStep2,
   onStartViana
 }) => {
+  const verificationCodeInputRef = useRef<HTMLInputElement>(null);
   const authCardClass = `register-card auth-card ${authTransition === 'back' ? 'slide-back' : 'slide-forward'}`;
   const authActionText = isCheckingPhone
     ? 'در حال بررسی شماره...'
     : isSendingVerification
       ? 'در حال ارسال کد...'
       : verificationRetrySeconds > 0
-        ? `تلاش دوباره تا ${verificationRetrySeconds} ثانیه`
-        : 'ادامه با کد تایید';
+        ? `تلاش دوباره تا ${toPersianDigits(verificationRetrySeconds)} ثانیه`
+        : 'دریافت کد تأیید';
   const notice = authNoticeMessage(vianaNotice);
+
+  useEffect(() => {
+    if (registrationStep !== 2) return;
+    const frame = window.requestAnimationFrame(() => verificationCodeInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [registrationStep]);
+
+  const maskPhone = (value: string) => {
+    const normalized = normalizeLocalizedDigits(value).replace(/\D/g, '');
+    if (normalized.length < 8) return value || '09XXXXXXXXX';
+    return `${normalized.slice(0, 4)} *** ${normalized.slice(-4)}`;
+  };
+
+  const progressLabel = (step: number, total = 2) => `مرحله ${step} از ${total}`;
 
   const renderVianaAction = () => (
     <div className="viana-auth-section">
@@ -111,7 +135,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             disabled={vianaRedirecting || isSendingVerification || isCheckingPhone || isVerifyingCode}
             onClick={onStartViana}
           >
-            ورود با Viana
+            ورود با حساب Viana
           </Button>
         </>
       ) : null}
@@ -122,29 +146,34 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   return (
     <>
       {includeLanding && landingStep === 'landing' ? (
-        <form className={`${authCardClass} auth-card--entry`} onSubmit={onRegisterStepOne} data-clarity-mask="true">
+        <form
+          className={`${authCardClass} auth-card--entry`}
+          onSubmit={onRegisterStepOne}
+          data-clarity-mask="true"
+          aria-busy={isCheckingPhone || isSendingVerification}
+        >
           <div className="auth-brand">
             <span className="auth-logo-mark" aria-hidden="true"><img src={PUBLIC_ASSETS.brandMark} alt="" /></span>
             <div>
-              <p className="auth-eyebrow">ورود به دانوآ</p>
-              <h1>حساب کاربری</h1>
+              <p className="auth-eyebrow">دانوآ</p>
+              <h1>ورود یا ساخت حساب</h1>
             </div>
           </div>
-          <p className="subtitle">
-            شماره موبایل را وارد کن؛ اگر قبلاً حساب داشته باشی وارد همان گفتگوها می‌شوی، و اگر تازه باشی بعد از تایید کد فقط اسم و سن را می‌پرسیم.
-          </p>
+          <p className="subtitle">شماره موبایلت را وارد کن. کد تأیید را برایت پیامک می‌کنیم.</p>
 
           <TextField
             label="شماره موبایل"
             value={phone}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => onPhoneChange(filterLocalizedDigits(event.target.value))}
-            placeholder="09123456789"
+            placeholder="مثال: ۰۹۱۲۳۴۵۶۷۸۹"
             type="tel"
             inputMode="numeric"
+            enterKeyHint="next"
+            dir="ltr"
             pattern="[0-9۰-۹٠-٩]*"
             maxLength={11}
             autoComplete="tel"
-            helperText="کد تایید برای همین شماره پیامک می‌شود."
+            helperText="کد تأیید به همین شماره ارسال می‌شود."
             errorText={errors.phone}
           />
 
@@ -157,42 +186,49 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           </Button>
           {renderVianaAction()}
 
-          <p className="helper onboarding-help">
+          <p className="helper onboarding-help" role="note">
             {hasSavedAccount
-              ? 'روی این مرورگر قبلاً حساب ذخیره شده؛ با همان شماره وارد شو.'
-              : 'برای استفاده از چت، تصویر و ویدئو باید وارد حساب کاربری شوی.'}
+              ? 'در این مرورگر یک حساب ذخیره شده است؛ برای بازیابی گفتگوها همان شماره را وارد کن.'
+              : 'با ورود به حساب، گفتگوها و ابزارهای دانوآ در دسترس قرار می‌گیرند.'}
           </p>
         </form>
       ) : registrationStep === 1 ? (
-        <form className={authCardClass} onSubmit={onRegisterStepOne} data-clarity-mask="true">
+        <form
+          className={authCardClass}
+          onSubmit={onRegisterStepOne}
+          data-clarity-mask="true"
+          aria-busy={isCheckingPhone || isSendingVerification}
+        >
           {includeLanding ? (
             <button
               type="button"
               className="auth-back-btn"
               onClick={onBackToLanding}
             >
-              <Icon name="chevron-left" size={18} aria-hidden="true" />
+              <Icon name="chevron-right" size={18} aria-hidden="true" />
               <span>بازگشت</span>
             </button>
           ) : null}
-          <div className="auth-step-row">
-            <span>1</span>
-            <p>شماره موبایل</p>
+          <div className="auth-step-row" aria-label={progressLabel(1)}>
+            <span>۱</span>
+            <p>{progressLabel(1)}</p>
           </div>
           <h1>ورود یا ساخت حساب</h1>
-          <p className="subtitle">شماره را وارد کن تا کد تایید بفرستیم. دانوآ خودش تشخیص می‌دهد حساب قبلی داری یا نه.</p>
+          <p className="subtitle">شماره موبایلت را وارد کن تا کد تأیید را برایت ارسال کنیم.</p>
 
           <TextField
             label="شماره موبایل"
             value={phone}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => onPhoneChange(filterLocalizedDigits(event.target.value))}
-            placeholder="09123456789"
+            placeholder="مثال: ۰۹۱۲۳۴۵۶۷۸۹"
             type="tel"
             inputMode="numeric"
+            enterKeyHint="next"
+            dir="ltr"
             pattern="[0-9۰-۹٠-٩]*"
             maxLength={11}
             autoComplete="tel"
-            helperText="فرمت معتبر: 09XXXXXXXXX"
+            helperText="شماره باید با ۰۹ شروع شود و ۱۱ رقم داشته باشد."
             errorText={errors.phone}
           />
 
@@ -206,46 +242,67 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           {renderVianaAction()}
         </form>
       ) : registrationStep === 2 ? (
-        <form className={authCardClass} onSubmit={onVerifyCode} data-clarity-mask="true">
+        <form className={authCardClass} onSubmit={onVerifyCode} data-clarity-mask="true" aria-busy={isVerifyingCode || isSendingVerification}>
           <button
             type="button"
             className="auth-back-btn"
             onClick={onBackToStep1}
           >
-            <Icon name="chevron-left" size={18} aria-hidden="true" />
+            <Icon name="chevron-right" size={18} aria-hidden="true" />
             <span>بازگشت</span>
           </button>
-          <div className="auth-step-row">
-            <span>2</span>
-            <p>تایید شماره</p>
+          <div className="auth-step-row" aria-label={progressLabel(2)}>
+            <span>۲</span>
+            <p>{progressLabel(2)}</p>
           </div>
-          <h1>کد تایید</h1>
-          <p className="subtitle">کدی که برای شماره زیر پیامک شده را وارد کن.</p>
-          {verificationNotice ? <InlineMessage text={verificationNotice} variant="warning" /> : null}
-          <p className="auth-phone-badge" dir="ltr">{phone || '09XXXXXXXXX'}</p>
+          <h1>کد تأیید</h1>
+          <p className="subtitle">کدی را که به شماره زیر پیامک شده وارد کن.</p>
+          {verificationNotice ? <InlineMessage text={verificationNotice} variant={verificationNoticeVariant} /> : null}
+          <div className="auth-phone-badge">
+            <span>ارسال به</span>
+            <bdi dir="ltr">{maskPhone(phone)}</bdi>
+          </div>
 
           <TextField
+            ref={verificationCodeInputRef}
             label="کد تایید"
             value={verificationCode}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => onVerificationCodeChange(filterLocalizedDigits(event.target.value))}
-            placeholder="12345"
+            placeholder="مثال: ۱۲۳۴۵"
             type="tel"
             inputMode="numeric"
+            enterKeyHint="done"
+            dir="ltr"
             maxLength={6}
             autoComplete="one-time-code"
+            helperText="کد ۴ تا ۶ رقمی را بدون فاصله وارد کن."
             errorText={errors.code}
           />
 
-          <div className="ds-auth-actions">
+          <div className="auth-resend-row" aria-live="polite">
+            <span>کد را دریافت نکردی؟</span>
             <Button
               type="button"
-              variant="danger"
-              onClick={onBackToStep1}
+              variant="ghost"
+              size="sm"
+              className="auth-resend-button"
+              disabled={isSendingVerification || verificationRetrySeconds > 0}
+              onClick={onResendVerification}
             >
-              تغییر شماره
+              {isSendingVerification
+                ? 'در حال ارسال...'
+                : verificationRetrySeconds > 0
+                  ? `ارسال دوباره تا ${toPersianDigits(verificationRetrySeconds)} ثانیه`
+                  : 'ارسال دوباره'}
             </Button>
-            <Button type="submit" className="start-btn" disabled={isVerifyingCode}>
-              {isVerifyingCode ? 'در حال بررسی...' : 'تأیید'}
+          </div>
+
+          <div className="ds-auth-actions">
+            <Button type="submit" className="start-btn" disabled={isVerifyingCode} loading={isVerifyingCode}>
+              تأیید و ورود
+            </Button>
+            <Button type="button" variant="secondary" className="auth-secondary-action" onClick={onBackToStep1}>
+              ویرایش شماره
             </Button>
           </div>
         </form>
@@ -256,22 +313,25 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             className="auth-back-btn"
             onClick={onBackToStep2}
           >
-            <Icon name="chevron-left" size={18} aria-hidden="true" />
+            <Icon name="chevron-right" size={18} aria-hidden="true" />
             <span>بازگشت</span>
           </button>
-          <div className="auth-step-row">
-            <span>3</span>
-            <p>تکمیل حساب</p>
+          <div className="auth-step-row" aria-label="مرحله ۳ از ۳">
+            <span>۳</span>
+            <p>مرحله ۳ از ۳</p>
           </div>
-          <h1>اطلاعات کودک</h1>
+          <h1>ساخت حساب</h1>
           <p className="subtitle">این شماره قبلاً در دانوآ ثبت نشده بود. برای ساخت حساب، اسم و سن کودک را وارد کن.</p>
-          <p className="auth-phone-badge" dir="ltr">{phone}</p>
+          <div className="auth-phone-badge">
+            <span>شماره تأییدشده</span>
+            <bdi dir="ltr">{maskPhone(phone)}</bdi>
+          </div>
 
           <TextField
             label="اسم کودک"
             value={name}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => onNameChange(event.target.value)}
-            placeholder="مثلا: علی"
+            placeholder="مثلاً: علی"
             type="text"
             autoComplete="name"
             errorText={errors.name}
@@ -281,7 +341,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             label="سن کودک"
             value={age}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => onAgeChange(filterLocalizedDigits(event.target.value))}
-            placeholder="فقط عدد"
+            placeholder="مثلاً: ۱۲"
             type="text"
             inputMode="numeric"
             pattern="[0-9۰-۹٠-٩]*"
@@ -289,8 +349,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             errorText={errors.age}
           />
 
-          <Button type="submit" className="start-btn" disabled={isCompletingProfile}>
-            {isCompletingProfile ? 'در حال ذخیره...' : 'ورود به دانوآ'}
+          <Button type="submit" className="start-btn" disabled={isCompletingProfile} loading={isCompletingProfile}>
+            ساخت حساب و ورود
           </Button>
         </form>
       )}

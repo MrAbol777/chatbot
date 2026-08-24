@@ -542,6 +542,7 @@ function ChatApp() {
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [verificationRetrySeconds, setVerificationRetrySeconds] = useState(0);
   const [verificationNotice, setVerificationNotice] = useState('');
+  const [verificationNoticeVariant, setVerificationNoticeVariant] = useState<'error' | 'success' | 'warning' | 'info'>('info');
   const [errors, setErrors] = useState<{ name?: string; age?: string; phone?: string; code?: string }>({});
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -1094,6 +1095,9 @@ function ChatApp() {
     setLandingStep(mode);
     setErrors({});
     setVerificationCode('');
+    setVerificationNotice('');
+    setVerificationNoticeVariant('info');
+    setVerificationRetrySeconds(0);
     setSignupToken('');
   };
 
@@ -1823,7 +1827,7 @@ function ChatApp() {
     const nextErrors: { phone?: string } = {};
 
     if (!PERSIAN_PHONE_REGEX.test(normalizedPhone)) {
-      nextErrors.phone = 'شماره والد باید با 09 شروع شود و 11 رقم باشد.';
+      nextErrors.phone = 'شماره موبایل باید با ۰۹ شروع شود و ۱۱ رقم داشته باشد.';
     }
 
     setErrors(nextErrors);
@@ -1844,6 +1848,8 @@ function ChatApp() {
       const delivery = await sendVerificationCode(normalizedPhone, nextAuthMode);
 
       setVerificationCode('');
+      setVerificationRetrySeconds(60);
+      setVerificationNoticeVariant(delivery.deliveryStatus === 'uncertain' ? 'warning' : 'info');
       setVerificationNotice(
         delivery.deliveryStatus === 'uncertain'
           ? 'ارسال پیامک هنوز از طرف سرویس تأیید نشده است. اگر کد را دریافت کردی همین‌جا واردش کن؛ فعلاً کد دیگری خودکار ارسال نمی‌کنیم.'
@@ -1868,6 +1874,43 @@ function ChatApp() {
     }
   };
 
+  const handleResendVerification = async () => {
+    const normalizedPhone = normalizePhoneInput(phone);
+    if (isSendingVerification || verificationRetrySeconds > 0 || !PERSIAN_PHONE_REGEX.test(normalizedPhone)) {
+      return;
+    }
+
+    setIsSendingVerification(true);
+    setVerificationNotice('');
+    setVerificationNoticeVariant('info');
+    setErrors((current) => ({ ...current, code: undefined }));
+
+    try {
+      const delivery = await sendVerificationCode(normalizedPhone, authMode);
+      setVerificationCode('');
+      setVerificationRetrySeconds(60);
+      setVerificationNotice(
+        delivery.deliveryStatus === 'uncertain'
+          ? 'ارسال پیامک هنوز از طرف سرویس تأیید نشده است. اگر کد را دریافت کردی، همان را وارد کن.'
+          : 'کد جدید ارسال شد. صندوق پیامک‌هایت را بررسی کن.'
+      );
+      setVerificationNoticeVariant(delivery.deliveryStatus === 'uncertain' ? 'warning' : 'success');
+    } catch (error) {
+      const requestError = error as ApiError;
+      if (requestError.status === 429) {
+        setVerificationRetrySeconds(requestError.retryAfterSeconds || 60);
+      }
+      setVerificationNotice(
+        error instanceof Error && error.message.trim()
+          ? error.message
+          : 'ارسال کد جدید انجام نشد. چند لحظه بعد دوباره تلاش کن.'
+      );
+      setVerificationNoticeVariant('error');
+    } finally {
+      setIsSendingVerification(false);
+    }
+  };
+
   const handleVerifyCode = async (event: FormEvent) => {
     event.preventDefault();
 
@@ -1877,8 +1920,10 @@ function ChatApp() {
 
     const normalizedCode = normalizeLocalizedDigits(trimmedCode).replace(/\D/g, '');
 
+    setVerificationNotice('');
+    setVerificationNoticeVariant('info');
     if (!/^[0-9]{4,6}$/.test(normalizedCode)) {
-      nextErrors.code = 'کد تایید باید 4 تا 6 رقم باشد.';
+      nextErrors.code = 'کد تأیید باید بین ۴ تا ۶ رقم باشد.';
     }
 
     setErrors(nextErrors);
@@ -2941,7 +2986,7 @@ notify.error(message);
       isCheckingPhone={isCheckingPhone}
       isSendingVerification={isSendingVerification}
       isVerifyingCode={isVerifyingCode}
-      isCompletingProfile={false}
+      isCompletingProfile={isVerifyingCode && registrationStep === 3}
       verificationRetrySeconds={verificationRetrySeconds}
       vianaEnabled={vianaEnabled}
       vianaRedirecting={vianaRedirecting}
@@ -2950,12 +2995,15 @@ notify.error(message);
       phone={phone}
       verificationCode={verificationCode}
       verificationNotice={verificationNotice}
+      verificationNoticeVariant={verificationNoticeVariant}
       name={name}
       age={age}
       errors={errors}
       onPhoneChange={(val) => {
         setPhone(val);
         setVerificationRetrySeconds(0);
+        setVerificationNotice('');
+        setVerificationNoticeVariant('info');
         setErrors((current) => ({ ...current, phone: undefined }));
       }}
       onVerificationCodeChange={(val) => setVerificationCode(val)}
@@ -2963,18 +3011,23 @@ notify.error(message);
       onAgeChange={(val) => setAge(val)}
       onRegisterStepOne={handleRegisterStepOne}
       onVerifyCode={handleVerifyCode}
+      onResendVerification={handleResendVerification}
       onCompleteProfile={handleCompleteProfile}
       onBackToLanding={() => {
         setAuthTransition('back');
         setLandingStep('landing');
         setErrors({});
         setSignupToken('');
+        setVerificationRetrySeconds(0);
+        setVerificationNoticeVariant('info');
         setVerificationNotice('');
       }}
       onBackToStep1={() => {
         setRegistrationStep(1);
         setVerificationCode('');
+        setVerificationRetrySeconds(0);
         setVerificationNotice('');
+        setVerificationNoticeVariant('info');
         setErrors({});
       }}
       onBackToStep2={() => {
