@@ -40,7 +40,7 @@ export type VideoGenerationListItem = {
 };
 export type VideoGenerationDetail = VideoGenerationListItem & { result_storage_key?: never; provider_job_id?: never; provider?: never };
 export type VideoGenerationPagination = { nextCursor: string | null };
-export type VideoSubmitInput = { mode: VideoGenerationMode | 'image_to_video'; styleKey: string; mediaId: string; prompt: string; aspectRatio: string; duration: string; resolution: string };
+export type VideoSubmitInput = { mode: VideoGenerationMode | 'image_to_video' | 'text_to_video'; styleKey: string; mediaId?: string; prompt: string; aspectRatio: string; duration: string; resolution: string };
 export type VideoInputMedia = { mediaId: string; mimeType: string; sizeBytes: number };
 export type VideoGenerationErrorCode =
   | 'VIDEO_GENERATION_DISABLED' | 'VIDEO_MODEL_NOT_AVAILABLE' | 'VIDEO_GENERATION_MODEL_UNAVAILABLE'

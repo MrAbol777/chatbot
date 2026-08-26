@@ -117,12 +117,26 @@ export default function VideoGenerationProgressModal({ generation, onClose, onVi
 
       <p id="video-progress-description" className="video-progress-modal__description" aria-live="polite">{presentation.description}</p>
 
-      <GenerationStepper steps={VIDEO_PROGRESS_STEPS} currentStep={presentation.currentStep} state={presentation.state} ariaLabel="مراحل واقعی ساخت ویدیو" />
+      <section className="video-progress-modal__status" aria-label="وضعیت کنونی درخواست">
+        <div className="video-progress-modal__status-copy" aria-live="polite">
+          <span>وضعیت کنونی</span>
+          <VideoGenerationStatus status={generation.status} live />
+        </div>
+        <dl className="video-progress-modal__meta">
+          <div>
+            <dt>زمان سپری‌شده</dt>
+            <dd>{formatElapsed(generation.created_at)}</dd>
+          </div>
+        </dl>
+      </section>
 
-      <div className="video-progress-modal__status" aria-live="polite">
-        <VideoGenerationStatus status={generation.status} live />
-        <span>زمان سپری‌شده: {formatElapsed(generation.created_at)}</span>
-      </div>
+      <section className="video-progress-modal__progress-card" aria-label="روند ساخت ویدیو">
+        <div className="video-progress-modal__section-heading">
+          <span>روند ساخت</span>
+          <strong>مرحله {presentation.currentStep + 1} از {VIDEO_PROGRESS_STEPS.length}</strong>
+        </div>
+        <GenerationStepper compact steps={VIDEO_PROGRESS_STEPS} currentStep={presentation.currentStep} state={presentation.state} ariaLabel="مراحل واقعی ساخت ویدیو" />
+      </section>
 
       {errorMessage ? <div className="video-progress-modal__error" role="alert"><strong>{statusLabel[normalizedStatus] || 'خطای ساخت ویدیو'}</strong><span>{errorMessage}</span></div> : null}
 

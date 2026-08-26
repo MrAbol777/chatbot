@@ -251,6 +251,16 @@ async function applyGrokImageToVideoOptionsMigration(connection) {
   await connection.query(sql);
 }
 
+async function applyGrokTextToVideoMigration(connection) {
+  const sql = fs.readFileSync(path.join(__dirname, '../migrations/047_grok_text_to_video.sql'), 'utf8');
+  await connection.query(sql);
+}
+
+async function applyGrokTextToVideoOptionsMigration(connection) {
+  const sql = fs.readFileSync(path.join(__dirname, '../migrations/048_grok_text_to_video_options.sql'), 'utf8');
+  await connection.query(sql);
+}
+
 async function main() {
   const value = String(process.env.DATABASE_URL || '').trim();
   if (!value.startsWith('mysql://')) throw new Error('DATABASE_URL must point to local MySQL.');
@@ -268,7 +278,9 @@ async function main() {
     await applyVideoPromptProfilesMigration(connection);
     await applyGrokImageToVideoPinMigration(connection);
     await applyGrokImageToVideoOptionsMigration(connection);
-    console.log('Video generation migrations 026 through 037 applied locally.');
+    await applyGrokTextToVideoMigration(connection);
+    await applyGrokTextToVideoOptionsMigration(connection);
+    console.log('Video generation migrations 026 through 048 applied locally.');
   } finally { await connection.end(); }
 }
 if (require.main === module) {
@@ -286,5 +298,7 @@ module.exports = {
   applyAiRoutingSeedMigration,
   applyVideoPromptProfilesMigration,
   applyGrokImageToVideoPinMigration,
+  applyGrokTextToVideoMigration,
+  applyGrokTextToVideoOptionsMigration,
   main
 };

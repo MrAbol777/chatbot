@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createBananaAiVideoProvider, classifyBananaSubmissionError } = require('../providers/bananaai-video.provider');
-const { BANANAAI_VIDEO_MODEL_REGISTRATIONS, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID, BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY } = require('../video-model.registry');
+const { BANANAAI_VIDEO_MODEL_REGISTRATIONS, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID, BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY, BANANAAI_TEXT_TO_VIDEO_MODEL_KEY } = require('../video-model.registry');
 
 function mockHttp({ postResult, getResult } = {}) {
   const calls = [];
@@ -17,7 +17,7 @@ function mockHttp({ postResult, getResult } = {}) {
 function input(overrides = {}) {
   return {
     capability: 'video.text_to_video', providerModelId: 'grok-imagine-video', prompt: 'A calm sea', duration: 5,
-    resolution: '720p', aspectRatio: '16:9', generateAudio: false, ...overrides
+    resolution: '480p', aspectRatio: '16:9', generateAudio: false, ...overrides
   };
 }
 
@@ -30,7 +30,7 @@ test('BananaAI T2V uses only the documented endpoint and JSON fields', async () 
   assert.deepEqual(result, { providerJobId: 'task_fixture', status: 'submitted', creditsReserved: 12 });
   const [, url, payload, config] = httpClient.calls[0];
   assert.equal(url, 'https://bananaai.ir/api/v1/videos/generations');
-  assert.deepEqual(payload, { model: 'grok-imagine-video', prompt: 'A calm sea', duration: 5, resolution: '720p', aspect_ratio: '16:9' });
+  assert.deepEqual(payload, { model: 'grok-imagine-video', prompt: 'A calm sea', duration: 5, resolution: '480p', aspect_ratio: '16:9' });
   assert.equal(config.headers.Authorization, 'Bearer fixture-key');
   assert.equal(config.maxRedirects, 0);
   assert.equal(config.httpsAgent.options.family, 4);
@@ -66,15 +66,20 @@ test('BananaAI I2V sends an owned gateway URL as image_urls', async () => {
   assert.deepEqual(httpClient.calls[0][2].image_urls, ['https://media.example.test/api/video-provider-input/opaque']);
 });
 
-test('the product registry exposes exactly one active private I2V model and it is Grok', () => {
+test('the product registry keeps independent private Grok registrations for T2V and I2V', () => {
   const active = BANANAAI_VIDEO_MODEL_REGISTRATIONS.filter((model) => model.isActive);
-  assert.equal(active.length, 1);
-  assert.equal(active[0].internalKey, BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY);
-  assert.equal(active[0].providerModelId, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID);
-  assert.equal(active[0].isPublic, false);
-  assert.deepEqual(active[0].allowedDurations, Array.from({ length: 15 }, (_, index) => index + 1));
-  assert.deepEqual(active[0].allowedAspectRatios, ['16:9', '9:16', '1:1']);
-  assert.deepEqual(active[0].allowedResolutions, ['480p']);
+  assert.equal(active.length, 2);
+  const i2v = active.find((model) => model.internalKey === BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY);
+  const t2v = active.find((model) => model.internalKey === BANANAAI_TEXT_TO_VIDEO_MODEL_KEY);
+  assert.equal(i2v.providerModelId, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID);
+  assert.equal(i2v.isPublic, false);
+  assert.deepEqual(i2v.allowedDurations, Array.from({ length: 15 }, (_, index) => index + 1));
+  assert.deepEqual(i2v.allowedResolutions, ['480p']);
+  assert.equal(t2v.providerModelId, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID);
+  assert.equal(t2v.supportsImageToVideo, false);
+  assert.deepEqual(t2v.allowedDurations, Array.from({ length: 15 }, (_, index) => index + 1));
+  assert.deepEqual(t2v.allowedAspectRatios, ['16:9', '9:16', '1:1']);
+  assert.deepEqual(t2v.allowedResolutions, ['480p']);
 });
 
 test('BananaAI refuses undocumented negative prompt and arbitrary missing I2V media', async () => {

@@ -1,7 +1,8 @@
 const { createHash, randomUUID } = require('crypto');
 const { fail } = require('./video-generation.errors');
 const { validateSubmit } = require('./video-generation.schemas');
-const { BANANAAI_IMAGE_TO_VIDEO_MODEL_ID } = require('./video-model.registry');
+const { BANANAAI_IMAGE_TO_VIDEO_MODEL_ID, BANANAAI_TEXT_TO_VIDEO_MODEL_ID, BANANAAI_TEXT_TO_VIDEO_MODEL_KEY } = require('./video-model.registry');
+const { compileTextToVideoPrompt } = require('./text-to-video-prompt-compiler');
 function hash(value) { return createHash('sha256').update(value).digest('hex'); }
 function jsonArray(value) { if (Array.isArray(value)) return value; try { const parsed = JSON.parse(value || '[]'); return Array.isArray(parsed) ? parsed : []; } catch (_) { return []; } }
 function modelDto(model) { return { internalKey:model.internal_key, displayNameFa:model.display_name_fa, displayName:model.display_name || null, descriptionFa:model.description_fa, supportsTextToVideo:Boolean(model.supports_text_to_video), supportsImageToVideo:Boolean(model.supports_image_to_video), supportsNegativePrompt:Boolean(model.supports_negative_prompt), supportsAudio:Boolean(model.supports_audio), allowedAspectRatios:jsonArray(model.allowed_aspect_ratios), allowedDurations:jsonArray(model.allowed_durations).map(String), allowedQualities:jsonArray(model.allowed_qualities), allowedResolutions:jsonArray(model.allowed_resolutions), maxPromptLength:model.max_prompt_length == null ? null : Number(model.max_prompt_length) }; }
@@ -102,7 +103,7 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
         }
       }
       const promptProfiles = promptProfileRepository ? await promptProfileRepository.listPublic() : [];
-      return { enabled: Boolean(capabilities['video.image_to_video']), models: [], capabilities, readiness, promptProfiles, pricing };
+      return { enabled: Boolean(capabilities['video.text_to_video']), models: [], capabilities, readiness, promptProfiles, pricing };
     },
     list: async (userId) => (await repository.listForUser(userId)).map(jobDto),
     get: async (id,userId) => jobDto(await repository.getForUser(id,userId)),
@@ -120,6 +121,7 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
         if (data.mode === 'image-to-video' && !data.mediaId) throw fail('VIDEO_INPUT_MEDIA_REQUIRED','تصویر ورودی الزامی است.',409);
         const snapshot = await routeResolver.resolve(capability, { input: data });
         if (capability === 'video.image_to_video' && (snapshot.providerKey !== 'bananaai' || snapshot.providerModelId !== BANANAAI_IMAGE_TO_VIDEO_MODEL_ID)) throw fail('VIDEO_GENERATION_MODEL_UNAVAILABLE','مسیر ساخت ویدیو از تصویر باید روی مدل Grok تنظیم شود.',503);
+        if (capability === 'video.text_to_video' && (snapshot.providerKey !== 'bananaai' || snapshot.providerModelId !== BANANAAI_TEXT_TO_VIDEO_MODEL_ID || snapshot.internalModelKey !== BANANAAI_TEXT_TO_VIDEO_MODEL_KEY)) throw fail('VIDEO_GENERATION_MODEL_UNAVAILABLE','مسیر ساخت ویدیو از متن باید روی مدل Grok تنظیم شود.',503);
         if (data.modelKey && data.modelKey !== snapshot.internalModelKey) throw fail('VIDEO_GENERATION_MODEL_ROUTE_MISMATCH','مدل انتخاب‌شده با مسیر فعال سازگار نیست.',409);
         const model = await repository.getModel(snapshot.internalModelKey);
         if (!model) throw fail('VIDEO_GENERATION_MODEL_UNAVAILABLE','مدل انتخاب‌شده فعال نیست.',409);
@@ -131,6 +133,14 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
           if (!profile) throw fail('VIDEO_PROMPT_PROFILE_UNAVAILABLE','سبک ساخت ویدیو فعال یا عمومی نیست.',409);
           const compiledPromptLimit = model.max_prompt_length == null ? 2000 : Math.min(2000, Number(model.max_prompt_length));
           promptSnapshot = promptCompiler.compile({ profile, userPrompt: data.prompt, settings: { duration:data.duration,resolution:data.resolution,aspectRatio:data.aspectRatio,generateAudio:data.generateAudio }, maxCompiledPromptLength: compiledPromptLimit });
+          promptSnapshot.profileId = profile.id;
+          promptSnapshot.profileVersionId = profile.current_version_id;
+        } else {
+          if (!data.styleKey || !promptProfileRepository) throw fail('VIDEO_PROMPT_PROFILE_REQUIRED','سبک ساخت ویدیو الزامی است.',409);
+          const profile = await promptProfileRepository.getCurrentByKey(data.styleKey, { publicOnly: true });
+          if (!profile) throw fail('VIDEO_PROMPT_PROFILE_UNAVAILABLE','سبک ساخت ویدیو فعال یا عمومی نیست.',409);
+          const compiledPromptLimit = model.max_prompt_length == null ? 2000 : Math.min(2000, Number(model.max_prompt_length));
+          promptSnapshot = compileTextToVideoPrompt({ profile, userPrompt: data.prompt, settings: { duration:data.duration,resolution:data.resolution,aspectRatio:data.aspectRatio }, maxCompiledPromptLength: compiledPromptLimit });
           promptSnapshot.profileId = profile.id;
           promptSnapshot.profileVersionId = profile.current_version_id;
         }

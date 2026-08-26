@@ -3,27 +3,23 @@
   z-index: var(--z-modal);
   inset: 0;
   display: grid;
-  place-items: start center;
-  padding: clamp(18px, 4vh, 48px) clamp(12px, 3vw, 32px) 32px;
+  place-items: center;
+  padding: clamp(16px, 4vh, 48px) clamp(12px, 3vw, 32px);
   background: color-mix(in srgb, #07040f 58%, transparent);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
   animation: video-progress-backdrop-in 180ms ease-out both;
 }
 
 .video-progress-modal {
-  width: min(100%, 720px);
+  width: min(100%, 640px);
   max-height: calc(100dvh - 64px);
   overflow: auto;
   overscroll-behavior: contain;
-  padding: clamp(22px, 3vw, 34px);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
-  border-radius: 28px;
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
   color: var(--color-text);
-  background:
-    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 34%),
-    linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 98%, white), var(--color-surface));
-  box-shadow: 0 22px 68px color-mix(in srgb, #000 38%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-primary) 10%, transparent) inset;
+  background: var(--color-surface);
+  box-shadow: 0 22px 68px color-mix(in srgb, #000 38%, transparent);
   animation: video-progress-modal-in 260ms cubic-bezier(.22, 1, .36, 1) both;
 }
 
@@ -46,6 +42,7 @@
   margin: 0;
   font-size: clamp(1.25rem, 3vw, 1.72rem);
   line-height: 1.45;
+  text-wrap: balance;
 }
 
 .video-progress-modal__close {
@@ -85,31 +82,76 @@
 }
 
 .video-progress-modal__description {
-  margin: 10px 0 28px;
+  margin: 10px 0 20px;
   color: var(--color-muted);
-  font-size: .88rem;
+  font-size: .9rem;
   line-height: 1.85;
-}
-
-.video-progress-modal > .generation-stepper {
-  margin-block: 8px 30px;
+  text-wrap: pretty;
 }
 
 .video-progress-modal__status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface-2);
+}
+
+.video-progress-modal__status-copy {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.video-progress-modal__status-copy > span:first-child,
+.video-progress-modal__meta dt,
+.video-progress-modal__section-heading > span {
+  color: var(--color-muted);
+  font-size: .76rem;
+}
+
+.video-progress-modal__meta {
+  margin: 0;
+  text-align: left;
+}
+
+.video-progress-modal__meta div {
+  display: grid;
+  gap: 4px;
+}
+
+.video-progress-modal__meta dd {
+  margin: 0;
+  color: var(--color-text);
+  font-size: .84rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.video-progress-modal__progress-card {
+  display: grid;
+  gap: 18px;
+  margin-top: 14px;
+  padding: 18px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.video-progress-modal__section-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 4px;
-  padding: 13px 14px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 16%, var(--color-border));
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface-2));
 }
 
-.video-progress-modal__status > span:last-child {
-  color: var(--color-muted);
-  font-size: .76rem;
+.video-progress-modal__section-heading strong {
+  color: var(--color-text);
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .video-progress-modal__error {
@@ -141,7 +183,9 @@
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 26px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
 }
 
 .video-progress-modal__actions button {
@@ -174,8 +218,18 @@
   }
 
   .video-progress-modal__status {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .video-progress-modal__meta {
+    text-align: right;
+  }
+
+  .video-progress-modal__section-heading {
     align-items: start;
     flex-direction: column;
+    gap: 4px;
   }
 
   .video-progress-modal__actions {

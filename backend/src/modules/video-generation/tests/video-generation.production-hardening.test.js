@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { JOB_STATUSES, canTransitionJob, isIdempotentJobTransition } = require('../video-generation.states');
 const { createVideoGenerationService } = require('../video-generation.service');
 const { requiredEnv } = require('../../../../scripts/recover-metis-video-result');
+const { requiredEnv: requiredBananaRecoveryEnv } = require('../../../../scripts/recover-bananaai-video-result');
 const { validateMetisBaseUrl } = require('../providers/metis-video.provider');
 const { createNoaBillingFixture } = require('./noa-billing.fixture');
 
@@ -30,6 +31,11 @@ test('global feature flag denies submit before persistence or provider use', asy
 test('recovery is disabled by default and never includes its signed URL in the refusal', () => {
   const signed = 'https://api.metisai.ir/api/tpsgsbxstoragecontainer/router/tpsgsbxstoragecontainer/router/result.mp4?signature=must-not-leak';
   assert.throws(() => requiredEnv({ METIS_RECOVERY_RESULT_URL: signed }), (error) => !String(error.message).includes('must-not-leak'));
+});
+
+test('BananaAI recovery is disabled by default and requires one explicit job id', () => {
+  assert.throws(() => requiredBananaRecoveryEnv({ BANANAAI_RECOVERY_JOB_ID: '81818585-a1f1-4b9c-bed4-301036fba2d8' }), /RUN_BANANAAI_RESULT_RECOVERY/);
+  assert.deepEqual(requiredBananaRecoveryEnv({ RUN_BANANAAI_RESULT_RECOVERY: '1', BANANAAI_RECOVERY_JOB_ID: '81818585-a1f1-4b9c-bed4-301036fba2d8' }), { jobId: '81818585-a1f1-4b9c-bed4-301036fba2d8' });
 });
 
 test('Metis API base URL must be an HTTPS origin without a path, credentials or port', () => {

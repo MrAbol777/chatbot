@@ -128,8 +128,9 @@ test('the storage heartbeat is cleaned up after retry scheduling and download fa
     await timers.tick();
     throw Object.assign(new Error('download interrupted'), { code: 'VIDEO_RESULT_CONNECTION_RESET', retryable: true });
   });
-  assert.equal((await failure.service.processClaimedJob(storingJob(), { workerId: 'worker-1' })).action, 'failed');
-  assert.equal(failure.calls.failed, 1);
+  assert.equal((await failure.service.processClaimedJob(storingJob(), { workerId: 'worker-1' })).action, 'scheduled');
+  assert.equal(failure.calls.scheduled, 1);
+  assert.equal(failure.calls.failed, 0);
   assert.equal(failure.timers.size, 0);
 });
 

@@ -13,7 +13,7 @@ const tools: StudioTool[] = [
   {
     id: 'video',
     title: 'ساخت ویدیو',
-    description: 'از متن یا تصویر، ویدیوی هوش مصنوعی بساز',
+    description: 'ایده‌ات را بنویس و ویدیوی هوش مصنوعی بساز',
     actionLabel: 'شروع ساخت ویدیو'
   }
 ];

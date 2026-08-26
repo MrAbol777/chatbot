@@ -15,20 +15,20 @@ describe('mocked video-generation API requests', () => {
   });
 
   it('accepts a routed capability with no prompt-length limit', async () => {
-    const optionsWithoutPromptLimit = { ...videoOptions, capabilities: { 'video.image_to_video': { ...videoOptions.capabilities['video.image_to_video'], maxPromptLength: null } } };
+    const optionsWithoutPromptLimit = { ...videoOptions, capabilities: { 'video.text_to_video': { ...videoOptions.capabilities['video.text_to_video'], maxPromptLength: null } } };
     fetchMock.mockResolvedValueOnce(json(optionsWithoutPromptLimit));
 
     await expect(videoGenerationService.getVideoOptions()).resolves.toEqual(optionsWithoutPromptLimit);
   });
 
-  it('submits only the public image-to-video fields through a mocked local API response', async () => {
+  it('submits only the public text-to-video fields through a mocked local API response', async () => {
     fetchMock.mockResolvedValueOnce(json({ generationId: 'job-1', status: 'queued', noaReservationId:'reservation-1', costNoa:'4.000000', unitPriceNoa:'0.800000', durationSeconds:'5', createdAt: '2026-07-20T10:00:00Z' }, 202));
 
-    await expect(videoGenerationService.createVideoGeneration({ mode: 'image_to_video', styleKey:'cinematic', mediaId:'media-1', prompt: 'یک جنگل مه آلود', aspectRatio: '9:16', duration: '5', resolution:'720p' }, 'local-attempt-key')).resolves.toMatchObject({ generationId: 'job-1', status: 'queued' });
+    await expect(videoGenerationService.createVideoGeneration({ mode: 'text_to_video', styleKey:'cinematic', prompt: 'یک جنگل مه آلود', aspectRatio: '9:16', duration: '5', resolution:'480p' }, 'local-attempt-key')).resolves.toMatchObject({ generationId: 'job-1', status: 'queued' });
     const [, init] = fetchMock.mock.calls[0];
     expect(init).toMatchObject({ method: 'POST', credentials: 'include' });
     expect(new Headers(init.headers).get('Idempotency-Key')).toBe('local-attempt-key');
-    expect(JSON.parse(init.body as string)).toEqual({mode:'image_to_video',styleKey:'cinematic',mediaId:'media-1',prompt:'یک جنگل مه آلود',aspectRatio:'9:16',duration:'5',resolution:'720p'});
+    expect(JSON.parse(init.body as string)).toEqual({mode:'text_to_video',styleKey:'cinematic',prompt:'یک جنگل مه آلود',aspectRatio:'9:16',duration:'5',resolution:'480p'});
   });
 
   it('uploads I2V input as authenticated multipart and returns only safe media metadata', async () => {
