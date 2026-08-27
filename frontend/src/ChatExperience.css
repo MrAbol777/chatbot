@@ -6958,3 +6958,141 @@
     transition: none !important;
   }
 }
+
+/* Context-aware chat header ------------------------------------------------
+   With the desktop sidebar expanded, the duplicated conversation title is
+   replaced by a useful next action. The slot keeps a stable footprint while
+   its purpose changes from starter guidance to the creative studio. */
+.danoa-header-context-action {
+  box-sizing: border-box;
+  width: 172px;
+  min-width: 172px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: danoa-header-context-enter var(--motion-normal, 220ms) var(--motion-ease-standard, ease-out);
+  transition:
+    transform var(--motion-fast, 140ms) var(--motion-ease-standard, ease-out),
+    box-shadow var(--motion-fast, 140ms) var(--motion-ease-standard, ease-out),
+    border-color var(--motion-fast, 140ms) ease,
+    background-color var(--motion-fast, 140ms) ease;
+}
+
+.danoa-header-context-action__icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+}
+
+.danoa-header-context-action__label {
+  min-width: 0;
+  flex: 1;
+  text-align: right;
+}
+
+.danoa-header-context-action__arrow {
+  flex: 0 0 auto;
+  transition: transform var(--motion-fast, 140ms) var(--motion-ease-standard, ease-out);
+}
+
+.danoa-header-context-action--ideas {
+  color: var(--color-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-surface-2));
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.danoa-header-context-action--ideas .danoa-header-context-action__icon {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.danoa-header-context-action--ideas.is-expanded {
+  border-color: color-mix(in srgb, var(--color-primary) 46%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 13%, var(--color-surface-2));
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.danoa-header-context-action--ideas.is-expanded .danoa-header-context-action__arrow {
+  transform: rotate(-90deg);
+}
+
+.danoa-header-context-action--studio {
+  color: var(--color-primary-contrast);
+  border-color: color-mix(in srgb, var(--color-primary) 72%, transparent);
+  background: linear-gradient(135deg, var(--color-primary-container), var(--color-primary));
+  box-shadow:
+    0 8px 22px color-mix(in srgb, var(--color-primary) 24%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+
+.danoa-header-context-action--studio .danoa-header-context-action__icon {
+  background: rgba(255, 255, 255, .16);
+}
+
+.danoa-header-context-action:hover {
+  transform: translateY(-1px);
+}
+
+.danoa-header-context-action:hover .danoa-header-context-action__arrow {
+  transform: translateX(-2px);
+}
+
+.danoa-header-context-action--ideas:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 11%, var(--color-surface-2));
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.danoa-header-context-action--studio:hover {
+  box-shadow:
+    0 10px 26px color-mix(in srgb, var(--color-primary) 32%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, .24);
+}
+
+.danoa-header-context-action:active {
+  transform: translateY(0);
+}
+
+.danoa-header-context-action:focus-visible {
+  outline: 3px solid var(--color-focus-ring-soft);
+  outline-offset: 2px;
+}
+
+@keyframes danoa-header-context-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1199px) {
+  .danoa-header-context-action {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .danoa-header-context-action,
+  .danoa-header-context-action__arrow {
+    animation: none !important;
+    transition: none !important;
+  }
+}

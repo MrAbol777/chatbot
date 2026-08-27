@@ -55,12 +55,37 @@ test('routes an image creation request to normal chat, not image generation', as
     routerConfig: { apiKey: 'test-key' }
   });
 
-  const result = await service.route({ userMessage: warriorPrompt });
+  const result = await service.route({
+    userMessage: warriorPrompt,
+    hasCurrentImageAttachment: true
+  });
 
   assert.equal(result.ok, true);
   assert.equal(result.route.intent, 'chat');
   assert.equal(result.route.targetModule, 'chat');
   assert.match(requestPayload.systemInstruction.parts[0].text, /Image Studio/);
+});
+
+test('routes ordinary chat without image context deterministically and skips the provider', async () => {
+  let providerCalls = 0;
+  const service = createIntentRouterService({
+    httpClient: {
+      post: async () => {
+        providerCalls += 1;
+        throw new Error('provider must not be called');
+      }
+    },
+    settingsRepository: { getAll: async () => ({}) },
+    routerConfig: { apiKey: 'test-key' }
+  });
+
+  const result = await service.route({ userMessage: 'بله، برنامه سفر را شروع کن' });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.route.intent, 'chat');
+  assert.equal(result.route.reasonCode, 'no_image_context');
+  assert.equal(result.metadata.provider, 'deterministic');
+  assert.equal(providerCalls, 0);
 });
 
 test('preserves bounded conversational context in router input', () => {

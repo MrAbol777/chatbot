@@ -49,6 +49,7 @@ const {
 } = require('./modules/noa');
 const { createUserBroadcastMessagesRouter } = require('./modules/broadcast-messages/broadcast-messages.routes');
 const { createUploadsReadRouter } = require('./modules/uploads/uploads.routes');
+const { createRequestMetricsMiddleware } = require('./modules/monitoring/request-metrics.middleware');
 
 function createApp({ repositories, runtimeConfig }) {
   const app = express();
@@ -339,6 +340,11 @@ function createApp({ repositories, runtimeConfig }) {
     res.setHeader('X-Request-Id', requestId);
     next();
   });
+
+  app.use(createRequestMetricsMiddleware({
+    repository: repositories.monitoring,
+    logger: console
+  }));
 
   // Upload Router
   const uploadRouter = express.Router();

@@ -2,6 +2,7 @@ const mysql = require('mysql2/promise');
 const { ensureNoaSchema } = require('../modules/noa/noa.schema');
 const { ensureAuthSessionSchema } = require('../modules/auth/auth.schema');
 const { ensureBroadcastMessageSchema } = require('../modules/broadcast-messages/broadcast-messages.schema');
+const { ensureMonitoringSchema } = require('../modules/monitoring/monitoring.schema');
 
 class DatabaseClient {
   constructor({ databaseUrl, databaseHost }) {
@@ -400,6 +401,7 @@ class DatabaseClient {
       await ensureNoaSchema(this.pool);
       await ensureAuthSessionSchema(this.pool);
       await ensureBroadcastMessageSchema(this.pool);
+      await ensureMonitoringSchema(this.pool);
 
       console.log(`[DB] Connected to MySQL at ${this.host}:${this.port}`);
     })();

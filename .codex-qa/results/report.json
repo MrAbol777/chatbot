@@ -1,0 +1,1629 @@
+{
+  "startedAt": "2026-08-27T20:39:10.968Z",
+  "baseUrl": "http://127.0.0.1:5173",
+  "chrome": {
+    "Browser": "Chrome/151.0.7922.175",
+    "Protocol-Version": "1.3",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "V8-Version": "15.1.206.23",
+    "WebKit-Version": "537.36 (@02fcc75bd274240484d344e0ef73fd82953276bc)",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:9333/devtools/browser/f189b978-bed1-4ea8-9951-6d7d30d0e77c"
+  },
+  "scenarios": [
+    {
+      "id": "desktop-empty",
+      "width": 1920,
+      "height": 1080,
+      "state": "empty",
+      "theme": "light",
+      "expected": "ideas",
+      "testIdeasKeyboard": true,
+      "screenshot": "D:\\PROGEs\\chatBot\\.codex-qa\\results\\desktop-empty.png",
+      "measurements": {
+        "path": "/",
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "horizontalOverflow": false,
+        "headerOverflow": [],
+        "ideasVisible": true,
+        "studioVisible": false,
+        "titleVisible": false,
+        "titleText": "",
+        "sidebarOpen": true,
+        "mobileToggleVisible": false,
+        "avatarVisible": true,
+        "walletVisible": true,
+        "actionRect": {
+          "left": 1396,
+          "right": 1568,
+          "top": 5.599999904632568,
+          "bottom": 49.59999990463257,
+          "width": 172,
+          "height": 44
+        },
+        "headerRect": {
+          "left": 0,
+          "right": 1600,
+          "top": 0,
+          "bottom": 56,
+          "width": 1600,
+          "height": 56
+        },
+        "actionAriaLabel": "نمایش پیشنهادهای آماده برای شروع گفتگو",
+        "actionTagName": "BUTTON",
+        "actionControls": "chat-starter-ideas",
+        "actionAnimationName": "danoa-header-context-enter",
+        "actionTransitionDuration": "0.14s, 0.14s, 0.14s, 0.14s",
+        "colorMode": "light",
+        "activeElementClass": ""
+      },
+      "accessibilityButtonNames": [
+        "نمایش پیشنهادهای آماده برای شروع گفتگو",
+        "تنظیمات حساب کاربری",
+        "گفتگوی جدید",
+        "شروع ضبط صدا",
+        "افزایش اعتبار نوآ",
+        "جستجوی گفتگوها",
+        "بستن سایدبار",
+        "ابزارها",
+        "کیف پول نوآ",
+        "تنظیمات حساب کاربری",
+        "به من در تحقیق یک ایده کمک کن",
+        "خلاصه این مقاله را بنویس",
+        "ایده‌هایی برای محتوا بده",
+        "ساخت تصویر خلق تصاویر از متن و ایده‌های شما",
+        "ساخت ویدیو تبدیل ایده‌ها به ویدیوهای جذاب",
+        "ابزارها ابزارهای کاربردی برای کارهای روزمره",
+        "باز کردن گزینه‌های پیوست"
+      ],
+      "events": {
+        "console": [],
+        "exceptions": [],
+        "logs": [
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          }
+        ],
+        "networkFailures": []
+      },
+      "checks": [
+        {
+          "pass": true,
+          "label": "viewport width matches emulation",
+          "detail": "{\"width\":1920,\"height\":1080}"
+        },
+        {
+          "pass": true,
+          "label": "no document-level horizontal overflow",
+          "detail": "document=1920, viewport=1920"
+        },
+        {
+          "pass": true,
+          "label": "no visible header child escapes viewport",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "header retains its expected responsive height",
+          "detail": "56"
+        },
+        {
+          "pass": true,
+          "label": "empty desktop shows starter ideas CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "empty desktop does not show studio CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "empty desktop removes duplicated title",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "starter CTA meets 44px target size",
+          "detail": "44"
+        },
+        {
+          "pass": true,
+          "label": "starter CTA references suggestion region",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "desktop account avatar remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "desktop Noa balance remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "starter CTA has an accessible button name",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "starter CTA uses native keyboard button semantics",
+          "detail": "BUTTON"
+        },
+        {
+          "pass": true,
+          "label": "activating starter CTA focuses a real suggestion",
+          "detail": "{\"className\":\"danoa-suggestion-chip\",\"text\":\"به من در تحقیق یک ایده کمک کن\"}"
+        },
+        {
+          "pass": true,
+          "label": "no uncaught runtime exceptions",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no network transport failures",
+          "detail": "[]"
+        },
+        {
+          "pass": true,
+          "label": "no unexpected HTTP errors",
+          "detail": "[]"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "desktop-active",
+      "width": 1920,
+      "height": 1080,
+      "state": "active",
+      "theme": "light",
+      "expected": "studio",
+      "testStudioNavigation": true,
+      "screenshot": "D:\\PROGEs\\chatBot\\.codex-qa\\results\\desktop-active.png",
+      "measurements": {
+        "path": "/c/11111111-1111-4111-8111-111111111111",
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "horizontalOverflow": false,
+        "headerOverflow": [],
+        "ideasVisible": false,
+        "studioVisible": true,
+        "titleVisible": false,
+        "titleText": "",
+        "sidebarOpen": true,
+        "mobileToggleVisible": false,
+        "avatarVisible": true,
+        "walletVisible": true,
+        "actionRect": {
+          "left": 1396,
+          "right": 1568,
+          "top": 5.599999904632568,
+          "bottom": 49.59999990463257,
+          "width": 172,
+          "height": 44
+        },
+        "headerRect": {
+          "left": 0,
+          "right": 1600,
+          "top": 0,
+          "bottom": 56,
+          "width": 1600,
+          "height": 56
+        },
+        "actionAriaLabel": "باز کردن استودیوی دانوآ",
+        "actionTagName": "BUTTON",
+        "actionControls": "",
+        "actionAnimationName": "danoa-header-context-enter",
+        "actionTransitionDuration": "0.14s, 0.14s, 0.14s, 0.14s",
+        "colorMode": "light",
+        "activeElementClass": ""
+      },
+      "accessibilityButtonNames": [
+        "باز کردن استودیوی دانوآ",
+        "تنظیمات حساب کاربری",
+        "گفتگوی جدید",
+        "شروع ضبط صدا",
+        "افزایش اعتبار نوآ",
+        "جستجوی گفتگوها",
+        "بستن سایدبار",
+        "ابزارها",
+        "کیف پول نوآ",
+        "تنظیمات حساب کاربری",
+        "باز کردن گفتگو: برنامه‌ریزی سفر",
+        "باز کردن گزینه‌های پیوست",
+        "گزینه‌های گفتگو: برنامه‌ریزی سفر"
+      ],
+      "events": {
+        "console": [],
+        "exceptions": [],
+        "logs": [
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          }
+        ],
+        "networkFailures": []
+      },
+      "checks": [
+        {
+          "pass": true,
+          "label": "viewport width matches emulation",
+          "detail": "{\"width\":1920,\"height\":1080}"
+        },
+        {
+          "pass": true,
+          "label": "no document-level horizontal overflow",
+          "detail": "document=1920, viewport=1920"
+        },
+        {
+          "pass": true,
+          "label": "no visible header child escapes viewport",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "header retains its expected responsive height",
+          "detail": "56"
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop shows studio CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop hides starter CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop removes duplicated title",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "studio CTA meets 44px target size",
+          "detail": "44"
+        },
+        {
+          "pass": true,
+          "label": "desktop account avatar remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "desktop Noa balance remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "studio CTA has an accessible button name",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "studio CTA navigates to /studio",
+          "detail": "/studio"
+        },
+        {
+          "pass": true,
+          "label": "studio page renders after navigation",
+          "detail": "استودیوی دانوآ"
+        },
+        {
+          "pass": true,
+          "label": "studio keeps a clear return action",
+          "detail": "بازگشت به گفتگو"
+        },
+        {
+          "pass": true,
+          "label": "no uncaught runtime exceptions",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no network transport failures",
+          "detail": "[]"
+        },
+        {
+          "pass": true,
+          "label": "no unexpected HTTP errors",
+          "detail": "[]"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "laptop-active",
+      "width": 1366,
+      "height": 768,
+      "state": "active",
+      "theme": "light",
+      "expected": "studio",
+      "screenshot": "D:\\PROGEs\\chatBot\\.codex-qa\\results\\laptop-active.png",
+      "measurements": {
+        "path": "/c/11111111-1111-4111-8111-111111111111",
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "horizontalOverflow": false,
+        "headerOverflow": [],
+        "ideasVisible": false,
+        "studioVisible": true,
+        "titleVisible": false,
+        "titleText": "",
+        "sidebarOpen": true,
+        "mobileToggleVisible": false,
+        "avatarVisible": true,
+        "walletVisible": true,
+        "actionRect": {
+          "left": 842.4000244140625,
+          "right": 1014.4000244140625,
+          "top": 5.599999904632568,
+          "bottom": 49.59999990463257,
+          "width": 172,
+          "height": 44
+        },
+        "headerRect": {
+          "left": 0,
+          "right": 1046.4000244140625,
+          "top": 0,
+          "bottom": 56,
+          "width": 1046.4000244140625,
+          "height": 56
+        },
+        "actionAriaLabel": "باز کردن استودیوی دانوآ",
+        "actionTagName": "BUTTON",
+        "actionControls": "",
+        "actionAnimationName": "danoa-header-context-enter",
+        "actionTransitionDuration": "0.14s, 0.14s, 0.14s, 0.14s",
+        "colorMode": "light",
+        "activeElementClass": ""
+      },
+      "accessibilityButtonNames": [
+        "باز کردن استودیوی دانوآ",
+        "تنظیمات حساب کاربری",
+        "گفتگوی جدید",
+        "شروع ضبط صدا",
+        "افزایش اعتبار نوآ",
+        "جستجوی گفتگوها",
+        "بستن سایدبار",
+        "ابزارها",
+        "کیف پول نوآ",
+        "تنظیمات حساب کاربری",
+        "باز کردن گفتگو: برنامه‌ریزی سفر",
+        "باز کردن گزینه‌های پیوست",
+        "گزینه‌های گفتگو: برنامه‌ریزی سفر"
+      ],
+      "events": {
+        "console": [],
+        "exceptions": [],
+        "logs": [
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          }
+        ],
+        "networkFailures": []
+      },
+      "checks": [
+        {
+          "pass": true,
+          "label": "viewport width matches emulation",
+          "detail": "{\"width\":1366,\"height\":768}"
+        },
+        {
+          "pass": true,
+          "label": "no document-level horizontal overflow",
+          "detail": "document=1366, viewport=1366"
+        },
+        {
+          "pass": true,
+          "label": "no visible header child escapes viewport",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "header retains its expected responsive height",
+          "detail": "56"
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop shows studio CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop hides starter CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop removes duplicated title",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "studio CTA meets 44px target size",
+          "detail": "44"
+        },
+        {
+          "pass": true,
+          "label": "desktop account avatar remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "desktop Noa balance remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "studio CTA has an accessible button name",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no uncaught runtime exceptions",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no network transport failures",
+          "detail": "[]"
+        },
+        {
+          "pass": true,
+          "label": "no unexpected HTTP errors",
+          "detail": "[]"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "tablet-landscape",
+      "width": 1024,
+      "height": 768,
+      "state": "active",
+      "theme": "light",
+      "expected": "title",
+      "screenshot": "D:\\PROGEs\\chatBot\\.codex-qa\\results\\tablet-landscape.png",
+      "measurements": {
+        "path": "/c/11111111-1111-4111-8111-111111111111",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "documentWidth": 1024,
+        "horizontalOverflow": false,
+        "headerOverflow": [],
+        "ideasVisible": false,
+        "studioVisible": false,
+        "titleVisible": true,
+        "titleText": "برنامه‌ریزی سفر",
+        "sidebarOpen": false,
+        "mobileToggleVisible": true,
+        "avatarVisible": true,
+        "walletVisible": true,
+        "actionRect": null,
+        "headerRect": {
+          "left": 0,
+          "right": 1024,
+          "top": 0,
+          "bottom": 64,
+          "width": 1024,
+          "height": 64
+        },
+        "actionAriaLabel": "",
+        "actionTagName": "",
+        "actionControls": "",
+        "actionAnimationName": "",
+        "actionTransitionDuration": "",
+        "colorMode": "light",
+        "activeElementClass": ""
+      },
+      "accessibilityButtonNames": [
+        "باز کردن پنل گفتگوها",
+        "تنظیمات حساب کاربری",
+        "شروع ضبط صدا",
+        "افزایش اعتبار نوآ",
+        "باز کردن گزینه‌های پیوست"
+      ],
+      "events": {
+        "console": [],
+        "exceptions": [],
+        "logs": [
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          }
+        ],
+        "networkFailures": []
+      },
+      "checks": [
+        {
+          "pass": true,
+          "label": "viewport width matches emulation",
+          "detail": "{\"width\":1024,\"height\":768}"
+        },
+        {
+          "pass": true,
+          "label": "no document-level horizontal overflow",
+          "detail": "document=1024, viewport=1024"
+        },
+        {
+          "pass": true,
+          "label": "no visible header child escapes viewport",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "header retains its expected responsive height",
+          "detail": "64"
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile keeps conversation title",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile title content is correct",
+          "detail": "برنامه‌ریزی سفر"
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile hides contextual CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no uncaught runtime exceptions",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no network transport failures",
+          "detail": "[]"
+        },
+        {
+          "pass": true,
+          "label": "no unexpected HTTP errors",
+          "detail": "[]"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "tablet-portrait",
+      "width": 768,
+      "height": 1024,
+      "state": "active",
+      "theme": "light",
+      "expected": "title",
+      "screenshot": "D:\\PROGEs\\chatBot\\.codex-qa\\results\\tablet-portrait.png",
+      "measurements": {
+        "path": "/c/11111111-1111-4111-8111-111111111111",
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "documentWidth": 768,
+        "horizontalOverflow": false,
+        "headerOverflow": [],
+        "ideasVisible": false,
+        "studioVisible": false,
+        "titleVisible": true,
+        "titleText": "برنامه‌ریزی سفر",
+        "sidebarOpen": false,
+        "mobileToggleVisible": true,
+        "avatarVisible": true,
+        "walletVisible": true,
+        "actionRect": null,
+        "headerRect": {
+          "left": 0,
+          "right": 768,
+          "top": 0,
+          "bottom": 60,
+          "width": 768,
+          "height": 60
+        },
+        "actionAriaLabel": "",
+        "actionTagName": "",
+        "actionControls": "",
+        "actionAnimationName": "",
+        "actionTransitionDuration": "",
+        "colorMode": "light",
+        "activeElementClass": ""
+      },
+      "accessibilityButtonNames": [
+        "باز کردن پنل گفتگوها",
+        "تنظیمات حساب کاربری",
+        "شروع ضبط صدا",
+        "افزایش اعتبار نوآ",
+        "باز کردن گزینه‌های پیوست"
+      ],
+      "events": {
+        "console": [],
+        "exceptions": [],
+        "logs": [
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          }
+        ],
+        "networkFailures": []
+      },
+      "checks": [
+        {
+          "pass": true,
+          "label": "viewport width matches emulation",
+          "detail": "{\"width\":768,\"height\":1024}"
+        },
+        {
+          "pass": true,
+          "label": "no document-level horizontal overflow",
+          "detail": "document=768, viewport=768"
+        },
+        {
+          "pass": true,
+          "label": "no visible header child escapes viewport",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "header retains its expected responsive height",
+          "detail": "60"
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile keeps conversation title",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile title content is correct",
+          "detail": "برنامه‌ریزی سفر"
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile hides contextual CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no uncaught runtime exceptions",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no network transport failures",
+          "detail": "[]"
+        },
+        {
+          "pass": true,
+          "label": "no unexpected HTTP errors",
+          "detail": "[]"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844,
+      "state": "active",
+      "theme": "light",
+      "expected": "title",
+      "testMobileSidebar": true,
+      "screenshot": "D:\\PROGEs\\chatBot\\.codex-qa\\results\\mobile.png",
+      "measurements": {
+        "path": "/c/11111111-1111-4111-8111-111111111111",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "documentWidth": 390,
+        "horizontalOverflow": false,
+        "headerOverflow": [],
+        "ideasVisible": false,
+        "studioVisible": false,
+        "titleVisible": true,
+        "titleText": "برنامه‌ریزی سفر",
+        "sidebarOpen": false,
+        "mobileToggleVisible": true,
+        "avatarVisible": false,
+        "walletVisible": false,
+        "actionRect": null,
+        "headerRect": {
+          "left": 0,
+          "right": 390.3999938964844,
+          "top": 0,
+          "bottom": 56.79999923706055,
+          "width": 390.3999938964844,
+          "height": 56.79999923706055
+        },
+        "actionAriaLabel": "",
+        "actionTagName": "",
+        "actionControls": "",
+        "actionAnimationName": "",
+        "actionTransitionDuration": "",
+        "colorMode": "light",
+        "activeElementClass": ""
+      },
+      "accessibilityButtonNames": [
+        "باز کردن پنل گفتگوها",
+        "شروع ضبط صدا",
+        "باز کردن گزینه‌های پیوست"
+      ],
+      "events": {
+        "console": [],
+        "exceptions": [],
+        "logs": [
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          }
+        ],
+        "networkFailures": []
+      },
+      "checks": [
+        {
+          "pass": true,
+          "label": "viewport width matches emulation",
+          "detail": "{\"width\":390,\"height\":844}"
+        },
+        {
+          "pass": true,
+          "label": "no document-level horizontal overflow",
+          "detail": "document=390, viewport=390"
+        },
+        {
+          "pass": true,
+          "label": "no visible header child escapes viewport",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "header retains its expected responsive height",
+          "detail": "56.79999923706055"
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile keeps conversation title",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile title content is correct",
+          "detail": "برنامه‌ریزی سفر"
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile hides contextual CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "mobile sidebar toggle is visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "mobile sidebar opens from the header control",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "mobile sidebar locks background scroll",
+          "detail": "hidden"
+        },
+        {
+          "pass": true,
+          "label": "contextual CTA stays hidden while mobile drawer is open",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no uncaught runtime exceptions",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no network transport failures",
+          "detail": "[]"
+        },
+        {
+          "pass": true,
+          "label": "no unexpected HTTP errors",
+          "detail": "[]"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "mobile-small",
+      "width": 360,
+      "height": 800,
+      "state": "active",
+      "theme": "light",
+      "expected": "title",
+      "screenshot": "D:\\PROGEs\\chatBot\\.codex-qa\\results\\mobile-small.png",
+      "measurements": {
+        "path": "/c/11111111-1111-4111-8111-111111111111",
+        "viewport": {
+          "width": 360,
+          "height": 800
+        },
+        "documentWidth": 360,
+        "horizontalOverflow": false,
+        "headerOverflow": [],
+        "ideasVisible": false,
+        "studioVisible": false,
+        "titleVisible": true,
+        "titleText": "برنامه‌ریزی سفر",
+        "sidebarOpen": false,
+        "mobileToggleVisible": true,
+        "avatarVisible": false,
+        "walletVisible": false,
+        "actionRect": null,
+        "headerRect": {
+          "left": 0,
+          "right": 360,
+          "top": 0,
+          "bottom": 52.79999923706055,
+          "width": 360,
+          "height": 52.79999923706055
+        },
+        "actionAriaLabel": "",
+        "actionTagName": "",
+        "actionControls": "",
+        "actionAnimationName": "",
+        "actionTransitionDuration": "",
+        "colorMode": "light",
+        "activeElementClass": ""
+      },
+      "accessibilityButtonNames": [
+        "باز کردن پنل گفتگوها",
+        "شروع ضبط صدا",
+        "باز کردن گزینه‌های پیوست"
+      ],
+      "events": {
+        "console": [],
+        "exceptions": [],
+        "logs": [
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          }
+        ],
+        "networkFailures": []
+      },
+      "checks": [
+        {
+          "pass": true,
+          "label": "viewport width matches emulation",
+          "detail": "{\"width\":360,\"height\":800}"
+        },
+        {
+          "pass": true,
+          "label": "no document-level horizontal overflow",
+          "detail": "document=360, viewport=360"
+        },
+        {
+          "pass": true,
+          "label": "no visible header child escapes viewport",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "header retains its expected responsive height",
+          "detail": "52.79999923706055"
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile keeps conversation title",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile title content is correct",
+          "detail": "برنامه‌ریزی سفر"
+        },
+        {
+          "pass": true,
+          "label": "tablet/mobile hides contextual CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no uncaught runtime exceptions",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no network transport failures",
+          "detail": "[]"
+        },
+        {
+          "pass": true,
+          "label": "no unexpected HTTP errors",
+          "detail": "[]"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "desktop-dark",
+      "width": 1920,
+      "height": 1080,
+      "state": "active",
+      "theme": "dark",
+      "expected": "studio",
+      "screenshot": "D:\\PROGEs\\chatBot\\.codex-qa\\results\\desktop-dark.png",
+      "measurements": {
+        "path": "/c/11111111-1111-4111-8111-111111111111",
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "documentWidth": 1920,
+        "horizontalOverflow": false,
+        "headerOverflow": [],
+        "ideasVisible": false,
+        "studioVisible": true,
+        "titleVisible": false,
+        "titleText": "",
+        "sidebarOpen": true,
+        "mobileToggleVisible": false,
+        "avatarVisible": true,
+        "walletVisible": true,
+        "actionRect": {
+          "left": 1396,
+          "right": 1568,
+          "top": 5.599999904632568,
+          "bottom": 49.59999990463257,
+          "width": 172,
+          "height": 44
+        },
+        "headerRect": {
+          "left": 0,
+          "right": 1600,
+          "top": 0,
+          "bottom": 56,
+          "width": 1600,
+          "height": 56
+        },
+        "actionAriaLabel": "باز کردن استودیوی دانوآ",
+        "actionTagName": "BUTTON",
+        "actionControls": "",
+        "actionAnimationName": "danoa-header-context-enter",
+        "actionTransitionDuration": "0.14s, 0.14s, 0.14s, 0.14s",
+        "colorMode": "dark",
+        "activeElementClass": ""
+      },
+      "accessibilityButtonNames": [
+        "باز کردن استودیوی دانوآ",
+        "تنظیمات حساب کاربری",
+        "گفتگوی جدید",
+        "شروع ضبط صدا",
+        "افزایش اعتبار نوآ",
+        "جستجوی گفتگوها",
+        "بستن سایدبار",
+        "ابزارها",
+        "کیف پول نوآ",
+        "تنظیمات حساب کاربری",
+        "باز کردن گفتگو: برنامه‌ریزی سفر",
+        "باز کردن گزینه‌های پیوست",
+        "گزینه‌های گفتگو: برنامه‌ریزی سفر"
+      ],
+      "events": {
+        "console": [],
+        "exceptions": [],
+        "logs": [
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          }
+        ],
+        "networkFailures": []
+      },
+      "checks": [
+        {
+          "pass": true,
+          "label": "viewport width matches emulation",
+          "detail": "{\"width\":1920,\"height\":1080}"
+        },
+        {
+          "pass": true,
+          "label": "no document-level horizontal overflow",
+          "detail": "document=1920, viewport=1920"
+        },
+        {
+          "pass": true,
+          "label": "no visible header child escapes viewport",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "header retains its expected responsive height",
+          "detail": "56"
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop shows studio CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop hides starter CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop removes duplicated title",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "studio CTA meets 44px target size",
+          "detail": "44"
+        },
+        {
+          "pass": true,
+          "label": "desktop account avatar remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "desktop Noa balance remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "studio CTA has an accessible button name",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no uncaught runtime exceptions",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no network transport failures",
+          "detail": "[]"
+        },
+        {
+          "pass": true,
+          "label": "no unexpected HTTP errors",
+          "detail": "[]"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "laptop-reduced-motion",
+      "width": 1366,
+      "height": 768,
+      "state": "active",
+      "theme": "light",
+      "expected": "studio",
+      "reducedMotion": true,
+      "screenshot": "D:\\PROGEs\\chatBot\\.codex-qa\\results\\laptop-reduced-motion.png",
+      "measurements": {
+        "path": "/c/11111111-1111-4111-8111-111111111111",
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "documentWidth": 1366,
+        "horizontalOverflow": false,
+        "headerOverflow": [],
+        "ideasVisible": false,
+        "studioVisible": true,
+        "titleVisible": false,
+        "titleText": "",
+        "sidebarOpen": true,
+        "mobileToggleVisible": false,
+        "avatarVisible": true,
+        "walletVisible": true,
+        "actionRect": {
+          "left": 842.4000244140625,
+          "right": 1014.4000244140625,
+          "top": 5.599999904632568,
+          "bottom": 49.59999990463257,
+          "width": 172,
+          "height": 44
+        },
+        "headerRect": {
+          "left": 0,
+          "right": 1046.4000244140625,
+          "top": 0,
+          "bottom": 56,
+          "width": 1046.4000244140625,
+          "height": 56
+        },
+        "actionAriaLabel": "باز کردن استودیوی دانوآ",
+        "actionTagName": "BUTTON",
+        "actionControls": "",
+        "actionAnimationName": "none",
+        "actionTransitionDuration": "0.001s",
+        "colorMode": "light",
+        "activeElementClass": ""
+      },
+      "accessibilityButtonNames": [
+        "باز کردن استودیوی دانوآ",
+        "تنظیمات حساب کاربری",
+        "گفتگوی جدید",
+        "شروع ضبط صدا",
+        "افزایش اعتبار نوآ",
+        "جستجوی گفتگوها",
+        "بستن سایدبار",
+        "ابزارها",
+        "کیف پول نوآ",
+        "تنظیمات حساب کاربری",
+        "باز کردن گفتگو: برنامه‌ریزی سفر",
+        "باز کردن گزینه‌های پیوست",
+        "گزینه‌های گفتگو: برنامه‌ریزی سفر"
+      ],
+      "events": {
+        "console": [],
+        "exceptions": [],
+        "logs": [
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:5173/api/settings/public"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          },
+          {
+            "level": "error",
+            "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+            "url": "http://127.0.0.1:5173/api/auth/session"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:5173/api/settings/public",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          },
+          {
+            "status": 401,
+            "url": "http://127.0.0.1:5173/api/auth/session",
+            "type": "Fetch"
+          }
+        ],
+        "networkFailures": []
+      },
+      "checks": [
+        {
+          "pass": true,
+          "label": "viewport width matches emulation",
+          "detail": "{\"width\":1366,\"height\":768}"
+        },
+        {
+          "pass": true,
+          "label": "no document-level horizontal overflow",
+          "detail": "document=1366, viewport=1366"
+        },
+        {
+          "pass": true,
+          "label": "no visible header child escapes viewport",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "header retains its expected responsive height",
+          "detail": "56"
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop shows studio CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop hides starter CTA",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "active desktop/laptop removes duplicated title",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "studio CTA meets 44px target size",
+          "detail": "44"
+        },
+        {
+          "pass": true,
+          "label": "desktop account avatar remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "desktop Noa balance remains visible",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "reduced motion disables CTA entrance animation",
+          "detail": "none"
+        },
+        {
+          "pass": true,
+          "label": "reduced motion removes perceptible CTA transitions",
+          "detail": "0.001s"
+        },
+        {
+          "pass": true,
+          "label": "studio CTA has an accessible button name",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no uncaught runtime exceptions",
+          "detail": ""
+        },
+        {
+          "pass": true,
+          "label": "no network transport failures",
+          "detail": "[]"
+        },
+        {
+          "pass": true,
+          "label": "no unexpected HTTP errors",
+          "detail": "[]"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "finishedAt": "2026-08-27T20:39:31.350Z",
+  "summary": {
+    "scenarios": 9,
+    "checks": 122,
+    "passedChecks": 122,
+    "failedChecks": 0,
+    "passedScenarios": 9
+  }
+}

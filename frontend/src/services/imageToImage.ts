@@ -21,8 +21,23 @@ function authHeaders(): Record<string, string> {
 
 async function assertOk(response: Response, fallback: string) {
   if (response.ok) return response;
-  const payload = await response.json().catch(() => ({})) as { message?: string; error?: string };
-  throw new Error(payload.message || payload.error || fallback);
+  const payload = await response.json().catch(() => ({})) as {
+    message?: string;
+    error?: string;
+    actionKey?: string;
+    balanceNoa?: string;
+    requiredNoa?: string;
+    shortfallNoa?: string;
+  };
+  const error = Object.assign(new Error(payload.message || payload.error || fallback), {
+    code: payload.error,
+    status: response.status,
+    actionKey: payload.actionKey,
+    balanceNoa: payload.balanceNoa,
+    requiredNoa: payload.requiredNoa,
+    shortfallNoa: payload.shortfallNoa
+  });
+  throw error;
 }
 
 export async function startImageToImage(input: { prompt: string; aspectRatio: string; files: File[]; idempotencyKey: string }): Promise<ImageToImageJob> {

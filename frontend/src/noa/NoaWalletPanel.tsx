@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../components/Icon';
 import { Button, Dialog, InlineMessage } from '../design-system/components';
-import { formatDecimalFa, formatTomanFa } from './decimal';
+import { formatDecimalFa, formatTomanFa, normalizePositiveDecimal } from './decimal';
 import { createIdempotencyKey, fetchNoaReceiptImage, listNoaReceipts, submitNoaReceipt } from './noa.service';
 import type { NoaReceipt, NoaWallet } from './noa.types';
 import './NoaWalletPanel.css';
@@ -198,6 +198,9 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet, r
   };
 
   const bankTransferUnavailable = !walletLoading && wallet?.bankTransferAccount === null;
+  const hasReservedBalance = wallet
+    ? normalizePositiveDecimal(wallet.reservedBalance) !== null
+    : false;
 
   return (
     <section className="noa-wallet" aria-label="مدیریت اعتبار نوآ">
@@ -210,15 +213,17 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet, r
           <strong>{walletLoading && !wallet ? 'در حال دریافت…' : `${formatDecimalFa(wallet?.availableBalance)} نوآ`}</strong>
         </div>
         {wallet ? (
-          <dl className="noa-wallet__balance-meta">
+          <dl className={`noa-wallet__balance-meta${hasReservedBalance ? '' : ' noa-wallet__balance-meta--single'}`}>
             <div>
               <dt>نرخ تبدیل فعلی</dt>
               <dd>هر نوآ {formatTomanFa(wallet.exchangeRate.tomanPerNoa)}</dd>
             </div>
-            <div>
-              <dt>اعتبار رزروشده</dt>
-              <dd>{formatDecimalFa(wallet.reservedBalance)} نوآ</dd>
-            </div>
+            {hasReservedBalance ? (
+              <div>
+                <dt>اعتبار رزروشده</dt>
+                <dd>{formatDecimalFa(wallet.reservedBalance)} نوآ</dd>
+              </div>
+            ) : null}
           </dl>
         ) : null}
       </div>
@@ -319,21 +324,10 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet, r
                   <h3 id={`${receiptId}-upload-title`}>بارگذاری رسید واریز</h3>
                   <p>
                     {receiptFile
-                      ? 'رسید انتخاب شد؛ برای ادامه، روی دکمه بنفش «ادامه و بررسی رسید» بزنید.'
+                      ? 'رسید انتخاب شد؛ پیش از ثبت نهایی، جزئیات آن را بررسی کنید.'
                       : 'تصویر رسید را انتخاب کنید؛ سپس آن را برای بررسی مالی ثبت کنید.'}
                   </p>
                 </div>
-                <Button
-                  className="noa-upload-card__review"
-                  type="button"
-                  variant="primary"
-                  size="md"
-                  startIcon={<Icon name="upload" size={18} aria-hidden="true" />}
-                  onClick={() => setReviewOpen(true)}
-                  disabled={submitting || walletLoading || !receiptFile || !wallet?.bankTransferAccount}
-                >
-                  ادامه و بررسی رسید
-                </Button>
             </div>
             <div className="noa-file-field" data-invalid={Boolean(errors.receipt)}>
               <input
@@ -347,7 +341,7 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet, r
                   setErrors((current) => ({ ...current, receipt: validateFile(file) }));
                 }}
                 aria-invalid={Boolean(errors.receipt)}
-                aria-describedby={`${receiptId}-help${errors.receipt ? ` ${receiptId}-error` : ''}`}
+                aria-describedby={`${receiptId}-${errors.receipt ? 'error' : 'help'}`}
                 disabled={submitting}
               />
               <label htmlFor={receiptId}>
@@ -355,8 +349,27 @@ function NoaWalletPanel({ wallet, walletLoading, walletError, onRefreshWallet, r
                 <span>{receiptFile ? receiptFile.name : 'انتخاب تصویر رسید'}</span>
                 <small>JPEG، PNG یا WebP · حداکثر ۵ مگابایت</small>
               </label>
-              <small id={`${receiptId}-help`}>پس از بررسی واحد مالی، اعتبار نوآ به کیف پول شما اضافه می‌شود.</small>
-              {errors.receipt ? <span id={`${receiptId}-error`} role="alert">{errors.receipt}</span> : null}
+            </div>
+            <div className="noa-upload-card__actions">
+              <div className="noa-upload-card__feedback">
+                {errors.receipt ? (
+                  <span id={`${receiptId}-error`} role="alert">{errors.receipt}</span>
+                ) : (
+                  <small id={`${receiptId}-help`}>پس از بررسی واحد مالی، اعتبار نوآ به کیف پول شما اضافه می‌شود.</small>
+                )}
+              </div>
+              <Button
+                className="noa-upload-card__review"
+                type="button"
+                variant="primary"
+                size="md"
+                endIcon={<Icon name="chevron-left" size={18} aria-hidden="true" />}
+                aria-haspopup="dialog"
+                onClick={() => setReviewOpen(true)}
+                disabled={submitting || walletLoading || !receiptFile || Boolean(errors.receipt) || !wallet?.bankTransferAccount}
+              >
+                ادامه و بررسی رسید
+              </Button>
             </div>
           </section>
 

@@ -81,23 +81,103 @@ export type UserProfile = User & {
   }>;
 };
 
+export type MonitoringRange = '1h' | '24h' | '7d' | '30d';
+export type MonitoringStatus = 'healthy' | 'warning' | 'critical' | 'disabled';
+
 export type DashboardStats = {
+  meta: {
+    range: MonitoringRange;
+    from: string;
+    to: string;
+    generatedAt: string;
+    bucketSeconds: number;
+    environment: string;
+    requestMetricsSampled: boolean;
+    thresholds: {
+      errorRatePercent: number;
+      p95LatencyMs: number;
+      minimumRequests: number;
+    };
+  };
+  health: Array<{
+    key: string;
+    label: string;
+    status: MonitoringStatus;
+    detail: string;
+  }>;
   kpis: {
     totalUsers: number;
-    activeUsersToday: number;
-    apiCallsToday: number;
-    errorCountToday: number;
+    activeUsers: { value: number; changePct: number };
+    requests: { value: number; changePct: number };
+    successRate: { value: number; changePct: number };
+    errorRate: { value: number; changePct: number };
+    p95LatencyMs: { value: number; changePct: number };
+    noaSpent: { value: number; changePct: number };
+    tokens: { value: number; source: string };
   };
-  userGrowth: Array<{ date: string; users: number }>;
-  apiUsage: Array<{ date: string; calls: number }>;
-  errorDistribution: Array<{ error_type: string; count: number }>;
-  recentActivities: Array<{
+  traffic: Array<{
     timestamp: string;
-    adminUsername: string;
-    action: string;
-    target: string | null;
-    details?: Record<string, unknown>;
+    requests: number;
+    errorRate: number;
+    averageLatencyMs: number;
   }>;
+  capabilities: Array<{
+    key: string;
+    label: string;
+    total: number;
+    successes: number;
+    failures: number;
+    successRate: number;
+    p50LatencyMs: number;
+    p95LatencyMs: number;
+  }>;
+  providers: Array<{
+    provider: string;
+    model: string;
+    capability: string;
+    total: number;
+    successRate: number;
+    averageLatencyMs: number;
+    cost: number;
+    currency: string | null;
+    circuitState: string;
+  }>;
+  queues: {
+    images: Record<string, number>;
+    videos: Record<string, number>;
+    staleImages: number;
+    staleVideos: number;
+  };
+  noa: {
+    captured: Array<{ actionKey: string; amount: number; total: number }>;
+    unresolved: { total: number; amount: number };
+  };
+  storage: {
+    image: { status: MonitoringStatus; writable: boolean; freePercent: number | null };
+    video: { status: MonitoringStatus; writable: boolean; freePercent: number | null };
+  };
+  alerts: Array<{
+    id: string;
+    severity: 'critical' | 'high' | 'warning' | 'info';
+    title: string;
+    description: string;
+    target: AdminTab;
+  }>;
+  recentErrors: Array<{
+    type: string;
+    endpoint: string | null;
+    statusCode: number | null;
+    createdAt: string;
+  }>;
+  topErrors: Array<{ type: string; total: number }>;
+  process: {
+    uptimeSeconds: number;
+    rssMb: number;
+    heapUsedMb: number;
+    cpuPercent: number;
+    eventLoopUtilizationPercent: number;
+    nodeVersion: string;
+  };
 };
 
 export type SiteSettingsPayload = {

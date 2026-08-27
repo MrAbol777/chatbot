@@ -19,7 +19,7 @@ const conversationMemorySettingKey = {
 const DEFAULT_CONVERSATION_MEMORY_SETTINGS = {
   enabled: true,
   provider: 'metis',
-  model: 'gemini-2.5-flash-lite-preview',
+  model: 'gemini-2.5-flash',
   fallbackModel: 'gemini-2.5-flash',
   temperature: 0,
   maxOutputTokens: 3000,

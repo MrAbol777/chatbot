@@ -75,6 +75,12 @@ docker compose logs -f --tail=200 app
 - نرخ OTP failure و خطاهای provider.
 - error log و audit log ادمین.
 
+پنل ادمین در بخش «داشبورد» از endpoint محافظت‌شده
+`GET /api/admin/monitoring/overview?range=24h` استفاده می‌کند. بازه‌های پشتیبانی‌شده
+`1h`، `24h`، `7d` و `30d` هستند. متریک درخواست‌های API در جدول
+`app_request_metrics` با نگهداری ۳۰روزه ثبت می‌شود؛ مسیر مانیتورینگ خودش از شمارش
+حذف شده تا refresh داشبورد آمار را منحرف نکند.
+
 ## runbook رخدادها
 
 ### قطع provider AI
@@ -116,4 +122,3 @@ docker compose logs -f --tail=200 app
 - فایل‌های config لازم، بدون secret یا با secret manager امن
 
 بعد از restore، health، تعداد جدول‌ها، دسترسی فایل‌ها، یک login و یک خواندن conversation را بررسی کنید.
-

@@ -3,7 +3,7 @@ const { INTENT_ROUTER_SYSTEM_PROMPT } = require('./intent-router.prompt');
 
 const INTENT_ROUTER_ALLOWED_INTENTS = ['chat', 'image_understanding'];
 const INTENT_ROUTER_ALLOWED_PROVIDERS = ['metis'];
-const INTENT_ROUTER_ALLOWED_MODELS = ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'];
+const INTENT_ROUTER_ALLOWED_MODELS = ['gemini-2.5-flash'];
 
 const intentRouterSettingKey = {
   enabled: 'ai.intent_router.enabled',
@@ -28,9 +28,9 @@ const intentRouterSettingKey = {
 const DEFAULT_INTENT_ROUTER_SETTINGS = {
   enabled: true,
   provider: 'metis',
-  model: 'gemini-2.5-flash-lite-preview',
+  model: 'gemini-2.5-flash',
   fallbackModel: 'gemini-2.5-flash',
-  experimentalModel: 'gemini-2.5-flash-lite-preview',
+  experimentalModel: 'gemini-2.5-flash',
   temperature: 0,
   maxOutputTokens: 120,
   timeoutMs: 2500,
@@ -75,9 +75,9 @@ const get = (settings, key, fallback) => (
 const normalizeIntentRouterSettings = ({ settings = {}, routerConfig = {} } = {}) => ({
   enabled: normalizeBoolean(get(settings, intentRouterSettingKey.enabled, routerConfig.enabled ?? true), true),
   provider: normalizeString(get(settings, intentRouterSettingKey.provider, routerConfig.provider || 'metis'), 'metis').toLowerCase(),
-  model: normalizeString(get(settings, intentRouterSettingKey.model, routerConfig.model || 'gemini-2.5-flash-lite-preview'), 'gemini-2.5-flash-lite-preview'),
+  model: normalizeString(get(settings, intentRouterSettingKey.model, routerConfig.model || 'gemini-2.5-flash'), 'gemini-2.5-flash'),
   fallbackModel: normalizeString(get(settings, intentRouterSettingKey.fallbackModel, routerConfig.fallbackModel || 'gemini-2.5-flash'), 'gemini-2.5-flash'),
-  experimentalModel: normalizeString(get(settings, intentRouterSettingKey.experimentalModel, routerConfig.experimentalModel || 'gemini-2.5-flash-lite-preview'), 'gemini-2.5-flash-lite-preview'),
+  experimentalModel: normalizeString(get(settings, intentRouterSettingKey.experimentalModel, routerConfig.experimentalModel || 'gemini-2.5-flash'), 'gemini-2.5-flash'),
   temperature: normalizeNumber(get(settings, intentRouterSettingKey.temperature, routerConfig.temperature ?? 0), 0, 0, 1),
   maxOutputTokens: normalizeNumber(get(settings, intentRouterSettingKey.maxOutputTokens, routerConfig.maxOutputTokens ?? 120), 120, 50, 500),
   timeoutMs: normalizeNumber(get(settings, intentRouterSettingKey.timeoutMs, routerConfig.timeoutMs ?? 2500), 2500, 500, 30000),

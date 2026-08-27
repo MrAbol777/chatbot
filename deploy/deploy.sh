@@ -41,6 +41,9 @@ for _ in $(seq 1 30); do
 done
 docker compose exec -T mysql healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1 || fail "MariaDB did not become ready."
 
+log "Replacing unavailable AI preview model settings"
+docker compose run --rm --no-deps --entrypoint npm app --prefix backend run db:migrate-ai-runtime
+
 log "Applying additive video migrations"
 docker compose run --rm --no-deps --entrypoint npm app --prefix backend run db:migrate-video-generation
 

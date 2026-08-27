@@ -165,6 +165,10 @@
   margin: 0;
 }
 
+.noa-wallet__balance-meta.noa-wallet__balance-meta--single {
+  grid-template-columns: minmax(132px, 1fr);
+}
+
 .noa-wallet__balance-meta div {
   min-width: 0;
   padding: 11px 13px;
@@ -402,20 +406,6 @@
   gap: 10px;
 }
 
-.noa-upload-card__review {
-  flex: 0 0 auto;
-  min-height: 44px;
-  margin-inline-start: auto;
-  padding-inline: 16px;
-  font-weight: 800;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 28%, transparent);
-  white-space: nowrap;
-}
-
-.noa-upload-card__review:not(:disabled):hover {
-  box-shadow: 0 10px 22px color-mix(in srgb, var(--color-primary) 36%, transparent);
-}
-
 .noa-bank-transfer__heading h4,
 .noa-upload-card__heading h3,
 .noa-bank-transfer__heading p,
@@ -612,10 +602,42 @@
   opacity: .5;
 }
 
-.noa-file-field > small {
+.noa-upload-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 2px;
+}
+
+.noa-upload-card__feedback {
+  min-width: 0;
   color: var(--color-muted);
   font-size: var(--font-size-xs);
   line-height: 1.5;
+}
+
+.noa-upload-card__feedback small {
+  font: inherit;
+}
+
+.noa-upload-card__feedback [role='alert'] {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.noa-upload-card__review {
+  min-width: 212px;
+  min-height: 42px;
+  padding-inline: 16px;
+  font-weight: 800;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.noa-upload-card__review.ds-button--primary:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
 }
 
 @media (min-width: 1024px) and (min-height: 681px) {
@@ -632,11 +654,6 @@
   .noa-upload-card__heading {
     align-items: center;
   }
-}
-
-.noa-file-field > span {
-  color: var(--color-danger);
-  font-size: var(--font-size-sm);
 }
 
 .noa-file-field[data-invalid='true'] label {
@@ -1051,12 +1068,14 @@
   .noa-bank-transfer,
   .noa-upload-card { padding: 12px; }
 
-  .noa-upload-card__heading {
-    flex-wrap: wrap;
+  .noa-upload-card__actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .noa-upload-card__review {
-    margin-inline-start: 0;
+    width: 100%;
   }
 
   .noa-bank-transfer__details {

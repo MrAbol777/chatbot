@@ -31,7 +31,26 @@ const parseJsonObject = (value) => {
 
 // Image creation and editing are handled exclusively by Image Studio, so the
 // chat router only needs to distinguish normal chat from image understanding.
-const detectDeterministicRoute = () => null;
+const detectDeterministicRoute = (input = {}) => {
+  const hasImageContext = Boolean(
+    input.hasCurrentImageAttachment ||
+    input.hasPreviousUploadedImage ||
+    input.hasPreviousGeneratedImage
+  );
+  if (hasImageContext) return null;
+
+  return {
+    intent: 'chat',
+    confidence: 1,
+    targetModule: 'chat',
+    needsImage: false,
+    usesCurrentAttachment: false,
+    usesPreviousImage: false,
+    reasonCode: 'no_image_context',
+    source: 'deterministic',
+    shouldRespondToUser: false
+  };
+};
 
 const normalizeRoute = (value) => {
   const intent = String(value?.intent || '').trim();
@@ -69,6 +88,8 @@ const buildRouterInput = (input = {}) => ({
 });
 
 const getErrorType = (error) => {
+  if (error?.code === 'ENOTFOUND') return 'dns_error';
+  if (['ECONNRESET', 'ECONNREFUSED', 'EAI_AGAIN'].includes(error?.code)) return 'network_error';
   if (error?.code === 'ECONNABORTED' || /timeout/i.test(String(error?.message || ''))) return 'timeout';
   if (/json/i.test(String(error?.message || ''))) return 'invalid_json';
   if (/confidence/i.test(String(error?.message || ''))) return 'low_confidence';
@@ -345,6 +366,8 @@ function createIntentRouterService({
           model: attempt.model,
           ok: attempt.ok,
           errorType: attempt.errorType || null,
+          errorCode: attempt.error?.code || null,
+          providerStatus: attempt.error?.response?.status || null,
           durationMs: attempt.durationMs
         }))
       });
@@ -391,7 +414,7 @@ function createIntentRouterService({
       lastImageKind: 'generated',
       locale: 'fa'
     });
-    const models = ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'];
+    const models = [...new Set([settings.model, settings.fallbackModel].filter(Boolean))];
     const results = [];
     for (const model of models) {
       const result = await tryModel({
@@ -420,7 +443,8 @@ function createIntentRouterService({
   const getDiagnostics = async ({ force = false } = {}) => {
     const settings = await getSettings({ force }).catch(() => ({ ...DEFAULT_INTENT_ROUTER_SETTINGS, lastValidationStatus: 'fallback' }));
     const apiKeyInfo = resolveApiKey(settings);
-    const models = Object.fromEntries(['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'].map((model) => {
+    const configuredModels = [...new Set([settings.model, settings.fallbackModel].filter(Boolean))];
+    const models = Object.fromEntries(configuredModels.map((model) => {
       const state = getModelState(model);
       return [model, {
         status: isModelAvailable(model, settings) ? 'healthy' : 'cooldown',

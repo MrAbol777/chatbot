@@ -366,6 +366,34 @@ export default function SiteSettingsTab({ adminIdentity }: SiteSettingsTabProps)
               />
             </FieldGroup>
           </div>
+
+          <div className="admin-card-box">
+            <h4>هشدارهای مرکز پایش</h4>
+            <p className="admin-note">آستانه‌ها پس از ذخیره، بدون restart در بروزرسانی بعدی داشبورد اعمال می‌شوند.</p>
+            <FieldGroup direction="row" style={{ marginTop: '12px' }}>
+              <TextField
+                label="نرخ خطای هشداردهنده (%)"
+                type="number"
+                value={String(siteSettings.settings['monitoring.alert.error_rate_percent'] ?? 5)}
+                onChange={(e) => updateSiteSetting('monitoring.alert.error_rate_percent', Number(e.target.value))}
+                disabled={!canEdit}
+              />
+              <TextField
+                label="حد p95 زمان پاسخ (ms)"
+                type="number"
+                value={String(siteSettings.settings['monitoring.alert.p95_latency_ms'] ?? 5000)}
+                onChange={(e) => updateSiteSetting('monitoring.alert.p95_latency_ms', Number(e.target.value))}
+                disabled={!canEdit}
+              />
+              <TextField
+                label="حداقل تعداد درخواست برای هشدار"
+                type="number"
+                value={String(siteSettings.settings['monitoring.alert.minimum_requests'] ?? 20)}
+                onChange={(e) => updateSiteSetting('monitoring.alert.minimum_requests', Number(e.target.value))}
+                disabled={!canEdit}
+              />
+            </FieldGroup>
+          </div>
         </>
       ) : (
         <InlineMessage text="در حال بارگذاری تنظیمات سایت..." variant="help" />

@@ -9,7 +9,7 @@ import { videoGenerationService } from './video-generation.service';
 
 describe('VideoGenerationPage submit, polling, resume, and cleanup', () => {
   beforeEach(() => {
-    localStorage.clear(); vi.restoreAllMocks();
+    localStorage.clear(); sessionStorage.clear(); vi.restoreAllMocks();
     vi.spyOn(videoGenerationService, 'getVideoOptions').mockResolvedValue(videoOptions);
     vi.spyOn(videoGenerationService, 'listVideoGenerations').mockResolvedValue({ items: [] });
     vi.spyOn(videoGenerationService, 'getVideoGeneration').mockResolvedValue(generation('succeeded'));
@@ -33,6 +33,32 @@ describe('VideoGenerationPage submit, polling, resume, and cleanup', () => {
     expect(create.mock.calls[0][0]).not.toHaveProperty('mediaId');
     expect(create.mock.calls[0][1]).toMatch(/^[0-9a-f-]{36}$/i);
     expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it('hands insufficient wallet details to the shared recovery dialog', async () => {
+    const user = userEvent.setup();
+    const onInsufficientBalance = vi.fn();
+    vi.spyOn(videoGenerationService, 'createVideoGeneration').mockRejectedValue(Object.assign(new Error('اعتبار کافی نیست'), {
+      code: 'NOA_INSUFFICIENT_FUNDS',
+      status: 402,
+      actionKey: 'video_generation',
+      balanceNoa: '8',
+      requiredNoa: '20',
+      shortfallNoa: '12'
+    }));
+    render(<VideoGenerationPage onBack={vi.fn()} onInsufficientBalance={onInsufficientBalance} />);
+
+    await screen.findByRole('heading',{name:'ویدیوت چه حال‌وهوایی داشته باشد؟'});
+    await user.click(screen.getByRole('radio',{name:/واقعی و سینمایی/}));
+    await user.click(screen.getByRole('button',{name:'ادامه با این سبک'}));
+    await user.type(screen.getByRole('textbox',{name:/ایدهٔ ویدیو/}),'یک روباه در جنگل مه‌آلود قدم می‌زند');
+    await user.click(screen.getByRole('button',{name:'ادامه و بازبینی'}));
+    await user.click(screen.getByRole('button',{name:'ساخت ویدیو'}));
+
+    await waitFor(() => expect(onInsufficientBalance).toHaveBeenCalledWith({
+      actionKey: 'video_generation', balanceNoa: '8', requiredNoa: '20', shortfallNoa: '12'
+    }));
+    expect(screen.queryByText('اعتبار کافی نیست')).not.toBeInTheDocument();
   });
 
   it('uploads one reference image and automatically submits image-to-video', async () => {

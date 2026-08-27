@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { Button, InlineMessage } from '../design-system/components';
 import Icon from '../components/Icon';
 import { formatDecimalFa, multiplyDecimal } from '../noa/decimal';
+import { getInsufficientBalanceDetails, isInsufficientBalanceError, type InsufficientBalanceDetails } from '../noa/insufficientBalance';
 import { ACTIVE_GENERATION_HINT_KEY, POLL_DELAYS_MS } from './video-generation.constants';
 import VideoGenerationForm from './VideoGenerationForm';
 import VideoGenerationGallery from './VideoGenerationGallery';
@@ -13,7 +14,11 @@ import type { VideoCapabilityOption, VideoGenerationDetail, VideoGenerationListI
 import { formatElapsed, isTerminalVideoStatus, newIdempotencyKey } from './video-generation.utils';
 import './VideoGenerationPage.css';
 
-type Props = { onBack: () => void; localDemoEnabled?: boolean };
+type Props = {
+  onBack: () => void;
+  localDemoEnabled?: boolean;
+  onInsufficientBalance?: (details: InsufficientBalanceDetails) => void;
+};
 type CreateStep = 'style' | 'form' | 'review';
 const ALLOWED_DURATIONS = Array.from({ length: 15 }, (_, index) => String(index + 1));
 const ALLOWED_RATIOS = ['9:16', '16:9', '1:1'];
@@ -30,15 +35,51 @@ const sanitizeCapability = (routeCapability?: VideoCapabilityOption): VideoCapab
 const capabilityReady = (capability: VideoCapabilityOption | null, unavailable: boolean, enabled: boolean) => Boolean(enabled && !unavailable && capability?.allowedDurations.length && capability.allowedAspectRatios.length && capability.allowedResolutions.length);
 const safelyReadHint = () => { try { return localStorage.getItem(ACTIVE_GENERATION_HINT_KEY) || ''; } catch { return ''; } };
 const saveHint = (id?: string) => { try { if (id) localStorage.setItem(ACTIVE_GENERATION_HINT_KEY, id); else localStorage.removeItem(ACTIVE_GENERATION_HINT_KEY); } catch { /* Optional convenience only. */ } };
+const VIDEO_STUDIO_SESSION_KEY = 'danoa:video-studio-state';
+type VideoStudioSessionState = {
+  createStep: CreateStep;
+  styleKey: string;
+  prompt: string;
+  aspectRatio: string;
+  duration: string;
+  resolution: string;
+  inputMedia: VideoInputMedia | null;
+  inputMediaFileName: string;
+};
+const readVideoStudioSession = (): VideoStudioSessionState => {
+  const fallback: VideoStudioSessionState = { createStep: 'style', styleKey: '', prompt: '', aspectRatio: '', duration: '', resolution: '', inputMedia: null, inputMediaFileName: '' };
+  try {
+    const raw = sessionStorage.getItem(VIDEO_STUDIO_SESSION_KEY);
+    if (!raw) return fallback;
+    const value = JSON.parse(raw) as Partial<VideoStudioSessionState>;
+    const inputMedia = value.inputMedia && typeof value.inputMedia.mediaId === 'string' && typeof value.inputMedia.mimeType === 'string' && typeof value.inputMedia.sizeBytes === 'number'
+      ? value.inputMedia
+      : null;
+    return {
+      createStep: value.createStep === 'form' || value.createStep === 'review' ? value.createStep : 'style',
+      styleKey: typeof value.styleKey === 'string' ? value.styleKey : '',
+      prompt: typeof value.prompt === 'string' ? value.prompt.slice(0, 2000) : '',
+      aspectRatio: typeof value.aspectRatio === 'string' ? value.aspectRatio : '',
+      duration: typeof value.duration === 'string' ? value.duration : '',
+      resolution: typeof value.resolution === 'string' ? value.resolution : '',
+      inputMedia,
+      inputMediaFileName: typeof value.inputMediaFileName === 'string' ? value.inputMediaFileName : ''
+    };
+  } catch {
+    return fallback;
+  }
+};
+const clearVideoStudioSession = () => { try { sessionStorage.removeItem(VIDEO_STUDIO_SESSION_KEY); } catch { /* Best effort only. */ } };
 
-export default function VideoGenerationPage({ onBack, localDemoEnabled = import.meta.env.MODE === 'development' }: Props) {
+export default function VideoGenerationPage({ onBack, localDemoEnabled = import.meta.env.MODE === 'development', onInsufficientBalance }: Props) {
+  const [savedSession] = useState(readVideoStudioSession);
   const [featureEnabled, setFeatureEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
-  const [createStep, setCreateStep] = useState<CreateStep>('style');
+  const [createStep, setCreateStep] = useState<CreateStep>(savedSession.createStep);
   const [capability, setCapability] = useState<VideoCapabilityOption | null>(null);
   const [imageCapability, setImageCapability] = useState<VideoCapabilityOption | null>(null);
   const [profiles, setProfiles] = useState<VideoPromptProfile[]>([]);
-  const [styleKey, setStyleKey] = useState('');
+  const [styleKey, setStyleKey] = useState(savedSession.styleKey);
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [optionsError, setOptionsError] = useState('');
   const [routeUnavailable, setRouteUnavailable] = useState(false);
@@ -52,12 +93,12 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
-  const [prompt, setPrompt] = useState('');
-  const [aspectRatio, setAspectRatio] = useState('');
-  const [duration, setDuration] = useState('');
-  const [resolution, setResolution] = useState('');
-  const [inputMedia, setInputMedia] = useState<VideoInputMedia | null>(null);
-  const [inputMediaFileName, setInputMediaFileName] = useState('');
+  const [prompt, setPrompt] = useState(savedSession.prompt);
+  const [aspectRatio, setAspectRatio] = useState(savedSession.aspectRatio);
+  const [duration, setDuration] = useState(savedSession.duration);
+  const [resolution, setResolution] = useState(savedSession.resolution);
+  const [inputMedia, setInputMedia] = useState<VideoInputMedia | null>(savedSession.inputMedia);
+  const [inputMediaFileName, setInputMediaFileName] = useState(savedSession.inputMediaFileName);
   const [inputMediaPreviewUrl, setInputMediaPreviewUrl] = useState('');
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaError, setMediaError] = useState('');
@@ -71,6 +112,21 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
   const lastSubmitAtRef = useRef(0);
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.profileKey === styleKey) || null, [profiles, styleKey]);
   const activeCapability = inputMedia && imageCapability ? imageCapability : capability;
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(VIDEO_STUDIO_SESSION_KEY, JSON.stringify({
+        createStep,
+        styleKey,
+        prompt,
+        aspectRatio,
+        duration,
+        resolution,
+        inputMedia,
+        inputMediaFileName
+      } satisfies VideoStudioSessionState));
+    } catch { /* Best effort only. */ }
+  }, [createStep, styleKey, prompt, aspectRatio, duration, resolution, inputMedia, inputMediaFileName]);
 
   const loadOptions = useCallback(async () => {
     setOptionsLoading(true); setOptionsError('');
@@ -89,6 +145,7 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
       const effectiveCapability = routeReady ? safeCapability : demoReady ? LOCAL_DEMO_CAPABILITY : null;
       setRouteUnavailable(Boolean(routeIsUnavailable && !demoReady));
       setFeatureEnabled(profilesReady); setCapability(effectiveCapability); setImageCapability(imageRouteReady ? safeImageCapability : demoReady ? LOCAL_DEMO_CAPABILITY : null); setProfiles(publicProfiles); setLocalDemoMode(demoReady);
+      if (styleKey && !publicProfiles.some((profile) => profile.profileKey === styleKey)) setCreateStep('style');
       if (effectiveCapability) {
         setDuration((value) => effectiveCapability.allowedDurations.includes(value) ? value : effectiveCapability.allowedDurations.includes('5') ? '5' : effectiveCapability.allowedDurations[0] || '');
         setAspectRatio((value) => effectiveCapability.allowedAspectRatios.includes(value) ? value : effectiveCapability.allowedAspectRatios.includes('9:16') ? '9:16' : effectiveCapability.allowedAspectRatios[0] || '');
@@ -185,8 +242,14 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
         response = await videoGenerationService.createVideoGeneration(input, idempotencyKey.current);
       }
       window.dispatchEvent(new Event('noa:wallet-changed'));
-      idempotencyKey.current = newIdempotencyKey(); saveHint(response.generationId); await loadHistory(); await selectGeneration(response.generationId); handleMediaRemove(); setActiveTab('history'); setCreateStep('style'); setProgressModalOpen(true);
-    } catch (error) { setDetailError(error instanceof Error ? error.message : 'درخواست ثبت نشد. تنظیمات و اینترنت را بررسی کنید و دوباره تلاش کنید.'); }
+      idempotencyKey.current = newIdempotencyKey(); saveHint(response.generationId); clearVideoStudioSession(); await loadHistory(); await selectGeneration(response.generationId); handleMediaRemove(); setActiveTab('history'); setCreateStep('style'); setProgressModalOpen(true);
+    } catch (error) {
+      if (isInsufficientBalanceError(error) && onInsufficientBalance) {
+        onInsufficientBalance(getInsufficientBalanceDetails(error));
+        return;
+      }
+      setDetailError(error instanceof Error ? error.message : 'درخواست ثبت نشد. تنظیمات و اینترنت را بررسی کنید و دوباره تلاش کنید.');
+    }
     finally { submitInFlightRef.current = false; setSubmitting(false); }
   };
   const change = <T,>(setter: (value: T) => void) => (value: T) => { idempotencyKey.current = newIdempotencyKey(); setDemoComplete(false); setter(value); };

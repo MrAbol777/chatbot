@@ -149,9 +149,9 @@ function createAdminRuntimeStatusRouter({
       intentRouter: intentRouterDiagnostics || {
         enabled: false,
         provider: 'metis',
-        model: 'gemini-2.5-flash-lite-preview',
+        model: 'gemini-2.5-flash',
         fallbackModel: 'gemini-2.5-flash',
-        experimentalModel: 'gemini-2.5-flash-lite-preview',
+        experimentalModel: 'gemini-2.5-flash',
         apiKeySource: 'missing',
         apiKeySet: false,
         temperature: 0,
@@ -173,7 +173,7 @@ function createAdminRuntimeStatusRouter({
       conversationMemory: conversationMemoryDiagnostics || {
         enabled: false,
         provider: 'metis',
-        model: 'gemini-2.5-flash-lite-preview',
+        model: 'gemini-2.5-flash',
         fallbackModel: 'gemini-2.5-flash',
         apiKeySource: 'missing',
         apiKeySet: false,

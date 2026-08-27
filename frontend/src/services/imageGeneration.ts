@@ -48,6 +48,34 @@ interface ImageStatusResponse {
   imageUrl?: string | null; error?: string | null;
 }
 
+type ImageRequestError = Error & {
+  code?: string;
+  status?: number;
+  actionKey?: string;
+  balanceNoa?: string;
+  requiredNoa?: string;
+  shortfallNoa?: string;
+};
+
+function createImageRequestError(payload: unknown, status: number, fallback: string): ImageRequestError {
+  const data = payload && typeof payload === 'object'
+    ? payload as Record<string, unknown>
+    : {};
+  const message = typeof data.message === 'string'
+    ? data.message
+    : typeof data.error === 'string'
+      ? data.error
+      : fallback;
+  const error = new Error(message) as ImageRequestError;
+  error.code = typeof data.error === 'string' ? data.error : undefined;
+  error.status = status;
+  error.actionKey = typeof data.actionKey === 'string' ? data.actionKey : undefined;
+  error.balanceNoa = typeof data.balanceNoa === 'string' ? data.balanceNoa : undefined;
+  error.requiredNoa = typeof data.requiredNoa === 'string' ? data.requiredNoa : undefined;
+  error.shortfallNoa = typeof data.shortfallNoa === 'string' ? data.shortfallNoa : undefined;
+  return error;
+}
+
 export async function startImageGeneration(prompt: string, options: { aspectRatio?: string; idempotencyKey?: string; conversationId?: string } = {}): Promise<{ taskId: string }> {
   const idempotencyKey = options.idempotencyKey || createImageIdempotencyKey();
   const res = await safeFetch(apiUrl('/api/images/generate'), {
@@ -56,7 +84,7 @@ export async function startImageGeneration(prompt: string, options: { aspectRati
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error(e.message || e.error || 'ساخت عکس ناموفق بود.');
+    throw createImageRequestError(e, res.status, 'ساخت عکس ناموفق بود.');
   }
   const d = await res.json() as GenerateImageResponse;
   if (!d.success || !d.taskId) throw new Error(d.error || 'شناسه تسک دریافت نشد.');
@@ -85,7 +113,7 @@ export async function deleteGalleryImage(id: string) {
 export async function startImageEdit(sourceImageId: string, prompt: string, aspectRatio: string, idempotencyKey: string) {
   const res = await safeFetch('/api/images/edit', { method: 'POST', headers: { ...authHeaders(), 'Idempotency-Key': idempotencyKey }, credentials: 'include', body: JSON.stringify({ sourceImageId, prompt, aspectRatio }) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.taskId) throw new Error(data.message || data.error || 'ویرایش تصویر انجام نشد.');
+  if (!res.ok || !data.taskId) throw createImageRequestError(data, res.status, 'ویرایش تصویر انجام نشد.');
   return { taskId: String(data.taskId) };
 }
 

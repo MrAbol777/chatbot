@@ -51,6 +51,13 @@ describe('mocked video-generation API requests', () => {
     await expect(videoGenerationService.getVideoOptions()).rejects.toMatchObject({ code, status });
   });
 
+  it('keeps the safe balance breakdown from a rejected video request', async () => {
+    fetchMock.mockResolvedValueOnce(json({ error: 'NOA_INSUFFICIENT_FUNDS', actionKey: 'video_generation', balanceNoa: '8', requiredNoa: '20', shortfallNoa: '12' }, 402));
+
+    await expect(videoGenerationService.createVideoGeneration({ mode: 'text_to_video', styleKey: 'cinematic', prompt: 'یک جنگل مه‌آلود', aspectRatio: '9:16', duration: '5', resolution: '480p' }, 'local-attempt-key'))
+      .rejects.toMatchObject({ code: 'NOA_INSUFFICIENT_FUNDS', status: 402, actionKey: 'video_generation', balanceNoa: '8', requiredNoa: '20', shortfallNoa: '12' });
+  });
+
   it('maps malformed success and network failure safely', async () => {
     fetchMock.mockResolvedValueOnce(json({ models: [{}] })).mockRejectedValueOnce(new TypeError('offline'));
     await expect(videoGenerationService.getVideoOptions()).rejects.toMatchObject({ code: 'UNKNOWN_ERROR' });

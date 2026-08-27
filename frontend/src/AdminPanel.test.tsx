@@ -10,6 +10,27 @@ const response = (body: unknown, status = 200) =>
     headers: { 'Content-Type': 'application/json' }
   });
 
+const monitoringPayload = {
+  meta: { range: '24h', from: '2026-08-26T00:00:00.000Z', to: '2026-08-27T00:00:00.000Z', generatedAt: '2026-08-27T00:00:00.000Z', bucketSeconds: 3600, environment: 'test', requestMetricsSampled: false, thresholds: { errorRatePercent: 5, p95LatencyMs: 5000, minimumRequests: 20 } },
+  health: [],
+  kpis: {
+    totalUsers: 150,
+    activeUsers: { value: 42, changePct: 4 },
+    requests: { value: 320, changePct: 8 },
+    successRate: { value: 99, changePct: 1 },
+    errorRate: { value: 1, changePct: -1 },
+    p95LatencyMs: { value: 1200, changePct: -5 },
+    noaSpent: { value: 38, changePct: 2 },
+    tokens: { value: 12800, source: 'recorded' }
+  },
+  traffic: [], capabilities: [], providers: [],
+  queues: { images: {}, videos: {}, staleImages: 0, staleVideos: 0 },
+  noa: { captured: [], unresolved: { total: 0, amount: 0 } },
+  storage: { image: { status: 'healthy', writable: true, freePercent: 50 }, video: { status: 'disabled', writable: false, freePercent: null } },
+  alerts: [], recentErrors: [], topErrors: [],
+  process: { uptimeSeconds: 60, rssMb: 80, heapUsedMb: 40, cpuPercent: 2, eventLoopUtilizationPercent: 3, nodeVersion: 'v20.0.0' }
+};
+
 describe('AdminPanel modular navigation, RBAC and lazy loading', () => {
   beforeEach(() => {
     vi.stubGlobal(
@@ -19,17 +40,8 @@ describe('AdminPanel modular navigation, RBAC and lazy loading', () => {
         if (url === '/api/admin/me') {
           return response({ admin: { id: 'admin-1', username: 'root', role: 'superadmin' } });
         }
-        if (url === '/api/admin/dashboard/stats') {
-          return response(
-            {
-              kpis: { totalUsers: 150, activeUsersToday: 42, apiCallsToday: 320, errorCountToday: 3 },
-              userGrowth: [],
-              apiUsage: [],
-              errorDistribution: [],
-              recentActivities: []
-            },
-            200
-          );
+        if (url === '/api/admin/monitoring/overview?range=24h') {
+          return response(monitoringPayload, 200);
         }
         if (url.startsWith('/api/admin/users?')) {
           return response({ items: [], total: 0, page: 1, pageSize: 10 });
@@ -52,7 +64,8 @@ describe('AdminPanel modular navigation, RBAC and lazy loading', () => {
 
     expect(screen.getByRole('link', { name: 'پرش به محتوای اصلی' })).toHaveAttribute('href', '#admin-main-content');
     expect(screen.getByRole('button', { name: 'داشبورد' })).toHaveAttribute('aria-current', 'page');
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/admin/dashboard/stats', { credentials: 'include' }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/admin/monitoring/overview?range=24h', { credentials: 'include' }));
+    expect(await screen.findByText('مرکز پایش دانوآ')).toBeInTheDocument();
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'نوآ و قیمت‌گذاری' })).toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'ایمنی و نظارت' })).toBeInTheDocument();
@@ -73,8 +86,8 @@ describe('AdminPanel modular navigation, RBAC and lazy loading', () => {
       if (url === '/api/admin/me') {
         return response({ admin: { id: 'admin-2', username: 'finance_officer', role: 'finance' } });
       }
-      if (url === '/api/admin/dashboard/stats') {
-        return response({ kpis: { totalUsers: 0, activeUsersToday: 0, apiCallsToday: 0, errorCountToday: 0 } });
+      if (url === '/api/admin/monitoring/overview?range=24h') {
+        return response(monitoringPayload);
       }
       return response({});
     });

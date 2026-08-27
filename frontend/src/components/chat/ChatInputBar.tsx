@@ -210,7 +210,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         </div>
 
         {visibleMessagesCount === 0 ? (
-          <div className="danoa-suggestions-row" role="region" aria-label="پیشنهادهای گفتگو">
+          <div id="chat-starter-ideas" className="danoa-suggestions-row" role="region" aria-label="پیشنهادهای گفتگو">
             {SUGGESTION_PROMPTS.map((item) => (
               <button
                 key={item.label}
@@ -218,7 +218,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
                 className="danoa-suggestion-chip"
                 onClick={() => onSelectSuggestion(item.prompt)}
               >
-                <Icon name={item.icon} size={13} />
+                <Icon name={item.icon} size={13} aria-hidden="true" />
                 <span>{item.label}</span>
               </button>
             ))}

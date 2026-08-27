@@ -3,9 +3,15 @@ import Icon from '../Icon';
 
 interface ChatHeaderProps {
   sidebarOpen: boolean;
+  isDesktopLayout: boolean;
   onOpenSidebar: () => void;
   chatSidebarToggleRef?: React.RefObject<HTMLButtonElement>;
   activeConversationTitle?: string;
+  hasUserMessages: boolean;
+  conversationLoading?: boolean;
+  starterIdeasOpen?: boolean;
+  onOpenStarterIdeas: () => void;
+  onOpenStudio: () => void;
   noaBalanceText?: string;
   onOpenNoaWallet: () => void;
   profileName?: string;
@@ -14,14 +20,37 @@ interface ChatHeaderProps {
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   sidebarOpen,
+  isDesktopLayout,
   onOpenSidebar,
   chatSidebarToggleRef,
   activeConversationTitle = 'گفتگوی جدید',
+  hasUserMessages,
+  conversationLoading = false,
+  starterIdeasOpen = false,
+  onOpenStarterIdeas,
+  onOpenStudio,
   noaBalanceText,
   onOpenNoaWallet,
   profileName = 'ع',
   onOpenSettings
 }) => {
+  const showContextAction = sidebarOpen && isDesktopLayout && !conversationLoading;
+  const contextAction = hasUserMessages
+    ? {
+        label: 'رفتن به استودیو',
+        description: 'باز کردن استودیوی دانوآ',
+        icon: 'sparkles' as const,
+        variant: 'studio',
+        onClick: onOpenStudio
+      }
+    : {
+        label: 'ایده برای شروع',
+        description: 'نمایش پیشنهادهای آماده برای شروع گفتگو',
+        icon: 'lightbulb' as const,
+        variant: 'ideas',
+        onClick: onOpenStarterIdeas
+      };
+
   return (
     <header className="top-bar danoa-top-bar" role="banner">
       <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
@@ -42,9 +71,33 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       )}
 
       <div className="danoa-top-bar__title-wrap">
-        <div className="danoa-top-bar__title">
-          <span className="danoa-top-bar__title-text">{activeConversationTitle}</span>
-        </div>
+        {showContextAction ? (
+          <button
+            key={contextAction.variant}
+            type="button"
+            className={`danoa-header-context-action danoa-header-context-action--${contextAction.variant}${contextAction.variant === 'ideas' && starterIdeasOpen ? ' is-expanded' : ''}`}
+            onClick={contextAction.onClick}
+            aria-label={contextAction.description}
+            aria-haspopup={contextAction.variant === 'ideas' ? 'dialog' : undefined}
+            aria-expanded={contextAction.variant === 'ideas' ? starterIdeasOpen : undefined}
+            title={contextAction.description}
+          >
+            <span className="danoa-header-context-action__icon" aria-hidden="true">
+              <Icon name={contextAction.icon} size={18} />
+            </span>
+            <span className="danoa-header-context-action__label">{contextAction.label}</span>
+            <Icon
+              name="chevron-left"
+              size={15}
+              className="danoa-header-context-action__arrow"
+              aria-hidden="true"
+            />
+          </button>
+        ) : (
+          <div className="danoa-top-bar__title">
+            <span className="danoa-top-bar__title-text">{activeConversationTitle}</span>
+          </div>
+        )}
       </div>
 
       <div className="danoa-top-bar__actions">

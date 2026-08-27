@@ -14,7 +14,7 @@
 | session | `app_auth_sessions`, `app_viana_oauth_flows`, `app_viana_identities` | session داخلی و flow OAuth |
 | گفتگو | `app_conversations`, `app_chat_messages`, `app_chat_turns`, `app_chat_attempts` | گفتگو، پیام، turn و تلاش‌های stream |
 | حافظه | `conversation_documents`, `conversation_document_updates` | snapshot و update حافظه گفتگو |
-| AI telemetry | `app_events`, `app_app_errors`, `input_optimizations` | رخداد، خطا و optimizer |
+| AI telemetry | `app_events`, `app_app_errors`, `app_request_metrics`, `input_optimizations` | رخداد، خطا، زمان پاسخ endpoint و optimizer |
 | تنظیمات | `app_settings` | config قابل مدیریت در runtime |
 | تصویر | `image_generations` | task، prompt، نتیجه و storage تصویر |
 | برنامه/سهمیه | `app_plans`, `app_plan_daily_usage`, `app_plan_hourly_usage` | پلن‌ها و quota |
@@ -58,7 +58,7 @@ erDiagram
 
 ### migrationهای دامنه‌ای
 
-فایل‌های `backend/migrations/001_*.sql` تا `043_*.sql` تغییرات افزایشی را پوشش می‌دهند؛ از جمله:
+فایل‌های `backend/migrations/001_*.sql` تا `044_*.sql` تغییرات افزایشی را پوشش می‌دهند؛ از جمله:
 
 - image generation و gallery
 - guest limits و plan quota
@@ -95,4 +95,3 @@ npm run db:migrate-noa --prefix backend
 - فایل‌های موقت video input و result temp باید طبق retention تنظیمات پاک شوند.
 - حذف کاربر باید اثر cascade/retention روی conversation، image، event و wallet را مشخص کند.
 - قبل از پاک‌سازی، audit و نیازهای قانونی/محصولی نگهداری داده را بررسی کنید.
-

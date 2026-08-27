@@ -185,7 +185,7 @@ project-root/
 │   │   │   └── validators/phone.validator.js
 │   │   ├── bootstrap/              # راه‌اندازی اولیه سرور
 │   │   └── services/               # سرویس‌های legacy
-│   ├── migrations/                 # 43 فایل migration MySQL (001-043)
+│   ├── migrations/                 # 44 فایل migration MySQL (001-044)
 │   ├── scripts/                    # اسکریپت‌های مدیریتی و worker
 │   ├── schema.mysql.sql            # طرح کامل پایگاه داده
 │   ├── system-prompt.txt           # system prompt اصلی مدل
@@ -405,7 +405,7 @@ VIDEO_INPUT_STORAGE_ROOT=/var/lib/danoa/video-inputs
 
 ### Migration‌ها
 
-43 فایل migration در `backend/migrations/` (001 تا 043).  
+44 فایل migration در `backend/migrations/` (001 تا 044).
 اسکریپت‌های کمکی:
 
 ```bash

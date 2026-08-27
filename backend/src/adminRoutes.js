@@ -20,6 +20,8 @@ const { createAdminImageSettingsRouter } = require('./modules/admin/image-settin
 const { createAdminSupervisedOtpRouter } = require('./modules/admin/otp/routes');
 const { createAdminRuntimeStatusRouter } = require('./modules/admin/runtime-status/routes');
 const { createAdminBroadcastMessagesRouter } = require('./modules/broadcast-messages/broadcast-messages.routes');
+const { createMonitoringService } = require('./modules/admin/monitoring/service');
+const { createMonitoringRouter } = require('./modules/admin/monitoring/routes');
 
 const {
   createLoginLimiter,
@@ -128,6 +130,17 @@ function createAdminModule({
     imageUnderstandingService,
     intentRouterService,
     conversationMemoryWriterService
+  }));
+
+  const monitoringService = createMonitoringService({
+    repository: repositories.monitoring,
+    settingsRepository: repositories.settings,
+    runtimeConfig,
+    env: process.env
+  });
+  router.use(createMonitoringRouter({
+    monitoringService,
+    requireAdminAuth
   }));
 
   // 7. Analytics service & router

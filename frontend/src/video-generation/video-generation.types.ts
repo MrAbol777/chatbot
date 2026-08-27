@@ -44,12 +44,19 @@ export type VideoSubmitInput = { mode: VideoGenerationMode | 'image_to_video' | 
 export type VideoInputMedia = { mediaId: string; mimeType: string; sizeBytes: number };
 export type VideoGenerationErrorCode =
   | 'VIDEO_GENERATION_DISABLED' | 'VIDEO_MODEL_NOT_AVAILABLE' | 'VIDEO_GENERATION_MODEL_UNAVAILABLE'
-  | 'NOA_INSUFFICIENT_FUNDS' | 'NOA_PRICING_UNAVAILABLE'
+  | 'NOA_INSUFFICIENT_FUNDS' | 'NOA_INSUFFICIENT_BALANCE' | 'NOA_PRICING_UNAVAILABLE'
   | 'VIDEO_INVALID_SETTINGS' | 'VIDEO_GENERATION_OPTIONS_NOT_ALLOWED' | 'VIDEO_GENERATION_IDEMPOTENCY_CONFLICT'
   | 'VIDEO_PROVIDER_UNAVAILABLE' | 'VIDEO_PROVIDER_SUBMIT_FAILED' | 'VIDEO_PROVIDER_INVALID_REQUEST' | 'VIDEO_PROVIDER_INSUFFICIENT_CREDITS'
   | 'VIDEO_PROVIDER_RATE_LIMITED' | 'VIDEO_PROVIDER_AUTH_FAILED' | 'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG' | 'VIDEO_GENERATION_FAILED'
   | 'VIDEO_GENERATION_NOT_FOUND' | 'VIDEO_RESULT_NOT_READY' | 'VIDEO_RESULT_FILE_MISSING'
   | 'VIDEO_INPUT_MEDIA_REQUIRED' | 'VIDEO_INPUT_MEDIA_INVALID' | 'VIDEO_INPUT_MEDIA_UPLOAD_FAILED' | 'VIDEO_PROVIDER_STATUS_UNKNOWN'
   | 'VIDEO_GENERATION_LOGIN_REQUIRED' | 'NETWORK_ERROR' | 'UNKNOWN_ERROR';
-export type VideoGenerationError = Error & { code: VideoGenerationErrorCode; status?: number };
+export type VideoGenerationError = Error & {
+  code: VideoGenerationErrorCode;
+  status?: number;
+  actionKey?: string;
+  balanceNoa?: string;
+  requiredNoa?: string;
+  shortfallNoa?: string;
+};
 export type VideoSubmitResult = { generationId: string; status: VideoGenerationStatus | string; noaReservationId: string; costNoa: string; unitPriceNoa: string; durationSeconds: string; createdAt: string };

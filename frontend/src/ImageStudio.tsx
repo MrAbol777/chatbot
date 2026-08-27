@@ -6,6 +6,7 @@ import ImageGenerationProgressModal from './ImageGenerationProgressModal';
 import Icon from './components/Icon';
 import { formatDecimalFa } from './noa/decimal';
 import { fetchNoaPublicConfig } from './noa/noa.service';
+import { getInsufficientBalanceDetails, isInsufficientBalanceError, type InsufficientBalanceDetails } from './noa/insufficientBalance';
 import { Button } from './design-system/components';
 import './ImageStudio.css';
 
@@ -93,7 +94,15 @@ const asGalleryImage = (job: ImageToImageJob): GalleryImage => ({
   inputCount: job.inputCount
 });
 
-export default function ImageStudio({ onBack, backLabel = 'بازگشت به چت' }: { onBack: () => void; backLabel?: string }) {
+export default function ImageStudio({
+  onBack,
+  backLabel = 'بازگشت به چت',
+  onInsufficientBalance
+}: {
+  onBack: () => void;
+  backLabel?: string;
+  onInsufficientBalance?: (details: InsufficientBalanceDetails) => void;
+}) {
   const [savedSession] = useState(readStudioSession);
   const [tab, setTab] = useState<'create' | 'gallery'>(savedSession.tab);
   const [items, setItems] = useState<GalleryImage[]>([]);
@@ -239,7 +248,13 @@ export default function ImageStudio({ onBack, backLabel = 'بازگشت به چ�
       setProgressItemKey({ id: optimistic.id, source: optimistic.source });
       referenceUrlsRef.current.forEach((url) => URL.revokeObjectURL(url)); referenceUrlsRef.current = [];
       setReferenceImages([]); setReferencePickerOpen(false); setTab('gallery'); setEditSource(null);
-    } catch (e) { setError(e instanceof Error ? e.message : 'درخواست انجام نشد.'); }
+    } catch (e) {
+      if (isInsufficientBalanceError(e) && onInsufficientBalance) {
+        onInsufficientBalance(getInsufficientBalanceDetails(e));
+        return;
+      }
+      setError(e instanceof Error ? e.message : 'درخواست انجام نشد.');
+    }
     finally { inFlight.current = false; setBusy(false); }
   };
   const reuse = (item: GalleryImage, edit = false) => { setPrompt(edit ? '' : getUserFacingPrompt(item.originalPrompt)); setRatio(item.aspectRatio === '9:16' || item.aspectRatio === '16:9' ? item.aspectRatio : '1:1'); setEditSource(edit ? item : null); setSelected(null); setError(''); setTab('create'); };

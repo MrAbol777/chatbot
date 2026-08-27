@@ -1,4 +1,13 @@
 const { streamOpenAIChat, streamGeminiContent } = require('./provider-stream');
+const {
+  createConversationDocumentLeakError,
+  isConversationDocumentLeak,
+  releaseSafeStreamText
+} = require('../conversation-memory/conversation-document-leak-guard');
+const {
+  buildImmediateCompletionMessages,
+  isDeferredWorkReply
+} = require('./immediate-response-guard');
 
 const normalizeHistory = (history, currentMessage) => {
   const clean = Array.isArray(history)
@@ -689,9 +698,20 @@ function createAiService({
 
     const isFirstMessage = dbHistory.filter((item) => item.role === 'user').length === 0;
     const responseStart = Date.now();
-    const aiResult = await callOpenAI(messages, { requestId });
+    let aiResult = await callOpenAI(messages, { requestId });
+    let reply = removeExtraGreeting(aiResult.reply, isFirstMessage);
+    if (isDeferredWorkReply(reply)) {
+      log('CHAT', 'deferred_work_reply_repaired', { requestId, conversationId: normalizedConversationId });
+      aiResult = await callOpenAI(buildImmediateCompletionMessages(messages, reply), { requestId });
+      reply = removeExtraGreeting(aiResult.reply, isFirstMessage);
+      if (isDeferredWorkReply(reply)) {
+        throw Object.assign(new Error('DEFERRED_WORK_REPLY'), { code: 'DEFERRED_WORK_REPLY' });
+      }
+    }
     const responseTimeMs = Date.now() - responseStart;
-    const reply = removeExtraGreeting(aiResult.reply, isFirstMessage);
+    if (isConversationDocumentLeak(reply)) {
+      throw createConversationDocumentLeakError();
+    }
     const assistantMessageCreatedAt = new Date();
     const nextConversationMessages = [...effectiveHistory, { role: 'assistant', content: reply }];
     conversationStore.set(memoryKey, nextConversationMessages);
@@ -782,17 +802,35 @@ function createAiService({
       }
 
       let reply = '';
+      let heldDelta = '';
       const responseStart = Date.now();
-      const aiResult = await callOpenAIStream(messages, {
+      let aiResult = await callOpenAIStream(messages, {
         requestId,
         signal,
         onDelta: async (delta) => {
           reply += delta;
-          await onDelta(delta);
+          const next = releaseSafeStreamText(heldDelta + delta);
+          if (next.blocked) throw createConversationDocumentLeakError();
+          heldDelta = next.hold;
+          if (next.emit) await onDelta(next.emit);
         }
       });
       reply = reply.trim();
       if (!reply) throw Object.assign(new Error('EMPTY_UPSTREAM_REPLY'), { code: 'EMPTY_UPSTREAM_REPLY' });
+      if (isConversationDocumentLeak(reply)) throw createConversationDocumentLeakError();
+      if (isDeferredWorkReply(reply)) {
+        log('CHAT', 'deferred_work_reply_repaired', { requestId, turnId, conversationId: normalizedConversationId });
+        aiResult = await callOpenAI(buildImmediateCompletionMessages(messages, reply), { requestId });
+        reply = String(aiResult.reply || '').trim();
+        heldDelta = '';
+        if (!reply) throw Object.assign(new Error('EMPTY_UPSTREAM_REPLY'), { code: 'EMPTY_UPSTREAM_REPLY' });
+        if (isDeferredWorkReply(reply)) {
+          throw Object.assign(new Error('DEFERRED_WORK_REPLY'), { code: 'DEFERRED_WORK_REPLY' });
+        }
+        if (isConversationDocumentLeak(reply)) throw createConversationDocumentLeakError();
+      } else if (heldDelta) {
+        await onDelta(heldDelta);
+      }
 
       const nextMessages = [
         ...dbHistory,

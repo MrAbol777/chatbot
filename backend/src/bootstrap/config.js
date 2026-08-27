@@ -275,9 +275,9 @@ function loadRuntimeConfig(env = process.env) {
     intentRouter: {
       enabled: env.INTENT_ROUTER_ENABLED !== 'false',
       provider: env.INTENT_ROUTER_PROVIDER || 'metis',
-      model: env.INTENT_ROUTER_MODEL || 'gemini-2.5-flash-lite-preview',
+      model: env.INTENT_ROUTER_MODEL || 'gemini-2.5-flash',
       fallbackModel: env.INTENT_ROUTER_FALLBACK_MODEL || 'gemini-2.5-flash',
-      experimentalModel: env.INTENT_ROUTER_EXPERIMENTAL_MODEL || 'gemini-2.5-flash-lite-preview',
+      experimentalModel: env.INTENT_ROUTER_EXPERIMENTAL_MODEL || 'gemini-2.5-flash',
       temperature: Number.isFinite(Number(env.INTENT_ROUTER_TEMPERATURE)) ? Number(env.INTENT_ROUTER_TEMPERATURE) : 0,
       maxOutputTokens: Number.isFinite(Number(env.INTENT_ROUTER_MAX_OUTPUT_TOKENS)) ? Number(env.INTENT_ROUTER_MAX_OUTPUT_TOKENS) : 120,
       timeoutMs: Number.isFinite(Number(env.INTENT_ROUTER_TIMEOUT_MS)) ? Number(env.INTENT_ROUTER_TIMEOUT_MS) : 2500,
@@ -310,7 +310,7 @@ function loadRuntimeConfig(env = process.env) {
     conversationMemory: {
       enabled: env.CONVERSATION_MEMORY_ENABLED !== 'false',
       provider: env.CONVERSATION_MEMORY_PROVIDER || 'metis',
-      model: env.CONVERSATION_MEMORY_MODEL || 'gemini-2.5-flash-lite-preview',
+      model: env.CONVERSATION_MEMORY_MODEL || 'gemini-2.5-flash',
       fallbackModel: env.CONVERSATION_MEMORY_FALLBACK_MODEL || 'gemini-2.5-flash',
       temperature: Number.isFinite(Number(env.CONVERSATION_MEMORY_TEMPERATURE)) ? Number(env.CONVERSATION_MEMORY_TEMPERATURE) : 0,
       maxOutputTokens: Number.isFinite(Number(env.CONVERSATION_MEMORY_MAX_OUTPUT_TOKENS)) ? Number(env.CONVERSATION_MEMORY_MAX_OUTPUT_TOKENS) : 3000,

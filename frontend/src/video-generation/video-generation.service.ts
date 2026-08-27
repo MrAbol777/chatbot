@@ -27,8 +27,15 @@ async function request<T>(url: string, validator: Validator<T>, init: RequestIni
   catch (error) { if (error instanceof DOMException && error.name === 'AbortError') throw error; throw createVideoGenerationError('NETWORK_ERROR'); }
   const body: unknown = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const payload = body && typeof body === 'object' ? body as { error?: string } : {};
-    throw createVideoGenerationError(payload.error, response.status);
+    const payload = body && typeof body === 'object'
+      ? body as { error?: string; actionKey?: string; balanceNoa?: string; requiredNoa?: string; shortfallNoa?: string }
+      : {};
+    throw createVideoGenerationError(payload.error, response.status, {
+      actionKey: payload.actionKey,
+      balanceNoa: payload.balanceNoa,
+      requiredNoa: payload.requiredNoa,
+      shortfallNoa: payload.shortfallNoa
+    });
   }
   if (!validator(body)) throw createVideoGenerationError();
   return body;

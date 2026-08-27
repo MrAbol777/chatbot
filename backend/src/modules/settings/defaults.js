@@ -583,8 +583,8 @@ const SETTING_DEFINITIONS = {
     label: 'مدل اصلی مسیریاب هوشمند',
     type: 'string',
     category: 'ai',
-    defaultValue: 'gemini-2.5-flash-lite-preview',
-    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    defaultValue: 'gemini-2.5-flash',
+    allowedValues: ['gemini-2.5-flash'],
     adminEditable: true
   },
   'ai.intent_router.fallback_model': {
@@ -592,15 +592,15 @@ const SETTING_DEFINITIONS = {
     type: 'string',
     category: 'ai',
     defaultValue: 'gemini-2.5-flash',
-    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    allowedValues: ['gemini-2.5-flash'],
     adminEditable: true
   },
   'ai.intent_router.experimental_model': {
     label: 'مدل experimental مسیریاب هوشمند',
     type: 'string',
     category: 'ai',
-    defaultValue: 'gemini-2.5-flash-lite-preview',
-    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    defaultValue: 'gemini-2.5-flash',
+    allowedValues: ['gemini-2.5-flash'],
     adminEditable: true
   },
   'ai.intent_router.temperature': {
@@ -718,8 +718,8 @@ const SETTING_DEFINITIONS = {
     label: 'مدل اصلی حافظه مکالمه',
     type: 'string',
     category: 'ai',
-    defaultValue: 'gemini-2.5-flash-lite-preview',
-    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    defaultValue: 'gemini-2.5-flash',
+    allowedValues: ['gemini-2.5-flash'],
     adminEditable: true
   },
   'ai.conversation_memory.fallback_model': {
@@ -727,7 +727,7 @@ const SETTING_DEFINITIONS = {
     type: 'string',
     category: 'ai',
     defaultValue: 'gemini-2.5-flash',
-    allowedValues: ['gemini-2.5-flash-lite-preview', 'gemini-2.5-flash'],
+    allowedValues: ['gemini-2.5-flash'],
     adminEditable: true
   },
   'ai.conversation_memory.temperature': {
@@ -828,6 +828,33 @@ const SETTING_DEFINITIONS = {
     defaultValue: 18,
     min: 0,
     max: 120,
+    adminEditable: true
+  },
+  'monitoring.alert.error_rate_percent': {
+    label: 'آستانه هشدار نرخ خطا (درصد)',
+    type: 'number',
+    category: 'monitoring',
+    defaultValue: 5,
+    min: 1,
+    max: 100,
+    adminEditable: true
+  },
+  'monitoring.alert.p95_latency_ms': {
+    label: 'آستانه هشدار p95 (ms)',
+    type: 'number',
+    category: 'monitoring',
+    defaultValue: 5000,
+    min: 100,
+    max: 120000,
+    adminEditable: true
+  },
+  'monitoring.alert.minimum_requests': {
+    label: 'حداقل نمونه برای هشدار',
+    type: 'number',
+    category: 'monitoring',
+    defaultValue: 20,
+    min: 1,
+    max: 10000,
     adminEditable: true
   }
 };

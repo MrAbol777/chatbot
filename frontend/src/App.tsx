@@ -12,13 +12,16 @@ import {
 } from './services/imageGeneration';
 import { Button, Dialog, useNotification } from './design-system/components';
 import Icon from './components/Icon';
+import InsufficientBalanceDialog from './components/InsufficientBalanceDialog';
 import type { IconName } from './components/Icon';
 import ProfileForm from './components/ProfileForm';
+import StarterIdeasDialog from './components/chat/StarterIdeasDialog';
 import { getInitialColorMode, persistColorMode, type ColorMode } from './theme/colorMode';
 import NoaWalletPanel from './noa/NoaWalletPanel';
 import { formatDecimalFa } from './noa/decimal';
 import { fetchPendingNoaNotifications } from './noa/noa.service';
 import { useNoaWallet } from './noa/useNoaWallet';
+import type { InsufficientBalanceDetails } from './noa/insufficientBalance';
 import {
   authNoticeMessage,
   clearSessionCsrfToken,
@@ -550,6 +553,7 @@ function ChatApp() {
   const [hasHydratedRemoteConversations, setHasHydratedRemoteConversations] = useState(false);
   const [conversationLoadingId, setConversationLoadingId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(getInitialSidebarState);
+  const [starterIdeasOpen, setStarterIdeasOpen] = useState(false);
 
   const handleToggleSidebar = () => {
     setSidebarOpen((prev) => {
@@ -628,7 +632,8 @@ function ChatApp() {
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
  const [imageGenError, setImageGenError] = useState<string>('');
- const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
+  const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
+  const [insufficientBalance, setInsufficientBalance] = useState<InsufficientBalanceDetails | null>(null);
  const [publicSettings, setPublicSettings] = useState<PublicSettings>(PUBLIC_SETTINGS_DEFAULTS);
 
  const [editingId, setEditingId] = useState<string | null>(null);
@@ -842,6 +847,10 @@ function ChatApp() {
     () => dedupeChatMessages(activeConversation?.messages || []),
     [activeConversation?.messages]
   );
+
+  useEffect(() => {
+    setStarterIdeasOpen(false);
+  }, [activeConversationId]);
 
   useEffect(() => {
     if (!imagePreview) {
@@ -1081,11 +1090,41 @@ function ChatApp() {
       setSidebarOpen((open) => !open);
       return;
     }
+    const returnPath = currentView === 'noa' ? window.history.state?.danoaNoaReturnPath : null;
+    if (returnPath === '/images' || returnPath === '/studio/image' || returnPath === '/studio/video') {
+      window.history.pushState({}, '', returnPath);
+      startTransition(() => {
+        setCurrentView(returnPath === '/studio/video' ? 'video' : 'images');
+        setSidebarOpen(false);
+      });
+      return;
+    }
     navigateToView('chat');
   };
 
   const handleOpenNoaWallet = () => {
     navigateToView('noa');
+  };
+
+  const handleOpenNoaWalletFromInsufficientBalance = () => {
+    const returnPath = window.location.pathname;
+    const previousState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
+    window.history.pushState({ ...previousState, danaoNoaReturnPath: returnPath }, '', '/noa');
+    setInsufficientBalance(null);
+    startTransition(() => {
+      setCurrentView('noa');
+      setSidebarOpen(false);
+    });
+  };
+
+  const openStarterIdeasFromHeader = () => {
+    setStarterIdeasOpen(true);
+  };
+
+  const handleSelectStarterIdea = (prompt: string) => {
+    setInputValue(prompt);
+    setStarterIdeasOpen(false);
+    window.requestAnimationFrame(() => messageInputRef.current?.focus());
   };
 
   const beginAuthFlow = (mode: AuthMode) => {
@@ -2462,6 +2501,12 @@ function ChatApp() {
           };
         });
         setInputValue(content);
+        setInsufficientBalance({
+          actionKey: requestError.payload?.actionKey,
+          balanceNoa: requestError.payload?.balanceNoa,
+          requiredNoa: requestError.payload?.requiredNoa,
+          shortfallNoa: requestError.payload?.shortfallNoa
+        });
         notify.warning('موجودی نوآ برای این درخواست کافی نیست؛ جزئیات و راه‌حل در گفتگو نمایش داده شد.');
         void noaWallet.refresh();
         return;
@@ -3144,6 +3189,7 @@ notify.error(message);
   const shouldShowSendAction = inputValue.trim().length > 0 || attachments.length > 0;
   const canSendMessage = !isRecording && !isSending && shouldShowSendAction;
   const isEmptyConversation = currentView === 'chat' && !conversationLoadingId && !isSending && visibleMessages.length === 0;
+  const hasUserMessages = visibleMessages.some((message) => message.role === 'user');
   const imagePromptLength = imageGenPrompt.trim().length;
   const canSubmitImagePrompt = imagePromptLength > 0 && !isGeneratingImage;
   const currentPathname = window.location.pathname;
@@ -3364,9 +3410,15 @@ notify.error(message);
       {currentView === 'chat' ? (
         <ChatHeader
             sidebarOpen={sidebarOpen}
+            isDesktopLayout={isDesktopChatLayout()}
             onOpenSidebar={() => setSidebarOpen(true)}
             chatSidebarToggleRef={chatSidebarToggleRef}
             activeConversationTitle={activeConversation?.title || DEFAULT_TITLE}
+            hasUserMessages={hasUserMessages}
+            conversationLoading={Boolean(conversationLoadingId)}
+            starterIdeasOpen={starterIdeasOpen}
+            onOpenStarterIdeas={openStarterIdeasFromHeader}
+            onOpenStudio={openStudioFromChat}
             noaBalanceText={noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ` : undefined}
             onOpenNoaWallet={handleOpenNoaWallet}
             profileName={profile?.name || 'ع'}
@@ -3473,8 +3525,8 @@ notify.error(message);
         ) : null}
         <Suspense fallback={<StudioRouteFallback />}>
           {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
-          {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} /> : null}
-          {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} /> : null}
+          {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} onInsufficientBalance={setInsufficientBalance} /> : null}
+          {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} onInsufficientBalance={setInsufficientBalance} /> : null}
         </Suspense>
         {false ? (
           <main className="generate-page">
@@ -3745,6 +3797,17 @@ notify.error(message);
             />
           </main>
         ) : null}
+        <InsufficientBalanceDialog
+          open={Boolean(insufficientBalance)}
+          billingError={insufficientBalance}
+          onClose={() => setInsufficientBalance(null)}
+          onOpenWallet={handleOpenNoaWalletFromInsufficientBalance}
+        />
+        <StarterIdeasDialog
+          open={starterIdeasOpen}
+          onClose={() => setStarterIdeasOpen(false)}
+          onSelectIdea={handleSelectStarterIdea}
+        />
         {currentView === 'chat' && sidebarOpen && !isDesktopChatLayout() ? (
           <button
             className="sidebar-hitbox"

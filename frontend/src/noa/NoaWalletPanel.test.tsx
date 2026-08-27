@@ -29,6 +29,28 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 });
 
 describe('NoaWalletPanel', () => {
+  it('shows reserved credit only when the reserved balance is positive', () => {
+    vi.mocked(fetch).mockResolvedValue(json({ items: [] }));
+    const props = {
+      walletLoading: false,
+      walletError: '',
+      onRefreshWallet: async () => wallet
+    };
+    const { rerender } = render(<NoaWalletPanel {...props} wallet={wallet} />);
+
+    expect(screen.getByText('نرخ تبدیل فعلی')).toBeInTheDocument();
+    expect(screen.queryByText('اعتبار رزروشده')).not.toBeInTheDocument();
+
+    rerender(
+      <NoaWalletPanel
+        {...props}
+        wallet={{ ...wallet, reservedBalance: '1.250000', totalBalance: '4.250000' }}
+      />
+    );
+
+    expect(screen.getByText('اعتبار رزروشده')).toBeInTheDocument();
+  });
+
   it('submits a manual receipt with only its image and never sends a transaction identifier', async () => {
     const user = userEvent.setup();
     const refreshWallet = vi.fn(async () => wallet);
@@ -65,6 +87,11 @@ describe('NoaWalletPanel', () => {
       />
     );
 
+    const receiptInput = screen.getByLabelText('انتخاب تصویر رسید');
+    const reviewButton = screen.getByRole('button', { name: 'ادامه و بررسی رسید' });
+    expect(reviewButton).toBeDisabled();
+    expect(receiptInput.compareDocumentPosition(reviewButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
     await user.click(await screen.findByRole('button', { name: 'مشاهده رسیدها' }));
     expect(await screen.findAllByText('هنوز رسیدی ثبت نشده است')).toHaveLength(2);
     await user.click(screen.getByRole('button', { name: 'بستن پیگیری' }));
@@ -74,8 +101,9 @@ describe('NoaWalletPanel', () => {
     expect(screen.getByText('نام دارنده کارت')).toBeInTheDocument();
     expect(screen.getByText('6037-9912-3456-7890')).toBeInTheDocument();
     const receipt = new File(['receipt-image'], 'receipt.png', { type: 'image/png' });
-    await user.upload(screen.getByLabelText('انتخاب تصویر رسید'), receipt);
-    await user.click(screen.getByRole('button', { name: 'ادامه و بررسی رسید' }));
+    await user.upload(receiptInput, receipt);
+    expect(reviewButton).toBeEnabled();
+    await user.click(reviewButton);
     expect(screen.getByRole('dialog', { name: 'تأیید ثبت رسید' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'ثبت رسید برای بررسی' }));
 

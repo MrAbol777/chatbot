@@ -169,7 +169,7 @@ export default function AdminPanel() {
           </header>
 
           <section className="admin-content" aria-labelledby="admin-current-section">
-            {tab === 'dashboard' ? <DashboardTab /> : null}
+            {tab === 'dashboard' ? <DashboardTab onNavigate={changeTab} /> : null}
 
             {tab === 'users' ? (
               <UsersTab
