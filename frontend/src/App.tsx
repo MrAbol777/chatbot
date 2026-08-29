@@ -505,8 +505,26 @@ export const loadProfile = (): AppProfile | null => {
   }
 };
 
+export const resolveAuthenticatedProfile = (
+  serverSession: DanoaSessionResponse,
+  cachedProfile: AppProfile | null
+): AppProfile | null => {
+  if (!serverSession.authenticated || !serverSession.profile || !serverSession.userId) {
+    return null;
+  }
+
+  return {
+    ...serverSession.profile,
+    id: serverSession.userId,
+    authProvider: serverSession.provider,
+    personality: cachedProfile?.personality || createDefaultPersonality()
+  };
+};
+
 function ChatApp() {
-  const [profile, setProfile] = useState<AppProfile | null>(() => (typeof window === 'undefined' ? null : loadProfile()));
+  // Persisted profile data is only a recovery/personalization hint. The server session
+  // is the sole authority that can promote it into authenticated application state.
+  const [profile, setProfile] = useState<AppProfile | null>(null);
   const [landingStep, setLandingStep] = useState<LandingStep>('landing');
   const [currentView, setCurrentView] = useState<AppView>(() =>
     typeof window === 'undefined' ? 'chat' : getAppViewFromPath(window.location.pathname)
@@ -1017,7 +1035,7 @@ function ChatApp() {
               ? '/profile'
               : view === 'noa'
                 ? '/noa'
-                : '/';
+                : '/chat';
     if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
       if (mode === 'replace') {
         window.history.replaceState({}, '', nextPath);
@@ -1032,7 +1050,7 @@ function ChatApp() {
   };
 
   const navigateToConversation = (conversationId: string, mode: 'push' | 'replace' = 'push') => {
-    const nextPath = conversationId ? `/c/${encodeURIComponent(conversationId)}` : '/';
+    const nextPath = conversationId ? `/c/${encodeURIComponent(conversationId)}` : '/chat';
     mode === 'replace' ? window.history.replaceState({}, '', nextPath) : window.history.pushState({}, '', nextPath);
     setCurrentView('chat');
     setActiveConversationId(conversationId);
@@ -1042,7 +1060,7 @@ function ChatApp() {
   const openStudioFromChat = () => {
     const pathname = window.location.pathname;
     const routeConversationId = getConversationIdFromPath(pathname);
-    const chatPath = pathname === '/' || routeConversationId ? pathname : '/';
+    const chatPath = pathname === '/chat' || routeConversationId ? pathname : '/chat';
     const draftConversationId = routeConversationId || activeConversationId;
     writeSessionValue(getChatDraftKey(draftConversationId), inputValue);
     writeSessionValue(LAST_STUDIO_CHAT_PATH_KEY, chatPath);
@@ -1078,8 +1096,8 @@ function ChatApp() {
   const returnToChatFromStudio = () => {
     const statePath = window.history.state?.danaoStudioReturnPath;
     const isChatPath = (path: unknown): path is string =>
-      typeof path === 'string' && (path === '/' || /^\/c\/[^/]+$/.test(path));
-    const returnPath = isChatPath(statePath) ? statePath : '/';
+      typeof path === 'string' && (path === '/chat' || /^\/c\/[^/]+$/.test(path));
+    const returnPath = isChatPath(statePath) ? statePath : '/chat';
 
     writeSessionValue(LAST_STUDIO_CHAT_PATH_KEY, '');
     navigateToConversation(getConversationIdFromPath(returnPath), 'replace');
@@ -1191,28 +1209,28 @@ function ChatApp() {
         const rawConversations = localStorage.getItem(CONVERSATIONS_KEY);
         const routeConversationId = getConversationIdFromPath(window.location.pathname);
         const storedAuthToken = localStorage.getItem('chat_auth_token') || '';
+        let sessionLookupFailed = false;
         const [serverSession, providerConfig] = await Promise.all([
-          loadDanoaSession(storedAuthToken).catch(() => ({ authenticated: false } as DanoaSessionResponse)),
+          loadDanoaSession(storedAuthToken).catch(() => {
+            sessionLookupFailed = true;
+            return { authenticated: false } as DanoaSessionResponse;
+          }),
           loadVianaConfig().catch(() => ({ enabled: false, providerLabel: 'Viana' }))
         ]);
         if (cancelled) return;
         setVianaEnabled(providerConfig.enabled);
         if (serverSession.authNotice) setVianaNotice(serverSession.authNotice);
 
+        const cachedProfile = loadProfile();
+        if (cachedProfile) setHasSavedAccount(true);
         if (rawProfiles) {
           const parsedProfiles = JSON.parse(rawProfiles) as AppProfile[];
           if (Array.isArray(parsedProfiles) && parsedProfiles.length > 0) setHasSavedAccount(true);
         }
 
-        let profileData = loadProfile();
+        const profileData = resolveAuthenticatedProfile(serverSession, cachedProfile);
         const routeView = getAppViewFromPath(window.location.pathname);
-        if (serverSession.authenticated && serverSession.profile && serverSession.userId) {
-          profileData = {
-            ...serverSession.profile,
-            id: serverSession.userId,
-            authProvider: serverSession.provider,
-            personality: profileData?.personality || createDefaultPersonality()
-          };
+        if (profileData) {
           localStorage.setItem(PROFILE_KEY, JSON.stringify(profileData));
           if (serverSession.provider === 'viana' && serverSession.authMethods?.includes('session')) {
             localStorage.removeItem('chat_auth_token');
@@ -1222,6 +1240,12 @@ function ChatApp() {
             setHasCookieSession(false);
             clearSessionCsrfToken();
           }
+        } else {
+          setProfile(null);
+          setHasCookieSession(false);
+          clearSessionCsrfToken();
+          // A transient lookup failure is not proof that a bearer credential is invalid.
+          if (storedAuthToken && !sessionLookupFailed) localStorage.removeItem('chat_auth_token');
         }
 
         const savedTheme = localStorage.getItem(THEME_KEY) as 'energy' | 'calm' | null;
@@ -1229,7 +1253,7 @@ function ChatApp() {
         else if (profileData) applyTheme(getDefaultThemeByAge(profileData.age), false);
         else applyTheme('energy', false);
 
-        if (serverSession.authenticated && profileData) {
+        if (profileData) {
           setProfile(profileData);
           setLandingStep('chat');
           setCurrentView(routeView);
@@ -1244,8 +1268,9 @@ function ChatApp() {
           setRegistrationStep(1);
           setLandingStep('signup');
         } else {
-          if (profileData && !storedAuthToken) localStorage.removeItem(PROFILE_KEY);
           setLandingStep('landing');
+          window.location.replace('/');
+          return;
         }
 
         if (rawConversations) {
@@ -1308,7 +1333,7 @@ function ChatApp() {
           setActiveConversationId(getConversationIdFromPath(pathname));
           setSidebarOpen(nextView === 'chat' && isDesktopChatLayout());
         });
-        if (!loadProfile() && !new URLSearchParams(window.location.search).get('auth')) {
+        if (hasCheckedSession && !profile && !new URLSearchParams(window.location.search).get('auth')) {
           window.location.replace('/');
         }
         return;
@@ -1321,7 +1346,7 @@ function ChatApp() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [hasCheckedSession, profile]);
 
   useEffect(() => {
     if (!profile?.id || landingStep !== 'chat') {
@@ -3025,6 +3050,7 @@ notify.error(message);
   const renderAuthForm = ({ includeLanding = true }: { includeLanding?: boolean } = {}) => (
     <AuthForm
       includeLanding={includeLanding}
+      authMode={authMode}
       landingStep={landingStep}
       registrationStep={registrationStep}
       authTransition={authTransition}
@@ -3066,6 +3092,7 @@ notify.error(message);
         setVerificationRetrySeconds(0);
         setVerificationNoticeVariant('info');
         setVerificationNotice('');
+        window.location.assign('/');
       }}
       onBackToStep1={() => {
         setRegistrationStep(1);
@@ -3169,7 +3196,7 @@ notify.error(message);
     return <NotFound />;
   }
 
-  if (!hasCheckedSession && !profile) {
+  if (!hasCheckedSession) {
     return null;
   }
 

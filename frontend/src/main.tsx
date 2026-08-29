@@ -9,9 +9,16 @@ import { installAuthenticatedFetch } from './auth/danoaSession';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ToastProvider } from './design-system/components';
 import { initializeClarity } from './analytics/clarity';
+import { getCanonicalLandingUrl, resolveEntryRoute } from './entryRoute';
 
 installAuthenticatedFetch();
 initializeClarity();
+
+const initialPathname = window.location.pathname;
+const canonicalLandingUrl = getCanonicalLandingUrl(window.location);
+if (canonicalLandingUrl) {
+  window.history.replaceState(window.history.state, '', canonicalLandingUrl);
+}
 
 const preloadRetryKey = `danoa:preload-retry:${window.location.pathname}`;
 window.addEventListener('vite:preloadError', (event) => {
@@ -32,9 +39,7 @@ window.addEventListener('error', (event) => {
   console.error('[window:error]', event.message, event.filename, event.lineno, event.error);
 });
 
-const ADMIN_PANEL_PATH = '/admin-secure-9x7k';
-const isAdminEntry = window.location.pathname === ADMIN_PANEL_PATH || window.location.pathname === '/admin/login' || window.location.pathname.startsWith('/admin/');
-const isLandingEntry = window.location.pathname === '/landing';
+const entryRoute = resolveEntryRoute(initialPathname);
 const LazyApp = React.lazy(() => import('./App'));
 const LazyLandingPage = React.lazy(() => import('./Landing'));
 const LazyAdminLogin = React.lazy(() => import('./AdminLogin'));
@@ -69,7 +74,7 @@ function AdminEntry() {
   );
 }
 
-const Root = isAdminEntry ? AdminEntry : isLandingEntry ? LazyLandingPage : LazyApp;
+const Root = entryRoute === 'admin' ? AdminEntry : entryRoute === 'landing' ? LazyLandingPage : LazyApp;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -71,6 +71,13 @@ describe('LandingPage — all sections render', () => {
     expect(screen.getByText(/۱۴۰۴ دانوآ/)).toBeInTheDocument();
   });
 
+  it('links both brand logos to the canonical landing URL', () => {
+    render(<LandingPage />);
+    const brandLinks = screen.getAllByRole('link', { name: 'دانوآ - صفحه معرفی' });
+    expect(brandLinks).toHaveLength(2);
+    brandLinks.forEach((link) => expect(link).toHaveAttribute('href', '/'));
+  });
+
   it('has only one h1', () => {
     render(<LandingPage />);
     const h1s = screen.getAllByRole('heading', { level: 1 });

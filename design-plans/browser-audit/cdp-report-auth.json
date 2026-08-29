@@ -1,0 +1,235 @@
+[
+  {
+    "name": "auth-signup-step-1-mobile-cdp",
+    "metrics": {
+      "url": "http://127.0.0.1:5173/chat?auth=signup",
+      "title": "دانوآ | دوست هوش مصنوعی بچه‌ها",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "dpr": 1
+      },
+      "document": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "scrollHeight": 844
+      },
+      "body": {
+        "scrollWidth": 390,
+        "clientWidth": 390
+      },
+      "active": "body",
+      "headings": [
+        "ساخت حساب"
+      ],
+      "buttons": [
+        {
+          "text": "بازگشت",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "دریافت کد تأیید",
+          "label": null,
+          "disabled": false
+        }
+      ],
+      "offenders": []
+    },
+    "auth": {
+      "progress": "۱مرحله ۱ از ۳",
+      "url": "http://127.0.0.1:5173/chat?auth=signup",
+      "cardText": "بازگشت\n۱\n\nمرحله ۱ از ۳\n\nساخت حساب\n\nبرای ساخت حساب، شماره موبایلت را وارد کن تا کد تأیید را برایت ارسال کنیم.\n\nشماره موبایل\nشماره باید با ۰۹ شروع شود و ۱۱ رقم داشته باشد.\nدریافت کد تأیید"
+    }
+  },
+  {
+    "name": "auth-signup-step-2-mobile-cdp",
+    "metrics": {
+      "url": "http://127.0.0.1:5173/chat?auth=signup",
+      "title": "دانوآ | دوست هوش مصنوعی بچه‌ها",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "dpr": 1
+      },
+      "document": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "scrollHeight": 844
+      },
+      "body": {
+        "scrollWidth": 390,
+        "clientWidth": 390
+      },
+      "active": "#field-:r3:",
+      "headings": [
+        "تأیید شماره موبایل"
+      ],
+      "buttons": [
+        {
+          "text": "بازگشت",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "ارسال دوباره تا ۶۰ ثانیه",
+          "label": null,
+          "disabled": true
+        },
+        {
+          "text": "تأیید و ادامه",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "ویرایش شماره",
+          "label": null,
+          "disabled": false
+        }
+      ],
+      "offenders": []
+    },
+    "auth": {
+      "progress": "۲مرحله ۲ از ۳",
+      "url": "http://127.0.0.1:5173/chat?auth=signup",
+      "cardText": "بازگشت\n۲\n\nمرحله ۲ از ۳\n\nتأیید شماره موبایل\n\nکد ارسال‌شده را وارد کن تا به مرحله ساخت پروفایل بروی.\n\nارسال به\n0912 *** 0000\nکد تایید\nکد ۴ تا ۶ رقمی را بدون فاصله وارد کن.\nکد را دریافت نکردی؟\nارسال دوباره تا ۶۰ ثانیه\nتأیید و ادامه\nویرایش شماره"
+    }
+  },
+  {
+    "name": "auth-signup-step-3-mobile-cdp",
+    "metrics": {
+      "url": "http://127.0.0.1:5173/chat?auth=signup",
+      "title": "دانوآ | دوست هوش مصنوعی بچه‌ها",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "dpr": 1
+      },
+      "document": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "scrollHeight": 844
+      },
+      "body": {
+        "scrollWidth": 390,
+        "clientWidth": 390
+      },
+      "active": "#field-:r3:",
+      "headings": [
+        "ساخت حساب"
+      ],
+      "buttons": [
+        {
+          "text": "بازگشت",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "ساخت حساب و ورود",
+          "label": null,
+          "disabled": false
+        }
+      ],
+      "offenders": []
+    },
+    "auth": {
+      "progress": "۳مرحله ۳ از ۳",
+      "url": "http://127.0.0.1:5173/chat?auth=signup",
+      "cardText": "بازگشت\n۳\n\nمرحله ۳ از ۳\n\nساخت حساب\n\nاین شماره قبلاً در دانوآ ثبت نشده بود. برای ساخت حساب، اسم و سن کودک را وارد کن.\n\nشماره تأییدشده\n0912 *** 0000\nاسم کودک\nسن کودک\nساخت حساب و ورود"
+    }
+  },
+  {
+    "name": "auth-signup-after-back-mobile-cdp",
+    "metrics": {
+      "url": "http://127.0.0.1:5173/",
+      "title": "دانوآ | دوست هوش مصنوعی بچه‌ها",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "dpr": 1
+      },
+      "document": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "scrollHeight": 6475
+      },
+      "body": {
+        "scrollWidth": 390,
+        "clientWidth": 390
+      },
+      "active": "body",
+      "headings": [
+        "دانوآ،همراه امن و فارسی برای یادگیری کودک",
+        "همه‌ی ابزارهای رشد و خلاقیت، در یک جای امن",
+        "فضایی امن برای یادگیری و خیال‌پردازی",
+        "بدون اشتراک؛ فقط به اندازه‌ی استفاده پرداخت کن",
+        "والدین درباره‌ی دانوآ چه می‌گویند؟",
+        "قبل از شروع، این‌ها را بدانید",
+        "بگذار دانوآ همراه یادگیری و خلاقیت کودکان باشد"
+      ],
+      "buttons": [
+        {
+          "text": "ساخت حساب",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "",
+          "label": "فهرست",
+          "disabled": false
+        },
+        {
+          "text": "ساخت حساب",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "ورود به حساب",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "ورود و شارژ کیف پول",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "دانوآ مناسب چه گروه سنی‌ست؟",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "چطور از امنیت محتوا مطمئن شوم؟",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "آیا دانوآ تکالیف را کامل انجام می‌دهد؟",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "چطور می‌توانم شروع کنم؟",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "هزینه چت، تصویر و ویدیو چطور محاسبه می‌شود؟",
+          "label": null,
+          "disabled": false
+        },
+        {
+          "text": "ساخت حساب",
+          "label": null,
+          "disabled": false
+        }
+      ],
+      "offenders": []
+    },
+    "auth": {
+      "progress": null,
+      "url": "http://127.0.0.1:5173/",
+      "cardText": ""
+    }
+  }
+]
