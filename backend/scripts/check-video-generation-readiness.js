@@ -54,6 +54,9 @@ async function databaseChecks(env) {
 
 async function main({ env = process.env } = {}) {
   if (!env.DATABASE_URL) throw new Error('DATABASE_URL is required.');
+  const textToVideoSystemPromptPath = path.join(__dirname, '../../docs/video-prompts/text-to-video-system-prompt.txt');
+  const textToVideoSystemPrompt = await fs.readFile(textToVideoSystemPromptPath, 'utf8');
+  if (textToVideoSystemPrompt.trim().length < 1000) throw new Error('Text-to-video system prompt is missing or incomplete.');
   const storage = loadVideoStorageConfig(env);
   const worker = loadVideoWorkerConfig(env);
   if (storage.maxRedirects !== 0) throw new Error('Result redirects must remain disabled.');
@@ -84,6 +87,8 @@ async function main({ env = process.env } = {}) {
     grokTextToVideoPinned: database.grokTextToVideoPinned,
     grokImageToVideoPinned: database.grokImageToVideoPinned,
     promptProfilesReady: database.promptProfilesReady,
+    textToVideoPromptMode: 'DIRECT_COMPACT_SYSTEM_PLUS_EXACT_USER',
+    textToVideoSystemPromptHash: fingerprint(textToVideoSystemPrompt),
     bananaResultContract: String(env.BANANAAI_VIDEO_RESULT_ALLOWED_HOSTS || '').trim() && String(env.BANANAAI_VIDEO_RESULT_ALLOWED_PATH_PREFIXES || '').trim() ? 'CONFIGURED' : 'BLOCKED',
     providerInputMode,
     providerInputGateway: providerInputConfigured ? 'CONFIGURED' : 'BLOCKED',

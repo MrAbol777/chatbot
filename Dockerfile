@@ -54,6 +54,7 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY scripts/container-start.sh /app/container-start.sh
 RUN chmod +x /app/container-start.sh
 RUN test -s /app/backend/system-prompt.txt
+RUN test -s /app/docs/video-prompts/text-to-video-system-prompt.txt
 
 ENV NODE_ENV=production
 ENV PORT=3000

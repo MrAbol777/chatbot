@@ -22,6 +22,11 @@ const positiveNumber = (value, fallback, minimum = 1) => {
   return Number.isFinite(parsed) && parsed >= minimum ? parsed : fallback;
 };
 
+const envFlag = (value, fallback = false) => {
+  if (value == null || value === '') return fallback;
+  return !['false', '0', 'no', 'off'].includes(String(value).trim().toLowerCase());
+};
+
 const splitList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
 
 const normalizeProvider = (value, fallback = 'metis') => {
@@ -115,6 +120,7 @@ function loadRuntimeConfig(env = process.env) {
 
   const adminConfigPath = path.join(__dirname, '../../config.json');
   const systemPromptPath = path.join(__dirname, '../../system-prompt.txt');
+  const textToVideoSystemPromptPath = path.join(__dirname, '../../../docs/video-prompts/text-to-video-system-prompt.txt');
   const frontendDistPath = path.join(__dirname, '../../../frontend/dist');
   const defaultImageStorageDir =
     env.NODE_ENV === 'production'
@@ -357,6 +363,7 @@ function loadRuntimeConfig(env = process.env) {
     viana,
     adminConfigPath,
     systemPromptPath,
+    textToVideoSystemPromptPath,
     frontendDistPath
   };
 }

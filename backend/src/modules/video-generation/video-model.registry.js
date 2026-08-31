@@ -47,6 +47,9 @@ const BANANAAI_GROK_T2V_DURATIONS = Object.freeze(
 );
 const BANANAAI_GROK_T2V_ASPECT_RATIOS = Object.freeze(['16:9', '9:16', '1:1']);
 const BANANAAI_GROK_T2V_RESOLUTIONS = Object.freeze(['480p']);
+// Application delivery budget for the combined compact policy + exact user
+// request. BananaAI's public docs do not currently publish a smaller limit.
+const BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH = 8000;
 
 const BANANAAI_VIDEO_MODEL_REGISTRATIONS = Object.freeze(BANANAAI_MODEL_IDS.map((providerModelId, index) => {
   const isProductImageToVideoModel = providerModelId === BANANAAI_IMAGE_TO_VIDEO_MODEL_ID;
@@ -108,7 +111,7 @@ const BANANAAI_VIDEO_MODEL_REGISTRATIONS = Object.freeze(BANANAAI_MODEL_IDS.map(
   allowedAspectRatios: [...BANANAAI_GROK_T2V_ASPECT_RATIOS],
   allowedResolutions: [...BANANAAI_GROK_T2V_RESOLUTIONS],
   allowedQualities: [],
-  maxPromptLength: 2000,
+  maxPromptLength: BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH,
   maxInputBytes: null,
   costConfig: { estimate: null, status: 'NOT_DOCUMENTED' },
   capabilityConfig: { contractSource: 'bananaai_official_docs', readiness: 'ACTIVATION_REQUIRED', productRole: 'text_to_video_primary' },
@@ -143,7 +146,7 @@ function validateBananaAiVideoModelRegistration(model) {
   if (isProductImageToVideoModel) {
     if (model.internalKey !== BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY || JSON.stringify(model.allowedDurations) !== JSON.stringify(BANANAAI_GROK_I2V_DURATIONS) || JSON.stringify(model.allowedAspectRatios) !== JSON.stringify(BANANAAI_GROK_I2V_ASPECT_RATIOS) || JSON.stringify(model.allowedResolutions) !== JSON.stringify(BANANAAI_GROK_I2V_RESOLUTIONS) || model.maxPromptLength !== 2000) throw new Error('Grok image-to-video product settings must match the verified local allowlist.');
   } else if (isProductTextToVideoModel) {
-    if (model.providerModelId !== BANANAAI_TEXT_TO_VIDEO_MODEL_ID || JSON.stringify(model.allowedDurations) !== JSON.stringify(BANANAAI_GROK_T2V_DURATIONS) || JSON.stringify(model.allowedAspectRatios) !== JSON.stringify(BANANAAI_GROK_T2V_ASPECT_RATIOS) || JSON.stringify(model.allowedResolutions) !== JSON.stringify(BANANAAI_GROK_T2V_RESOLUTIONS) || model.maxPromptLength !== 2000) throw new Error('Grok text-to-video product settings must match the verified local allowlist.');
+    if (model.providerModelId !== BANANAAI_TEXT_TO_VIDEO_MODEL_ID || JSON.stringify(model.allowedDurations) !== JSON.stringify(BANANAAI_GROK_T2V_DURATIONS) || JSON.stringify(model.allowedAspectRatios) !== JSON.stringify(BANANAAI_GROK_T2V_ASPECT_RATIOS) || JSON.stringify(model.allowedResolutions) !== JSON.stringify(BANANAAI_GROK_T2V_RESOLUTIONS) || model.maxPromptLength !== BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH) throw new Error('Grok text-to-video product settings must match the verified local allowlist.');
   } else if (model.allowedDurations.length || model.allowedAspectRatios.length || model.allowedResolutions.length || model.maxPromptLength !== null) {
     throw new Error('Inactive BananaAI models must not advertise unverified public settings.');
   }
@@ -168,6 +171,7 @@ module.exports = {
   BANANAAI_GROK_T2V_DURATIONS,
   BANANAAI_GROK_T2V_ASPECT_RATIOS,
   BANANAAI_GROK_T2V_RESOLUTIONS,
+  BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH,
   BANANAAI_VIDEO_MODEL_REGISTRATIONS,
   VIDEO_MODEL_REGISTRATIONS,
   validateVideoModelRegistration,

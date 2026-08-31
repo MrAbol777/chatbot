@@ -107,9 +107,16 @@
 | `VIDEO_GENERATION_ACTIVATION_EXPECTED` | guardrail فعال‌سازی |
 | `AI_VIDEO_ROUTING_ENABLED` | routing دیتابیسی provider/model |
 | `BANANAAI_API_KEY` / `BANANAAI_BASE_URL` | اتصال BananaAI |
+| `BANANAAI_PROXY_URL` | پروکسی HTTP(S) اختیاری برای میزبان‌هایی که اتصال مستقیم به BananaAI ندارند |
+| `BANANAAI_REQUEST_TIMEOUT_MS` | timeout ثبت async در BananaAI؛ پیش‌فرض `10000` (با یک retry امن، حداکثر حدود ۲۰ ثانیه) |
+| `BANANAAI_T2V_MAX_PROMPT_LENGTH` | بودجه داخلی Prompt نهایی متن‌به‌ویدیو (قوانین فشرده + متن کامل کاربر)؛ پیش‌فرض `8000` |
+| `BANANAAI_I2V_MAX_PROMPT_LENGTH` | سقف مستقل Prompt در مسیر تصویر‌به‌ویدیو؛ پیش‌فرض `2000` |
+| `T2V_SYSTEM_PROMPT_VERSION` | نسخه فایل قوانین مستقیم که در Snapshot داخلی Job ثبت می‌شود |
 | `VIDEO_GENERATION_WORKER_MODE` | embedded یا disabled |
 | `VIDEO_GENERATION_WORKER_ENABLED` | فعال‌سازی worker |
 | `VIDEO_GENERATION_WORKER_INTERVAL_MS` | فاصله poll |
+
+در مسیر `video.text_to_video` سقف ورودی کاربر `4000` کاراکتر است و متن اصلی بدون برش در `user_prompt` نگه‌داری می‌شود. سقف `2000` مربوط به خروجی Planner و Prompt اجرایی BananaAI است؛ این دو محدودیت مستقل‌اند.
 | `VIDEO_GENERATION_WORKER_BATCH_SIZE` | تعداد job هر نوبت |
 | `VIDEO_GENERATION_WORKER_LEASE_MS` | زمان lease |
 | `VIDEO_JOB_TIMEOUT_MINUTES` | timeout کل job |

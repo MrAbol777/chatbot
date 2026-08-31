@@ -66,6 +66,7 @@ function createApp({ repositories, runtimeConfig }) {
     authJwtSecret,
     adminCookieName,
     viana,
+    textToVideoSystemPromptPath,
     frontendDistPath
   } = runtimeConfig;
 
@@ -484,6 +485,7 @@ function createApp({ repositories, runtimeConfig }) {
     httpClient: axios,
     db: repositories.db,
     noaBillingService,
+    textToVideoSystemPromptPath,
     authJwtSecret,
     principalResolver,
     adminJwtSecret,

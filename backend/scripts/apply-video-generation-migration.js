@@ -264,7 +264,7 @@ async function applyGrokTextToVideoOptionsMigration(connection) {
 async function main() {
   const value = String(process.env.DATABASE_URL || '').trim();
   if (!value.startsWith('mysql://')) throw new Error('DATABASE_URL must point to local MySQL.');
-  const url = new URL(value); const connection = await mysql.createConnection({ host:url.hostname,port:url.port||3306,user:decodeURIComponent(url.username),password:decodeURIComponent(url.password),database:url.pathname.slice(1),multipleStatements:true });
+  const url = new URL(value); const connection = await mysql.createConnection({ host:String(process.env.DATABASE_HOST || process.env.LOCAL_DATABASE_HOST || url.hostname).trim(),port:url.port||3306,user:decodeURIComponent(url.username),password:decodeURIComponent(url.password),database:url.pathname.slice(1),multipleStatements:true });
   const sql = fs.readFileSync(path.join(__dirname, '../migrations/026_video_generation.sql'), 'utf8');
   try {
     await connection.query(sql);

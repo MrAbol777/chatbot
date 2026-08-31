@@ -13,7 +13,7 @@ VALUES
    1,0,1,1,0,0,0,0,0,0,
    JSON_ARRAY('16:9','9:16','1:1'),JSON_ARRAY(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15),JSON_ARRAY(),JSON_ARRAY('480p'),
    JSON_OBJECT('contractSource','bananaai_official_docs','readiness','ACTIVATION_REQUIRED','productRole','text_to_video_primary'),
-   2000,NULL,JSON_OBJECT('estimate',NULL,'status','NOT_DOCUMENTED'),
+   8000,NULL,JSON_OBJECT('estimate',NULL,'status','NOT_DOCUMENTED'),
    JSON_OBJECT('requestContract','OFFICIAL_DOCS_VERIFIED','resultContract','LIVE_VALIDATION_REQUIRED'),1,1099,NOW(),NOW())
 ON DUPLICATE KEY UPDATE
   provider=VALUES(provider),provider_model_id=VALUES(provider_model_id),display_name_fa=VALUES(display_name_fa),display_name=VALUES(display_name),

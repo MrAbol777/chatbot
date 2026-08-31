@@ -25,7 +25,7 @@ const ALLOWED_RATIOS = ['9:16', '16:9', '1:1'];
 const ALLOWED_RESOLUTIONS = ['480p'];
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const LOCAL_DEMO_CAPABILITY: VideoCapabilityOption = Object.freeze({ allowedAspectRatios: ['9:16', '16:9', '1:1'], allowedDurations: ALLOWED_DURATIONS, allowedQualities: [], allowedResolutions: ALLOWED_RESOLUTIONS, maxPromptLength: 2000, supportsNegativePrompt: false, supportsAudio: false });
+const LOCAL_DEMO_CAPABILITY: VideoCapabilityOption = Object.freeze({ allowedAspectRatios: ['9:16', '16:9', '1:1'], allowedDurations: ALLOWED_DURATIONS, allowedQualities: [], allowedResolutions: ALLOWED_RESOLUTIONS, maxPromptLength: 4000, supportsNegativePrompt: false, supportsAudio: false });
 const sanitizeCapability = (routeCapability?: VideoCapabilityOption): VideoCapabilityOption | null => routeCapability ? {
   ...routeCapability,
   allowedDurations: routeCapability.allowedDurations.map(String).filter((value) => ALLOWED_DURATIONS.includes(value)),

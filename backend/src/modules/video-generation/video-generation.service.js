@@ -1,8 +1,8 @@
 const { createHash, randomUUID } = require('crypto');
 const { fail } = require('./video-generation.errors');
 const { validateSubmit } = require('./video-generation.schemas');
-const { BANANAAI_IMAGE_TO_VIDEO_MODEL_ID, BANANAAI_TEXT_TO_VIDEO_MODEL_ID, BANANAAI_TEXT_TO_VIDEO_MODEL_KEY } = require('./video-model.registry');
-const { compileTextToVideoPrompt } = require('./text-to-video-prompt-compiler');
+const { BANANAAI_IMAGE_TO_VIDEO_MODEL_ID, BANANAAI_TEXT_TO_VIDEO_MODEL_ID, BANANAAI_TEXT_TO_VIDEO_MODEL_KEY, BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH } = require('./video-model.registry');
+const TEXT_TO_VIDEO_USER_PROMPT_LIMIT = 4000;
 function hash(value) { return createHash('sha256').update(value).digest('hex'); }
 function jsonArray(value) { if (Array.isArray(value)) return value; try { const parsed = JSON.parse(value || '[]'); return Array.isArray(parsed) ? parsed : []; } catch (_) { return []; } }
 function modelDto(model) { return { internalKey:model.internal_key, displayNameFa:model.display_name_fa, displayName:model.display_name || null, descriptionFa:model.description_fa, supportsTextToVideo:Boolean(model.supports_text_to_video), supportsImageToVideo:Boolean(model.supports_image_to_video), supportsNegativePrompt:Boolean(model.supports_negative_prompt), supportsAudio:Boolean(model.supports_audio), allowedAspectRatios:jsonArray(model.allowed_aspect_ratios), allowedDurations:jsonArray(model.allowed_durations).map(String), allowedQualities:jsonArray(model.allowed_qualities), allowedResolutions:jsonArray(model.allowed_resolutions), maxPromptLength:model.max_prompt_length == null ? null : Number(model.max_prompt_length) }; }
@@ -34,7 +34,7 @@ function jobDto(job) {
     result: succeeded ? { contentUrl: `/api/video-generations/${encodeURIComponent(job.id)}/content`, downloadUrl: `/api/video-generations/${encodeURIComponent(job.id)}/content?download=1`, mimeType: job.result_mime_type, sizeBytes: Number(job.result_size_bytes), storedAt: job.result_stored_at } : null
   };
 }
-function createVideoGenerationService({ repository, noaBillingService, provider, routeResolver = null, promptProfileRepository = null, promptCompiler = null, canUseInactiveModel = () => false, isFeatureEnabled = () => true }) {
+function createVideoGenerationService({ repository, noaBillingService, provider, routeResolver = null, promptProfileRepository = null, promptCompiler = null, textToVideoPromptCompiler = null, canUseInactiveModel = () => false, isFeatureEnabled = () => true }) {
   if (!noaBillingService || typeof noaBillingService.reserve !== 'function') {
     throw new Error('NOA_BILLING_SERVICE_REQUIRED');
   }
@@ -58,7 +58,8 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
   const validateModelOptions = (model, data, { routed = false } = {}) => {
     const allows = (json, value) => { const values = jsonArray(json).map(String); return !values.length || values.includes(String(value)); };
     const promptLimit = model.max_prompt_length == null ? null : Number(model.max_prompt_length);
-    if ((data.mode==='text-to-video'&&!model.supports_text_to_video)||(data.mode==='image-to-video'&&!model.supports_image_to_video)||!allows(model.allowed_aspect_ratios,data.aspectRatio)||!allows(model.allowed_durations,data.duration)||(jsonArray(model.allowed_qualities).length ? !allows(model.allowed_qualities,data.quality) : Boolean(data.quality) && !routed)||(jsonArray(model.allowed_resolutions).length ? !allows(model.allowed_resolutions,data.resolution) : false)||(promptLimit !== null && data.prompt.length>promptLimit)||(data.negativePrompt && !model.supports_negative_prompt)||(data.generateAudio && !model.supports_audio)) {
+    const providerPromptLimitAppliesToInput = !(routed && data.mode === 'text-to-video');
+    if ((data.mode==='text-to-video'&&!model.supports_text_to_video)||(data.mode==='image-to-video'&&!model.supports_image_to_video)||!allows(model.allowed_aspect_ratios,data.aspectRatio)||!allows(model.allowed_durations,data.duration)||(jsonArray(model.allowed_qualities).length ? !allows(model.allowed_qualities,data.quality) : Boolean(data.quality) && !routed)||(jsonArray(model.allowed_resolutions).length ? !allows(model.allowed_resolutions,data.resolution) : false)||(providerPromptLimitAppliesToInput && promptLimit !== null && data.prompt.length>promptLimit)||(data.negativePrompt && !model.supports_negative_prompt)||(data.generateAudio && !model.supports_audio)) {
       throw fail('VIDEO_GENERATION_OPTIONS_NOT_ALLOWED','تنظیمات انتخاب‌شده برای مدل مجاز نیست.');
     }
   };
@@ -82,7 +83,12 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
               allowedDurations: dto.allowedDurations,
               allowedQualities: dto.allowedQualities,
               allowedResolutions: dto.allowedResolutions,
-              maxPromptLength: Math.max(3, (dto.maxPromptLength == null ? 2000 : Math.min(2000, dto.maxPromptLength)) - 800),
+              maxPromptLength: capability === 'video.text_to_video'
+                ? TEXT_TO_VIDEO_USER_PROMPT_LIMIT
+                : Math.max(3, (dto.maxPromptLength == null ? 2000 : Math.min(2000, dto.maxPromptLength)) - 800),
+              providerPromptMaxLength: capability === 'video.text_to_video'
+                ? (dto.maxPromptLength == null ? BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH : dto.maxPromptLength)
+                : dto.maxPromptLength,
               supportsNegativePrompt: dto.supportsNegativePrompt,
               supportsAudio: dto.supportsAudio
             };
@@ -139,11 +145,54 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
           if (!data.styleKey || !promptProfileRepository) throw fail('VIDEO_PROMPT_PROFILE_REQUIRED','سبک ساخت ویدیو الزامی است.',409);
           const profile = await promptProfileRepository.getCurrentByKey(data.styleKey, { publicOnly: true });
           if (!profile) throw fail('VIDEO_PROMPT_PROFILE_UNAVAILABLE','سبک ساخت ویدیو فعال یا عمومی نیست.',409);
-          const compiledPromptLimit = model.max_prompt_length == null ? 2000 : Math.min(2000, Number(model.max_prompt_length));
-          promptSnapshot = compileTextToVideoPrompt({ profile, userPrompt: data.prompt, settings: { duration:data.duration,resolution:data.resolution,aspectRatio:data.aspectRatio }, maxCompiledPromptLength: compiledPromptLimit });
+          const compiledPromptLimit = model.max_prompt_length == null ? BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH : Number(model.max_prompt_length);
+          if (!textToVideoPromptCompiler || typeof textToVideoPromptCompiler.compile !== 'function') {
+            throw fail('VIDEO_PROMPT_COMPILER_UNAVAILABLE','سیستم آماده‌سازی درخواست ویدیو موقتاً در دسترس نیست.',503);
+          }
+          try {
+            promptSnapshot = {
+              ...textToVideoPromptCompiler.compile({
+                profile,
+                userPrompt: data.prompt,
+                settings: {
+                  styleKey: data.styleKey,
+                  duration: data.duration,
+                  resolution: data.resolution,
+                  aspectRatio: data.aspectRatio,
+                  generateAudio: false
+                },
+                maxCompiledPromptLength: compiledPromptLimit
+              })
+            };
+          } catch (error) {
+            const code=String(error?.code||'');
+            const tooLong=code === 'T2V_COMPILED_PROMPT_TOO_LONG';
+            throw fail(
+              tooLong?'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG':'VIDEO_PROMPT_COMPILER_UNAVAILABLE',
+              tooLong?'مجموع قوانین تولید و متن کامل شما از سقف مدل ویدیو بیشتر است؛ متن شما کوتاه یا بریده نشد.':'سیستم آماده‌سازی درخواست ویدیو موقتاً در دسترس نیست.',
+              tooLong?409:503
+            );
+          }
           promptSnapshot.profileId = profile.id;
           promptSnapshot.profileVersionId = profile.current_version_id;
         }
+        const promptAssembly = promptSnapshot?.systemPromptHash ? {
+          mode: 'direct-runtime',
+          compilerVersion: promptSnapshot.compilerVersion,
+          systemPromptVersion: promptSnapshot.systemPromptVersion,
+          systemPromptHash: promptSnapshot.systemPromptHash,
+          userPromptHash: promptSnapshot.userPromptHash,
+          compiledPromptHash: promptSnapshot.compiledPromptHash,
+          assemblyMode: promptSnapshot.assemblyMode,
+          includedTiers: promptSnapshot.includedTiers,
+          systemChars: promptSnapshot.systemChars,
+          userChars: promptSnapshot.userChars,
+          finalChars: promptSnapshot.finalChars,
+          providerPromptLimit: promptSnapshot.providerPromptLimit
+        } : null;
+        const modelPromptLimit = capability === 'video.text_to_video'
+          ? (model.max_prompt_length == null ? BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH : Number(model.max_prompt_length))
+          : (model.max_prompt_length == null ? 2000 : Math.min(2000, Number(model.max_prompt_length)));
         const id = randomUUID(); const now = new Date();
         const job = {
           id,
@@ -156,7 +205,7 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
           capability,
           routeId: snapshot.routeId,
           routeVersion: snapshot.routeVersion,
-          routeSnapshot: { ...snapshot, mode: data.mode, modelConstraints: { maxPromptLength: model.max_prompt_length == null ? 2000 : Math.min(2000, Number(model.max_prompt_length)) }, request: { duration: data.duration, resolution: data.resolution, aspectRatio: data.aspectRatio, generateAudio: data.generateAudio, hasNegativePrompt: Boolean(data.negativePrompt), mediaId: data.mediaId } },
+          routeSnapshot: { ...snapshot, mode: data.mode, modelConstraints: { maxPromptLength: modelPromptLimit }, request: { duration: data.duration, resolution: data.resolution, aspectRatio: data.aspectRatio, generateAudio: data.generateAudio, hasNegativePrompt: Boolean(data.negativePrompt), mediaId: data.mediaId }, ...(promptAssembly ? { promptAssembly } : {}) },
           estimatedCost: null,
           promptProfileId: promptSnapshot?.profileId || null,
           promptProfileVersionId: promptSnapshot?.profileVersionId || null,

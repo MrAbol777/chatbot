@@ -1,9 +1,11 @@
 const { isTerminalJobStatus } = require('../video-generation.states');
+const { createHash } = require('node:crypto');
 const { assertVideoProvider } = require('../providers/video-provider.interface');
 const { calculatePollDelay } = require('./video-worker.config');
 const { VideoWorkerProcessingError, classifyProviderError, safeErrorMessage } = require('./video-worker.errors');
 
 const ACTIVE_STATUSES = new Set(['queued', 'routing', 'submitting', 'submitted', 'processing', 'storing']);
+const sha256 = (value) => createHash('sha256').update(String(value || ''), 'utf8').digest('hex');
 
 function resolveProvider(registry, name) {
   const provider = typeof registry === 'function' ? registry(name)
@@ -126,6 +128,9 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
             generateAudio: Boolean(job.generate_audio),
             idempotencyKey: String(job.danoa_request_id || job.id || '').trim()
           };
+          if (job.compiled_prompt_hash && sha256(submitInput.prompt) !== String(job.compiled_prompt_hash).toLowerCase()) {
+            throw Object.assign(new Error('Compiled prompt snapshot hash mismatch.'), { code: 'VIDEO_COMPILED_PROMPT_HASH_MISMATCH', submissionOutcome: 'not_submitted' });
+          }
           if (!Number.isSafeInteger(promptLimit) || promptLimit < 256 || String(submitInput.prompt || '').length > promptLimit) {
             throw Object.assign(new Error('Compiled prompt exceeds the provider model limit.'), { code: 'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG', submissionOutcome: 'not_submitted', details: { promptLength: String(submitInput.prompt || '').length, promptLimit } });
           }

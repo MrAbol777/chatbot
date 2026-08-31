@@ -1,12 +1,16 @@
 const { fail } = require('./video-generation.errors');
 const clean = (value, max = 191) => String(value || '').trim().slice(0, max);
+const exactPrompt = (value, max = 4000) => {
+  if (typeof value !== 'string' || value.trim().length < 3) throw fail('VIDEO_GENERATION_INVALID_PROMPT', 'توضیح ویدیو کافی نیست.');
+  if (value.length > max) throw fail('VIDEO_GENERATION_PROMPT_TOO_LONG', 'متن درخواست از سقف مجاز بیشتر است.', 400);
+  return value;
+};
 function validateSubmit(input, { modelKeyRequired = true } = {}) {
   if (input?.start_image !== undefined || input?.startImage !== undefined) throw fail('VIDEO_GENERATION_IMAGE_INPUT_DISABLED', 'ورودی تصویر برای این مرحله غیرفعال است.', 409);
   const requestedMode = clean(input.mode, 32);
   const mode = requestedMode === 'image_to_video' ? 'image-to-video' : requestedMode === 'text_to_video' ? 'text-to-video' : requestedMode;
   if (!['text-to-video', 'image-to-video'].includes(mode)) throw fail('VIDEO_GENERATION_INVALID_MODE', 'روش ساخت ویدیو معتبر نیست.');
-  const prompt = clean(input.prompt, 4000);
-  if (prompt.length < 3) throw fail('VIDEO_GENERATION_INVALID_PROMPT', 'توضیح ویدیو کافی نیست.');
+  const prompt = exactPrompt(input.prompt, 4000);
   const modelKey = clean(input.modelKey, 64) || null;
   if ((modelKeyRequired && !modelKey) || (modelKey && !/^[a-z0-9_-]{2,64}$/i.test(modelKey))) throw fail('VIDEO_GENERATION_INVALID_MODEL', 'مدل انتخاب‌شده معتبر نیست.');
   const resolution = clean(input.resolution ?? input.quality, 32) || null;

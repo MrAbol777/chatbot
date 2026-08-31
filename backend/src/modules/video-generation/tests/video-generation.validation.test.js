@@ -13,6 +13,13 @@ test('submit validation only accepts an internal model key', () => {
   assert.equal(value.modelKey, 'approved_model');
 });
 
+test('submit validation preserves prompt bytes and rejects oversize input instead of slicing it', () => {
+  const prompt='  خط اول\nعنوان دقیق: سلام   دنیا  ';
+  const value=validateSubmit({mode:'text-to-video',prompt,modelKey:'approved_model'});
+  assert.equal(value.prompt,prompt);
+  assert.throws(()=>validateSubmit({mode:'text-to-video',prompt:'x'.repeat(4001),modelKey:'approved_model'}),{code:'VIDEO_GENERATION_PROMPT_TOO_LONG'});
+});
+
 test('submit validation rejects both start_image spellings while I2V is disabled', () => {
   for (const field of ['start_image', 'startImage']) {
     assert.throws(() => validateSubmit({ mode: 'text-to-video', prompt: 'safe prompt', modelKey: 'approved_model', [field]: 'image-reference' }), { code: 'VIDEO_GENERATION_IMAGE_INPUT_DISABLED' });

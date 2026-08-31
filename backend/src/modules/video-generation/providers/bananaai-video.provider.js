@@ -53,12 +53,20 @@ function createBananaProxyConfig(value) {
 function classifyBananaSubmissionError(error) {
   const status = Number(error?.response?.status || 0);
   const body = error?.response?.data;
+  const providerCode = validErrorEnvelope(body)
+    ? String(body.error.code).trim().toLowerCase()
+    : String(body?.code || body?.error?.code || '').trim().toLowerCase().slice(0, 80);
+  if (status === 409 && providerCode === 'idempotency_key_in_progress') {
+    return bananaSubmissionError('VIDEO_PROVIDER_STATUS_UNKNOWN', 'BananaAI is still registering the idempotent request.', 'ambiguous', {
+      status,
+      providerCode,
+      retryAfter: String(error?.response?.headers?.['retry-after'] || '').slice(0, 32) || null
+    });
+  }
   if (CONFIRMED_REJECTION_STATUSES.has(status)) {
-    const providerCode = validErrorEnvelope(body)
-      ? String(body.error.code).trim().toLowerCase()
-      : String(body?.code || body?.error?.code || 'confirmed_rejection').trim().toLowerCase().slice(0, 80);
-    const code = REJECTION_CODES[providerCode] || 'VIDEO_PROVIDER_CONFIRMED_REJECTION';
-    return bananaSubmissionError(code, 'BananaAI rejected the request.', 'confirmed_rejected', { status, providerCode });
+    const rejectionCode = providerCode || 'confirmed_rejection';
+    const code = REJECTION_CODES[rejectionCode] || 'VIDEO_PROVIDER_CONFIRMED_REJECTION';
+    return bananaSubmissionError(code, 'BananaAI rejected the request.', 'confirmed_rejected', { status, providerCode:rejectionCode });
   }
   const transportCode = String(error?.code || '').toUpperCase();
   const code = status >= 500
@@ -82,9 +90,11 @@ function createBananaAiVideoProvider({
   resultAllowedPathPrefixes = ['/'],
   allowTestLocalResult = false,
   dnsResolver,
-  requestTimeoutMs = 120_000,
+  requestTimeoutMs = 10_000,
   statusTimeoutMs = 30_000,
-  maxPromptLength = 2000,
+  maxPromptLength,
+  maxTextPromptLength = maxPromptLength == null ? 8000 : maxPromptLength,
+  maxImagePromptLength = maxPromptLength == null ? 2000 : maxPromptLength,
   resultConnectTimeoutMs = 15_000,
   resultHeadersTimeoutMs = 30_000,
   resultIdleTimeoutMs = 90_000,
@@ -100,8 +110,9 @@ function createBananaAiVideoProvider({
   const proxy = createBananaProxyConfig(proxyUrl);
   const httpsAgent = new https.Agent({ keepAlive: true, ...(forceIpv4 ? { family: 4 } : {}) });
   const validator = createVideoResultUrlValidator({ allowedHosts: resultAllowedHosts, allowedPorts: resultAllowedPorts, allowedPathPrefixes: resultAllowedPathPrefixes, allowTestLocal: allowTestLocalResult, resolver: dnsResolver });
-  const promptLimit = Number(maxPromptLength);
-  if (!Number.isSafeInteger(promptLimit) || promptLimit < 256) throw new Error('BANANAAI_MAX_PROMPT_LENGTH_INVALID');
+  const textPromptLimit = Number(maxTextPromptLength);
+  const imagePromptLimit = Number(maxImagePromptLength);
+  if (!Number.isSafeInteger(textPromptLimit) || textPromptLimit < 256 || !Number.isSafeInteger(imagePromptLimit) || imagePromptLimit < 256) throw new Error('BANANAAI_MAX_PROMPT_LENGTH_INVALID');
   const requestConfig = (timeout, idempotencyKey = null) => {
     const key = String(idempotencyKey || '').trim();
     return {
@@ -125,6 +136,7 @@ function createBananaAiVideoProvider({
     if (!CAPABILITIES.includes(input?.capability)) throw fail('VIDEO_PROVIDER_CAPABILITY_INVALID', 'قابلیت سرویس ویدیو معتبر نیست.', 409);
     if (input.capability === 'video.image_to_video' && input.providerModelId !== BANANAAI_IMAGE_TO_VIDEO_MODEL_ID) throw fail('VIDEO_PROVIDER_MODEL_INVALID', 'مسیر ساخت ویدیو از تصویر فقط برای مدل Grok پیکربندی شده است.', 503);
     if (!String(input?.prompt || '').trim()) throw fail('VIDEO_PROMPT_REQUIRED', 'متن درخواست الزامی است.');
+    const promptLimit = input.capability === 'video.text_to_video' ? textPromptLimit : imagePromptLimit;
     if (String(input.prompt).length > promptLimit) throw bananaSubmissionError('VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG', SAFE_ERROR_MESSAGES.VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG, 'not_submitted', { promptLength: String(input.prompt).length, promptLimit });
     if (input.negativePrompt) throw fail('VIDEO_PROVIDER_CAPABILITY_UNSUPPORTED', 'Negative Prompt برای این سرویس مستند نشده است.', 409);
     if (input.capability === 'video.image_to_video' && !String(input.providerInputUrl || '').trim()) throw fail('VIDEO_INPUT_MEDIA_REQUIRED', 'تصویر ورودی الزامی است.');
@@ -136,7 +148,7 @@ function createBananaAiVideoProvider({
     if (typeof httpClient.post !== 'function') throw bananaSubmissionError('VIDEO_PROVIDER_NOT_CONFIGURED', 'BananaAI HTTP client is not configured.', 'not_submitted');
     const payload = {
       model: String(input.providerModelId),
-      prompt: String(input.prompt).trim()
+      prompt: String(input.prompt)
     };
     if (String(input.duration ?? '').trim()) payload.duration = Number(input.duration);
     if (input.resolution) payload.resolution = String(input.resolution);
@@ -156,9 +168,9 @@ function createBananaAiVideoProvider({
 
   return {
     getProviderKey: () => 'bananaai',
-    getAdapterVersion: () => '1.0.0-docs-2026-07-23',
+    getAdapterVersion: () => '1.1.0-docs-2026-08-31',
     getCapabilities: () => [...CAPABILITIES],
-    getMetadata: () => Object.freeze({ idempotency: 'NOT_DOCUMENTED', webhook: 'NOT_DOCUMENTED', cancel: 'NOT_DOCUMENTED', inputUpload: 'NOT_DOCUMENTED' }),
+    getMetadata: () => Object.freeze({ idempotency: 'SUPPORTED_24H', webhook: 'NOT_DOCUMENTED', cancel: 'NOT_DOCUMENTED', inputUpload: 'NOT_DOCUMENTED' }),
     validateRequest,
     estimateCost: () => null,
     submit,

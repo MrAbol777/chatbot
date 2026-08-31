@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createBananaAiVideoProvider, classifyBananaSubmissionError } = require('../providers/bananaai-video.provider');
-const { BANANAAI_VIDEO_MODEL_REGISTRATIONS, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID, BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY, BANANAAI_TEXT_TO_VIDEO_MODEL_KEY } = require('../video-model.registry');
+const { BANANAAI_VIDEO_MODEL_REGISTRATIONS, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID, BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY, BANANAAI_TEXT_TO_VIDEO_MODEL_KEY, BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH } = require('../video-model.registry');
 
 function mockHttp({ postResult, getResult } = {}) {
   const calls = [];
@@ -32,14 +32,24 @@ test('BananaAI T2V uses only the documented endpoint and JSON fields', async () 
   assert.equal(url, 'https://bananaai.ir/api/v1/videos/generations');
   assert.deepEqual(payload, { model: 'grok-imagine-video', prompt: 'A calm sea', duration: 5, resolution: '480p', aspect_ratio: '16:9' });
   assert.equal(config.headers.Authorization, 'Bearer fixture-key');
+  assert.equal(config.timeout, 10000);
   assert.equal(config.maxRedirects, 0);
   assert.equal(config.httpsAgent.options.family, 4);
+  assert.equal(provider.getMetadata().idempotency, 'SUPPORTED_24H');
 });
 
 test('BananaAI accepts both documented task ID response spellings', async () => {
   const provider = createProvider(mockHttp({ postResult: { status: 202, data: { taskId: 'task_alias' } } }));
   const result = await provider.submit(input());
   assert.equal(result.providerJobId, 'task_alias');
+});
+
+test('BananaAI forwards the compiled prompt without trimming or normalization', async () => {
+  const httpClient=mockHttp({postResult:{status:202,data:{id:'task_verbatim'}}});
+  const provider=createProvider(httpClient);
+  const prompt='  SYSTEM\nUSER: سلام   دنیا  ';
+  await provider.submit(input({prompt}));
+  assert.equal(httpClient.calls[0][2].prompt,prompt);
 });
 
 test('BananaAI forwards a stable idempotency key without exposing it in the URL', async () => {
@@ -80,6 +90,7 @@ test('the product registry keeps independent private Grok registrations for T2V 
   assert.deepEqual(t2v.allowedDurations, Array.from({ length: 15 }, (_, index) => index + 1));
   assert.deepEqual(t2v.allowedAspectRatios, ['16:9', '9:16', '1:1']);
   assert.deepEqual(t2v.allowedResolutions, ['480p']);
+  assert.equal(t2v.maxPromptLength, BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH);
 });
 
 test('BananaAI refuses undocumented negative prompt and arbitrary missing I2V media', async () => {
@@ -113,9 +124,22 @@ test('validation status 422 is a confirmed rejection even with a non-standard er
   assert.deepEqual(rejected.details, { status: 422, providerCode: 'confirmed_rejection' });
 });
 
+test('an idempotency request still in progress remains ambiguous instead of becoming a confirmed rejection', () => {
+  const pending = classifyBananaSubmissionError({
+    response: {
+      status: 409,
+      data: { error: { code: 'idempotency_key_in_progress', message: 'still registering' } },
+      headers: { 'retry-after': '3' }
+    }
+  });
+  assert.equal(pending.submissionOutcome, 'ambiguous');
+  assert.equal(pending.code, 'VIDEO_PROVIDER_STATUS_UNKNOWN');
+  assert.deepEqual(pending.details, { status:409,providerCode:'idempotency_key_in_progress',retryAfter:'3' });
+});
+
 test('provider rejects an over-budget compiled prompt before making HTTP calls', async () => {
   const httpClient = mockHttp(); const provider = createProvider(httpClient);
-  await assert.rejects(provider.submit(input({ prompt: 'x'.repeat(2001) })), { code: 'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG', submissionOutcome: 'not_submitted' });
+  await assert.rejects(provider.submit(input({ prompt: 'x'.repeat(BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH + 1) })), { code: 'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG', submissionOutcome: 'not_submitted' });
   assert.equal(httpClient.calls.length, 0);
 });
 

@@ -10,6 +10,7 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ToastProvider } from './design-system/components';
 import { initializeClarity } from './analytics/clarity';
 import { getCanonicalLandingUrl, resolveEntryRoute } from './entryRoute';
+import LandingEntry from './LandingEntry';
 
 installAuthenticatedFetch();
 initializeClarity();
@@ -41,7 +42,6 @@ window.addEventListener('error', (event) => {
 
 const entryRoute = resolveEntryRoute(initialPathname);
 const LazyApp = React.lazy(() => import('./App'));
-const LazyLandingPage = React.lazy(() => import('./Landing'));
 const LazyAdminLogin = React.lazy(() => import('./AdminLogin'));
 const LazyAdminPanel = React.lazy(() => import('./AdminPanel'));
 
@@ -74,7 +74,7 @@ function AdminEntry() {
   );
 }
 
-const Root = entryRoute === 'admin' ? AdminEntry : entryRoute === 'landing' ? LazyLandingPage : LazyApp;
+const Root = entryRoute === 'admin' ? AdminEntry : entryRoute === 'landing' ? LandingEntry : LazyApp;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

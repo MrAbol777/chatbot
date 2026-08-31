@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { createHash } = require('node:crypto');
 const { createVideoJobProcessingService } = require('../worker/video-job-processing.service');
 
 const config = { leaseMs: 60_000, maxPollAttempts: 5, pollBaseDelayMs: 100, pollMaxDelayMs: 1_000 };
@@ -98,4 +99,20 @@ test('I2V worker never recompiles or submits a job missing its compiled snapshot
   const service=createVideoJobProcessingService({repository:repo,providerRegistry:{fixture:imageAdapter(async()=>{submits+=1;return {providerJobId:'never'};})},providerInputGateway:{createUrl:()=> 'https://media.example.test/api/video-provider-input/opaque'},config});
   const result=await service.processClaimedJob(job({mode:'image-to-video',capability_key:'video.image_to_video',compiled_prompt:null,input_media_id:'media-1'}),{workerId:'worker-fixture'});
   assert.equal(submits,0);assert.equal(result.errorCode,'VIDEO_COMPILED_PROMPT_REQUIRED');assert.deepEqual(repo.events,['rejected']);
+});
+
+test('worker submits the immutable compiled prompt only when its stored hash matches', async () => {
+  const compiledPrompt='A verified provider-ready cinematic prompt.';
+  const compiledPromptHash=createHash('sha256').update(compiledPrompt).digest('hex');
+  let received;const repo=repository();
+  const service=createVideoJobProcessingService({repository:repo,providerRegistry:{fixture:adapter(async(input)=>{received=input;return {providerJobId:'task-hash-ok'};})},config});
+  const result=await service.processClaimedJob(job({prompt:'raw request',compiled_prompt:compiledPrompt,compiled_prompt_hash:compiledPromptHash}),{workerId:'worker-fixture'});
+  assert.equal(result.action,'submitted');assert.equal(received.prompt,compiledPrompt);
+});
+
+test('worker fails closed before provider submission when the compiled prompt hash is corrupted', async () => {
+  let submits=0;const repo=repository();
+  const service=createVideoJobProcessingService({repository:repo,providerRegistry:{fixture:adapter(async()=>{submits+=1;return {providerJobId:'never'};})},config});
+  const result=await service.processClaimedJob(job({compiled_prompt:'A tampered provider prompt.',compiled_prompt_hash:'0'.repeat(64)}),{workerId:'worker-fixture'});
+  assert.equal(submits,0);assert.equal(result.errorCode,'VIDEO_COMPILED_PROMPT_HASH_MISMATCH');assert.deepEqual(repo.events,['rejected']);
 });

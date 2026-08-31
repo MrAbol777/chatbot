@@ -3,6 +3,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
+const path = require('node:path');
 const { createAuthMiddleware } = require('../image-generation/auth.middleware');
 const { createVideoGenerationRepository } = require('./video-generation.repository');
 const { createVideoGenerationService } = require('./video-generation.service');
@@ -21,6 +22,7 @@ const { createAiCapabilityRouteResolver } = require('../ai-routing/capability-ro
 const { createVideoPromptProfileRepository } = require('../video-prompt-profiles/video-prompt-profile.repository');
 const { createVideoPromptProfilePublicRouter } = require('../video-prompt-profiles/video-prompt-profile.routes');
 const { VideoPromptCompiler } = require('../video-prompt-profiles/video-prompt-compiler');
+const { createTextToVideoPromptCompiler } = require('./text-to-video-prompt-compiler');
 
 const splitList = (value) => String(value || '')
   .split(',')
@@ -55,6 +57,10 @@ function createVideoGenerationRouter(deps) {
     noaBillingService: deps.noaBillingService
   });
   const promptProfileRepository = createVideoPromptProfileRepository(deps.db);
+  const textToVideoPromptCompiler = deps.textToVideoPromptCompiler || createTextToVideoPromptCompiler({
+    systemPromptPath: deps.textToVideoSystemPromptPath || path.resolve(__dirname, '../../../../docs/video-prompts/text-to-video-system-prompt.txt'),
+    systemPromptVersion: env.T2V_SYSTEM_PROMPT_VERSION || 'text-to-video-runtime-v2'
+  });
   const registry = new AiProviderRegistry();
   registry.register(provider);
   if (!useFake) {
@@ -64,9 +70,13 @@ function createVideoGenerationRouter(deps) {
       apiKey: env.BANANAAI_API_KEY,
       proxyUrl: env.BANANAAI_PROXY_URL,
       forceIpv4: String(env.BANANAAI_FORCE_IPV4 ?? 'true').toLowerCase() !== 'false',
+      requestTimeoutMs: Number(env.BANANAAI_REQUEST_TIMEOUT_MS || 10000),
+      statusTimeoutMs: Number(env.BANANAAI_STATUS_TIMEOUT_MS || 30000),
       resultAllowedHosts: splitList(env.BANANAAI_VIDEO_RESULT_ALLOWED_HOSTS),
       resultAllowedPorts: storageConfig.allowedPorts,
       resultAllowedPathPrefixes: splitList(env.BANANAAI_VIDEO_RESULT_ALLOWED_PATH_PREFIXES),
+      maxTextPromptLength: Number(env.BANANAAI_T2V_MAX_PROMPT_LENGTH || 8000),
+      maxImagePromptLength: Number(env.BANANAAI_I2V_MAX_PROMPT_LENGTH || 2000),
       resultTimeoutMs: storageConfig.timeoutMs,
       resultMaxBytes: storageConfig.maxBytes,
       resultMaxRedirects: storageConfig.maxRedirects
@@ -86,6 +96,7 @@ function createVideoGenerationRouter(deps) {
     routeResolver,
     promptProfileRepository,
     promptCompiler: new VideoPromptCompiler(),
+    textToVideoPromptCompiler,
     isFeatureEnabled: () => String(env.VIDEO_GENERATION_ENABLED || '0') === '1'
   });
   const controller = createVideoGenerationController(service);
