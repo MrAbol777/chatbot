@@ -24,6 +24,23 @@ function createImageCapacityGuard({
         : '';
       if (!userId) return res.status(401).json({ error: 'AUTHENTICATION_REQUIRED' });
 
+      const idempotencyKey = typeof req.headers?.['idempotency-key'] === 'string'
+        ? req.headers['idempotency-key'].trim().slice(0, 191)
+        : '';
+      if (idempotencyKey.length >= 8) {
+        const [existing] = await db.query(
+          `SELECT id FROM image_generations
+           WHERE user_id = ? AND idempotency_key = ? AND deleted_at IS NULL
+           LIMIT 1`,
+          [userId, idempotencyKey]
+        );
+        if (existing?.[0]) {
+          res.locals = res.locals || {};
+          res.locals.imageIdempotentReplay = true;
+          return next();
+        }
+      }
+
       const [rows] = await db.query(
         `SELECT
            COUNT(*) AS total_active,
