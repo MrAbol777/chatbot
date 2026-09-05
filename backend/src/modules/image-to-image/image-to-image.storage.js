@@ -24,11 +24,19 @@ function createImageToImageStorage({ rootDirectory, maxBytes = 10 * 1024 * 1024 
     await fs.writeFile(target, buffer, { flag: 'wx' });
     return { key, sha256: crypto.createHash('sha256').update(buffer).digest('hex'), sizeBytes: buffer.length };
   };
+  const removeJob = async (jobId) => {
+    const normalizedJobId = typeof jobId === 'string' || typeof jobId === 'number' ? String(jobId).trim() : '';
+    if (!normalizedJobId) throw new Error('IMAGE_TO_IMAGE_STORAGE_JOB_ID_REQUIRED');
+    const target = resolveKey(normalizedJobId);
+    if (target === root) throw new Error('IMAGE_TO_IMAGE_STORAGE_JOB_ID_INVALID');
+    await fs.remove(target);
+  };
   return {
     rootDirectory: root,
     saveInput: (jobId, index, file) => save({ jobId, kind: 'inputs', index, buffer: file.buffer, mimeType: file.mimetype }),
     saveResult: (jobId, result) => save({ jobId, kind: 'result', index: 'image', buffer: result.buffer, mimeType: result.mimeType }),
-    read: async (key) => fs.readFile(resolveKey(key))
+    read: async (key) => fs.readFile(resolveKey(key)),
+    removeJob
   };
 }
 
