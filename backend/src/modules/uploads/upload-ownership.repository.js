@@ -1,5 +1,9 @@
 'use strict';
 
+const path = require('path');
+const fs = require('fs-extra');
+const mysql = require('mysql2/promise');
+
 const IMAGE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$|^[1-9]\d*$|^0$/i;
 
 const normalizeImageId = (value) => {
@@ -10,106 +14,117 @@ const normalizeImageId = (value) => {
 const normalizeUserId = (value) =>
   typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
 
-function createUploadOwnershipRepository(db) {
-  if (!db || typeof db.query !== 'function') {
-    throw new Error('Upload ownership repository requires a database');
-  }
+const defaultUploadsRoot = path.resolve(__dirname, '../../../uploads');
+let defaultRepository = null;
 
-  let schemaPromise = null;
-  const ensureSchema = async () => {
-    if (schemaPromise) return schemaPromise;
-    schemaPromise = (async () => {
-      if (typeof db.init === 'function') await db.init();
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS app_uploaded_image_owners (
-          image_id VARCHAR(64) PRIMARY KEY,
-          user_id VARCHAR(191) NOT NULL,
-          created_at DATETIME NOT NULL,
-          INDEX idx_uploaded_image_owner_user (user_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
-    })();
-    return schemaPromise;
+function createUploadOwnershipRepository({
+  db = null,
+  rootDirectory = defaultUploadsRoot,
+  databaseUrl = process.env.DATABASE_URL || ''
+} = {}) {
+  const ownersDirectory = path.join(path.resolve(rootDirectory), '.owners');
+
+  const ensureStore = async () => {
+    await fs.ensureDir(ownersDirectory);
   };
 
-  const register = async ({ imageId, userId, createdAt = new Date() }) => {
+  const ownerPathFor = (imageId) => path.join(ownersDirectory, `${imageId}.json`);
+
+  const readStoredOwner = async (imageId) => {
+    await ensureStore();
+    try {
+      const payload = await fs.readJson(ownerPathFor(imageId));
+      return normalizeUserId(payload?.userId);
+    } catch (error) {
+      if (error?.code === 'ENOENT') return '';
+      return '';
+    }
+  };
+
+  const register = async ({ imageId, userId }) => {
     const normalizedImageId = normalizeImageId(imageId);
     const normalizedUserId = normalizeUserId(userId);
     if (!normalizedImageId || !normalizedUserId) {
       throw new Error('Valid imageId and userId are required for upload ownership');
     }
-    await ensureSchema();
-    await db.query(
-      `INSERT INTO app_uploaded_image_owners (image_id, user_id, created_at)
-       VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE user_id = user_id`,
-      [normalizedImageId, normalizedUserId, createdAt]
-    );
+
+    await ensureStore();
+    const target = ownerPathFor(normalizedImageId);
+    const existing = await readStoredOwner(normalizedImageId);
+    if (existing) {
+      if (existing !== normalizedUserId) {
+        const error = new Error('Upload ownership conflict');
+        error.code = 'UPLOAD_OWNER_CONFLICT';
+        throw error;
+      }
+      return { imageId: normalizedImageId, userId: normalizedUserId };
+    }
+
+    const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
+    await fs.writeJson(temporary, { userId: normalizedUserId }, { mode: 0o600 });
+    try {
+      // rename is atomic on the same filesystem. If another request won the
+      // race, verify that it recorded the same owner before accepting it.
+      await fs.rename(temporary, target);
+    } catch (error) {
+      await fs.remove(temporary).catch(() => undefined);
+      const racedOwner = await readStoredOwner(normalizedImageId);
+      if (racedOwner === normalizedUserId) {
+        return { imageId: normalizedImageId, userId: normalizedUserId };
+      }
+      throw error;
+    }
+    await fs.chmod(target, 0o600).catch(() => undefined);
     return { imageId: normalizedImageId, userId: normalizedUserId };
   };
 
-  const registerMany = async ({ imageIds, userId, createdAt = new Date() }) => {
-    const normalizedUserId = normalizeUserId(userId);
+  const registerMany = async ({ imageIds, userId }) => {
     const ids = [...new Set((Array.isArray(imageIds) ? imageIds : []).map(normalizeImageId).filter(Boolean))];
+    const normalizedUserId = normalizeUserId(userId);
     if (!normalizedUserId || ids.length === 0) return [];
-    await ensureSchema();
-
-    const connection = typeof db.getConnection === 'function' ? await db.getConnection() : null;
-    const executor = connection || db;
-    try {
-      if (connection) await connection.beginTransaction();
-      for (const imageId of ids) {
-        await executor.query(
-          `INSERT INTO app_uploaded_image_owners (image_id, user_id, created_at)
-           VALUES (?, ?, ?)
-           ON DUPLICATE KEY UPDATE user_id = user_id`,
-          [imageId, normalizedUserId, createdAt]
-        );
-      }
-      if (connection) await connection.commit();
-      return ids.map((imageId) => ({ imageId, userId: normalizedUserId }));
-    } catch (error) {
-      if (connection) await connection.rollback();
-      throw error;
-    } finally {
-      connection?.release?.();
-    }
+    const results = [];
+    for (const imageId of ids) results.push(await register({ imageId, userId: normalizedUserId }));
+    return results;
   };
 
-  const findPersistedOwner = async (imageId) => {
-    await ensureSchema();
-    const [rows] = await db.query(
-      'SELECT user_id FROM app_uploaded_image_owners WHERE image_id = ? LIMIT 1',
-      [imageId]
-    );
-    return normalizeUserId(rows?.[0]?.user_id);
-  };
-
-  const findLegacyOwner = async (imageId) => {
-    // Older uploads predate ownership metadata. Conversation JSON already stores
-    // their same-origin URL together with the owning app_conversations.user_id.
-    // Resolve only an unambiguous single owner, then persist it for future reads.
+  const queryLegacyOwner = async (imageId) => {
     const pluralNeedle = `%/api/uploads/images/${imageId}%`;
     const singularNeedle = `%/api/upload/images/${imageId}%`;
-    const [rows] = await db.query(
-      `SELECT DISTINCT user_id
-       FROM app_conversations
-       WHERE CAST(messages AS CHAR) LIKE ? OR CAST(messages AS CHAR) LIKE ?
-       LIMIT 2`,
-      [pluralNeedle, singularNeedle]
-    );
-    const owners = [...new Set((Array.isArray(rows) ? rows : []).map((row) => normalizeUserId(row.user_id)).filter(Boolean))];
-    return owners.length === 1 ? owners[0] : '';
+    const sql = `SELECT DISTINCT user_id
+                 FROM app_conversations
+                 WHERE CAST(messages AS CHAR) LIKE ? OR CAST(messages AS CHAR) LIKE ?
+                 LIMIT 2`;
+
+    let temporaryConnection = null;
+    try {
+      let executor = db;
+      if (!executor?.query) {
+        const url = String(databaseUrl || '').trim();
+        if (!url) return '';
+        temporaryConnection = await mysql.createConnection(url);
+        executor = temporaryConnection;
+      } else if (typeof executor.init === 'function') {
+        await executor.init();
+      }
+      const [rows] = await executor.query(sql, [pluralNeedle, singularNeedle]);
+      const owners = [...new Set((Array.isArray(rows) ? rows : []).map((row) => normalizeUserId(row.user_id)).filter(Boolean))];
+      return owners.length === 1 ? owners[0] : '';
+    } catch {
+      // Legacy lookup must fail closed. A DB outage must never turn an unknown
+      // upload into a public object.
+      return '';
+    } finally {
+      await temporaryConnection?.end?.().catch(() => undefined);
+    }
   };
 
   const resolveOwner = async (rawImageId) => {
     const imageId = normalizeImageId(rawImageId);
     if (!imageId) return '';
+    const stored = await readStoredOwner(imageId);
+    if (stored) return stored;
 
-    const persisted = await findPersistedOwner(imageId);
-    if (persisted) return persisted;
-
-    const legacyOwner = await findLegacyOwner(imageId);
+    const legacyOwner = await queryLegacyOwner(imageId);
     if (!legacyOwner) return '';
     await register({ imageId, userId: legacyOwner });
     return legacyOwner;
@@ -133,14 +148,25 @@ function createUploadOwnershipRepository(db) {
   };
 
   return {
-    ensureSchema,
+    ensureStore,
     register,
     registerMany,
     resolveOwner,
     isOwnedBy,
     areOwnedBy,
-    normalizeImageId
+    normalizeImageId,
+    ownersDirectory
   };
 }
 
-module.exports = { createUploadOwnershipRepository, normalizeImageId, IMAGE_ID_PATTERN };
+function getDefaultUploadOwnershipRepository() {
+  if (!defaultRepository) defaultRepository = createUploadOwnershipRepository();
+  return defaultRepository;
+}
+
+module.exports = {
+  createUploadOwnershipRepository,
+  getDefaultUploadOwnershipRepository,
+  normalizeImageId,
+  IMAGE_ID_PATTERN
+};
