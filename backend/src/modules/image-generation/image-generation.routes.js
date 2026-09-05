@@ -5,6 +5,7 @@ const { createImageGenerationService } = require('./image-generation.service');
 const { createAuthMiddleware } = require('./auth.middleware');
 const { createImageRuntimeSettingsResolver } = require('./image-runtime-settings');
 const { createImagePromptRefinerService } = require('./image-prompt-refiner.service');
+const { createImageResultHttpClient } = require('./image-result-http-client');
 
 function createImageGenerationRouter(deps) {
   const router = express.Router();
@@ -15,10 +16,16 @@ function createImageGenerationRouter(deps) {
     principalResolver: deps.principalResolver
   });
 
+  const baseHttpClient = deps.httpClient || axios;
+  const imageHttpClient = createImageResultHttpClient({
+    httpClient: baseHttpClient,
+    imageConfig: deps.imageConfig,
+    env: process.env
+  });
   const imageGenerationService =
     deps.imageGenerationService ||
     createImageGenerationService({
-      httpClient: deps.httpClient || axios,
+      httpClient: imageHttpClient,
       geminiApiKey: deps.geminiApiKey,
       baseUrl: deps.geminiBaseUrl,
       imageModel: deps.geminiImageModel || 'gemini-2.5-flash-image',
@@ -33,7 +40,7 @@ function createImageGenerationRouter(deps) {
   const imagePromptRefinerService =
     deps.imagePromptRefinerService ||
     createImagePromptRefinerService({
-      httpClient: deps.httpClient || axios,
+      httpClient: baseHttpClient,
       settingsRepository: deps.settingsRepository,
       refinerConfig: deps.imageConfig?.promptRefiner,
       chatConfig: deps.chatConfig,
