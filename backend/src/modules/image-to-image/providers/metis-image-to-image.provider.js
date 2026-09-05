@@ -56,10 +56,23 @@ function createMetisImageToImageProvider({ httpClient, baseUrl = 'https://api.me
     async download({ resultUrl }) {
       try {
         const parsedUrl = new URL(resultUrl);
-        if (parsedUrl.protocol !== 'https:' || !resultHosts.has(parsedUrl.hostname.toLowerCase())) {
+        const port = parsedUrl.port || '443';
+        if (
+          parsedUrl.protocol !== 'https:' ||
+          parsedUrl.username ||
+          parsedUrl.password ||
+          port !== '443' ||
+          !resultHosts.has(parsedUrl.hostname.toLowerCase())
+        ) {
           throw imageToImageError('IMAGE_TO_IMAGE_RESULT_URL_REJECTED', 'آدرس خروجی سرویس تصویر معتبر نیست.', 502);
         }
-        const response = await httpClient.get(resultUrl, { responseType: 'arraybuffer', timeout: 120_000, maxContentLength: maxResultBytes, maxBodyLength: maxResultBytes });
+        const response = await httpClient.get(parsedUrl.toString(), {
+          responseType: 'arraybuffer',
+          timeout: 120_000,
+          maxContentLength: maxResultBytes,
+          maxBodyLength: maxResultBytes,
+          maxRedirects: 0
+        });
         const mimeType = String(response?.headers?.['content-type'] || 'image/png').split(';')[0].trim().toLowerCase();
         const buffer = Buffer.from(response?.data || []);
         if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) throw imageToImageError('IMAGE_TO_IMAGE_RESULT_INVALID', 'خروجی سرویس تصویر فرمت معتبر ندارد.', 502);
