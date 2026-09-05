@@ -42,9 +42,11 @@ const createResolver = () =>
           };
         }
         return null;
-      }
+      },
+      validateCsrf: (_session, token) => token === 'stable-csrf'
     },
-    sessionCookieName: 'danoa_auth_session'
+    sessionCookieName: 'danoa_auth_session',
+    allowedOrigins: ['http://localhost:5173']
   });
 
 const request = ({ bearer = '', session = '', method = 'GET', origin = '', csrf = '', path = '/api/chat' } = {}) => ({
@@ -76,6 +78,32 @@ test('an invalid supplied credential is not ignored beside a valid credential', 
   assert.equal(invalidBearer.error, 'INVALID_BEARER_CREDENTIAL');
   const invalidCookie = await createResolver().resolve(request({ bearer: 'otp-token', session: 'bad' }));
   assert.equal(invalidCookie.error, 'INVALID_SESSION_CREDENTIAL');
+});
+
+test('principal resolver enforces CSRF on session-authenticated mutations', async () => {
+  const resolver = createResolver();
+  const missingOrigin = await resolver.resolve(request({
+    session: 'viana-token',
+    method: 'POST',
+    csrf: 'stable-csrf'
+  }));
+  assert.equal(missingOrigin.error, 'CSRF_ORIGIN_REJECTED');
+  assert.equal(missingOrigin.statusCode, 403);
+
+  const accepted = await resolver.resolve(request({
+    session: 'viana-token',
+    method: 'POST',
+    origin: 'http://localhost:5173',
+    csrf: 'stable-csrf'
+  }));
+  assert.equal(accepted.error, null);
+  assert.equal(accepted.statusCode, 200);
+});
+
+test('Bearer-only mutations stay exempt from CSRF in the principal resolver', async () => {
+  const result = await createResolver().resolve(request({ bearer: 'otp-token', method: 'POST' }));
+  assert.equal(result.error, null);
+  assert.equal(result.principal.userId, 'otp-user');
 });
 
 test('cookie-authenticated mutations require exact Origin and stable CSRF token', async () => {
