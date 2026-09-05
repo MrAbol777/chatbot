@@ -1,11 +1,13 @@
 const express = require('express');
 const axios = require('axios');
+const rateLimit = require('express-rate-limit');
 const { createImageGenerationController } = require('./image-generation.controller');
 const { createImageGenerationService } = require('./image-generation.service');
 const { createAuthMiddleware } = require('./auth.middleware');
 const { createImageRuntimeSettingsResolver } = require('./image-runtime-settings');
 const { createImagePromptRefinerService } = require('./image-prompt-refiner.service');
 const { createImageResultHttpClient } = require('./image-result-http-client');
+const { createImageCapacityGuard, positiveInteger } = require('./image-capacity.middleware');
 
 function createImageGenerationRouter(deps) {
   const router = express.Router();
@@ -70,10 +72,28 @@ function createImageGenerationRouter(deps) {
     imageRuntimeSettingsResolver
   });
 
+  const imageRateLimiter = rateLimit({
+    windowMs: 60_000,
+    max: positiveInteger(process.env.IMAGE_RATE_LIMIT_PER_MINUTE, 6),
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => String(req.user?.id || req.ip),
+    handler: (_req, res) => res.status(429).json({
+      success: false,
+      error: 'IMAGE_RATE_LIMITED',
+      message: 'درخواست‌های تصویر خیلی سریع ارسال شده‌اند. کمی بعد دوباره امتحان کن.'
+    })
+  });
+  const imageCapacityGuard = createImageCapacityGuard({
+    db: deps.db,
+    maxActive: process.env.IMAGE_MAX_ACTIVE_JOBS || 6,
+    maxActivePerUser: process.env.IMAGE_MAX_ACTIVE_JOBS_PER_USER || 2
+  });
+
   // Protected routes (generate, status, same-origin image serving)
   router.use(authMiddleware);
-  router.post('/generate', controller.generateImage);
-  router.post('/edit', controller.editImage);
+  router.post('/generate', imageRateLimiter, imageCapacityGuard, controller.generateImage);
+  router.post('/edit', imageRateLimiter, imageCapacityGuard, controller.editImage);
   router.get('/', controller.listImages);
   router.get('/:taskId/details', controller.getImageDetails);
   router.delete('/:taskId', controller.deleteImage);
