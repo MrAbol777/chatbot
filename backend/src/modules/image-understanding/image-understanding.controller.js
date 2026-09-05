@@ -1,6 +1,11 @@
 const { createHash, randomUUID } = require('crypto');
 const { parseDataImageUrl } = require('./image-understanding.service');
 const { NOA_ACTIONS } = require('../noa/noa.constants');
+const {
+  normalizeImageMime,
+  validateImageBuffer,
+  safeProviderImageFilename
+} = require('../uploads/image-file-security');
 
 const publicVisionErrorMessage = (error) => {
   const code = error?.code || error?.message;
@@ -77,13 +82,15 @@ function createImageUnderstandingController({
 
   const collectRequestImages = async (req, res) => {
     const images = [];
-    for (const file of Array.isArray(req.files) ? req.files : []) {
+    for (const [index, file] of (Array.isArray(req.files) ? req.files : []).entries()) {
+      const mimeType = normalizeImageMime(file.mimetype);
+      validateImageBuffer(file.buffer, mimeType);
       images.push({
-        id: file.originalname,
+        id: `upload-${index + 1}`,
         source: 'upload',
-        mimeType: file.mimetype,
+        mimeType,
         buffer: file.buffer,
-        originalName: file.originalname
+        originalName: safeProviderImageFilename(mimeType, index)
       });
     }
 
@@ -92,22 +99,29 @@ function createImageUnderstandingController({
       if (typeof item?.dataUrl === 'string') {
         const parsed = parseDataImageUrl(item.dataUrl);
         if (parsed) {
+          const mimeType = normalizeImageMime(parsed.mimeType);
+          validateImageBuffer(parsed.buffer, mimeType);
+          const index = images.length;
           images.push({
-            id: item.id || 'data-url',
+            id: item.id || `data-url-${index + 1}`,
             source: 'inline',
-            mimeType: parsed.mimeType,
+            mimeType,
             buffer: parsed.buffer,
-            originalName: item.name || 'image'
+            originalName: safeProviderImageFilename(mimeType, index)
           });
         }
       }
       if (typeof item?.base64 === 'string' && typeof item?.mimeType === 'string') {
+        const mimeType = normalizeImageMime(item.mimeType);
+        const buffer = Buffer.from(item.base64, 'base64');
+        validateImageBuffer(buffer, mimeType);
+        const index = images.length;
         images.push({
-          id: item.id || 'base64',
+          id: item.id || `base64-${index + 1}`,
           source: 'inline',
-          mimeType: item.mimeType,
-          base64: item.base64,
-          originalName: item.name || 'image'
+          mimeType,
+          buffer,
+          originalName: safeProviderImageFilename(mimeType, index)
         });
       }
     }
