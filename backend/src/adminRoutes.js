@@ -24,8 +24,10 @@ const { createMonitoringService } = require('./modules/admin/monitoring/service'
 const { createMonitoringRouter } = require('./modules/admin/monitoring/routes');
 
 const {
+  ADMIN_ROLES,
   createLoginLimiter,
-  createRequireAdminAuth
+  createRequireAdminAuth,
+  createRequireAdminRole
 } = require('./modules/admin/common/auth');
 const {
   CONFIG_FILE_PATH,
@@ -61,48 +63,48 @@ function createAdminModule({
   const analyticsRepository = repositories?.analytics;
   const supervisedOtpRepository = repositories?.supervisedOtp;
   const broadcastMessagesRepository = repositories?.broadcastMessages;
+  const adminRepository = repositories?.admins;
 
   const loginLimiter = createLoginLimiter();
   const requireAdminAuth = createRequireAdminAuth({
     cookieName,
-    jwtSecret
+    jwtSecret,
+    adminRepository
   });
+  const requireSensitiveAdminRole = createRequireAdminRole([ADMIN_ROLES.ADMIN]);
 
-  // 1. Auth routes (/login, /logout, /me)
   router.use(createAdminAuthRouter({
     jwtSecret,
     cookieName,
     loginLimiter,
     requireAdminAuth,
-    ensureAdminData: () => ensureAdminData(repositories?.admins),
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+    ensureAdminData: () => ensureAdminData(adminRepository),
+    appendAudit: (entry) => appendAudit(entry, adminRepository),
+    revokeAdminSession: (entry) => adminRepository.revokeSession(entry)
   }));
 
-  // 2. Users and moderation routes
   router.use(createAdminUsersRouter({
     requireAdminAuth,
     usersRepository,
     analyticsRepository,
     repositories,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+    appendAudit: (entry) => appendAudit(entry, adminRepository)
   }));
 
   router.use(createAdminBroadcastMessagesRouter({
     requireAdminAuth,
     repository: broadcastMessagesRepository,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+    appendAudit: (entry) => appendAudit(entry, adminRepository)
   }));
 
-  // 3. Vision settings and test routes
   router.use(createAdminVisionRouter({
     requireAdminAuth,
     imageUnderstandingService,
     repositories,
     runtimeConfig,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+    appendAudit: (entry) => appendAudit(entry, adminRepository)
   }));
 
-  // 4. Image settings and prompt refiner routes
   router.use(createAdminImageSettingsRouter({
     requireAdminAuth,
     imageRuntimeSettingsResolver,
@@ -110,17 +112,15 @@ function createAdminModule({
     imageGenerationService,
     repositories,
     runtimeConfig,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+    appendAudit: (entry) => appendAudit(entry, adminRepository)
   }));
 
-  // 5. Supervised OTP routes
   router.use(createAdminSupervisedOtpRouter({
     requireAdminAuth,
     supervisedOtpRepository,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+    appendAudit: (entry) => appendAudit(entry, adminRepository)
   }));
 
-  // 6. AI Runtime Status and optimizations
   router.use(createAdminRuntimeStatusRouter({
     requireAdminAuth,
     repositories,
@@ -143,7 +143,6 @@ function createAdminModule({
     requireAdminAuth
   }));
 
-  // 7. Analytics service & router
   const analyticsService = createAdminAnalyticsService({
     analyticsRepository: { readDB: (...args) => analyticsRepository.readDB(...args) },
     getTotalUsers: (...args) => analyticsRepository.getTotalUsers(...args),
@@ -163,13 +162,12 @@ function createAdminModule({
     requireAdminAuth
   }));
 
-  // 8. System prompt & configuration
   const systemService = createAdminSystemService({
     ensureConfigData,
     fileStore: fs,
     configFilePath: CONFIG_FILE_PATH,
     systemPromptFilePath: SYSTEM_PROMPT_PATH,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins),
+    appendAudit: (entry) => appendAudit(entry, adminRepository),
     isSystemPromptEditEnabled,
     onSystemPromptUpdated,
     defaultConfig: DEFAULT_CONFIG,
@@ -178,23 +176,22 @@ function createAdminModule({
   });
   router.use(createAdminSystemRouter({
     systemService,
-    requireAdminAuth
+    requireAdminAuth,
+    requireSensitiveAdminRole
   }));
 
-  // 9. Logs & audit service
   const logsService = createAdminLogsService({
     readDB: (...args) => analyticsRepository.readDB(...args),
-    readAuditLogs: (opts) => readAuditLogs(repositories?.admins, opts)
+    readAuditLogs: (opts) => readAuditLogs(adminRepository, opts)
   });
   router.use(createAdminLogsRouter({
     logsService,
     requireAdminAuth
   }));
 
-  // 10. Settings service & router
   const settingsService = createAdminSettingsService({
     settingsRepository: repositories.settings,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins),
+    appendAudit: (entry) => appendAudit(entry, adminRepository),
     onSettingsUpdated: async ({ changedKeys }) => {
       if (
         changedKeys.some((key) => String(key).startsWith('ai.image.')) &&
@@ -242,12 +239,13 @@ function createAdminModule({
   });
   router.use(createAdminSettingsRouter({
     settingsService,
-    requireAdminAuth
+    requireAdminAuth,
+    requireSensitiveAdminRole
   }));
 
-  // 11. Intent router, conversation memory, AI routing, video prompt profiles
   router.use(createConversationMemoryAdminRouter({
     requireAdminAuth,
+    requireSensitiveAdminRole,
     conversationMemoryService,
     conversationsRepository: repositories.conversations,
     chatMessagesRepository: repositories.chatMessages
@@ -256,26 +254,26 @@ function createAdminModule({
     intentRouterService,
     settingsRepository: repositories.settings,
     requireAdminAuth,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+    appendAudit: (entry) => appendAudit(entry, adminRepository)
   }));
   router.use('/ai-routing', createAdminAiRoutingRouter({
     db: repositories.db,
     requireAdminAuth,
     routeResolver: aiRouteResolver,
     noaBillingService,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+    appendAudit: (entry) => appendAudit(entry, adminRepository)
   }));
   router.use('/video-prompt-profiles', createVideoPromptProfileAdminRouter({
     db: repositories.db,
     requireAdminAuth,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins)
+    appendAudit: (entry) => appendAudit(entry, adminRepository)
   }));
 
   return {
     router,
     requireAdminAuth,
-    appendAudit: (entry) => appendAudit(entry, repositories?.admins),
-    ensureAdminData: () => ensureAdminData(repositories?.admins),
+    appendAudit: (entry) => appendAudit(entry, adminRepository),
+    ensureAdminData: () => ensureAdminData(adminRepository),
     ensureConfigData
   };
 }
