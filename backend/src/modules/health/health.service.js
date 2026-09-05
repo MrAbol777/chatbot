@@ -56,9 +56,26 @@ function createHealthService({ metisBaseUrl, metisApiKey, defaultModel, videoWor
   };
 
   const getImageToImageHealth = async () => {
-    if (!db) throw new Error('Image-to-image database is not configured.');
     const featureEnabled = String(env.IMAGE_TO_IMAGE_ENABLED || '').trim().toLowerCase() === 'true';
     const workerMode = resolveImageToImageWorkerMode(env);
+    if (!featureEnabled) {
+      return {
+        ok: true,
+        featureEnabled: false,
+        configurationReady: true,
+        workerMode,
+        activeLeases: 0,
+        queueCount: 0,
+        submittedCount: 0,
+        succeededCount: 0,
+        failedCount: 0,
+        stalePendingCount: 0,
+        expiredPendingCount: 0,
+        storageWritable: null
+      };
+    }
+
+    if (!db) throw new Error('Image-to-image database is not configured.');
     const defaultStorage = String(env.NODE_ENV || '').trim().toLowerCase() === 'production'
       ? '/var/lib/danoa/image-to-image'
       : path.join(__dirname, '../../../storage/image-to-image');
@@ -76,7 +93,7 @@ function createHealthService({ metisBaseUrl, metisApiKey, defaultModel, videoWor
       "SELECT COUNT(*) AS count FROM app_image_to_image_jobs WHERE status IN ('queued','submitted') AND expires_at<=NOW()"
     );
     const counts = Object.fromEntries(rows.map((row) => [String(row.status), Number(row.count)]));
-    const configurationReady = !featureEnabled || workerMode !== 'disabled';
+    const configurationReady = workerMode !== 'disabled';
     return {
       ok: configurationReady,
       featureEnabled,
