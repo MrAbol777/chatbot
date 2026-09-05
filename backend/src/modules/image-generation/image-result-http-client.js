@@ -1,16 +1,28 @@
 'use strict';
 
-const splitList = (value) => String(value || '').split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
+const dns = require('node:dns');
+const https = require('node:https');
+const {
+  createPinnedLookup,
+  createVideoResultUrlValidator
+} = require('../video-generation/storage/video-result-url-validator');
+
+const splitList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
 
 const hostnameOf = (value) => {
   try {
-    return new URL(String(value || '')).hostname.toLowerCase();
+    return new URL(String(value || '')).hostname;
   } catch {
     return '';
   }
 };
 
-function createImageResultHttpClient({ httpClient, imageConfig = {}, env = process.env }) {
+function createImageResultHttpClient({
+  httpClient,
+  imageConfig = {},
+  env = process.env,
+  dnsResolver = dns.promises.lookup
+}) {
   if (!httpClient || typeof httpClient.get !== 'function' || typeof httpClient.post !== 'function') {
     throw new Error('Image HTTP client requires get and post methods');
   }
@@ -19,50 +31,52 @@ function createImageResultHttpClient({ httpClient, imageConfig = {}, env = proce
     env.IMAGE_RESULT_ALLOWED_HOSTS || env.IMAGE_TO_IMAGE_RESULT_ALLOWED_HOSTS || ''
   );
   const baseHost = hostnameOf(imageConfig.baseUrl);
-  const allowedHosts = new Set([baseHost, ...configuredHosts].filter(Boolean));
+  const allowedHosts = [...new Set([baseHost, ...configuredHosts].filter(Boolean))];
+  const validator = createVideoResultUrlValidator({
+    allowedHosts,
+    allowedPorts: [443],
+    allowedPathPrefixes: ['/'],
+    resolver: dnsResolver
+  });
 
-  const validateResultUrl = (value) => {
-    let parsed;
+  const reject = (cause) => {
+    const error = new Error('Image result URL was rejected by the SSRF guard');
+    error.code = 'IMAGE_RESULT_URL_REJECTED';
+    error.cause = cause;
+    return error;
+  };
+
+  const validateResultUrl = async (value) => {
     try {
-      parsed = new URL(String(value || ''));
-    } catch {
-      const error = new Error('Image result URL is invalid');
-      error.code = 'IMAGE_RESULT_URL_REJECTED';
-      throw error;
+      return await validator.validate(value);
+    } catch (error) {
+      throw reject(error);
     }
-
-    const host = parsed.hostname.toLowerCase();
-    const port = parsed.port || '443';
-    if (
-      parsed.protocol !== 'https:' ||
-      parsed.username ||
-      parsed.password ||
-      port !== '443' ||
-      !allowedHosts.has(host)
-    ) {
-      const error = new Error('Image result URL is not in the configured allowlist');
-      error.code = 'IMAGE_RESULT_URL_REJECTED';
-      throw error;
-    }
-    return parsed.toString();
   };
 
   return {
     post: (...args) => httpClient.post(...args),
-    get: (url, config = {}) => {
-      if (config?.responseType === 'arraybuffer') {
-        const safeUrl = validateResultUrl(url);
-        return httpClient.get(safeUrl, {
-          ...config,
-          // Never let an allowlisted CDN/provider redirect the backend to a
-          // second unchecked destination (including localhost/private IPs).
-          maxRedirects: 0
-        });
+    get: async (url, config = {}) => {
+      if (config?.responseType !== 'arraybuffer') {
+        return httpClient.get(url, config);
       }
-      return httpClient.get(url, config);
+
+      const validated = await validateResultUrl(url);
+      const httpsAgent = new https.Agent({
+        keepAlive: true,
+        lookup: createPinnedLookup(validated.records)
+      });
+      return httpClient.get(validated.url.toString(), {
+        ...config,
+        // Never let an allowlisted provider redirect the backend to a second,
+        // unchecked destination. The lookup is pinned to the IPs validated
+        // above so a DNS rebinding between validation and connect is blocked.
+        maxRedirects: 0,
+        httpsAgent
+      });
     },
     validateResultUrl,
-    allowedHosts: () => [...allowedHosts]
+    allowedHosts: () => [...validator.allowedHosts]
   };
 }
 
