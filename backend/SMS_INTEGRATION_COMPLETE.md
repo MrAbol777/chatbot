@@ -111,8 +111,10 @@ The IPPanel SMS API has been successfully integrated into your chatBot project. 
 ### 1. Configure Environment
 ```bash
 # Edit backend/.env
-IPPANEL_API_KEY=YTFjMGNjNDctNDBiZC00MWE1LWEyZGEtNDA2N2U5ZjU5MzM3NzI4MzgyNmI5MTBkMDQ1MDhmZDZiYjEwNTg2Y2Q5Mjg=
+IPPANEL_API_KEY=<your-api-key>
 ```
+
+Never commit a real API key. If a key has ever appeared in Git history, rotate/revoke it in IPPanel before reuse.
 
 ### 2. Start Server
 ```bash
@@ -194,17 +196,14 @@ IPPANEL_API_KEY=<your-api-key>
 ```javascript
 const smsService = require('./services/smsService');
 
-// Send OTP
 const result = await smsService.sendOTP('09123456789');
 console.log('OTP:', result.otp);
 
-// Send custom SMS
 await smsService.sendSMS('09123456789', 'Hello!');
 ```
 
 ### Frontend (React)
 ```javascript
-// Send OTP
 const response = await fetch('/api/sms/send-otp', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
