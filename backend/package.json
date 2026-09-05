@@ -9,7 +9,7 @@
     "test": "npm run test:auth && npm run test:admin && npm run test:sms && npm run test:stream && npm run test:noa && npm run test:title && npm run test:uploads && npm run test:image-generation-hardening && npm run test:image-to-image && npm run test:chat-pressure && npm run test:health && npm run test:video-generation-validation && npm run test:video-generation-provider",
     "test:auth": "node --test --test-concurrency=1 src/modules/auth/*.test.js",
     "viana:probe": "node scripts/probe-viana-client-auth.js",
-    "test:admin": "node --test src/repositories/AdminRepository.test.js src/modules/admin/monitoring/*.test.js src/modules/monitoring/*.test.js",
+    "test:admin": "node --test src/repositories/AdminRepository.test.js src/modules/admin/common/*.test.js src/modules/admin/monitoring/*.test.js src/modules/monitoring/*.test.js",
     "test:sms": "node --test src/modules/sms/*.test.js",
     "test:stream": "node --test src/modules/ai/provider-stream.test.js src/modules/ai/immediate-response-guard.test.js src/modules/image-understanding/image-understanding.streaming.test.js src/repositories/ChatTurnRepository.test.js src/modules/conversation-memory/conversation-turn-lock.test.js src/modules/intent-router/intent-router.service.test.js src/modules/conversation-title/conversation-title.service.test.js",
     "test:noa": "node --test --test-concurrency=1 src/modules/noa/tests/*.test.js",
@@ -59,7 +59,7 @@
     "test:video-generation-integration": "node --require ./src/modules/video-generation/tests/test-network-guard.js --test --test-concurrency=1 src/modules/video-generation/tests/*.test.js"
   },
   "dependencies": {
-    "axios": "^1.17.0",
+    "axios": "^1.18.0",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
@@ -67,11 +67,11 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.5.1",
-    "form-data": "^4.0.5",
+    "form-data": "^4.0.6",
     "fs-extra": "^11.3.5",
     "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^1.4.5-lts.2",
+    "multer": "^2.3.0",
     "mysql2": "^3.15.3",
     "openai": "^4.104.0",
     "uuid": "^11.0.5"
