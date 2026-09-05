@@ -13,7 +13,9 @@ function createSmsRouter(deps) {
 
   router.post('/api/sms/send-otp', controller.sendOtp);
   router.post('/api/sms/verify-otp', controller.verifyOtp);
-  router.post('/api/sms/test-otp', controller.testOtp);
+  if (process.env.NODE_ENV !== 'production') {
+    router.post('/api/sms/test-otp', controller.testOtp);
+  }
 
   return router;
 }
