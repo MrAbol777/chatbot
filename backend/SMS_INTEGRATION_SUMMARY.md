@@ -22,8 +22,10 @@ The IPPanel SMS API has been successfully integrated into the project. All compo
 Add these environment variables to `backend/.env`:
 
 ```env
-IPPANEL_API_KEY=YTFjMGNjNDctNDBiZC00MWE1LWEyZGEtNDA2N2U5ZjU5MzM3NzI4MzgyNmI5MTBkMDQ1MDhmZDZiYjEwNTg2Y2Q5Mjg=
+IPPANEL_API_KEY=<your-api-key>
 ```
+
+Never commit a real API key. If a key has ever been committed, rotate/revoke it in IPPanel before reuse.
 
 ## 🚀 Available API Endpoints
 
@@ -78,19 +80,15 @@ curl -X POST http://localhost:3001/api/sms/send-bulk \
 ## 💻 Using SMS Service in Code
 
 ```javascript
-// Import the service
 const smsService = require('./services/smsService');
 
-// Send OTP
 const result = await smsService.sendOTP('09123456789');
 if (result.success) {
   console.log('OTP sent:', result.otp);
 }
 
-// Send custom SMS
 await smsService.sendSMS('09123456789', 'Your message here');
 
-// Send bulk SMS
 await smsService.sendBulkSMS(
   ['09123456789', '09987654321'],
   'Bulk message'
@@ -117,13 +115,13 @@ To test actual SMS sending, edit `testSMS.js` and uncomment the test sections.
 backend/
 ├── src/
 │   ├── services/
-│   │   ├── smsService.js          # Core SMS service (singleton)
-│   │   ├── SMS_README.md          # Documentation
-│   │   └── testSMS.js             # Test script
+│   │   ├── smsService.js
+│   │   ├── SMS_README.md
+│   │   └── testSMS.js
 │   ├── routes/
-│   │   └── smsRoutes.js           # Express routes
-│   └── server.js                  # Main server (SMS routes integrated)
-└── .env                           # Configuration (add IPPanel keys here)
+│   │   └── smsRoutes.js
+│   └── server.js
+└── .env
 ```
 
 ## ⚠️ Production Considerations
