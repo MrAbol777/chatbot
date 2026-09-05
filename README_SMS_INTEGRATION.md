@@ -33,8 +33,10 @@ The IPPanel SMS API has been successfully integrated into your chatBot project. 
 ### 1. Add Configuration
 Edit `backend/.env` and add:
 ```env
-IPPANEL_API_KEY=YTFjMGNjNDctNDBiZC00MWE1LWEyZGEtNDA2N2U5ZjU5MzM3NzI4MzgyNmI5MTBkMDQ1MDhmZDZiYjEwNTg2Y2Q5Mjg=
+IPPANEL_API_KEY=<your-api-key>
 ```
+
+Never commit real API keys. If a key has previously been committed, rotate/revoke it in IPPanel before reuse.
 
 ### 2. Start Server
 ```bash
