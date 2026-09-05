@@ -16,13 +16,27 @@ const decodeImageIdFromUrl = (value) => {
   }
 };
 
+const normalizeImageIdInput = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string') return [];
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    // Multipart forms often send one image id as a plain string.
+  }
+  return [trimmed];
+};
+
 const collectUploadImageIds = (body = {}) => {
   const ids = [];
   const push = (value) => {
     if (typeof value === 'string' || typeof value === 'number') ids.push(String(value).trim());
   };
 
-  for (const imageId of Array.isArray(body.imageIds) ? body.imageIds : []) push(imageId);
+  for (const imageId of normalizeImageIdInput(body.imageIds)) push(imageId);
 
   const history = Array.isArray(body.history) ? body.history : [];
   for (const item of history) {
@@ -74,5 +88,6 @@ function createUploadOwnershipGuard({ principalResolver, uploadedImagesRepositor
 module.exports = {
   createUploadOwnershipGuard,
   collectUploadImageIds,
-  decodeImageIdFromUrl
+  decodeImageIdFromUrl,
+  normalizeImageIdInput
 };
