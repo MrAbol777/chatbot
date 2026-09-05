@@ -16,7 +16,10 @@ function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById })
   const router = express.Router();
   router.get('/images/:imageId', requireAuthenticated, async (req, res, next) => {
     try {
-      const image = await getUploadedImageById(String(req.params.imageId || ''));
+      const userId = typeof req.user?.id === 'string' || typeof req.user?.id === 'number'
+        ? String(req.user.id).trim()
+        : '';
+      const image = await getUploadedImageById(String(req.params.imageId || ''), userId);
       if (!image) {
         return res.status(404).json({ error: 'تصویر پیدا نشد.', code: 'UPLOAD_NOT_FOUND' });
       }
