@@ -1,6 +1,8 @@
+const crypto = require('crypto');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { buildAdminStateFingerprint, hashAdminSessionId } = require('../common/auth');
 
 function createAdminAuthRouter({
   jwtSecret,
@@ -8,9 +10,13 @@ function createAdminAuthRouter({
   loginLimiter,
   requireAdminAuth,
   ensureAdminData,
-  appendAudit
+  appendAudit,
+  revokeAdminSession
 }) {
   const router = express.Router();
+  if (typeof revokeAdminSession !== 'function') {
+    throw new Error('revokeAdminSession is required');
+  }
 
   router.post('/login', loginLimiter, async (req, res) => {
     try {
@@ -32,11 +38,14 @@ function createAdminAuthRouter({
         return res.status(401).json({ error: 'نام کاربری یا رمز عبور اشتباه است.' });
       }
 
+      const sessionId = crypto.randomUUID();
       const token = jwt.sign(
         {
           id: admin.id,
           username: admin.username,
-          role: admin.role
+          role: admin.role,
+          sid: sessionId,
+          adminState: buildAdminStateFingerprint(admin)
         },
         jwtSecret,
         { expiresIn: '8h' }
@@ -44,8 +53,9 @@ function createAdminAuthRouter({
 
       res.cookie(cookieName, token, {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'strict',
         secure: process.env.NODE_ENV === 'production',
+        path: '/',
         maxAge: 8 * 60 * 60 * 1000
       });
 
@@ -53,7 +63,7 @@ function createAdminAuthRouter({
         adminUsername: admin.username,
         action: 'admin_login',
         target: admin.id,
-        details: { role: admin.role }
+        details: { role: admin.role, sessionHash: hashAdminSessionId(sessionId) }
       });
 
       return res.json({
@@ -66,18 +76,34 @@ function createAdminAuthRouter({
   });
 
   router.post('/logout', requireAdminAuth, async (req, res) => {
-    res.clearCookie(cookieName);
-    await appendAudit({
-      adminUsername: req.admin?.username,
-      action: 'admin_logout',
-      target: req.admin?.id,
-      details: {}
-    });
-    return res.json({ success: true });
+    try {
+      const sessionHash = hashAdminSessionId(req.admin?.sid);
+      await revokeAdminSession({
+        sessionHash,
+        adminUsername: req.admin?.username,
+        adminId: req.admin?.id
+      });
+      res.clearCookie(cookieName, {
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/'
+      });
+      await appendAudit({
+        adminUsername: req.admin?.username,
+        action: 'admin_logout',
+        target: req.admin?.id,
+        details: { sessionHash }
+      });
+      return res.json({ success: true });
+    } catch (_error) {
+      return res.status(500).json({ error: 'ADMIN_LOGOUT_FAILED' });
+    }
   });
 
   router.get('/me', requireAdminAuth, (req, res) => {
-    return res.json({ admin: req.admin });
+    const { sid: _sid, adminState: _adminState, ...publicAdmin } = req.admin || {};
+    return res.json({ admin: publicAdmin });
   });
 
   return router;
