@@ -84,3 +84,23 @@ test('enabled image-to-image with disabled worker is not ready', async () => {
     await fs.rm(storageRoot, { recursive: true, force: true });
   }
 });
+
+test('disabled image-to-image stays healthy without DB or storage prerequisites', async () => {
+  const service = createHealthService({
+    metisBaseUrl: 'https://api.example.test',
+    metisApiKey: 'key',
+    defaultModel: 'model',
+    db: null,
+    env: {
+      NODE_ENV: 'test',
+      IMAGE_TO_IMAGE_ENABLED: 'false',
+      IMAGE_TO_IMAGE_WORKER_MODE: 'disabled',
+      IMAGE_TO_IMAGE_STORAGE_DIR: '/path/that/does/not/need/to/exist'
+    }
+  });
+
+  const health = await service.getImageToImageHealth();
+  assert.equal(health.ok, true);
+  assert.equal(health.featureEnabled, false);
+  assert.equal(health.storageWritable, null);
+});
