@@ -16,6 +16,11 @@ const dto = (job) => {
 function createImageToImageService({ repository, storage, noaBillingService, config }) {
   const actionKey = 'image_to_image';
   const isEnabled = () => Boolean(config?.enabled);
+  const cleanupUncommittedJob = async (jobId) => {
+    if (!storage || typeof storage.removeJob !== 'function') return;
+    await storage.removeJob(jobId).catch(() => undefined);
+  };
+
   return {
     options: async () => ({ enabled: isEnabled(), provider: 'metis', model: config.model, maxInputImages: 4, pricing: await noaBillingService.quote({ actionKey, quantity: '1' }) }),
     list: async (userId) => (await repository.listForUser(userId)).map(dto),
@@ -32,17 +37,30 @@ function createImageToImageService({ repository, storage, noaBillingService, con
         if (existing.payload_hash !== payloadHash) throw imageToImageError('IMAGE_TO_IMAGE_IDEMPOTENCY_CONFLICT', 'این کلید قبلاً برای درخواست دیگری استفاده شده است.', 409);
         return dto(existing);
       }
+
       const id = randomUUID();
       const sources = [];
-      for (let index = 0; index < files.length; index += 1) {
-        const saved = await storage.saveInput(id, index + 1, files[index]);
-        sources.push({ key: saved.key, mimeType: files[index].mimetype, extension: EXTENSIONS[files[index].mimetype], sizeBytes: saved.sizeBytes, sha256: saved.sha256 });
+      try {
+        for (let index = 0; index < files.length; index += 1) {
+          const saved = await storage.saveInput(id, index + 1, files[index]);
+          sources.push({ key: saved.key, mimeType: files[index].mimetype, extension: EXTENSIONS[files[index].mimetype], sizeBytes: saved.sizeBytes, sha256: saved.sha256 });
+        }
+      } catch (error) {
+        await cleanupUncommittedJob(id);
+        throw error;
       }
+
       const job = { id, userId, provider: 'metis', model: config.model, prompt: data.prompt, aspectRatio: data.aspectRatio, sources, idempotencyHash, payloadHash, expiresAt: new Date(Date.now() + config.jobTimeoutMinutes * 60_000) };
-      const created = await repository.createWithReservation({
-        job,
-        reservationInput: { userId, actionKey, quantity: '1', idempotencyKey: `image_to_image:${idempotencyKey}`, payloadHash, referenceType: 'image_to_image', referenceId: id, expiresAt: job.expiresAt, actorType: 'user', actorId: userId, metadata: { jobId: id, inputCount: sources.length, provider: 'metis', model: config.model } }
-      });
+      let created;
+      try {
+        created = await repository.createWithReservation({
+          job,
+          reservationInput: { userId, actionKey, quantity: '1', idempotencyKey: `image_to_image:${idempotencyKey}`, payloadHash, referenceType: 'image_to_image', referenceId: id, expiresAt: job.expiresAt, actorType: 'user', actorId: userId, metadata: { jobId: id, inputCount: sources.length, provider: 'metis', model: config.model } }
+        });
+      } catch (error) {
+        await cleanupUncommittedJob(id);
+        throw error;
+      }
       return dto(created);
     }
   };
