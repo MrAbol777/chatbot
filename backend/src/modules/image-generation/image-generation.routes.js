@@ -77,7 +77,7 @@ function createImageGenerationRouter(deps) {
     max: positiveInteger(process.env.IMAGE_RATE_LIMIT_PER_MINUTE, 6),
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => String(req.user?.id || req.ip),
+    keyGenerator: (req) => String(req.user?.id || 'authenticated-user'),
     handler: (_req, res) => res.status(429).json({
       success: false,
       error: 'IMAGE_RATE_LIMITED',
