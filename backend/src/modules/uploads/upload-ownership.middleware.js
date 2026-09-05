@@ -1,5 +1,7 @@
 'use strict';
 
+const { getDefaultUploadOwnershipRepository } = require('./upload-ownership.repository');
+
 const UPLOAD_PATH_PATTERN = /^\/api\/uploads?\/images\/([^/?#]+)/i;
 
 const decodeImageIdFromUrl = (value) => {
@@ -38,11 +40,15 @@ const collectUploadImageIds = (body = {}) => {
 };
 
 function createUploadOwnershipGuard({ principalResolver, uploadedImagesRepository }) {
+  const ownershipRepository = uploadedImagesRepository?.areOwnedBy
+    ? uploadedImagesRepository
+    : getDefaultUploadOwnershipRepository();
+
   return async (req, res, next) => {
     try {
       const imageIds = collectUploadImageIds(req.body || {});
       if (imageIds.length === 0) return next();
-      if (!principalResolver?.resolve || !uploadedImagesRepository?.areOwnedBy) {
+      if (!principalResolver?.resolve || !ownershipRepository?.areOwnedBy) {
         return res.status(503).json({ error: 'UPLOAD_OWNERSHIP_CHECK_UNAVAILABLE' });
       }
 
@@ -52,7 +58,7 @@ function createUploadOwnershipGuard({ principalResolver, uploadedImagesRepositor
         return res.status(401).json({ error: resolution?.error || 'AUTHENTICATION_REQUIRED' });
       }
 
-      const allowed = await uploadedImagesRepository.areOwnedBy(imageIds, userId);
+      const allowed = await ownershipRepository.areOwnedBy(imageIds, userId);
       if (!allowed) {
         // Deliberately use 404 so callers cannot distinguish another user's
         // private upload from a nonexistent identifier.
