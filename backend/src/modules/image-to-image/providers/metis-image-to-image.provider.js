@@ -1,19 +1,49 @@
 'use strict';
 
+const dns = require('node:dns');
+const https = require('node:https');
 const FormData = require('form-data');
 const { imageToImageError } = require('../image-to-image.errors');
+const {
+  createPinnedLookup,
+  createVideoResultUrlValidator
+} = require('../../video-generation/storage/video-result-url-validator');
 
 const MIME_BY_EXTENSION = Object.freeze({ jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' });
 
-function createMetisImageToImageProvider({ httpClient, baseUrl = 'https://api.metisai.ir', apiKey, model = 'nano-banana', resolution = '1K', outputFormat = 'jpg', pollTimeoutMs = 120_000, pollIntervalMs = 2_000, maxResultBytes = 10 * 1024 * 1024, allowedResultHosts = [] }) {
+function createMetisImageToImageProvider({
+  httpClient,
+  baseUrl = 'https://api.metisai.ir',
+  apiKey,
+  model = 'nano-banana',
+  resolution = '1K',
+  outputFormat = 'jpg',
+  pollTimeoutMs = 120_000,
+  pollIntervalMs = 2_000,
+  maxResultBytes = 10 * 1024 * 1024,
+  allowedResultHosts = [],
+  dnsResolver = dns.promises.lookup
+}) {
   const rootUrl = String(baseUrl).replace(/\/+$/, '');
-  const resultHosts = new Set(allowedResultHosts.map((host) => String(host).trim().toLowerCase()).filter(Boolean));
   const requestHeaders = () => ({ Authorization: `Bearer ${apiKey}` });
+  const resultValidator = createVideoResultUrlValidator({
+    allowedHosts: allowedResultHosts,
+    allowedPorts: [443],
+    allowedPathPrefixes: ['/'],
+    resolver: dnsResolver
+  });
   const safeError = (error, fallback) => imageToImageError(
     error?.response?.status === 401 ? 'IMAGE_TO_IMAGE_PROVIDER_AUTH_FAILED' : 'IMAGE_TO_IMAGE_PROVIDER_FAILED',
     error?.response?.status === 401 ? 'دسترسی سرویس تصویر برقرار نشد.' : fallback,
     502
   );
+  const validateResult = async (value) => {
+    try {
+      return await resultValidator.validate(value);
+    } catch (error) {
+      throw imageToImageError('IMAGE_TO_IMAGE_RESULT_URL_REJECTED', 'آدرس خروجی سرویس تصویر معتبر نیست.', 502, { cause: error?.code || 'URL_REJECTED' });
+    }
+  };
   const upload = async (source, index) => {
     const form = new FormData();
     form.append('files', source.buffer, { filename: `image-to-image-${index + 1}.${source.extension}`, contentType: source.mimeType });
@@ -55,23 +85,17 @@ function createMetisImageToImageProvider({ httpClient, baseUrl = 'https://api.me
     },
     async download({ resultUrl }) {
       try {
-        const parsedUrl = new URL(resultUrl);
-        const port = parsedUrl.port || '443';
-        if (
-          parsedUrl.protocol !== 'https:' ||
-          parsedUrl.username ||
-          parsedUrl.password ||
-          port !== '443' ||
-          !resultHosts.has(parsedUrl.hostname.toLowerCase())
-        ) {
-          throw imageToImageError('IMAGE_TO_IMAGE_RESULT_URL_REJECTED', 'آدرس خروجی سرویس تصویر معتبر نیست.', 502);
-        }
-        const response = await httpClient.get(parsedUrl.toString(), {
+        const validated = await validateResult(resultUrl);
+        const response = await httpClient.get(validated.url.toString(), {
           responseType: 'arraybuffer',
           timeout: 120_000,
           maxContentLength: maxResultBytes,
           maxBodyLength: maxResultBytes,
-          maxRedirects: 0
+          maxRedirects: 0,
+          httpsAgent: new https.Agent({
+            keepAlive: true,
+            lookup: createPinnedLookup(validated.records)
+          })
         });
         const mimeType = String(response?.headers?.['content-type'] || 'image/png').split(';')[0].trim().toLowerCase();
         const buffer = Buffer.from(response?.data || []);
