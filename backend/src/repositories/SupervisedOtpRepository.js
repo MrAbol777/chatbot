@@ -30,8 +30,13 @@ const buildDebugState = (config, bcryptMatched = false) => {
 };
 
 class SupervisedOtpRepository {
-  constructor(db) {
+  constructor(db, { env = process.env } = {}) {
     this.db = db;
+    this.env = env;
+  }
+
+  isProduction() {
+    return String(this.env?.NODE_ENV || '').trim().toLowerCase() === 'production';
   }
 
   async ensureConfig() {
@@ -61,6 +66,7 @@ class SupervisedOtpRepository {
   sanitizeConfig(row) {
     return {
       enabled: Boolean(row?.enabled),
+      runtimeEnabled: Boolean(row?.enabled) && !this.isProduction(),
       hasCode: Boolean(row?.code_hash),
       expires_at: toIsoOrNull(row?.expires_at),
       max_uses: row?.max_uses == null ? null : Number(row.max_uses),
@@ -76,6 +82,17 @@ class SupervisedOtpRepository {
   async updateConfig({ enabled, code, expires_at: expiresAt, max_uses: maxUses } = {}) {
     const current = await this.ensureConfig();
     const nextEnabled = typeof enabled === 'boolean' ? enabled : Boolean(current.enabled);
+
+    // A single global four-digit fallback bypasses possession of the user's
+    // phone number. Keep it strictly as a local/staging support tool until it
+    // is redesigned around per-user challenges and a distributed attempt cap.
+    if (nextEnabled && this.isProduction()) {
+      const error = new Error('Supervised OTP cannot be enabled in production.');
+      error.statusCode = 409;
+      error.code = 'SUPERVISED_OTP_PRODUCTION_DISABLED';
+      throw error;
+    }
+
     const normalizedCode = normalizeDigits(code);
     const hasNewCode = normalizedCode.length > 0;
     if (hasNewCode && !/^[0-9]{4}$/.test(normalizedCode)) {
@@ -135,6 +152,7 @@ class SupervisedOtpRepository {
     const config = await this.ensureConfig();
     const debug = (bcryptMatched = false) => buildDebugState(config, bcryptMatched);
 
+    if (this.isProduction()) return { valid: false, reason: 'production_disabled', debug: debug(false) };
     if (!/^[0-9]{4}$/.test(normalizedCode)) return { valid: false, reason: 'invalid_code', debug: debug(false) };
     if (!config.enabled) return { valid: false, reason: 'disabled', debug: debug(false) };
     if (!config.code_hash) return { valid: false, reason: 'not_configured', debug: debug(false) };
