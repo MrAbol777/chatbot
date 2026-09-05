@@ -7,7 +7,7 @@ const { getDefaultUploadOwnershipRepository } = require('./upload-ownership.repo
  * identifiers are deliberately not treated as credentials: persisted chat
  * messages can contain their URL, so the access check must happen here.
  */
-function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById }) {
+function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById, ownershipRepository = null }) {
   if (typeof requireAuthenticated !== 'function') {
     throw new Error('requireAuthenticated is required');
   }
@@ -15,7 +15,7 @@ function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById })
     throw new Error('getUploadedImageById is required');
   }
 
-  const ownershipRepository = getDefaultUploadOwnershipRepository();
+  const ownership = ownershipRepository || getDefaultUploadOwnershipRepository();
   const router = express.Router();
 
   router.get('/images/:imageId', requireAuthenticated, async (req, res, next) => {
@@ -24,7 +24,7 @@ function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById })
       const userId = typeof req.user?.id === 'string' || typeof req.user?.id === 'number'
         ? String(req.user.id).trim()
         : '';
-      if (!userId || !(await ownershipRepository.isOwnedBy(imageId, userId))) {
+      if (!userId || !(await ownership.isOwnedBy(imageId, userId))) {
         return res.status(404).json({ error: 'تصویر پیدا نشد.', code: 'UPLOAD_NOT_FOUND' });
       }
 
@@ -59,7 +59,7 @@ function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById })
         : '';
       res.json = originalJson;
 
-      void ownershipRepository.registerMany({ imageIds, userId })
+      void ownership.registerMany({ imageIds, userId })
         .then(() => originalJson(payload))
         .catch(async () => {
           const files = Array.isArray(req.files) ? req.files : [];
