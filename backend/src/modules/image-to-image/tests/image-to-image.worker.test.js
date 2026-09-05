@@ -41,6 +41,37 @@ test('rejects a provider result URL outside the allowlist before downloading it'
   assert.equal(downloaded, false);
 });
 
+test('rejects an allowlisted result host when DNS resolves to a private address', async () => {
+  let downloaded = false;
+  const provider = createMetisImageToImageProvider({
+    httpClient: { get: async () => { downloaded = true; return {}; } },
+    apiKey: 'test-key',
+    allowedResultHosts: ['cdn.metisai.ir'],
+    dnsResolver: async () => [{ address: '10.0.0.5', family: 4 }]
+  });
+  await assert.rejects(() => provider.download({ resultUrl: 'https://cdn.metisai.ir/image.png' }), { code: 'IMAGE_TO_IMAGE_RESULT_URL_REJECTED' });
+  assert.equal(downloaded, false);
+});
+
+test('pins validated public DNS and disables redirects for image-to-image downloads', async () => {
+  const requests = [];
+  const provider = createMetisImageToImageProvider({
+    httpClient: {
+      get: async (url, config) => {
+        requests.push({ url, config });
+        return { data: Buffer.from('image'), headers: { 'content-type': 'image/png' } };
+      }
+    },
+    apiKey: 'test-key',
+    allowedResultHosts: ['cdn.metisai.ir'],
+    dnsResolver: async () => [{ address: '93.184.216.34', family: 4 }]
+  });
+  const result = await provider.download({ resultUrl: 'https://cdn.metisai.ir/image.png' });
+  assert.equal(result.mimeType, 'image/png');
+  assert.equal(requests[0].config.maxRedirects, 0);
+  assert.equal(typeof requests[0].config.httpsAgent?.options?.lookup, 'function');
+});
+
 test('uses the Metis Imagine operation for reference-image generation', async () => {
   const requests = [];
   const provider = createMetisImageToImageProvider({
