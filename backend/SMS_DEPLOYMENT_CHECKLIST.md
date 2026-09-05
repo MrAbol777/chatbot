@@ -5,6 +5,7 @@
 ### 1. Environment Configuration
 - [ ] Add `IPPANEL_API_KEY` to `backend/.env`
 - [ ] Verify API key is correct (test with IPPanel dashboard)
+- [ ] Never commit real API keys; rotate any key that has previously appeared in Git history
 
 ### 2. Dependencies
 - [x] axios installed (`npm install axios`)
@@ -49,8 +50,8 @@
 # Edit backend/.env
 nano backend/.env
 
-# Add these lines:
-IPPANEL_API_KEY=YTFjMGNjNDctNDBiZC00MWE1LWEyZGEtNDA2N2U5ZjU5MzM3NzI4MzgyNmI5MTBkMDQ1MDhmZDZiYjEwNTg2Y2Q5Mjg=
+# Add this line with the current key from the IPPanel dashboard:
+IPPANEL_API_KEY=<your-api-key>
 ```
 
 ### Step 2: Install Dependencies
@@ -163,9 +164,9 @@ curl -X POST http://localhost:3001/api/sms/verify-otp \
 # Check logs
 tail -f backend/logs/error.log
 
-# Test API key manually
+# Test API key manually without committing the key anywhere
 curl -X POST https://edge.ippanel.com/v1/sms/send \
-  -H "Authorization: YOUR_API_KEY" \
+  -H "Authorization: $IPPANEL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"from":"SENDER","to":["09123456789"],"text":"Test"}'
 ```
