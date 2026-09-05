@@ -1,5 +1,3 @@
-const mysql = require('mysql2/promise');
-
 class AdminRepository {
   constructor(db) {
     this.db = db;
@@ -13,6 +11,18 @@ class AdminRepository {
        WHERE username = ?
        LIMIT 1`,
       [username.trim()]
+    );
+    return rows[0] || null;
+  }
+
+  async findById(id) {
+    if (id === undefined || id === null || String(id).trim() === '') return null;
+    const [rows] = await this.db.query(
+      `SELECT id, username, password_hash, role, created_at, updated_at
+       FROM app_admins
+       WHERE id = ?
+       LIMIT 1`,
+      [String(id).trim()]
     );
     return rows[0] || null;
   }
@@ -48,6 +58,31 @@ class AdminRepository {
       [adminUsername ? String(adminUsername).trim() : null, String(action).trim(), target ? String(target).trim() : null, detailsJson, new Date()]
     );
     return { id: result.insertId, action, created_at: new Date() };
+  }
+
+  async revokeSession({ sessionHash, adminUsername = null, adminId = null }) {
+    const target = String(sessionHash || '').trim();
+    if (!target) return false;
+    await this.appendAuditLog({
+      adminUsername,
+      action: 'admin_session_revoked',
+      target,
+      details: adminId === undefined || adminId === null ? {} : { adminId: String(adminId) }
+    });
+    return true;
+  }
+
+  async isSessionRevoked(sessionHash) {
+    const target = String(sessionHash || '').trim();
+    if (!target) return true;
+    const [rows] = await this.db.query(
+      `SELECT id
+       FROM app_admin_audit_logs
+       WHERE action = 'admin_session_revoked' AND target = ?
+       LIMIT 1`,
+      [target]
+    );
+    return Boolean(rows[0]);
   }
 
   async listAuditLogs({ page = 1, pageSize = 20, action = '', adminUsername = '' } = {}) {
