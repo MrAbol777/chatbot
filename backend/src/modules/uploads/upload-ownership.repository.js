@@ -50,32 +50,23 @@ function createUploadOwnershipRepository({
 
     await ensureStore();
     const target = ownerPathFor(normalizedImageId);
-    const existing = await readStoredOwner(normalizedImageId);
-    if (existing) {
-      if (existing !== normalizedUserId) {
-        const error = new Error('Upload ownership conflict');
-        error.code = 'UPLOAD_OWNER_CONFLICT';
-        throw error;
-      }
-      return { imageId: normalizedImageId, userId: normalizedUserId };
-    }
+    const payload = `${JSON.stringify({ userId: normalizedUserId })}\n`;
 
-    const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
-    await fs.writeJson(temporary, { userId: normalizedUserId }, { mode: 0o600 });
     try {
-      // rename is atomic on the same filesystem. If another request won the
-      // race, verify that it recorded the same owner before accepting it.
-      await fs.rename(temporary, target);
+      // Exclusive create prevents concurrent requests from overwriting an
+      // ownership record that another user already claimed.
+      await fs.writeFile(target, payload, { flag: 'wx', mode: 0o600 });
+      return { imageId: normalizedImageId, userId: normalizedUserId };
     } catch (error) {
-      await fs.remove(temporary).catch(() => undefined);
-      const racedOwner = await readStoredOwner(normalizedImageId);
-      if (racedOwner === normalizedUserId) {
+      if (error?.code !== 'EEXIST') throw error;
+      const existing = await readStoredOwner(normalizedImageId);
+      if (existing === normalizedUserId) {
         return { imageId: normalizedImageId, userId: normalizedUserId };
       }
-      throw error;
+      const conflict = new Error('Upload ownership conflict');
+      conflict.code = 'UPLOAD_OWNER_CONFLICT';
+      throw conflict;
     }
-    await fs.chmod(target, 0o600).catch(() => undefined);
-    return { imageId: normalizedImageId, userId: normalizedUserId };
   };
 
   const registerMany = async ({ imageIds, userId }) => {
@@ -114,7 +105,13 @@ function createUploadOwnershipRepository({
       // upload into a public object.
       return '';
     } finally {
-      await temporaryConnection?.end?.().catch(() => undefined);
+      if (temporaryConnection) {
+        try {
+          await temporaryConnection.end();
+        } catch {
+          // Closing a temporary fallback connection must not change auth result.
+        }
+      }
     }
   };
 
