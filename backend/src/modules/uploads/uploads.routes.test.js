@@ -6,6 +6,7 @@ const express = require('express');
 const { createUploadsReadRouter } = require('./uploads.routes');
 
 const IMAGE_ID = '550e8400-e29b-41d4-a716-446655440000';
+const VALID_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
 
 async function withServer(app, run) {
   const server = http.createServer(app);
@@ -19,6 +20,11 @@ async function withServer(app, run) {
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
+}
+
+function authenticated(req, _res, next) {
+  req.user = { id: 'user-1' };
+  next();
 }
 
 test('upload image contract rejects an unauthenticated read before it touches ownership or storage', async () => {
@@ -52,10 +58,7 @@ test('upload image contract rejects an unauthenticated read before it touches ow
 test('upload image contract returns an image only to its authenticated owner', async () => {
   const app = express();
   app.use('/api/uploads', createUploadsReadRouter({
-    requireAuthenticated: (req, _res, next) => {
-      req.user = { id: 'user-1' };
-      next();
-    },
+    requireAuthenticated: authenticated,
     ownershipRepository: {
       isOwnedBy: async (imageId, userId) => imageId === IMAGE_ID && userId === 'user-1',
       registerMany: async () => []
@@ -99,4 +102,85 @@ test('upload image contract hides another users image and never reads the file',
     assert.equal((await response.json()).code, 'UPLOAD_NOT_FOUND');
     assert.equal(storageRead, false);
   });
+});
+
+test('upload registration validates actual image bytes before persisting ownership', async () => {
+  const registered = [];
+  const app = express();
+  app.use('/api/uploads', createUploadsReadRouter({
+    requireAuthenticated: authenticated,
+    ownershipRepository: {
+      isOwnedBy: async () => false,
+      registerMany: async (value) => registered.push(value)
+    },
+    getUploadedImageById: async () => null
+  }));
+  app.post('/api/uploads/images', (req, res) => {
+    req.files = [{ buffer: VALID_PNG, mimetype: 'image/png' }];
+    res.json({ images: [{ imageId: IMAGE_ID }] });
+  });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/uploads/images`, { method: 'POST' });
+    assert.equal(response.status, 200);
+    assert.equal(registered.length, 1);
+    assert.equal(registered[0].userId, 'user-1');
+  });
+});
+
+test('upload registration rejects fake image bytes', async () => {
+  let registered = false;
+  const app = express();
+  app.use('/api/uploads', createUploadsReadRouter({
+    requireAuthenticated: authenticated,
+    ownershipRepository: {
+      isOwnedBy: async () => false,
+      registerMany: async () => {
+        registered = true;
+      }
+    },
+    getUploadedImageById: async () => null
+  }));
+  app.post('/api/uploads/images', (req, res) => {
+    req.files = [{ buffer: Buffer.from('<script>not an image</script>'), mimetype: 'image/png' }];
+    res.json({ images: [{ imageId: IMAGE_ID }] });
+  });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/uploads/images`, { method: 'POST' });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).code, 'INVALID_IMAGE_CONTENT');
+    assert.equal(registered, false);
+  });
+});
+
+test('upload endpoint rate limits repeated authenticated posts', async () => {
+  const previous = process.env.UPLOAD_IMAGE_RATE_LIMIT_PER_MINUTE;
+  process.env.UPLOAD_IMAGE_RATE_LIMIT_PER_MINUTE = '1';
+  try {
+    const app = express();
+    app.use('/api/uploads', createUploadsReadRouter({
+      requireAuthenticated: authenticated,
+      ownershipRepository: {
+        isOwnedBy: async () => false,
+        registerMany: async () => []
+      },
+      getUploadedImageById: async () => null
+    }));
+    app.post('/api/uploads/images', (req, res) => {
+      req.files = [{ buffer: VALID_PNG, mimetype: 'image/png' }];
+      res.json({ images: [{ imageId: IMAGE_ID }] });
+    });
+
+    await withServer(app, async (baseUrl) => {
+      const first = await fetch(`${baseUrl}/api/uploads/images`, { method: 'POST' });
+      assert.equal(first.status, 200);
+      const second = await fetch(`${baseUrl}/api/uploads/images`, { method: 'POST' });
+      assert.equal(second.status, 429);
+      assert.equal((await second.json()).code, 'UPLOAD_RATE_LIMITED');
+    });
+  } finally {
+    if (previous === undefined) delete process.env.UPLOAD_IMAGE_RATE_LIMIT_PER_MINUTE;
+    else process.env.UPLOAD_IMAGE_RATE_LIMIT_PER_MINUTE = previous;
+  }
 });
