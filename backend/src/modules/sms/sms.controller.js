@@ -26,6 +26,16 @@ function createSmsController({ smsService, logger = console, now = () => new Dat
           ? String(req.body.otp).trim()
           : '';
 
+      // This legacy SMS endpoint generates exactly five digits. Reject any
+      // longer/shorter candidate before the service's historical compatibility
+      // matching can treat a suffix as valid.
+      if (!/^\d{5}$/.test(code)) {
+        return res.status(400).json({
+          success: false,
+          error: 'OTP must be exactly 5 digits'
+        });
+      }
+
       const result = await smsService.verifyOtpRequest(phone, code);
       return res.status(result.statusCode).json(result.body);
     } catch (error) {
