@@ -10,6 +10,7 @@ function createHealthRouter(deps) {
   router.get('/api/health', controller.getHealth);
   router.get('/api/health/upstream', controller.getUpstreamHealth);
   router.get('/api/health/video-generation', controller.getVideoGenerationHealth);
+  router.get('/api/health/image-to-image', controller.getImageToImageHealth);
   router.get('/health', controller.getProbeHealth);
   router.get('/healthz', controller.getProbeHealth);
 
