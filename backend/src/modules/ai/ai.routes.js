@@ -42,7 +42,7 @@ function createAiRouter(deps) {
     max: positiveInteger(process.env.CHAT_RATE_LIMIT_PER_MINUTE, 30),
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => String(req.user?.id || req.ip),
+    keyGenerator: (req) => String(req.user?.id || 'authenticated-user'),
     handler: (_req, res) => res.status(429).json({
       error: 'CHAT_RATE_LIMITED',
       message: 'درخواست‌های گفتگو خیلی سریع ارسال شده‌اند. کمی بعد دوباره امتحان کن.'
