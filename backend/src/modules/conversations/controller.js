@@ -2,7 +2,8 @@ function createConversationsController({ conversationsService, resolveOwner }) {
   const requireOwner = async (req, res) => {
     const owner = await resolveOwner(req, res);
     if (owner?.error) {
-      res.status(401).json({ error: owner.error });
+      const status = String(owner.error).startsWith('CSRF_') ? 403 : 401;
+      res.status(status).json({ error: owner.error });
       return null;
     }
     if (!owner?.userId) {
