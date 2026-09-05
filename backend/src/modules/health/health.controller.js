@@ -17,11 +17,21 @@ function createHealthController({ healthService }) {
     catch (_) { return res.status(503).json({ ok: false, code: 'VIDEO_GENERATION_HEALTH_UNAVAILABLE' }); }
   };
 
+  const getImageToImageHealth = async (_req, res) => {
+    try {
+      const health = await healthService.getImageToImageHealth();
+      return res.status(health.ok ? 200 : 503).json(health);
+    } catch (_) {
+      return res.status(503).json({ ok: false, code: 'IMAGE_TO_IMAGE_HEALTH_UNAVAILABLE' });
+    }
+  };
+
   return {
     getHealth,
     getUpstreamHealth,
     getProbeHealth,
-    getVideoGenerationHealth
+    getVideoGenerationHealth,
+    getImageToImageHealth
   };
 }
 
