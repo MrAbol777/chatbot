@@ -1,6 +1,5 @@
 const path = require('path');
 const fs = require('fs-extra');
-const bcrypt = require('bcryptjs');
 
 const ADMIN_FILE_PATH = path.join(__dirname, '../../../../admin.json');
 const CONFIG_FILE_PATH = path.join(__dirname, '../../../../config.json');
@@ -25,42 +24,30 @@ const ensureAdminData = async (adminRepository = null) => {
     try {
       const rows = await adminRepository.listAll();
       if (Array.isArray(rows) && rows.length > 0) return rows;
-    } catch (_dbError) {
-      // Fallback to disk file if DB is not reachable in offline/unit test mode
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('No administrator account is configured in production.');
+      }
+    } catch (dbError) {
+      if (process.env.NODE_ENV === 'production') throw dbError;
+      // Development/offline tests may fall back to the local file.
     }
   }
 
   await fs.ensureFile(ADMIN_FILE_PATH);
   const raw = await fs.readFile(ADMIN_FILE_PATH, 'utf8');
   if (!raw.trim()) {
-    const password_hash = await bcrypt.hash('admin123', 10);
-    const seed = [
-      {
-        id: '1',
-        username: 'admin',
-        password_hash,
-        role: 'superadmin',
-        createdAt: now()
-      }
-    ];
-    await fs.writeJson(ADMIN_FILE_PATH, seed, { spaces: 2 });
-    return seed;
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('No administrator account is configured in production.');
+    }
+    return [];
   }
 
   const admins = JSON.parse(raw);
   if (!Array.isArray(admins) || admins.length === 0) {
-    const password_hash = await bcrypt.hash('admin123', 10);
-    const seed = [
-      {
-        id: '1',
-        username: 'admin',
-        password_hash,
-        role: 'superadmin',
-        createdAt: now()
-      }
-    ];
-    await fs.writeJson(ADMIN_FILE_PATH, seed, { spaces: 2 });
-    return seed;
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('No administrator account is configured in production.');
+    }
+    return [];
   }
   return admins;
 };
@@ -93,8 +80,9 @@ const readAuditLogs = async (adminRepository = null, { page = 1, pageSize = 50 }
     try {
       const result = await adminRepository.listAuditLogs({ page, pageSize });
       return result.items || [];
-    } catch (_dbError) {
-      // Fallback to disk file if DB query fails
+    } catch (dbError) {
+      if (process.env.NODE_ENV === 'production') throw dbError;
+      // Development/offline tests may fall back to the local file.
     }
   }
 
@@ -120,8 +108,9 @@ const appendAudit = async ({ adminUsername, action, target, details }, adminRepo
     try {
       await adminRepository.appendAuditLog({ adminUsername, action, target, details });
       return;
-    } catch (_dbError) {
-      // Fallback to disk file
+    } catch (dbError) {
+      if (process.env.NODE_ENV === 'production') throw dbError;
+      // Development/offline tests may fall back to the local file.
     }
   }
 
