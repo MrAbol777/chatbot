@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 
@@ -7,16 +8,24 @@ const parseBannedFilter = (value) => {
   return undefined;
 };
 
-// In-memory token version / revocation store for immediate session invalidation
-const adminTokenVersions = new Map();
+const hashAdminSessionId = (value) =>
+  crypto.createHash('sha256').update(String(value || '')).digest('hex');
 
-const getAdminTokenVersion = (adminId) => adminTokenVersions.get(String(adminId)) || 1;
-const bumpAdminTokenVersion = (adminId) => {
-  const next = (adminTokenVersions.get(String(adminId)) || 1) + 1;
-  adminTokenVersions.set(String(adminId), next);
-  return next;
+const normalizeAdminUpdatedAt = (value) => {
+  const timestamp = new Date(value || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
 };
-const revokeAdminToken = (adminId) => bumpAdminTokenVersion(adminId);
+
+const buildAdminStateFingerprint = (admin = {}) =>
+  crypto.createHash('sha256')
+    .update([
+      String(admin.id ?? ''),
+      String(admin.username || ''),
+      String(admin.role || '').trim().toLowerCase(),
+      String(admin.password_hash || ''),
+      String(normalizeAdminUpdatedAt(admin.updated_at))
+    ].join('|'))
+    .digest('hex');
 
 function createLoginLimiter() {
   return rateLimit({
@@ -38,8 +47,12 @@ function createAdminActionLimiter({ windowMs = 30 * 1000, max = 20, message = '�
   });
 }
 
-function createRequireAdminAuth({ cookieName = 'admin_token', jwtSecret }) {
-  return (req, res, next) => {
+function createRequireAdminAuth({ cookieName = 'admin_token', jwtSecret, adminRepository }) {
+  if (!adminRepository || typeof adminRepository.findById !== 'function' || typeof adminRepository.isSessionRevoked !== 'function') {
+    throw new Error('adminRepository with persistent session checks is required');
+  }
+
+  return async (req, res, next) => {
     const token = req.cookies?.[cookieName];
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -47,14 +60,35 @@ function createRequireAdminAuth({ cookieName = 'admin_token', jwtSecret }) {
 
     try {
       const payload = jwt.verify(token, jwtSecret);
-      if (payload?.id) {
-        const expectedVersion = getAdminTokenVersion(payload.id);
-        const tokenVersion = payload.tokenVersion || 1;
-        if (tokenVersion < expectedVersion) {
-          return res.status(401).json({ error: 'SESSION_REVOKED', message: 'نشست کاربری شما منقضی شده است. لطفا مجددا وارد شوید.' });
-        }
+      const adminId = payload?.id === undefined || payload?.id === null ? '' : String(payload.id).trim();
+      const sessionId = typeof payload?.sid === 'string' ? payload.sid.trim() : '';
+      const state = typeof payload?.adminState === 'string' ? payload.adminState.trim() : '';
+      if (!adminId || !sessionId || !state) {
+        return res.status(401).json({ error: 'SESSION_REVOKED' });
       }
-      req.admin = payload;
+
+      const [currentAdmin, revoked] = await Promise.all([
+        adminRepository.findById(adminId),
+        adminRepository.isSessionRevoked(hashAdminSessionId(sessionId))
+      ]);
+      if (!currentAdmin || revoked) {
+        return res.status(401).json({ error: 'SESSION_REVOKED', message: 'نشست مدیریت منقضی شده است. لطفا دوباره وارد شوید.' });
+      }
+
+      const expectedState = buildAdminStateFingerprint(currentAdmin);
+      const sameState = state.length === expectedState.length && crypto.timingSafeEqual(Buffer.from(state), Buffer.from(expectedState));
+      const sameUsername = String(payload.username || '') === String(currentAdmin.username || '');
+      const sameRole = String(payload.role || '').trim().toLowerCase() === String(currentAdmin.role || '').trim().toLowerCase();
+      if (!sameState || !sameUsername || !sameRole) {
+        return res.status(401).json({ error: 'SESSION_REVOKED', message: 'سطح دسترسی مدیریت تغییر کرده است. لطفا دوباره وارد شوید.' });
+      }
+
+      req.admin = {
+        ...payload,
+        id: currentAdmin.id,
+        username: currentAdmin.username,
+        role: currentAdmin.role
+      };
       return next();
     } catch (_error) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -76,7 +110,6 @@ function createRequireAdminRole(allowedRoles = []) {
     (Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles])
       .map((r) => String(r).trim().toLowerCase())
   );
-  // superadmin is always permitted by default
   allowedSet.add(ADMIN_ROLES.SUPERADMIN);
 
   return (req, res, next) => {
@@ -91,11 +124,6 @@ function createRequireAdminRole(allowedRoles = []) {
   };
 }
 
-/**
- * PII Data Masking helper:
- * Full phone number is only visible to superadmin and admin.
- * For other roles (moderator, support, developer, finance), phone number is masked.
- */
 function maskPhoneNumber(phone, role = '') {
   if (!phone || typeof phone !== 'string') return phone;
   const cleanRole = String(role).trim().toLowerCase();
@@ -115,8 +143,7 @@ module.exports = {
   createAdminActionLimiter,
   createRequireAdminAuth,
   createRequireAdminRole,
-  getAdminTokenVersion,
-  bumpAdminTokenVersion,
-  revokeAdminToken,
+  hashAdminSessionId,
+  buildAdminStateFingerprint,
   maskPhoneNumber
 };
