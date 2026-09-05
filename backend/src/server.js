@@ -6,6 +6,7 @@ dotenv.config({
   path: path.join(__dirname, '../.env')
 });
 
+const { assertSecureProductionConfig } = require('./bootstrap/security-preflight');
 const { loadRuntimeConfig } = require('./bootstrap/config');
 const { log } = require('./bootstrap/logging');
 const { createRepositories } = require('./repositories');
@@ -15,6 +16,7 @@ const { createConfiguredVideoWorkerRuntime } = require('./modules/video-generati
 const { createConfiguredImageToImageRuntime } = require('./modules/image-to-image/worker/image-to-image.bootstrap');
 const { reconcileExpiredNoaOperations } = require('./modules/noa');
 
+assertSecureProductionConfig(process.env);
 const runtimeConfig = loadRuntimeConfig(process.env);
 const repositories = createRepositories();
 const { app, noaBillingService, conversationMemoryService, setVideoWorkerRuntimeGetter } = createApp({
