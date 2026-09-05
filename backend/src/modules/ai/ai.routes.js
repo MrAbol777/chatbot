@@ -1,6 +1,7 @@
 const express = require('express');
 const { createAiController } = require('./ai.controller');
 const { createAiService } = require('./ai.service');
+const { createUploadOwnershipGuard } = require('../uploads/upload-ownership.middleware');
 
 function createAiRouter(deps) {
   const router = express.Router();
@@ -26,8 +27,12 @@ function createAiRouter(deps) {
     jwtSecret: deps.jwtSecret,
     principalResolver: deps.principalResolver
   });
+  const uploadOwnershipGuard = createUploadOwnershipGuard({
+    principalResolver: deps.principalResolver,
+    uploadedImagesRepository: deps.uploadedImagesRepository
+  });
 
-  router.post('/api/chat', controller.postChat);
+  router.post('/api/chat', uploadOwnershipGuard, controller.postChat);
 
   return router;
 }
