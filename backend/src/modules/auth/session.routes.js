@@ -31,7 +31,7 @@ function createSessionRouter({ config, principalResolver, sessionRepository, jwt
       const resolution = await principalResolver.resolve(req);
       if (resolution.error) {
         if (resolution.error === 'INVALID_SESSION_CREDENTIAL') clearSessionCookie(res);
-        return res.status(401).json({ authenticated: false, error: resolution.error, ...(authNotice ? { authNotice } : {}) });
+        return res.status(resolution.statusCode || 401).json({ authenticated: false, error: resolution.error, ...(authNotice ? { authNotice } : {}) });
       }
       if (!resolution.principal) {
         return res.json({ authenticated: false, ...(authNotice ? { authNotice } : {}) });
@@ -53,6 +53,10 @@ function createSessionRouter({ config, principalResolver, sessionRepository, jwt
   router.post('/api/auth/logout', async (req, res, next) => {
     noStore(res);
     try {
+      const resolution = await principalResolver.resolve(req);
+      if (resolution.error) {
+        return res.status(resolution.statusCode || 401).json({ error: resolution.error });
+      }
       const rawSession = String(req.cookies?.[config.sessionCookieName] || '');
       const cookieSessionRevoked = await sessionRepository.revoke(rawSession);
       clearSessionCookie(res);
