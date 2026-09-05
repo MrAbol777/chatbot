@@ -1,7 +1,9 @@
+const bcrypt = require('bcryptjs');
 const { getIranMobileVariants } = require('../../shared/validators/phone.validator');
 const { generateUserId } = require('../../repositories/helpers');
 
 const DEFAULT_MAX_WRONG_ATTEMPTS = 5;
+const OTP_BCRYPT_ROUNDS = 10;
 
 function createAuthRepository({
   userRepository,
@@ -42,17 +44,22 @@ function createAuthRepository({
     if (!dbPool || typeof dbPool.query !== 'function') return;
     if (otpTablePromise) return otpTablePromise;
 
-    otpTablePromise = dbPool.query(`
-      CREATE TABLE IF NOT EXISTS app_auth_otps (
-        phone VARCHAR(32) PRIMARY KEY,
-        code VARCHAR(16) NOT NULL,
-        attempts INT NOT NULL DEFAULT 0,
-        blocked_until DATETIME NULL,
-        created_at DATETIME NOT NULL,
-        expires_at DATETIME NOT NULL,
-        INDEX idx_auth_otps_expires_at (expires_at)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
+    otpTablePromise = (async () => {
+      await dbPool.query(`
+        CREATE TABLE IF NOT EXISTS app_auth_otps (
+          phone VARCHAR(32) PRIMARY KEY,
+          code VARCHAR(100) NOT NULL,
+          attempts INT NOT NULL DEFAULT 0,
+          blocked_until DATETIME NULL,
+          created_at DATETIME NOT NULL,
+          expires_at DATETIME NOT NULL,
+          INDEX idx_auth_otps_expires_at (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+      // Older deployments used VARCHAR(16) because the OTP itself was stored.
+      // Widen the column so it can hold a bcrypt hash without a separate risky migration window.
+      await dbPool.query('ALTER TABLE app_auth_otps MODIFY code VARCHAR(100) NOT NULL');
+    })();
 
     return otpTablePromise;
   };
@@ -71,6 +78,39 @@ function createAuthRepository({
     `);
 
     return otpRequestTablePromise;
+  };
+
+  const withTransaction = async (work) => {
+    if (!dbPool || typeof dbPool.query !== 'function') {
+      throw new Error('Database pool is unavailable');
+    }
+    if (typeof dbPool.getConnection !== 'function') {
+      return work(dbPool, false);
+    }
+
+    const connection = await dbPool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const result = await work(connection, true);
+      await connection.commit();
+      return result;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  };
+
+  const hashOtp = (code) => bcrypt.hash(String(code || '').trim(), OTP_BCRYPT_ROUNDS);
+  const otpMatches = async (candidate, storedValue) => {
+    const normalizedCandidate = String(candidate || '').trim();
+    const stored = String(storedValue || '').trim();
+    if (!normalizedCandidate || !stored) return false;
+    if (stored.startsWith('$2')) return bcrypt.compare(normalizedCandidate, stored);
+    // Transitional compatibility for rows written before this hardening change.
+    // Only exact equality is accepted; legacy suffix/leading-zero matching is intentionally removed.
+    return stored === normalizedCandidate;
   };
 
   const normalizeUser = (user) => {
@@ -100,24 +140,31 @@ function createAuthRepository({
 
   const saveOtp = async (phone, code) => {
     const otpExpireMs = await getOtpExpireMs();
+    const normalizedCode = String(code || '').trim();
+    const codeHash = await hashOtp(normalizedCode);
+
     if (dbPool && typeof dbPool.query === 'function') {
       await ensureOtpTable();
       const variants = getIranMobileVariants(phone);
+      const keys = variants.length ? variants : [phone];
       const createdAt = new Date(nowMs());
       const expiresAt = new Date(nowMs() + otpExpireMs);
-      for (const variant of variants.length ? variants : [phone]) {
-        await dbPool.query(
-          `INSERT INTO app_auth_otps (phone, code, attempts, blocked_until, created_at, expires_at)
-           VALUES (?, ?, 0, NULL, ?, ?)
-           ON DUPLICATE KEY UPDATE code = VALUES(code), attempts = 0, blocked_until = NULL, created_at = VALUES(created_at), expires_at = VALUES(expires_at)`,
-          [variant, String(code || '').trim(), createdAt, expiresAt]
-        );
-      }
+
+      await withTransaction(async (connection) => {
+        for (const variant of keys) {
+          await connection.query(
+            `INSERT INTO app_auth_otps (phone, code, attempts, blocked_until, created_at, expires_at)
+             VALUES (?, ?, 0, NULL, ?, ?)
+             ON DUPLICATE KEY UPDATE code = VALUES(code), attempts = 0, blocked_until = NULL, created_at = VALUES(created_at), expires_at = VALUES(expires_at)`,
+            [variant, codeHash, createdAt, expiresAt]
+          );
+        }
+      });
       return { expiresIn: Math.floor(otpExpireMs / 1000) };
     }
 
     const entry = {
-      code: String(code || '').trim(),
+      codeHash,
       createdAt: nowMs(),
       expiresAt: nowMs() + otpExpireMs,
       attempts: 0,
@@ -129,7 +176,7 @@ function createAuthRepository({
       otpStore.set(variant, { ...entry });
     }
 
-    logger.log?.('[AuthRepository] saveOtp keys', { keys: variants.length ? variants : [phone], codeLength: entry.code.length });
+    logger.log?.('[AuthRepository] saveOtp keys', { keys: variants.length ? variants : [phone], codeLength: normalizedCode.length });
     return { expiresIn: Math.floor(otpExpireMs / 1000) };
   };
 
@@ -141,42 +188,54 @@ function createAuthRepository({
 
     if (dbPool && typeof dbPool.query === 'function') {
       await ensureOtpRequestTable();
-      const [rows] = await dbPool.query('SELECT * FROM app_auth_otp_request_limits WHERE phone = ? LIMIT 1', [key]);
-      const row = rows[0] || null;
-      const windowStartMs = row ? new Date(row.window_started_at).getTime() : 0;
-      const updatedAtMs = row ? new Date(row.updated_at).getTime() : 0;
-      if (updatedAtMs > 0 && resendCooldownMs > 0 && currentTime - updatedAtMs < resendCooldownMs) {
-        return {
-          allowed: false,
-          retryAfterSeconds: Math.ceil((resendCooldownMs - (currentTime - updatedAtMs)) / 1000)
-        };
-      }
-      const inWindow = windowStartMs > 0 && currentTime - windowStartMs < requestWindowMs;
-      const currentCount = inWindow ? Number(row.request_count || 0) : 0;
-
-      if (currentCount >= requestLimit) {
-        return {
-          allowed: false,
-          retryAfterSeconds: Math.ceil((requestWindowMs - (currentTime - windowStartMs)) / 1000)
-        };
-      }
-
-      const timestamp = new Date(currentTime);
-      if (row && inWindow) {
-        await dbPool.query(
-          'UPDATE app_auth_otp_request_limits SET request_count = request_count + 1, updated_at = ? WHERE phone = ?',
-          [timestamp, key]
-        );
-      } else {
-        await dbPool.query(
+      return withTransaction(async (connection) => {
+        const timestamp = new Date(currentTime);
+        const initialUpdatedAt = new Date(Math.max(0, currentTime - resendCooldownMs - 1000));
+        // Create the lock row first. Concurrent callers for the same phone then serialize here.
+        await connection.query(
           `INSERT INTO app_auth_otp_request_limits (phone, request_count, window_started_at, updated_at)
-           VALUES (?, 1, ?, ?)
-           ON DUPLICATE KEY UPDATE request_count = 1, window_started_at = VALUES(window_started_at), updated_at = VALUES(updated_at)`,
-          [key, timestamp, timestamp]
+           VALUES (?, 0, ?, ?)
+           ON DUPLICATE KEY UPDATE phone = VALUES(phone)`,
+          [key, timestamp, initialUpdatedAt]
         );
-      }
+        const [rows] = await connection.query(
+          'SELECT * FROM app_auth_otp_request_limits WHERE phone = ? LIMIT 1 FOR UPDATE',
+          [key]
+        );
+        const row = rows[0];
+        const windowStartMs = row ? new Date(row.window_started_at).getTime() : 0;
+        const updatedAtMs = row ? new Date(row.updated_at).getTime() : 0;
 
-      return { allowed: true, retryAfterSeconds: 0 };
+        if (updatedAtMs > 0 && resendCooldownMs > 0 && currentTime - updatedAtMs < resendCooldownMs) {
+          return {
+            allowed: false,
+            retryAfterSeconds: Math.max(1, Math.ceil((resendCooldownMs - (currentTime - updatedAtMs)) / 1000))
+          };
+        }
+
+        const inWindow = windowStartMs > 0 && currentTime - windowStartMs < requestWindowMs;
+        const currentCount = inWindow ? Number(row?.request_count || 0) : 0;
+        if (currentCount >= requestLimit) {
+          return {
+            allowed: false,
+            retryAfterSeconds: Math.max(1, Math.ceil((requestWindowMs - (currentTime - windowStartMs)) / 1000))
+          };
+        }
+
+        if (inWindow) {
+          await connection.query(
+            'UPDATE app_auth_otp_request_limits SET request_count = request_count + 1, updated_at = ? WHERE phone = ?',
+            [timestamp, key]
+          );
+        } else {
+          await connection.query(
+            'UPDATE app_auth_otp_request_limits SET request_count = 1, window_started_at = ?, updated_at = ? WHERE phone = ?',
+            [timestamp, timestamp, key]
+          );
+        }
+
+        return { allowed: true, retryAfterSeconds: 0 };
+      });
     }
 
     const entry = otpRequestStore.get(key);
@@ -203,64 +262,64 @@ function createAuthRepository({
 
   const verifyOtp = async (phone, code) => {
     const otpExpireMs = await getOtpExpireMs();
+    const candidateCode = String(code || '').trim();
+
     if (dbPool && typeof dbPool.query === 'function') {
       await ensureOtpTable();
       const variants = getIranMobileVariants(phone);
       const keys = variants.length ? variants : [phone];
       const placeholders = keys.map(() => '?').join(',');
-      const [rows] = await dbPool.query(`SELECT * FROM app_auth_otps WHERE phone IN (${placeholders})`, keys);
-      const activeRows = rows.filter((row) => new Date(row.expires_at).getTime() >= nowMs());
-      const row = activeRows[0] || rows[0] || null;
 
-      if (!row) {
-        return { valid: false, reason: 'not_found' };
-      }
+      return withTransaction(async (connection) => {
+        const [rows] = await connection.query(
+          `SELECT * FROM app_auth_otps WHERE phone IN (${placeholders}) FOR UPDATE`,
+          keys
+        );
+        const currentTime = nowMs();
+        const activeRows = rows.filter((row) => new Date(row.expires_at).getTime() >= currentTime);
+        const row = activeRows[0] || rows[0] || null;
 
-      const currentTime = nowMs();
-      if (row.blocked_until && new Date(row.blocked_until).getTime() > currentTime) {
-        return {
-          valid: false,
-          reason: 'too_many_attempts',
-          retryAfterSeconds: Math.ceil((new Date(row.blocked_until).getTime() - currentTime) / 1000)
-        };
-      }
+        if (!row) return { valid: false, reason: 'not_found' };
 
-      if (new Date(row.expires_at).getTime() < currentTime) {
-        await dbPool.query(`DELETE FROM app_auth_otps WHERE phone IN (${placeholders})`, keys);
-        return { valid: false, reason: 'expired' };
-      }
-
-      const candidateCode = String(code || '').trim();
-      const storedCode = String(row.code || '').trim();
-      const matchesDirect = storedCode === candidateCode;
-      const matchesWithLeadingZero =
-        candidateCode.length === storedCode.length + 1 &&
-        candidateCode.startsWith('0') &&
-        candidateCode.slice(1) === storedCode;
-      const matchesBySuffix = candidateCode.length > storedCode.length && candidateCode.endsWith(storedCode);
-
-      if (!(matchesDirect || matchesWithLeadingZero || matchesBySuffix)) {
-        const attempts = Number(row.attempts || 0) + 1;
-        if (attempts >= maxWrongAttempts) {
-          const blockedUntil = new Date(currentTime + otpExpireMs);
-          await dbPool.query(`UPDATE app_auth_otps SET attempts = ?, blocked_until = ? WHERE phone IN (${placeholders})`, [
-            attempts,
-            blockedUntil,
-            ...keys
-          ]);
-          return { valid: false, reason: 'too_many_attempts', retryAfterSeconds: Math.ceil(otpExpireMs / 1000) };
+        if (row.blocked_until && new Date(row.blocked_until).getTime() > currentTime) {
+          return {
+            valid: false,
+            reason: 'too_many_attempts',
+            retryAfterSeconds: Math.ceil((new Date(row.blocked_until).getTime() - currentTime) / 1000)
+          };
         }
 
-        await dbPool.query(`UPDATE app_auth_otps SET attempts = ? WHERE phone IN (${placeholders})`, [attempts, ...keys]);
-        return {
-          valid: false,
-          reason: 'invalid_code',
-          remainingAttempts: Math.max(0, maxWrongAttempts - attempts)
-        };
-      }
+        if (new Date(row.expires_at).getTime() < currentTime) {
+          await connection.query(`DELETE FROM app_auth_otps WHERE phone IN (${placeholders})`, keys);
+          return { valid: false, reason: 'expired' };
+        }
 
-      await dbPool.query(`DELETE FROM app_auth_otps WHERE phone IN (${placeholders})`, keys);
-      return { valid: true };
+        const matches = await otpMatches(candidateCode, row.code);
+        if (!matches) {
+          const attempts = Number(row.attempts || 0) + 1;
+          if (attempts >= maxWrongAttempts) {
+            const blockedUntil = new Date(currentTime + otpExpireMs);
+            await connection.query(
+              `UPDATE app_auth_otps SET attempts = ?, blocked_until = ? WHERE phone IN (${placeholders})`,
+              [attempts, blockedUntil, ...keys]
+            );
+            return { valid: false, reason: 'too_many_attempts', retryAfterSeconds: Math.ceil(otpExpireMs / 1000) };
+          }
+
+          await connection.query(
+            `UPDATE app_auth_otps SET attempts = ? WHERE phone IN (${placeholders})`,
+            [attempts, ...keys]
+          );
+          return {
+            valid: false,
+            reason: 'invalid_code',
+            remainingAttempts: Math.max(0, maxWrongAttempts - attempts)
+          };
+        }
+
+        await connection.query(`DELETE FROM app_auth_otps WHERE phone IN (${placeholders})`, keys);
+        return { valid: true };
+      });
     }
 
     const variants = getIranMobileVariants(phone);
@@ -268,9 +327,7 @@ function createAuthRepository({
     const lookupKey = matchedKey || phone;
     const entry = otpStore.get(lookupKey);
 
-    if (!entry) {
-      return { valid: false, reason: 'not_found' };
-    }
+    if (!entry) return { valid: false, reason: 'not_found' };
 
     const currentTime = nowMs();
     if (entry.blockedUntil && currentTime < entry.blockedUntil) {
@@ -282,33 +339,20 @@ function createAuthRepository({
     }
 
     if (currentTime > entry.expiresAt) {
-      for (const variant of variants) {
-        otpStore.delete(variant);
-      }
+      for (const variant of variants) otpStore.delete(variant);
       return { valid: false, reason: 'expired' };
     }
 
-    const candidateCode = String(code || '').trim();
-    const matchesDirect = entry.code === candidateCode;
-    const matchesWithLeadingZero =
-      candidateCode.length === entry.code.length + 1 &&
-      candidateCode.startsWith('0') &&
-      candidateCode.slice(1) === entry.code;
-    const matchesBySuffix = candidateCode.length > entry.code.length && candidateCode.endsWith(entry.code);
-
-    if (!(matchesDirect || matchesWithLeadingZero || matchesBySuffix)) {
+    const matches = await bcrypt.compare(candidateCode, entry.codeHash);
+    if (!matches) {
       entry.attempts += 1;
       if (entry.attempts >= maxWrongAttempts) {
         entry.blockedUntil = currentTime + otpExpireMs;
-        for (const variant of variants) {
-          otpStore.set(variant, { ...entry });
-        }
+        for (const variant of variants) otpStore.set(variant, { ...entry });
         return { valid: false, reason: 'too_many_attempts', retryAfterSeconds: Math.ceil(otpExpireMs / 1000) };
       }
 
-      for (const variant of variants) {
-        otpStore.set(variant, { ...entry });
-      }
+      for (const variant of variants) otpStore.set(variant, { ...entry });
       return {
         valid: false,
         reason: 'invalid_code',
@@ -316,9 +360,7 @@ function createAuthRepository({
       };
     }
 
-    for (const variant of variants) {
-      otpStore.delete(variant);
-    }
+    for (const variant of variants) otpStore.delete(variant);
     return { valid: true };
   };
 
@@ -333,8 +375,8 @@ function createAuthRepository({
 
     if (dbPool && typeof dbPool.query === 'function') {
       const timestamp = new Date();
-    if (!profile.phone) throw new Error('PHONE_REQUIRED_FOR_USER');
-    const userId = generateUserId();
+      if (!profile.phone) throw new Error('PHONE_REQUIRED_FOR_USER');
+      const userId = generateUserId();
       await dbPool.query(
         `INSERT INTO app_users (user_id, name, age, phone, is_banned, registered_at, last_active)
          VALUES (?, ?, ?, ?, 0, ?, ?)
