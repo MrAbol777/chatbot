@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createImageToImageRuntime } = require('../worker/image-to-image.runtime');
+const { resolveImageToImageWorkerMode } = require('../worker/image-to-image.bootstrap');
 
 const dependencies = () => ({
   repository: {
@@ -55,7 +56,7 @@ test('dedicated image-to-image worker mode starts and schedules ticks', async ()
   assert.equal(timers.state.cleared, 1);
 });
 
-test('unknown image-to-image worker mode stays disabled', async () => {
+test('unknown image-to-image worker mode stays disabled at runtime', async () => {
   const timers = fakeTimers();
   const runtime = createImageToImageRuntime({
     config: { enabled: true, workerMode: 'mystery', runImmediately: false, workerIntervalMs: 1000 },
@@ -67,4 +68,14 @@ test('unknown image-to-image worker mode stays disabled', async () => {
   assert.deepEqual(result, { started: false, enabled: true, mode: 'mystery' });
   assert.equal(runtime.isStarted(), false);
   assert.equal(timers.state.scheduled, 0);
+});
+
+test('worker process mode defaults to embedded and accepts only explicit supported modes', () => {
+  assert.equal(resolveImageToImageWorkerMode({}), 'embedded');
+  assert.equal(resolveImageToImageWorkerMode({ IMAGE_TO_IMAGE_WORKER_MODE: 'dedicated' }), 'dedicated');
+  assert.equal(resolveImageToImageWorkerMode({ IMAGE_TO_IMAGE_WORKER_MODE: 'disabled' }), 'disabled');
+  assert.throws(
+    () => resolveImageToImageWorkerMode({ IMAGE_TO_IMAGE_WORKER_MODE: 'dedicatd' }),
+    (error) => error?.code === 'IMAGE_TO_IMAGE_WORKER_MODE_INVALID'
+  );
 });
