@@ -1,6 +1,8 @@
 const fs = require('fs/promises');
+const path = require('path');
 const { constants: fsConstants } = require('fs');
 const { loadVideoStorageConfig } = require('../video-generation/storage/video-storage.config');
+const { resolveImageToImageWorkerMode } = require('../image-to-image/worker/image-to-image.bootstrap');
 
 function createHealthService({ metisBaseUrl, metisApiKey, defaultModel, videoWorkerState, db = null, env = process.env }) {
   const getStatus = () => ({
@@ -53,10 +55,49 @@ function createHealthService({ metisBaseUrl, metisApiKey, defaultModel, videoWor
     };
   };
 
+  const getImageToImageHealth = async () => {
+    if (!db) throw new Error('Image-to-image database is not configured.');
+    const featureEnabled = String(env.IMAGE_TO_IMAGE_ENABLED || '').trim().toLowerCase() === 'true';
+    const workerMode = resolveImageToImageWorkerMode(env);
+    const defaultStorage = String(env.NODE_ENV || '').trim().toLowerCase() === 'production'
+      ? '/var/lib/danoa/image-to-image'
+      : path.join(__dirname, '../../../storage/image-to-image');
+    const storageRoot = path.resolve(String(env.IMAGE_TO_IMAGE_STORAGE_DIR || defaultStorage));
+    await fs.access(storageRoot, fsConstants.W_OK);
+
+    const [rows] = await db.query('SELECT status,COUNT(*) AS count FROM app_image_to_image_jobs GROUP BY status');
+    const [leases] = await db.query(
+      "SELECT COUNT(*) AS count FROM app_image_to_image_jobs WHERE worker_lease_until>NOW() AND status IN ('queued','submitted')"
+    );
+    const [stale] = await db.query(
+      "SELECT COUNT(*) AS count FROM app_image_to_image_jobs WHERE status IN ('queued','submitted') AND updated_at<DATE_SUB(NOW(), INTERVAL 15 MINUTE)"
+    );
+    const [expired] = await db.query(
+      "SELECT COUNT(*) AS count FROM app_image_to_image_jobs WHERE status IN ('queued','submitted') AND expires_at<=NOW()"
+    );
+    const counts = Object.fromEntries(rows.map((row) => [String(row.status), Number(row.count)]));
+    const configurationReady = !featureEnabled || workerMode !== 'disabled';
+    return {
+      ok: configurationReady,
+      featureEnabled,
+      configurationReady,
+      workerMode,
+      activeLeases: Number(leases[0]?.count || 0),
+      queueCount: Number(counts.queued || 0),
+      submittedCount: Number(counts.submitted || 0),
+      succeededCount: Number(counts.succeeded || 0),
+      failedCount: Number(counts.failed || 0),
+      stalePendingCount: Number(stale[0]?.count || 0),
+      expiredPendingCount: Number(expired[0]?.count || 0),
+      storageWritable: true
+    };
+  };
+
   return {
     getStatus,
     checkUpstream,
-    getVideoGenerationHealth
+    getVideoGenerationHealth,
+    getImageToImageHealth
   };
 }
 
