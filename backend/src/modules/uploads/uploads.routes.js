@@ -1,12 +1,34 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const fs = require('fs-extra');
 const { getDefaultUploadOwnershipRepository } = require('./upload-ownership.repository');
+const { validateImageBuffer } = require('./image-file-security');
 
-/**
- * Serves a chat upload only after the caller has been authenticated. Upload
- * identifiers are deliberately not treated as credentials: persisted chat
- * messages can contain their URL, so the access check must happen here.
- */
+function createUploadRateLimiter({ windowMs = 60 * 1000, max = 20 } = {}) {
+  return rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => String(req.user?.id || 'authenticated-user'),
+    message: { error: 'تعداد آپلودها زیاد است. کمی بعد دوباره تلاش کنید.', code: 'UPLOAD_RATE_LIMITED' }
+  });
+}
+
+async function readUploadedFileBuffer(file) {
+  if (Buffer.isBuffer(file?.buffer)) return file.buffer;
+  if (file?.path) return fs.readFile(file.path);
+  const error = new Error('UPLOAD_CONTENT_UNAVAILABLE');
+  error.code = 'UPLOAD_CONTENT_UNAVAILABLE';
+  throw error;
+}
+
+async function removeUploadedFiles(files) {
+  await Promise.all((Array.isArray(files) ? files : []).map((file) =>
+    file?.path ? fs.remove(file.path).catch(() => undefined) : undefined
+  ));
+}
+
 function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById, ownershipRepository = null }) {
   if (typeof requireAuthenticated !== 'function') {
     throw new Error('requireAuthenticated is required');
@@ -17,6 +39,8 @@ function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById, o
 
   const ownership = ownershipRepository || getDefaultUploadOwnershipRepository();
   const router = express.Router();
+  const configuredRate = Number.parseInt(String(process.env.UPLOAD_IMAGE_RATE_LIMIT_PER_MINUTE || '20'), 10);
+  const uploadLimiter = createUploadRateLimiter({ max: Number.isInteger(configuredRate) && configuredRate > 0 ? configuredRate : 20 });
 
   router.get('/images/:imageId', requireAuthenticated, async (req, res, next) => {
     try {
@@ -41,11 +65,12 @@ function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById, o
     }
   });
 
-  // This router is mounted before the actual multer POST handler in app.js.
-  // Wrap the success response so ownership metadata is persisted before the
-  // client receives an imageId. If persistence fails, remove the uploaded files
-  // and fail closed instead of creating an ownerless private object.
   router.use('/images', requireAuthenticated, (req, res, next) => {
+    if (String(req.method || '').toUpperCase() !== 'POST') return next();
+    return uploadLimiter(req, res, next);
+  });
+
+  router.use('/images', (req, res, next) => {
     if (String(req.method || '').toUpperCase() !== 'POST') return next();
 
     const originalJson = res.json.bind(res);
@@ -57,18 +82,33 @@ function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById, o
       const userId = typeof req.user?.id === 'string' || typeof req.user?.id === 'number'
         ? String(req.user.id).trim()
         : '';
+      const files = Array.isArray(req.files) ? req.files : [];
       res.json = originalJson;
 
-      void ownership.registerMany({ imageIds, userId })
-        .then(() => originalJson(payload))
-        .catch(async () => {
-          const files = Array.isArray(req.files) ? req.files : [];
-          await Promise.all(files.map((file) => file?.path ? fs.remove(file.path).catch(() => undefined) : undefined));
-          if (!res.headersSent) {
-            res.status(500);
-            originalJson({ error: 'ذخیره امن تصویر انجام نشد.', code: 'UPLOAD_OWNERSHIP_PERSIST_FAILED' });
+      void (async () => {
+        try {
+          if (!userId || files.length !== imageIds.length) {
+            const error = new Error('UPLOAD_CONTENT_UNAVAILABLE');
+            error.code = 'UPLOAD_CONTENT_UNAVAILABLE';
+            throw error;
           }
-        });
+          for (const file of files) {
+            const buffer = await readUploadedFileBuffer(file);
+            validateImageBuffer(buffer, file.mimetype);
+          }
+          await ownership.registerMany({ imageIds, userId });
+          return originalJson(payload);
+        } catch (error) {
+          await removeUploadedFiles(files);
+          if (res.headersSent) return undefined;
+          if (error?.code === 'UNSUPPORTED_IMAGE_FORMAT') {
+            res.status(400);
+            return originalJson({ error: 'محتوای فایل تصویر معتبر نیست.', code: 'INVALID_IMAGE_CONTENT' });
+          }
+          res.status(500);
+          return originalJson({ error: 'ذخیره امن تصویر انجام نشد.', code: 'UPLOAD_OWNERSHIP_PERSIST_FAILED' });
+        }
+      })();
       return res;
     };
 
@@ -78,4 +118,8 @@ function createUploadsReadRouter({ requireAuthenticated, getUploadedImageById, o
   return router;
 }
 
-module.exports = { createUploadsReadRouter };
+module.exports = {
+  createUploadsReadRouter,
+  createUploadRateLimiter,
+  readUploadedFileBuffer
+};
