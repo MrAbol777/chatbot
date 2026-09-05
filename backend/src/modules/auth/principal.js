@@ -6,7 +6,52 @@ function getBearerToken(req) {
   return match ? match[1].trim() : '';
 }
 
-function createPrincipalResolver({ jwt, jwtSecret, usersRepository, sessionRepository, sessionCookieName }) {
+function splitOrigins(value) {
+  return String(value || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function getDefaultAllowedOrigins(env = process.env) {
+  const isProduction = String(env.NODE_ENV || '').trim().toLowerCase() === 'production';
+  const defaults = isProduction
+    ? ['https://danoa.ir', 'https://www.danoa.ir']
+    : [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000'
+      ];
+  return [...new Set([
+    ...defaults,
+    ...splitOrigins(env.CORS_ORIGIN),
+    ...splitOrigins(env.APP_ALLOWED_ORIGINS)
+  ])];
+}
+
+function csrfErrorForRequest({ req, session, sessionRepository, allowedOrigins }) {
+  if (!session || !UNSAFE_METHODS.has(String(req.method || '').toUpperCase())) return null;
+  const origin = typeof req.headers?.origin === 'string' ? req.headers.origin.trim() : '';
+  const allowlist = allowedOrigins instanceof Set ? allowedOrigins : new Set(allowedOrigins || []);
+  if (!origin || !allowlist.has(origin)) return 'CSRF_ORIGIN_REJECTED';
+  const csrfToken = typeof req.headers?.['x-csrf-token'] === 'string'
+    ? req.headers['x-csrf-token'].trim()
+    : '';
+  if (!sessionRepository.validateCsrf(session, csrfToken)) return 'CSRF_TOKEN_INVALID';
+  return null;
+}
+
+function createPrincipalResolver({
+  jwt,
+  jwtSecret,
+  usersRepository,
+  sessionRepository,
+  sessionCookieName,
+  allowedOrigins = getDefaultAllowedOrigins(process.env)
+}) {
+  const csrfAllowedOrigins = new Set(allowedOrigins || []);
+
   const resolveBearer = async (rawToken) => {
     if (!rawToken) return null;
     try {
@@ -30,7 +75,7 @@ function createPrincipalResolver({ jwt, jwtSecret, usersRepository, sessionRepos
     }
   };
 
-  const resolve = async (req, { touchSession = true } = {}) => {
+  const resolveBase = async (req, { touchSession = true } = {}) => {
     if (req.authResolution) return req.authResolution;
     const rawBearer = getBearerToken(req);
     const rawSession = String(req.cookies?.[sessionCookieName] || '').trim();
@@ -68,7 +113,25 @@ function createPrincipalResolver({ jwt, jwtSecret, usersRepository, sessionRepos
     return result;
   };
 
-  return { resolve };
+  const resolve = async (req, { touchSession = true, enforceCsrf = true } = {}) => {
+    const base = await resolveBase(req, { touchSession });
+    if (!enforceCsrf || base.error || !base.supplied.session || !base.session) {
+      return { ...base, statusCode: base.error ? 401 : 200 };
+    }
+    const csrfError = csrfErrorForRequest({
+      req,
+      session: base.session,
+      sessionRepository,
+      allowedOrigins: csrfAllowedOrigins
+    });
+    if (!csrfError) return { ...base, statusCode: 200 };
+    return { ...base, error: csrfError, statusCode: 403 };
+  };
+
+  return {
+    resolve,
+    csrfAllowedOrigins: () => [...csrfAllowedOrigins]
+  };
 }
 
 function createRequirePrincipal(principalResolver) {
@@ -76,7 +139,7 @@ function createRequirePrincipal(principalResolver) {
     try {
       const resolution = await principalResolver.resolve(req);
       if (resolution.error) {
-        return res.status(401).json({ success: false, error: resolution.error });
+        return res.status(resolution.statusCode || 401).json({ success: false, error: resolution.error });
       }
       if (!resolution.principal) {
         return res.status(401).json({
@@ -103,19 +166,18 @@ function createCookieCsrfProtection({
     if (!UNSAFE_METHODS.has(String(req.method || '').toUpperCase())) return next();
     if (!shouldProtectRequest(req)) return next();
     try {
-      const resolution = await principalResolver.resolve(req);
+      const resolution = await principalResolver.resolve(req, { enforceCsrf: false });
       if (!resolution.supplied.session) return next();
       if (resolution.error) return res.status(401).json({ error: resolution.error });
       if (!resolution.session) return res.status(401).json({ error: 'INVALID_SESSION_CREDENTIAL' });
 
-      const origin = typeof req.headers.origin === 'string' ? req.headers.origin.trim() : '';
-      if (!origin || !allowlist.has(origin)) {
-        return res.status(403).json({ error: 'CSRF_ORIGIN_REJECTED' });
-      }
-      const csrfToken = typeof req.headers['x-csrf-token'] === 'string' ? req.headers['x-csrf-token'].trim() : '';
-      if (!sessionRepository.validateCsrf(resolution.session, csrfToken)) {
-        return res.status(403).json({ error: 'CSRF_TOKEN_INVALID' });
-      }
+      const csrfError = csrfErrorForRequest({
+        req,
+        session: resolution.session,
+        sessionRepository,
+        allowedOrigins: allowlist
+      });
+      if (csrfError) return res.status(403).json({ error: csrfError });
       return next();
     } catch (error) {
       return next(error);
@@ -128,5 +190,7 @@ module.exports = {
   createCookieCsrfProtection,
   createPrincipalResolver,
   createRequirePrincipal,
-  getBearerToken
+  csrfErrorForRequest,
+  getBearerToken,
+  getDefaultAllowedOrigins
 };
