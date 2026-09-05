@@ -78,6 +78,7 @@ function createImageGenerationRouter(deps) {
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => String(req.user?.id || 'authenticated-user'),
+    skip: (_req, res) => Boolean(res.locals?.imageIdempotentReplay),
     handler: (_req, res) => res.status(429).json({
       success: false,
       error: 'IMAGE_RATE_LIMITED',
@@ -92,8 +93,8 @@ function createImageGenerationRouter(deps) {
 
   // Protected routes (generate, status, same-origin image serving)
   router.use(authMiddleware);
-  router.post('/generate', imageRateLimiter, imageCapacityGuard, controller.generateImage);
-  router.post('/edit', imageRateLimiter, imageCapacityGuard, controller.editImage);
+  router.post('/generate', imageCapacityGuard, imageRateLimiter, controller.generateImage);
+  router.post('/edit', imageCapacityGuard, imageRateLimiter, controller.editImage);
   router.get('/', controller.listImages);
   router.get('/:taskId/details', controller.getImageDetails);
   router.delete('/:taskId', controller.deleteImage);
