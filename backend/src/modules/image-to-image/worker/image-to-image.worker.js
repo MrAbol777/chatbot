@@ -1,5 +1,7 @@
 'use strict';
 
+const { createHash } = require('node:crypto');
+
 function createImageToImageWorker({ repository, storage, provider, config, workerId = `i2i-${Math.random().toString(36).slice(2, 10)}`, logger = console }) {
   let running = false;
   const process = async (job) => {
@@ -7,7 +9,10 @@ function createImageToImageWorker({ repository, storage, provider, config, worke
       if (job.status === 'queued') {
         const sources = [];
         for (const source of job.sources) sources.push({ ...source, buffer: await storage.read(source.key) });
-        const submitted = await provider.submit({ prompt: job.prompt, aspectRatio: job.aspect_ratio, sources });
+        const compiledPrompt = job.compiled_prompt || job.compiledPrompt || job.prompt;
+        if (!String(compiledPrompt || '').trim()) throw Object.assign(new Error('Compiled prompt snapshot is missing.'), { code: 'IMAGE_TO_IMAGE_COMPILED_PROMPT_REQUIRED' });
+        if (job.compiled_prompt_hash && createHash('sha256').update(compiledPrompt, 'utf8').digest('hex') !== String(job.compiled_prompt_hash).toLowerCase()) throw Object.assign(new Error('Compiled prompt snapshot hash mismatch.'), { code: 'IMAGE_TO_IMAGE_COMPILED_PROMPT_HASH_MISMATCH' });
+        const submitted = await provider.submit({ prompt: compiledPrompt, aspectRatio: job.aspect_ratio, sources });
         await repository.markSubmitted({ jobId: job.id, workerId, providerTaskId: submitted.taskId });
         return 'submitted';
       }

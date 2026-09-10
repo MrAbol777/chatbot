@@ -335,6 +335,7 @@ export default function ImageStudio({
   </section>;
   const imageToImageActive = referenceImages.length > 0;
   const activePriceNoa = imageToImageActive ? imageToImagePriceNoa : imagePriceNoa;
+  const promptLimit = imageToImageActive || editSource ? 3000 : 700;
 
   return <main className="studio" dir="rtl">
     <div className="studio-shell">
@@ -368,9 +369,9 @@ export default function ImageStudio({
       <div className="studio-create-grid">
         <section className="studio-prompt-card">
           <div className="studio-prompt-block">
-            <label htmlFor="studio-prompt"><span>{imageToImageActive || editSource ? 'چه تغییری می‌خواهی؟' : 'چی توی ذهنت داری؟'}</span><small>{prompt.length}/۷۰۰</small></label>
+            <label htmlFor="studio-prompt"><span>{imageToImageActive || editSource ? 'چه تغییری می‌خواهی؟' : 'چی توی ذهنت داری؟'}</span><small>{prompt.length}/{promptLimit.toLocaleString('fa-IR')}</small></label>
             <p className="studio-field-help">سوژه، سبک، نور و حس تصویر را با چند کلمه توضیح بده.</p>
-            <div className="studio-textarea-wrap"><Icon name="sparkle" size="1em" className="studio-input-spark" aria-hidden="true" /><textarea ref={promptInputRef} id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, 700)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} maxLength={700} /></div>
+            <div className="studio-textarea-wrap"><Icon name="sparkle" size="1em" className="studio-input-spark" aria-hidden="true" /><textarea ref={promptInputRef} id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, promptLimit)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} maxLength={promptLimit} /></div>
             <div className="studio-mobile-create-controls">
               {imageSettings(true)}
               {referencePicker(true)}

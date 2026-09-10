@@ -13,6 +13,7 @@
 | هویت | `app_users`, `app_guardians`, `app_children` | کاربر، سرپرست و پروفایل کودک |
 | session | `app_auth_sessions`, `app_viana_oauth_flows`, `app_viana_identities` | session داخلی و flow OAuth |
 | گفتگو | `app_conversations`, `app_chat_messages`, `app_chat_turns`, `app_chat_attempts` | گفتگو، پیام، turn و تلاش‌های stream |
+| پشتیبانی | `app_support_tickets`, `app_support_messages` | گزارش مشکل و رشته پیام قابل پیگیری بین کاربر و پشتیبانی |
 | حافظه | `conversation_documents`, `conversation_document_updates` | snapshot و update حافظه گفتگو |
 | AI telemetry | `app_events`, `app_app_errors`, `app_request_metrics`, `input_optimizations` | رخداد، خطا، زمان پاسخ endpoint و optimizer |
 | تنظیمات | `app_settings` | config قابل مدیریت در runtime |
@@ -33,6 +34,8 @@ erDiagram
     app_users ||--o{ app_chat_messages : sends
     app_users ||--o{ image_generations : creates
     app_users ||--o{ app_video_generations : submits
+    app_users ||--o{ app_support_tickets : opens
+    app_support_tickets ||--o{ app_support_messages : contains
     app_users ||--|| app_noa_wallets : has
     app_guardians ||--o{ app_children : supervises
     app_conversations ||--o{ app_chat_turns : contains

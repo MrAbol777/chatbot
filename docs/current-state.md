@@ -26,6 +26,7 @@
 | کیف پول نوآ | ✅ | wallet، ledger، reservation و receipt |
 | پرداخت آنلاین | ⚠️ | تنظیمات provider پرداخت در env موجود است؛ فعال‌سازی باید جداگانه تایید شود |
 | پنل مدیریت | ✅ | auth، dashboard، کاربران، تنظیمات، logs و moderation |
+| مرکز پشتیبانی | ✅ | ثبت گزارش مشکل، کد پیگیری، پیام رفت‌وبرگشتی و inbox مدیریت |
 | AI routing admin | ✅ | provider/model/route/health/audit |
 | supervised OTP | ✅ | با role مناسب admin |
 | monitor Bale | ⚠️ | با `BALE_MONITOR_ENABLED` و تنظیمات provider |
@@ -78,4 +79,3 @@
 - مصرف نوآ به تفکیک action.
 - نرخ خطای provider و fallback.
 - خطاهای authorization و moderation.
-

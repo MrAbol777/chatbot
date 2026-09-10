@@ -48,6 +48,8 @@ const {
   createNoaUserRouter
 } = require('./modules/noa');
 const { createUserBroadcastMessagesRouter } = require('./modules/broadcast-messages/broadcast-messages.routes');
+const { createSupportUserRouter, createSupportAdminRouter } = require('./modules/support/support.routes');
+const { createRequireAdminRole } = require('./modules/admin/common/auth');
 const { createUploadsReadRouter } = require('./modules/uploads/uploads.routes');
 const { createRequestMetricsMiddleware } = require('./modules/monitoring/request-metrics.middleware');
 
@@ -67,6 +69,7 @@ function createApp({ repositories, runtimeConfig }) {
     adminCookieName,
     viana,
     textToVideoSystemPromptPath,
+    imageToImageSystemPromptPath,
     frontendDistPath
   } = runtimeConfig;
 
@@ -428,6 +431,10 @@ function createApp({ repositories, runtimeConfig }) {
     principalResolver,
     repository: repositories.broadcastMessages
   }));
+  app.use(createSupportUserRouter({
+    principalResolver,
+    repository: repositories.support
+  }));
   app.use('/api/noa', noaUserRouter);
 
   // Input optimizer & conversation title
@@ -476,7 +483,8 @@ function createApp({ repositories, runtimeConfig }) {
     db: repositories.db,
     noaBillingService,
     principalResolver,
-    config: ai.imageToImage
+    config: ai.imageToImage,
+    systemPromptPath: imageToImageSystemPromptPath
   });
   app.use('/api/image-to-image', imageToImageModule.router);
 
@@ -635,6 +643,12 @@ function createApp({ repositories, runtimeConfig }) {
     requireAdminAuth: adminModule.requireAdminAuth,
     inputMediaStorage: videoGenerationModule.inputMedia.storage,
     logger: console
+  }));
+  app.use('/api/admin', createSupportAdminRouter({
+    requireAdminAuth: adminModule.requireAdminAuth,
+    requireAdminRole: createRequireAdminRole(['admin', 'support']),
+    repository: repositories.support,
+    appendAudit: adminModule.appendAudit
   }));
   app.use('/api/admin', adminModule.router);
 

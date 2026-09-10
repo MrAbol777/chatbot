@@ -8,15 +8,17 @@ const { createImageToImageRepository } = require('./image-to-image.repository');
 const { createImageToImageStorage } = require('./image-to-image.storage');
 const { createImageToImageService } = require('./image-to-image.service');
 const { createMetisImageToImageProvider } = require('./providers/metis-image-to-image.provider');
+const { createImageToImagePromptCompiler } = require('./image-to-image-prompt-compiler');
 
-function createImageToImageRouter({ db, httpClient, noaBillingService, principalResolver, config }) {
+function createImageToImageRouter({ db, httpClient, noaBillingService, principalResolver, config, systemPromptPath, imageToImagePromptCompiler = null }) {
   const router = express.Router();
   const requirePrincipal = createRequirePrincipal(principalResolver);
   const upload = multer({ storage: multer.memoryStorage(), limits: { files: 4, fileSize: config.maxInputBytes }, fileFilter: (_req, file, callback) => callback(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) });
   const repository = createImageToImageRepository(db, { noaBillingService });
   const storage = createImageToImageStorage({ rootDirectory: config.storageDir, maxBytes: config.maxInputBytes });
-  const provider = createMetisImageToImageProvider({ httpClient, baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model, resolution: config.resolution, outputFormat: config.outputFormat, pollTimeoutMs: config.pollTimeoutMs, pollIntervalMs: config.pollIntervalSeconds * 1000, maxResultBytes: config.maxResultBytes, allowedResultHosts: config.resultAllowedHosts });
-  const service = createImageToImageService({ repository, storage, noaBillingService, config });
+  const compiler = imageToImagePromptCompiler || createImageToImagePromptCompiler({ systemPromptPath });
+  const provider = createMetisImageToImageProvider({ httpClient, baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model, resolution: config.resolution, outputFormat: config.outputFormat, maxPromptLength: config.maxPromptLength, pollTimeoutMs: config.pollTimeoutMs, pollIntervalMs: config.pollIntervalSeconds * 1000, maxResultBytes: config.maxResultBytes, allowedResultHosts: config.resultAllowedHosts });
+  const service = createImageToImageService({ repository, storage, noaBillingService, config, imageToImagePromptCompiler: compiler });
   const limiter = rateLimit({ windowMs: 60_000, max: 8, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => String(req.user?.id || req.ip) });
   const sendError = (res, error) => res.status(error?.status || 500).json({ error: error?.code || 'IMAGE_TO_IMAGE_INTERNAL_ERROR', message: error?.status ? error.message : 'خطای داخلی در ویرایش تصویر.' });
 

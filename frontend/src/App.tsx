@@ -89,6 +89,7 @@ import {
 const ImageStudio = lazy(() => import('./ImageStudio'));
 const StudioPage = lazy(() => import('./studio/StudioPage'));
 const VideoGenerationPage = lazy(() => import('./video-generation/VideoGenerationPage'));
+const SupportCenter = lazy(() => import('./support/SupportCenter'));
 
 const StudioRouteFallback = () => (
   <main className="app-route-loading" role="status" aria-live="polite">
@@ -163,7 +164,8 @@ const isKnownAppPath = (pathname: string) => (
   pathname === '/photos' ||
   pathname === '/profile' ||
   pathname === '/settings' ||
-  pathname === '/noa'
+  pathname === '/noa' ||
+  pathname === '/support'
 );
 
 const getAppViewFromPath = (pathname: string): AppView => {
@@ -173,6 +175,7 @@ const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/studio/video') return 'video';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
   if (pathname === '/noa') return 'noa';
+  if (pathname === '/support') return 'support';
   return 'chat';
 };
 const getConversationIdFromPath = (pathname: string) => {
@@ -1033,9 +1036,11 @@ function ChatApp() {
             ? '/images'
             : view === 'profile'
               ? '/profile'
-              : view === 'noa'
-                ? '/noa'
-                : '/chat';
+                : view === 'noa'
+                  ? '/noa'
+                  : view === 'support'
+                    ? '/support'
+                  : '/chat';
     if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
       if (mode === 'replace') {
         window.history.replaceState({}, '', nextPath);
@@ -1118,6 +1123,11 @@ function ChatApp() {
       return;
     }
     navigateToView('chat');
+  };
+
+  const openSupport = () => {
+    writeSessionValue('danoa:support-source-path', window.location.pathname);
+    navigateToView('support');
   };
 
   const handleOpenNoaWallet = () => {
@@ -3397,7 +3407,13 @@ notify.error(message);
         </div>
       ) : null}
 
-      <div className={`chat-card ${isEmptyConversation ? 'chat-card--empty' : ''}`}>
+      <div className={`chat-card ${isEmptyConversation ? 'chat-card--empty' : ''} ${currentView === 'support' ? 'chat-card--support' : ''}`}>
+        {profile?.id && currentView !== 'support' ? (
+          <button type="button" className="support-floating-button" onClick={openSupport} aria-label="گزارش مشکل و ارتباط با پشتیبانی">
+            <Icon name="chat-bubble" size={18} aria-hidden="true" />
+            <span>گزارش مشکل</span>
+          </button>
+        ) : null}
         {/* Warning banner for users logged in without a JWT token (pre-fix session) */}
         {!hasAuthToken && (
           <div className="auth-token-warning" style={{
@@ -3468,6 +3484,7 @@ notify.error(message);
             profile={profile}
             onOpenStudio={openStudioFromChat}
             onOpenNoaWallet={handleOpenNoaWallet}
+            onOpenSupport={openSupport}
             onOpenSettings={handleOpenSettings}
             noaBalanceText={noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ موجودی` : undefined}
             conversationSearchOpen={conversationSearchOpen}
@@ -3551,6 +3568,7 @@ notify.error(message);
           </div>
         ) : null}
         <Suspense fallback={<StudioRouteFallback />}>
+          {currentView === 'support' ? <SupportCenter onBackToChat={() => navigateToView('chat')} /> : null}
           {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
           {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} onInsufficientBalance={setInsufficientBalance} /> : null}
           {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} onInsufficientBalance={setInsufficientBalance} /> : null}

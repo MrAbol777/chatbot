@@ -3,7 +3,7 @@ import type { IconName } from '../components/Icon';
 
 export type RecordingAction = 'idle' | 'confirm' | 'cancel';
 export type LandingStep = 'landing' | 'login' | 'signup' | 'chat';
-export type AppView = 'chat' | 'studio' | 'images' | 'video' | 'profile' | 'noa';
+export type AppView = 'chat' | 'studio' | 'images' | 'video' | 'profile' | 'noa' | 'support';
 
 export type PersonalityProfile = {
   interests: string[];

@@ -10,7 +10,7 @@ function createConfiguredImageToImageRuntime({ db, httpClient, noaBillingService
   return createImageToImageRuntime({ config: runtimeConfig, logger, dependencies: {
     repository: createImageToImageRepository(db, { noaBillingService }),
     storage: createImageToImageStorage({ rootDirectory: config.storageDir, maxBytes: config.maxInputBytes }),
-    provider: createMetisImageToImageProvider({ httpClient, baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model, resolution: config.resolution, outputFormat: config.outputFormat, pollTimeoutMs: config.pollTimeoutMs, pollIntervalMs: config.pollIntervalSeconds * 1000, maxResultBytes: config.maxResultBytes, allowedResultHosts: config.resultAllowedHosts })
+    provider: createMetisImageToImageProvider({ httpClient, baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model, resolution: config.resolution, outputFormat: config.outputFormat, maxPromptLength: config.maxPromptLength, pollTimeoutMs: config.pollTimeoutMs, pollIntervalMs: config.pollIntervalSeconds * 1000, maxResultBytes: config.maxResultBytes, allowedResultHosts: config.resultAllowedHosts })
   } });
 }
 

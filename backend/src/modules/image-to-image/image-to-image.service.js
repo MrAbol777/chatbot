@@ -10,14 +10,14 @@ const digest = (value) => crypto.createHash('sha256').update(value).digest('hex'
 const dto = (job) => {
   if (!job) return null;
   const succeeded = job.status === 'succeeded' && job.result_storage_key;
-  return { id: job.id, status: job.status, prompt: job.prompt, aspectRatio: job.aspect_ratio, inputCount: job.sources?.length || 0, safeErrorCode: job.safe_error_code || null, safeErrorMessage: job.safe_error_message || null, createdAt: job.created_at, updatedAt: job.updated_at, completedAt: job.completed_at || null, result: succeeded ? { contentUrl: `/api/image-to-image/jobs/${encodeURIComponent(job.id)}/content`, mimeType: job.result_mime_type, sizeBytes: Number(job.result_size_bytes) } : null };
+  return { id: job.id, status: job.status, prompt: job.user_prompt || job.userPrompt || job.prompt, aspectRatio: job.aspect_ratio, inputCount: job.sources?.length || 0, safeErrorCode: job.safe_error_code || null, safeErrorMessage: job.safe_error_message || null, createdAt: job.created_at, updatedAt: job.updated_at, completedAt: job.completed_at || null, result: succeeded ? { contentUrl: `/api/image-to-image/jobs/${encodeURIComponent(job.id)}/content`, mimeType: job.result_mime_type, sizeBytes: Number(job.result_size_bytes) } : null };
 };
 
-function createImageToImageService({ repository, storage, noaBillingService, config }) {
+function createImageToImageService({ repository, storage, noaBillingService, config, imageToImagePromptCompiler = null }) {
   const actionKey = 'image_to_image';
   const isEnabled = () => Boolean(config?.enabled);
   return {
-    options: async () => ({ enabled: isEnabled(), provider: 'metis', model: config.model, maxInputImages: 4, pricing: await noaBillingService.quote({ actionKey, quantity: '1' }) }),
+    options: async () => ({ enabled: isEnabled(), provider: 'metis', model: config.model, maxInputImages: 4, maxPromptLength: 3000, providerPromptMaxLength: config.maxPromptLength, pricing: await noaBillingService.quote({ actionKey, quantity: '1' }) }),
     list: async (userId) => (await repository.listForUser(userId)).map(dto),
     get: async (id, userId) => dto(await repository.getForUser(id, userId)),
     getContent: async (id, userId) => repository.getForUser(id, userId),
@@ -25,6 +25,18 @@ function createImageToImageService({ repository, storage, noaBillingService, con
       if (!isEnabled()) throw imageToImageError('IMAGE_TO_IMAGE_DISABLED', 'ویرایش تصویر در حال حاضر فعال نیست.', 503);
       if (!idempotencyKey || idempotencyKey.length < 8 || idempotencyKey.length > 191) throw imageToImageError('IMAGE_TO_IMAGE_IDEMPOTENCY_REQUIRED', 'کلید یکتای درخواست لازم است.');
       const data = validateSubmit({ ...input, files });
+      if (!imageToImagePromptCompiler || typeof imageToImagePromptCompiler.compile !== 'function') throw imageToImageError('IMAGE_TO_IMAGE_PROMPT_COMPILER_UNAVAILABLE', 'سیستم آماده‌سازی درخواست ویرایش تصویر موقتاً در دسترس نیست.', 503);
+      let promptSnapshot;
+      try {
+        promptSnapshot = imageToImagePromptCompiler.compile({
+          userPrompt: data.prompt,
+          settings: { aspectRatio: data.aspectRatio, imageCount: files.length, model: config.model },
+          maxCompiledPromptLength: config.maxPromptLength
+        });
+      } catch (error) {
+        if (error?.code === 'I2I_COMPILED_PROMPT_TOO_LONG') throw imageToImageError('IMAGE_TO_IMAGE_COMPILED_PROMPT_TOO_LONG', 'مجموع قوانین و متن کامل شما از سقف مدل تصویر بیشتر است؛ متن شما بریده نشده است.', 409);
+        throw imageToImageError('IMAGE_TO_IMAGE_PROMPT_COMPILER_UNAVAILABLE', 'سیستم آماده‌سازی درخواست ویرایش تصویر موقتاً در دسترس نیست.', 503);
+      }
       const payloadHash = digest(JSON.stringify({ ...data, files: files.map((file) => digest(file.buffer)) }));
       const idempotencyHash = digest(idempotencyKey);
       const existing = await repository.findIdempotent(userId, idempotencyHash);
@@ -38,7 +50,7 @@ function createImageToImageService({ repository, storage, noaBillingService, con
         const saved = await storage.saveInput(id, index + 1, files[index]);
         sources.push({ key: saved.key, mimeType: files[index].mimetype, extension: EXTENSIONS[files[index].mimetype], sizeBytes: saved.sizeBytes, sha256: saved.sha256 });
       }
-      const job = { id, userId, provider: 'metis', model: config.model, prompt: data.prompt, aspectRatio: data.aspectRatio, sources, idempotencyHash, payloadHash, expiresAt: new Date(Date.now() + config.jobTimeoutMinutes * 60_000) };
+      const job = { id, userId, provider: 'metis', model: config.model, prompt: promptSnapshot.compiledPrompt, userPrompt: promptSnapshot.userPrompt, compiledPrompt: promptSnapshot.compiledPrompt, compiledPromptHash: promptSnapshot.compiledPromptHash, promptCompilerVersion: promptSnapshot.compilerVersion, promptSnapshot: { mode: 'direct-runtime', compilerVersion: promptSnapshot.compilerVersion, systemPromptVersion: promptSnapshot.systemPromptVersion, systemPromptHash: promptSnapshot.systemPromptHash, userPromptHash: promptSnapshot.userPromptHash, compiledPromptHash: promptSnapshot.compiledPromptHash, assemblyMode: promptSnapshot.assemblyMode, includedTiers: promptSnapshot.includedTiers, systemChars: promptSnapshot.systemChars, userChars: promptSnapshot.userChars, finalChars: promptSnapshot.finalChars, providerPromptLimit: promptSnapshot.providerPromptLimit }, aspectRatio: data.aspectRatio, sources, idempotencyHash, payloadHash, expiresAt: new Date(Date.now() + config.jobTimeoutMinutes * 60_000) };
       const created = await repository.createWithReservation({
         job,
         reservationInput: { userId, actionKey, quantity: '1', idempotencyKey: `image_to_image:${idempotencyKey}`, payloadHash, referenceType: 'image_to_image', referenceId: id, expiresAt: job.expiresAt, actorType: 'user', actorId: userId, metadata: { jobId: id, inputCount: sources.length, provider: 'metis', model: config.model } }

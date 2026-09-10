@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { createHash } = require('node:crypto');
 const { createImageToImageWorker } = require('../worker/image-to-image.worker');
 const { createMetisImageToImageProvider } = require('../providers/metis-image-to-image.provider');
 
@@ -55,4 +56,16 @@ test('uses the Metis Imagine operation for reference-image generation', async ()
   });
   await provider.submit({ prompt: 'make it blue', aspectRatio: '1:1', sources: [{ buffer: Buffer.from('source'), extension: 'png', mimeType: 'image/png' }] });
   assert.equal(requests[1].body.operation, 'Imagine');
+});
+
+test('sends the immutable compiled prompt snapshot and rejects a tampered one', async () => {
+  const submitted = [];
+  const prompt = '[SYSTEM]\nKeep the source identity.\n[USER]\nMake the shirt blue.';
+  const repository = {
+    claimDue: async () => ({ id: 'job-2', status: 'queued', prompt: 'legacy raw prompt', compiled_prompt: prompt, compiled_prompt_hash: createHash('sha256').update(prompt).digest('hex'), aspect_ratio: '1:1', sources: [{ key: 'input.png', mimeType: 'image/png' }] }),
+    markSubmitted: async () => {}, deferPoll: async () => {}, complete: async () => {}, fail: async () => { throw new Error('should not fail'); }
+  };
+  const worker = createImageToImageWorker({ repository, storage: { read: async () => Buffer.from('source') }, provider: { submit: async (request) => { submitted.push(request); return { taskId: 'task-2' }; } }, config: { leaseSeconds: 60, pollIntervalSeconds: 3 }, logger: { error: () => {} }, workerId: 'test-worker' });
+  assert.equal((await worker.tick()).action, 'submitted');
+  assert.equal(submitted[0].prompt, prompt);
 });

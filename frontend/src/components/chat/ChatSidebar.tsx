@@ -22,6 +22,7 @@ interface ChatSidebarProps {
   profile: AppProfile | null;
   onOpenStudio: () => void;
   onOpenNoaWallet: () => void;
+  onOpenSupport: () => void;
   onOpenSettings: () => void;
   noaBalanceText?: string;
   conversationSearchOpen: boolean;
@@ -57,6 +58,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   profile,
   onOpenStudio,
   onOpenNoaWallet,
+  onOpenSupport,
   onOpenSettings,
   noaBalanceText,
   conversationSearchOpen,
@@ -252,6 +254,21 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           <span>
             <strong>کیف پول نوآ</strong>
             <small>{noaBalanceText || 'مدیریت اعتبار'}</small>
+          </span>
+          <Icon name="chevron-left" size={18} aria-hidden="true" />
+        </button>
+
+        <button
+          type="button"
+          className="conversation-nav-item"
+          onClick={onOpenSupport}
+          title={!sidebarOpen ? 'مرکز پشتیبانی' : undefined}
+          aria-label="مرکز پشتیبانی"
+        >
+          <Icon name="chat-bubble" size={21} className="conversation-nav-item__icon" aria-hidden="true" />
+          <span>
+            <strong>مرکز پشتیبانی</strong>
+            <small>گزارش مشکل و ارتباط با ما</small>
           </span>
           <Icon name="chevron-left" size={18} aria-hidden="true" />
         </button>

@@ -391,7 +391,8 @@ export type AdminTab =
   | 'siteSettings'
   | 'supervisedOtp'
   | 'config'
-  | 'audit';
+  | 'audit'
+  | 'support';
 
 export type ReportUserScope = 'all' | 'selected';
 export type ReportFormat = 'csv' | 'txt';
@@ -418,7 +419,8 @@ export const TAB_LABELS: Record<AdminTab, string> = {
   siteSettings: 'تنظیمات سایت',
   supervisedOtp: 'رمز نظارتی',
   config: 'تنظیمات سیستم',
-  audit: 'گزارش و ممیزی'
+  audit: 'گزارش و ممیزی',
+  support: 'پشتیبانی کاربران'
 };
 
 export const TAB_ICONS: Record<AdminTab, IconName> = {
@@ -435,7 +437,8 @@ export const TAB_ICONS: Record<AdminTab, IconName> = {
   siteSettings: 'settings',
   supervisedOtp: 'login',
   config: 'settings',
-  audit: 'book'
+  audit: 'book',
+  support: 'chat-bubble'
 };
 
 export const TAB_DESCRIPTIONS: Record<AdminTab, string> = {
@@ -452,7 +455,8 @@ export const TAB_DESCRIPTIONS: Record<AdminTab, string> = {
   siteSettings: 'کنترل تنظیمات عمومی و تجربهٔ کاربری سایت',
   supervisedOtp: 'مدیریت دسترسی نظارتی موقت و محدود',
   config: 'تنظیمات runtime، مدل‌ها، تاریخچه و دستورهای پایهٔ سامانه',
-  audit: 'دریافت گزارش و مرور رویدادهای مدیریتی'
+  audit: 'دریافت گزارش و مرور رویدادهای مدیریتی',
+  support: 'مشاهده گزارش خطاها و پاسخ‌گویی مستقیم به کاربران'
 };
 
 export const TAB_GROUPS: Array<{ label: string; items: AdminTab[] }> = [
@@ -460,7 +464,8 @@ export const TAB_GROUPS: Array<{ label: string; items: AdminTab[] }> = [
   { label: 'محصول و کاربران', items: ['users', 'broadcastMessages', 'moderation', 'imageGenerations', 'videoGenerations'] },
   { label: 'نوآ و پرداخت', items: ['noaFinance'] },
   { label: 'هوش مصنوعی', items: ['aiRouting', 'videoPromptProfiles'] },
-  { label: 'سیستم و امنیت', items: ['errors', 'siteSettings', 'supervisedOtp', 'config', 'audit'] }
+  { label: 'سیستم و امنیت', items: ['errors', 'siteSettings', 'supervisedOtp', 'config', 'audit'] },
+  { label: 'ارتباط با کاربران', items: ['support'] }
 ];
 
 export const ROLE_ALLOWED_TABS: Record<AdminRole, AdminTab[]> = {
@@ -507,7 +512,7 @@ export const ROLE_ALLOWED_TABS: Record<AdminRole, AdminTab[]> = {
     'config',
     'audit'
   ],
-  support: ['dashboard', 'users', 'broadcastMessages', 'errors']
+  support: ['dashboard', 'users', 'broadcastMessages', 'errors', 'support']
 };
 
 export const handleAdminResponse = async (

@@ -5,7 +5,7 @@ const { imageToImageError } = require('../image-to-image.errors');
 
 const MIME_BY_EXTENSION = Object.freeze({ jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' });
 
-function createMetisImageToImageProvider({ httpClient, baseUrl = 'https://api.metisai.ir', apiKey, model = 'nano-banana', resolution = '1K', outputFormat = 'jpg', pollTimeoutMs = 120_000, pollIntervalMs = 2_000, maxResultBytes = 10 * 1024 * 1024, allowedResultHosts = [] }) {
+function createMetisImageToImageProvider({ httpClient, baseUrl = 'https://api.metisai.ir', apiKey, model = 'nano-banana', resolution = '1K', outputFormat = 'jpg', maxPromptLength = 8000, pollTimeoutMs = 120_000, pollIntervalMs = 2_000, maxResultBytes = 10 * 1024 * 1024, allowedResultHosts = [] }) {
   const rootUrl = String(baseUrl).replace(/\/+$/, '');
   const resultHosts = new Set(allowedResultHosts.map((host) => String(host).trim().toLowerCase()).filter(Boolean));
   const requestHeaders = () => ({ Authorization: `Bearer ${apiKey}` });
@@ -28,6 +28,7 @@ function createMetisImageToImageProvider({ httpClient, baseUrl = 'https://api.me
     key: 'metis',
     async submit({ prompt, aspectRatio, sources }) {
       if (!apiKey) throw imageToImageError('IMAGE_TO_IMAGE_PROVIDER_NOT_CONFIGURED', 'کلید سرویس تصویر تنظیم نشده است.', 503);
+      if (!String(prompt || '').trim() || String(prompt).length > Number(maxPromptLength)) throw imageToImageError('IMAGE_TO_IMAGE_COMPILED_PROMPT_TOO_LONG', 'متن نهایی ویرایش تصویر از سقف مدل بیشتر است.', 409);
       try {
         const imageInput = [];
         for (let index = 0; index < sources.length; index += 1) imageInput.push(await upload(sources[index], index));

@@ -13,6 +13,7 @@ const { InputOptimizationRepository } = require('./InputOptimizationRepository')
 const { MonitoringRepository } = require('./MonitoringRepository');
 const AdminRepository = require('./AdminRepository');
 const { createBroadcastMessagesRepository } = require('../modules/broadcast-messages/broadcast-messages.repository');
+const { SupportRepository } = require('../modules/support/support.repository');
 
 function createRepositories() {
   const db = new DatabaseClient({
@@ -37,6 +38,7 @@ function createRepositories() {
   const monitoring = new MonitoringRepository(db);
   const admins = new AdminRepository(db);
   const broadcastMessages = createBroadcastMessagesRepository(db);
+  const support = new SupportRepository(db);
 
   return {
     db,
@@ -52,7 +54,8 @@ function createRepositories() {
     monitoring,
     supervisedOtp,
     admins,
-    broadcastMessages
+    broadcastMessages,
+    support
   };
 }
 

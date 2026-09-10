@@ -111,6 +111,7 @@
 | `BANANAAI_REQUEST_TIMEOUT_MS` | timeout ثبت async در BananaAI؛ پیش‌فرض `10000` (با یک retry امن، حداکثر حدود ۲۰ ثانیه) |
 | `BANANAAI_T2V_MAX_PROMPT_LENGTH` | بودجه داخلی Prompt نهایی متن‌به‌ویدیو (قوانین فشرده + متن کامل کاربر)؛ پیش‌فرض `8000` |
 | `BANANAAI_I2V_MAX_PROMPT_LENGTH` | سقف مستقل Prompt در مسیر تصویر‌به‌ویدیو؛ پیش‌فرض `2000` |
+| `IMAGE_TO_IMAGE_MAX_PROMPT_LENGTH` | سقف متن نهایی ارسال‌شده به سرویس ویرایش تصویر؛ پیش‌فرض `8000` |
 | `T2V_SYSTEM_PROMPT_VERSION` | نسخه فایل قوانین مستقیم که در Snapshot داخلی Job ثبت می‌شود |
 | `VIDEO_GENERATION_WORKER_MODE` | embedded یا disabled |
 | `VIDEO_GENERATION_WORKER_ENABLED` | فعال‌سازی worker |

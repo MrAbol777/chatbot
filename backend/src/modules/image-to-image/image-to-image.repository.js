@@ -22,9 +22,9 @@ function createImageToImageRepository(db, { noaBillingService }) {
         const reservation = await noaBillingService.reserve(reservationInput, { connection });
         await connection.query(
           `INSERT INTO app_image_to_image_jobs
-           (id,user_id,status,provider,model,prompt,aspect_ratio,sources,idempotency_key_hash,payload_hash,noa_reservation_id,expires_at,next_poll_at,created_at,updated_at)
-           VALUES (?,?, 'queued',?,?,?,?,?,?,?, ?, ?,NOW(),NOW(),NOW())`,
-          [job.id, job.userId, job.provider, job.model, job.prompt, job.aspectRatio, JSON.stringify(job.sources), job.idempotencyHash, job.payloadHash, reservation.reservationId, job.expiresAt]
+           (id,user_id,status,provider,model,prompt,user_prompt,compiled_prompt,compiled_prompt_hash,prompt_compiler_version,prompt_snapshot,aspect_ratio,sources,idempotency_key_hash,payload_hash,noa_reservation_id,expires_at,next_poll_at,created_at,updated_at)
+           VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())`,
+          [job.id, job.userId, job.provider, job.model, job.prompt, job.userPrompt, job.compiledPrompt, job.compiledPromptHash, job.promptCompilerVersion, JSON.stringify(job.promptSnapshot), job.aspectRatio, JSON.stringify(job.sources), job.idempotencyHash, job.payloadHash, reservation.reservationId, job.expiresAt]
         );
         return this.getForUser(job.id, job.userId, connection);
       });

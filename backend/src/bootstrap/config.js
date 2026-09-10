@@ -121,6 +121,7 @@ function loadRuntimeConfig(env = process.env) {
   const adminConfigPath = path.join(__dirname, '../../config.json');
   const systemPromptPath = path.join(__dirname, '../../system-prompt.txt');
   const textToVideoSystemPromptPath = path.join(__dirname, '../../../docs/video-prompts/text-to-video-system-prompt.txt');
+  const imageToImageSystemPromptPath = path.join(__dirname, '../../../docs/video-prompts/image-to-image-system-prompt.txt');
   const frontendDistPath = path.join(__dirname, '../../../frontend/dist');
   const defaultImageStorageDir =
     env.NODE_ENV === 'production'
@@ -242,6 +243,7 @@ function loadRuntimeConfig(env = process.env) {
       model: env.IMAGE_TO_IMAGE_MODEL || 'nano-banana',
       resolution: env.IMAGE_TO_IMAGE_RESOLUTION || '1K',
       outputFormat: env.IMAGE_TO_IMAGE_OUTPUT_FORMAT || 'jpg',
+      maxPromptLength: positiveNumber(env.IMAGE_TO_IMAGE_MAX_PROMPT_LENGTH, 8000, 256),
       storageDir: normalizePathValue(env.IMAGE_TO_IMAGE_STORAGE_DIR, defaultImageToImageStorageDir),
       maxInputBytes: positiveNumber(env.IMAGE_TO_IMAGE_MAX_INPUT_MB, 10) * 1024 * 1024,
       maxResultBytes: positiveNumber(env.IMAGE_TO_IMAGE_MAX_RESULT_MB, 10) * 1024 * 1024,
@@ -364,6 +366,7 @@ function loadRuntimeConfig(env = process.env) {
     adminConfigPath,
     systemPromptPath,
     textToVideoSystemPromptPath,
+    imageToImageSystemPromptPath,
     frontendDistPath
   };
 }

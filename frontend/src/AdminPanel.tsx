@@ -26,6 +26,7 @@ import SiteSettingsTab from './admin/settings/SiteSettingsTab';
 import SupervisedOtpTab from './admin/supervised-otp/SupervisedOtpTab';
 import ConfigTab from './admin/config/ConfigTab';
 import AuditTab from './admin/audit/AuditTab';
+import SupportTab from './admin/support/SupportTab';
 import './admin/AdminPanel.css';
 
 const ROLE_DISPLAY_NAMES: Record<AdminRole, string> = {
@@ -209,6 +210,8 @@ export default function AdminPanel() {
                 onClearSelectedReportUsers={() => setSelectedReportUserIds([])}
               />
             ) : null}
+
+            {tab === 'support' ? <SupportTab /> : null}
           </section>
         </main>
       </div>
