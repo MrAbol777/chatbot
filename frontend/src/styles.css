@@ -139,6 +139,63 @@ button {
   touch-action: manipulation;
 }
 
+/* Shown only after a reportable runtime error; it stays out of the default chat UI. */
+.support-launcher {
+  position: fixed;
+  left: max(20px, env(safe-area-inset-left, 0px));
+  bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  z-index: var(--z-sticky);
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-primary) 26%, transparent), 0 2px 6px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--motion-ease-standard), box-shadow var(--motion-fast) var(--motion-ease-standard), background-color var(--motion-fast) var(--motion-ease-standard);
+}
+
+.support-launcher:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--color-primary) 88%, #000);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--color-primary) 30%, transparent), 0 3px 8px rgba(15, 23, 42, 0.13);
+}
+
+.support-launcher:active { transform: scale(0.96); }
+
+.support-launcher:focus-visible {
+  outline: 3px solid var(--color-focus-ring-soft);
+  outline-offset: 3px;
+}
+
+.support-launcher__indicator {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--color-surface-2);
+  border-radius: 50%;
+  background: var(--color-danger);
+}
+
+@media (max-width: 600px) {
+  .support-launcher {
+    left: max(14px, env(safe-area-inset-left, 0px));
+    bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 72px));
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .support-launcher { transition: none; }
+}
+
 input,
 select,
 textarea {

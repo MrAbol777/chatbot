@@ -6,7 +6,13 @@ type Props = {
 };
 
 function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
-  return toolId === 'image' ? (
+  return toolId === 'story' ? (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 5.5h9.5A2.5 2.5 0 0 1 18 8v10.5H7.7A2.7 2.7 0 0 1 5 15.8V6.5c0-.6.4-1 1-1Z" />
+      <path d="M8 9h6M8 12h7M8 15h4" />
+      <path d="m18.1 4.3.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7.7-1.9Z" />
+    </svg>
+  ) : toolId === 'image' ? (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
       <path d="m6.5 16 3.8-4 2.8 2.8 1.6-1.7 2.8 2.9M15.8 9h.01" />
@@ -20,7 +26,11 @@ function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
 }
 
 export default function StudioToolCard({ tool, onOpen }: Props) {
-  const isImage = tool.id === 'image';
+  const toolMeta = tool.id === 'story'
+    ? { type: 'داستان‌پردازی', index: '01' }
+    : tool.id === 'image'
+      ? { type: 'خلق تصویر', index: '02' }
+      : { type: 'خلق ویدیو', index: '03' };
 
   return (
     <button
@@ -30,8 +40,8 @@ export default function StudioToolCard({ tool, onOpen }: Props) {
       aria-label={`${tool.actionLabel}: ${tool.title}`}
     >
       <div className="studio-tool-card__topline" aria-hidden="true">
-        <span className="studio-tool-card__type">{isImage ? 'خلق تصویر' : 'خلق ویدیو'}</span>
-        <span className="studio-tool-card__index">{isImage ? '01' : '02'}</span>
+        <span className="studio-tool-card__type">{toolMeta.type}</span>
+        <span className="studio-tool-card__index">{toolMeta.index}</span>
       </div>
       <div className={`studio-tool-card__icon studio-tool-card__icon--${tool.id}`}>
         <ToolIcon toolId={tool.id} />

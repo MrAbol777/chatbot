@@ -1,5 +1,5 @@
 export type StudioTool = {
-  id: 'image' | 'video';
+  id: 'story' | 'image' | 'video';
   title: string;
   description: string;
   actionLabel: string;

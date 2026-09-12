@@ -1,0 +1,277 @@
+{
+  "runId": "20260912-live",
+  "target": "https://danoa.ir",
+  "phone": "09970000001",
+  "executeLive": true,
+  "startedAt": "2026-09-12T06:42:29.979Z",
+  "preflight": {
+    "login": {
+      "status": 200,
+      "ok": true,
+      "latencyMs": 196.2,
+      "data": {
+        "success": true,
+        "isNewUser": false,
+        "requiresProfile": false,
+        "userId": "loadtest-20260911-0001",
+        "profile": {
+          "name": "Load Test 1",
+          "age": 18
+        },
+        "child": {
+          "id": "loadtest-20260911-0001",
+          "name": "Load Test 1",
+          "age": 18,
+          "avatar": null,
+          "grade": null,
+          "safetyLevel": "standard"
+        }
+      }
+    },
+    "wallet": {
+      "status": 200,
+      "ok": true,
+      "latencyMs": 85.1,
+      "data": {
+        "walletId": "21389",
+        "userId": "loadtest-20260911-0001",
+        "currency": "NOA",
+        "balanceNoa": "10.000000",
+        "availableNoa": "10.000000",
+        "availableBalanceNoa": "10.000000",
+        "reservedNoa": "0.000000",
+        "reservedBalanceNoa": "0.000000",
+        "totalNoa": "10.000000",
+        "version": 1,
+        "updatedAt": "2026-09-12T06:41:59.542Z",
+        "exchangeRate": {
+          "settingKey": "toman_per_noa",
+          "tomanPerNoa": "2000.000000",
+          "fiatCurrency": "TOMAN",
+          "version": 6,
+          "updatedByAdminId": "1",
+          "updatedAt": "2026-08-23T20:53:55.455Z"
+        }
+      }
+    },
+    "upstream": {
+      "status": 200,
+      "ok": true,
+      "latencyMs": 76,
+      "data": {
+        "ok": true,
+        "ready": true,
+        "liveProbe": false,
+        "code": "UPSTREAM_CONFIGURED",
+        "message": "تنظیمات اتصال به Provider آماده است؛ بررسی زنده انجام نشده است."
+      }
+    },
+    "videoHealth": {
+      "status": 200,
+      "ok": true,
+      "latencyMs": 82.3,
+      "data": {
+        "ok": true,
+        "featureEnabled": true,
+        "worker": {
+          "enabled": true,
+          "mode": "embedded",
+          "state": "idle"
+        },
+        "activeLeases": 0,
+        "queueCount": 0,
+        "processingCount": 0,
+        "storingCount": 0,
+        "recentFailedCount": 238,
+        "storageWritable": true
+      }
+    },
+    "videoOptions": {
+      "status": 200,
+      "ok": true,
+      "latencyMs": 92.6,
+      "data": {
+        "enabled": true,
+        "models": [],
+        "capabilities": {
+          "video.text_to_video": {
+            "allowedAspectRatios": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "allowedDurations": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15"
+            ],
+            "allowedQualities": [],
+            "allowedResolutions": [
+              "480p"
+            ],
+            "maxPromptLength": 1200,
+            "supportsNegativePrompt": false,
+            "supportsAudio": false
+          },
+          "video.image_to_video": {
+            "allowedAspectRatios": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "allowedDurations": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15"
+            ],
+            "allowedQualities": [],
+            "allowedResolutions": [
+              "480p"
+            ],
+            "maxPromptLength": 1200,
+            "supportsNegativePrompt": false,
+            "supportsAudio": false
+          }
+        },
+        "readiness": {
+          "video.text_to_video": {
+            "available": true,
+            "providerKey": "bananaai",
+            "gateCode": null
+          },
+          "video.image_to_video": {
+            "available": true,
+            "providerKey": "bananaai",
+            "gateCode": null
+          }
+        },
+        "promptProfiles": [
+          {
+            "id": "video-prompt-profile-cinematic",
+            "profileKey": "cinematic",
+            "displayName": "واقعی و سینمایی",
+            "publicDescription": "مناسب عکس‌های واقعی، افراد، محصولات و صحنه‌هایی با حرکت طبیعی و دوربین سینمایی",
+            "visualKey": "cinematic-frame",
+            "active": true,
+            "public": true,
+            "displayOrder": 10,
+            "currentVersionId": "video-prompt-profile-cinematic-v1",
+            "currentVersion": 1,
+            "checksum": "46da2554e4183f239473390dfe3c4af4321690e9a9a0ad55d7cb9079cd6ec9ec",
+            "version": 1,
+            "updatedAt": "2026-07-24T10:09:45.000Z"
+          },
+          {
+            "id": "video-prompt-profile-animation",
+            "profileKey": "animation",
+            "displayName": "انیمیشنی",
+            "publicDescription": "مناسب تصاویر کارتونی، انیمه، سه‌بعدی و شخصیت‌های طراحی‌شده",
+            "visualKey": "animation-frame",
+            "active": true,
+            "public": true,
+            "displayOrder": 20,
+            "currentVersionId": "video-prompt-profile-animation-v1",
+            "currentVersion": 1,
+            "checksum": "065b60d260d37c8b2eda12f1d1c63c82d9c70cc9dc007fb420608a42271f6752",
+            "version": 1,
+            "updatedAt": "2026-07-24T10:09:45.000Z"
+          }
+        ],
+        "pricing": {
+          "actionKey": "video_generation",
+          "unit": "second",
+          "quantity": "1.000000",
+          "unitPriceNoa": "3.000000",
+          "amountNoa": "3.000000",
+          "pricingVersion": 5
+        }
+      }
+    }
+  },
+  "tests": {
+    "chat": {
+      "status": 200,
+      "ok": false,
+      "totalMs": 1510,
+      "firstOutputMs": null,
+      "eventTypes": [
+        "meta",
+        "title",
+        "error"
+      ],
+      "replyChars": 0,
+      "error": "INVALID_CONVERSATION_ID",
+      "conversationId": "e2e-20260912-live"
+    },
+    "image": {
+      "start": {
+        "status": 402,
+        "ok": false,
+        "latencyMs": 62.2,
+        "data": {
+          "success": false,
+          "error": "NOA_INSUFFICIENT_FUNDS",
+          "message": "موجودی نوآ برای ساخت تصویر کافی نیست.",
+          "balanceNoa": "10.000000",
+          "requiredNoa": "20.000000",
+          "shortfallNoa": "10.000000"
+        }
+      }
+    },
+    "video": {
+      "start": {
+        "status": 202,
+        "ok": true,
+        "latencyMs": 43,
+        "data": {
+          "generationId": "f7cd4fa1-bbca-4e58-aea7-4a7a87498883",
+          "status": "queued",
+          "noaReservationId": "1baf2fab-8990-4336-bf2f-4393d26837f4",
+          "costNoa": "3.000000",
+          "unitPriceNoa": "3.000000",
+          "durationSeconds": "1",
+          "createdAt": "2026-09-12T06:42:32.633Z"
+        }
+      },
+      "result": {
+        "terminal": "failed",
+        "totalMs": 5088.7,
+        "result": null,
+        "safeErrorCode": "VIDEO_PROVIDER_CONFIRMED_REJECTION",
+        "safeErrorMessage": "سرویس ساخت ویدیو با خطا مواجه شد.",
+        "polls": [
+          {
+            "atMs": 5088.7,
+            "status": "failed",
+            "httpStatus": 200
+          }
+        ]
+      }
+    }
+  },
+  "finishedAt": "2026-09-12T06:42:36.980Z"
+}

@@ -1,0 +1,70 @@
+{
+  "runId": "20260911-production",
+  "target": "https://danoa.ir",
+  "startedAt": "2026-09-11T15:20:46.318Z",
+  "requestTimeoutMs": 15000,
+  "stages": [
+    {
+      "concurrency": 100,
+      "tokensReceived": 99,
+      "login": {
+        "name": "otp_login",
+        "requests": 100,
+        "successful": 99,
+        "failed": 1,
+        "errorRate": 0.01,
+        "latencyMs": {
+          "min": 636.7,
+          "p50": 1034.7,
+          "p95": 1444.3,
+          "p99": 1465.6,
+          "max": 1466.1
+        },
+        "burstThroughputRps": 68.21,
+        "statusCounts": {
+          "200": 99,
+          "404": 1
+        }
+      },
+      "session": {
+        "name": "authenticated_session",
+        "requests": 99,
+        "successful": 99,
+        "failed": 0,
+        "errorRate": 0,
+        "latencyMs": {
+          "min": 85,
+          "p50": 296,
+          "p95": 484.2,
+          "p99": 495.5,
+          "max": 495.5
+        },
+        "burstThroughputRps": 199.78,
+        "statusCounts": {
+          "200": 99
+        }
+      },
+      "conversations": {
+        "name": "conversations_load",
+        "requests": 99,
+        "successful": 99,
+        "failed": 0,
+        "errorRate": 0,
+        "latencyMs": {
+          "min": 105.1,
+          "p50": 345.5,
+          "p95": 536.5,
+          "p99": 552.7,
+          "max": 552.7
+        },
+        "burstThroughputRps": 179.11,
+        "statusCounts": {
+          "200": 99
+        }
+      }
+    }
+  ],
+  "stoppedEarly": true,
+  "stopReason": "Only 99/100 login tokens were issued.",
+  "finishedAt": "2026-09-11T15:20:48.891Z"
+}

@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '../../components/Icon';
 import Button from './Button';
 
@@ -12,18 +13,25 @@ type Props = {
   onConfirm?: () => void;
   showFooter?: boolean;
   panelClassName?: string;
+  dismissible?: boolean;
+  closeLabel?: string;
 };
 
-function Dialog({ open, title, onClose, children, confirmText, cancelText = 'انصراف', onConfirm, showFooter = true, panelClassName = '' }: Props) {
+function Dialog({ open, title, onClose, children, confirmText, cancelText = 'انصراف', onConfirm, showFooter = true, panelClassName = '', dismissible = true, closeLabel = 'بستن پنجره' }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
+
+  // Dialog consumers commonly pass an inline callback. Keep the latest callback
+  // without treating each parent render as a dialog close/reopen cycle.
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && dismissible) onCloseRef.current();
       if (event.key === 'Tab' && panelRef.current) {
         const focusables = panelRef.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
         if (!focusables.length) return;
@@ -43,7 +51,7 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'ا�
       document.removeEventListener('keydown', onKeyDown);
       previousFocusRef.current?.focus();
     };
-  }, [open, onClose]);
+  }, [dismissible, open]);
 
   useEffect(() => {
     if (!open || !panelRef.current) return;
@@ -62,20 +70,21 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'ا�
 
   if (!open) return null;
 
-  return (
-    <div className="ds-dialog-overlay" role="presentation" onClick={onClose}>
+  const dialog = (
+    <div className="ds-dialog-overlay" role="presentation" onClick={dismissible ? onClose : undefined}>
       <div className={`ds-dialog-panel ${panelClassName}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(event) => event.stopPropagation()} ref={panelRef}>
         <div className="ds-dialog-header">
           <h2 id={titleId}>{title}</h2>
-          <Button
+          {dismissible ? <Button
             type="button"
             variant="ghost"
             iconOnly
             startIcon={<Icon name="x-close" size={20} aria-hidden="true" />}
             className="ds-dialog-close"
-            aria-label="بستن پنجره"
+            aria-label={closeLabel}
+            title={closeLabel}
             onClick={onClose}
-          />
+          /> : null}
         </div>
         {children}
         {showFooter ? (
@@ -87,6 +96,9 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'ا�
       </div>
     </div>
   );
+
+  const mountTarget = document.getElementById('modal-root') || document.body;
+  return createPortal(dialog, mountTarget);
 }
 
 export default Dialog;

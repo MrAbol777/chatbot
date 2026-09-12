@@ -32,8 +32,21 @@ export type SupportTicket = {
 
 type ApiResponse = { item?: SupportTicket; items?: SupportTicket[]; message?: string; error?: string };
 
+function authHeaders(): HeadersInit {
+  try {
+    const token = localStorage.getItem('chat_auth_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function request(path: string, init: RequestInit = {}): Promise<ApiResponse> {
-  const response = await fetch(path, { ...init, credentials: 'include', headers: { 'Content-Type': 'application/json', ...(init.headers || {}) } });
+  const response = await fetch(path, {
+    ...init,
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(init.headers || {}) }
+  });
   const payload = (await response.json().catch(() => ({}))) as ApiResponse;
   if (!response.ok) throw new Error(payload.message || payload.error || 'ارتباط با مرکز پشتیبانی برقرار نشد.');
   return payload;

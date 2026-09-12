@@ -88,6 +88,7 @@ import {
 
 const ImageStudio = lazy(() => import('./ImageStudio'));
 const StudioPage = lazy(() => import('./studio/StudioPage'));
+const StoryMakerPage = lazy(() => import('./story-maker/StoryMakerPage'));
 const VideoGenerationPage = lazy(() => import('./video-generation/VideoGenerationPage'));
 const SupportCenter = lazy(() => import('./support/SupportCenter'));
 
@@ -157,6 +158,7 @@ const isKnownAppPath = (pathname: string) => (
   pathname === '/chat' ||
   /^\/c\/[^/]+$/.test(pathname) ||
   pathname === '/studio' ||
+  pathname === '/studio/story' ||
   pathname === '/studio/image' ||
   pathname === '/studio/video' ||
   pathname === '/images' ||
@@ -171,6 +173,7 @@ const isKnownAppPath = (pathname: string) => (
 const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
   if (pathname === '/studio') return 'studio';
+  if (pathname === '/studio/story') return 'story';
   if (pathname === '/studio/image' || pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/studio/video') return 'video';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
@@ -653,6 +656,7 @@ function ChatApp() {
  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
  const [imageGenStatus, setImageGenStatus] = useState<string>('');
  const [imageGenError, setImageGenError] = useState<string>('');
+ const [supportIssue, setSupportIssue] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const [insufficientBalance, setInsufficientBalance] = useState<InsufficientBalanceDetails | null>(null);
  const [publicSettings, setPublicSettings] = useState<PublicSettings>(PUBLIC_SETTINGS_DEFAULTS);
@@ -1030,6 +1034,8 @@ function ChatApp() {
   const navigateToView = (view: AppView, mode: 'push' | 'replace' = 'push') => {
     const nextPath = view === 'studio'
         ? '/studio'
+        : view === 'story'
+          ? '/studio/story'
         : view === 'video'
           ? '/studio/video'
           : view === 'images'
@@ -1125,8 +1131,18 @@ function ChatApp() {
     navigateToView('chat');
   };
 
+  const openStoryMaker = () => {
+    window.history.pushState({}, '', '/studio/story');
+    startTransition(() => {
+      setCurrentView('story');
+      setSidebarOpen(false);
+    });
+  };
+
   const openSupport = () => {
     writeSessionValue('danoa:support-source-path', window.location.pathname);
+    if (supportIssue) writeSessionValue('danoa:support-issue-summary', supportIssue);
+    setSupportIssue(null);
     navigateToView('support');
   };
 
@@ -1813,6 +1829,7 @@ function ChatApp() {
             images: undefined
           });
           notify.error(errorMessage);
+          setSupportIssue(errorMessage);
           return;
         }
 
@@ -1829,6 +1846,7 @@ function ChatApp() {
         content: 'ساخت تصویر بیش از حد طول کشید. دوباره امتحان کن.',
         status: 'ERROR'
       });
+      setSupportIssue('ساخت تصویر بیش از حد طول کشید. دوباره امتحان کن.');
     } finally {
       imageTaskPollingRef.current.delete(key);
     }
@@ -2162,7 +2180,9 @@ function ChatApp() {
           updateConversation(retryPayload.conversationId, (item) => ({ ...item, title: event.title!.trim() }));
         } else if (event.type === 'error') {
           animator.cancel();
-          patchAssistant({ streamStatus: 'failed', streamError: event.message || 'دریافت پاسخ ناموفق بود.' });
+          const message = event.message || 'دریافت پاسخ ناموفق بود.';
+          patchAssistant({ streamStatus: 'failed', streamError: message });
+          setSupportIssue(message);
         }
       });
     } catch (error) {
@@ -2177,7 +2197,9 @@ function ChatApp() {
         if (active?.stoppedByUser) return { kind: 'cancelled' as const };
       } else {
         animator.cancel();
-        patchAssistant({ streamStatus: 'failed', streamError: error instanceof Error ? error.message : 'دریافت پاسخ ناموفق بود.' });
+        const message = error instanceof Error ? error.message : 'دریافت پاسخ ناموفق بود.';
+        patchAssistant({ streamStatus: 'failed', streamError: message });
+        setSupportIssue(message);
       }
       if (error instanceof Error) (error as Error & { streamHandled?: boolean }).streamHandled = true;
       throw error;
@@ -2582,6 +2604,7 @@ function ChatApp() {
       } else {
         notify.error(toastMessage);
       }
+      setSupportIssue(toastMessage);
 
       updateConversation(currentConversation.id, (item) => ({
         ...item,
@@ -2705,6 +2728,7 @@ function ChatApp() {
         )
       );
       notify.error('آپلود تصویر ناموفق. لطفاً دوباره تلاش کنید.');
+      setSupportIssue('آپلود تصویر ناموفق. لطفاً دوباره تلاش کنید.');
     }
   };
 
@@ -3013,6 +3037,7 @@ notify.error('لطفاً توضیح عکس را بنویس');
        updatedAt: new Date().toISOString()
      }));
 notify.error(message);
+    setSupportIssue(message);
     } finally {
       setIsGeneratingImage(false);
      setImageGenStatus('');
@@ -3408,10 +3433,16 @@ notify.error(message);
       ) : null}
 
       <div className={`chat-card ${isEmptyConversation ? 'chat-card--empty' : ''} ${currentView === 'support' ? 'chat-card--support' : ''}`}>
-        {profile?.id && currentView !== 'support' ? (
-          <button type="button" className="support-floating-button" onClick={openSupport} aria-label="گزارش مشکل و ارتباط با پشتیبانی">
-            <Icon name="chat-bubble" size={18} aria-hidden="true" />
-            <span>گزارش مشکل</span>
+        {profile?.id && currentView !== 'support' && supportIssue ? (
+          <button
+            type="button"
+            className="support-launcher"
+            onClick={openSupport}
+            aria-label="گزارش مشکل اخیر برای پشتیبانی"
+            title="گزارش این مشکل"
+          >
+            <Icon name="alert-triangle" size={19} aria-hidden="true" />
+            <span className="support-launcher__indicator" aria-hidden="true" />
           </button>
         ) : null}
         {/* Warning banner for users logged in without a JWT token (pre-fix session) */}
@@ -3569,7 +3600,8 @@ notify.error(message);
         ) : null}
         <Suspense fallback={<StudioRouteFallback />}>
           {currentView === 'support' ? <SupportCenter onBackToChat={() => navigateToView('chat')} /> : null}
-          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
+          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenStory={openStoryMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
+          {currentView === 'story' ? <StoryMakerPage onBack={returnToStudio} /> : null}
           {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} onInsufficientBalance={setInsufficientBalance} /> : null}
           {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} onInsufficientBalance={setInsufficientBalance} /> : null}
         </Suspense>
@@ -4026,58 +4058,33 @@ notify.error(message);
                 <p className="danoa-hero-subtitle">دانوآ، دستیار هوشمند شما برای یادگیری، خلق محتوا و تصمیم‌گیری بهتر.</p>
               </div>
 
-              <div className="danoa-shortcuts-row" role="region" aria-label="میانبرهای اصلی دانوآ">
-                <button
-                  type="button"
-                  className="danoa-shortcut-card"
-                  onClick={openImageStudioFromStudio}
-                >
-                  <div className="danoa-shortcut-icon danoa-shortcut-icon--image">
-                    <Icon name="studio-image" size={20} />
-                  </div>
-                  <div className="danoa-shortcut-text">
-                    <strong className="danoa-shortcut-title">ساخت تصویر</strong>
-                    <span className="danoa-shortcut-desc">خلق تصاویر از متن و ایده‌های شما</span>
-                  </div>
-                  <div className="danoa-shortcut-arrow">
-                    <Icon name="chevron-left" size={15} />
-                  </div>
-                </button>
+              <section className="danoa-shortcuts-section" aria-label="ابزارهای خلاق دانوآ">
+                <div className="danoa-shortcuts-row">
+                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--story" onClick={openStoryMaker}>
+                    <div className="danoa-shortcut-icon danoa-shortcut-icon--story"><Icon name="story" size={20} /></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">سناریو نویسی ( داستان من )</strong><span className="danoa-shortcut-desc">یک ایده بده؛ سناریوی داستانی‌ات را بساز</span></div>
+                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+                  </button>
 
-                <button
-                  type="button"
-                  className="danoa-shortcut-card"
-                  onClick={openVideoStudio}
-                >
-                  <div className="danoa-shortcut-icon danoa-shortcut-icon--video">
-                    <Icon name="studio-video" size={20} />
-                  </div>
-                  <div className="danoa-shortcut-text">
-                    <strong className="danoa-shortcut-title">ساخت ویدیو</strong>
-                    <span className="danoa-shortcut-desc">تبدیل ایده‌ها به ویدیوهای جذاب</span>
-                  </div>
-                  <div className="danoa-shortcut-arrow">
-                    <Icon name="chevron-left" size={15} />
-                  </div>
-                </button>
+                  <button type="button" className="danoa-shortcut-card" onClick={openImageStudioFromStudio}>
+                    <div className="danoa-shortcut-icon danoa-shortcut-icon--image"><Icon name="studio-image" size={20} /></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت تصویر</strong><span className="danoa-shortcut-desc">خلق تصاویر از متن و ایده‌های شما</span></div>
+                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+                  </button>
 
-                <button
-                  type="button"
-                  className="danoa-shortcut-card"
-                  onClick={openStudioFromChat}
-                >
-                  <div className="danoa-shortcut-icon danoa-shortcut-icon--tools">
-                    <Icon name="briefcase" size={20} />
-                  </div>
-                  <div className="danoa-shortcut-text">
-                    <strong className="danoa-shortcut-title">ابزارها</strong>
-                    <span className="danoa-shortcut-desc">ابزارهای کاربردی برای کارهای روزمره</span>
-                  </div>
-                  <div className="danoa-shortcut-arrow">
-                    <Icon name="chevron-left" size={15} />
-                  </div>
-                </button>
-              </div>
+                  <button type="button" className="danoa-shortcut-card" onClick={openVideoStudio}>
+                    <div className="danoa-shortcut-icon danoa-shortcut-icon--video"><Icon name="studio-video" size={20} /></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت ویدیو</strong><span className="danoa-shortcut-desc">تبدیل ایده‌ها به ویدیوهای جذاب</span></div>
+                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+                  </button>
+
+                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--all-tools" onClick={openStudioFromChat}>
+                    <div className="danoa-shortcut-icon danoa-shortcut-icon--tools"><Icon name="briefcase" size={20} /></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">همه‌ی ابزارها</strong><span className="danoa-shortcut-desc">همه‌ی ابزارهای خلاق دانوآ را ببین</span></div>
+                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+                  </button>
+                </div>
+              </section>
             </div>
           )}
 

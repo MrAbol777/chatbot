@@ -129,7 +129,7 @@
 
 .danoa-studio-page__tools {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -825,6 +825,11 @@ html[data-color-mode='dark'] .studio-tool-card__icon {
   --studio-card-wash: #f0e7ff;
 }
 
+.studio-tool-card--story {
+  --studio-card-accent: #d56528;
+  --studio-card-wash: #fff2e8;
+}
+
 .studio-tool-card--video {
   --studio-card-accent: #0f8f88;
   --studio-card-wash: #e2f7f5;
@@ -1178,4 +1183,22 @@ html[data-color-mode='dark'] .studio-tool-card__icon {
   .danoa-studio-page__back {
     transition: none;
   }
+}
+
+/* A third tool needs a natural scroll on compact screens instead of squeezing
+   three touch targets into one viewport. */
+@media (max-width: 680px) {
+  .danoa-studio-page {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .danoa-studio-page__shell { height: auto; }
+  .danoa-studio-page__tools { grid-template-rows: repeat(3, 146px); }
+}
+
+@media (max-width: 680px) and (max-height: 680px) {
+  .danoa-studio-page__tools { grid-template-rows: repeat(3, 128px); }
 }

@@ -5,6 +5,12 @@ import './StudioPage.css';
 
 const tools: StudioTool[] = [
   {
+    id: 'story',
+    title: 'سناریو نویسی ( داستان من )',
+    description: 'قهرمان و دنیایت را انتخاب کن؛ سناریوی داستانی‌ات آماده می‌شود',
+    actionLabel: 'ساخت داستان'
+  },
+  {
     id: 'image',
     title: 'ساخت تصویر',
     description: 'تصویر دلخواهت را با هوش مصنوعی بساز یا ویرایش کن',
@@ -20,11 +26,12 @@ const tools: StudioTool[] = [
 
 type Props = {
   onBackToHome: () => void;
+  onOpenStory: () => void;
   onOpenImage: () => void;
   onOpenVideo: () => void;
 };
 
-export default function StudioPage({ onBackToHome, onOpenImage, onOpenVideo }: Props) {
+export default function StudioPage({ onBackToHome, onOpenStory, onOpenImage, onOpenVideo }: Props) {
   return (
     <main className="danoa-studio-page" dir="rtl">
       <div className="danoa-studio-page__shell">
@@ -66,7 +73,7 @@ export default function StudioPage({ onBackToHome, onOpenImage, onOpenVideo }: P
             <StudioToolCard
               key={tool.id}
               tool={tool}
-              onOpen={tool.id === 'image' ? onOpenImage : onOpenVideo}
+              onOpen={tool.id === 'story' ? onOpenStory : tool.id === 'image' ? onOpenImage : onOpenVideo}
             />
           ))}
         </section>

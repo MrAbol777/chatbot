@@ -21,6 +21,16 @@ const getSourcePath = () => {
   try { return sessionStorage.getItem('danoa:support-source-path') || document.referrer || window.location.pathname; } catch { return window.location.pathname; }
 };
 
+const getInitialSupportMessage = () => {
+  try {
+    const issue = sessionStorage.getItem('danoa:support-issue-summary')?.trim();
+    sessionStorage.removeItem('danoa:support-issue-summary');
+    return issue ? `هنگام کار با دانوآ با این مشکل روبه‌رو شدم:\n${issue}\n\n` : '';
+  } catch {
+    return '';
+  }
+};
+
 function SupportCenter({ onBackToChat }: Props) {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedId, setSelectedId] = useState('');
@@ -28,7 +38,7 @@ function SupportCenter({ onBackToChat }: Props) {
   const [showNew, setShowNew] = useState(false);
   const [subject, setSubject] = useState('');
   const [category, setCategory] = useState<SupportCategory>('technical');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(getInitialSupportMessage);
   const [reply, setReply] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -98,19 +108,30 @@ function SupportCenter({ onBackToChat }: Props) {
   return (
     <main className="support-page" aria-labelledby="support-page-title">
       <header className="support-page__header">
-        <button type="button" className="support-back" onClick={onBackToChat} aria-label="بازگشت به گفتگو"><Icon name="chevron-left" size={22} aria-hidden="true" /></button>
-        <div><span className="support-eyebrow">ارتباط با دانوآ</span><h1 id="support-page-title">مرکز پشتیبانی</h1><p>اگر جایی به خطا خوردی، همین‌جا برای ما بنویس تا پیگیری کنیم.</p></div>
-        <Button onClick={() => { setShowNew(true); setSelectedId(''); setSelected(null); }} startIcon={<Icon name="plus" size={18} aria-hidden="true" />}>گزارش مشکل</Button>
+        <button type="button" className="support-back" onClick={onBackToChat} aria-label="بازگشت به گفتگو">
+          <Icon name="chevron-left" size={22} aria-hidden="true" />
+        </button>
+        <div className="support-page__hero">
+          <span className="support-eyebrow">پشتیبانی دانوآ</span>
+          <h1 id="support-page-title">گزارش مشکل و پیگیری</h1>
+          <p>مشکل را دقیق بنویس؛ پاسخ و روند پیگیری را در همین صفحه می‌بینی.</p>
+          <ul className="support-page__steps" aria-label="روند رسیدگی به درخواست">
+            <li><span>۱</span> ثبت درخواست</li>
+            <li><span>۲</span> بررسی تیم پشتیبانی</li>
+            <li><span>۳</span> پاسخ در همین گفتگو</li>
+          </ul>
+        </div>
+        <Button className="support-page__create" onClick={() => { setShowNew(true); setSelectedId(''); setSelected(null); }} startIcon={<Icon name="plus" size={18} aria-hidden="true" />}>ثبت گزارش جدید</Button>
       </header>
 
-      <div className="support-page__notice"><Icon name="info-circle" size={18} aria-hidden="true" /><span>پیام‌های شما در همین درخواست ادامه پیدا می‌کنند و پاسخ ما را از دست نمی‌دهید.</span></div>
+      <div className="support-page__notice"><Icon name="info-circle" size={18} aria-hidden="true" /><span>برای پیگیری سریع‌تر، متن خطا یا مراحل انجام‌شده را هم بنویس؛ اطلاعات فنی صفحه به‌صورت خودکار به درخواست اضافه می‌شود.</span></div>
       {error ? <InlineMessage text={error} variant="error" /> : null}
 
       <div className="support-layout">
         <Card className="support-list-card" padding="sm">
           <div className="support-list-card__header"><h2>درخواست‌های من</h2><span>{tickets.length.toLocaleString('fa-IR')}</span></div>
           {loading ? <p className="support-muted" role="status">در حال بارگذاری…</p> : null}
-          {!loading && tickets.length === 0 ? <div className="support-empty"><Icon name="chat-bubble" size={30} aria-hidden="true" /><strong>هنوز درخواستی ثبت نکردی</strong><span>اگر مشکلی دیدی، گزارشش کن تا بررسی شود.</span><Button size="sm" onClick={() => setShowNew(true)}>ثبت اولین درخواست</Button></div> : null}
+          {!loading && tickets.length === 0 ? <div className="support-empty"><span className="support-empty__icon"><Icon name="chat-dots" size={26} aria-hidden="true" /></span><strong>هنوز درخواستی نداری</strong><span>همهٔ گزارش‌ها و پاسخ‌ها اینجا می‌مانند.</span></div> : null}
           <div className="support-ticket-list">
             {tickets.map((ticket) => <button type="button" key={ticket.id} className={`support-ticket-row ${ticket.id === selectedId ? 'is-active' : ''}`} onClick={() => { setSelectedId(ticket.id); setShowNew(false); }}><span className="support-ticket-row__icon" aria-hidden="true"><Icon name={ticket.category === 'technical' ? 'info-circle' : 'chat-bubble'} size={18} /></span><span className="support-ticket-row__copy"><strong>{ticket.subject}</strong><small>{ticket.code} · {supportStatusLabels[ticket.status]}</small></span><time dateTime={ticket.updatedAt}>{formatDate(ticket.updatedAt)}</time></button>)}
           </div>
@@ -127,7 +148,7 @@ function SupportCenter({ onBackToChat }: Props) {
             <div className="support-thread-header"><div><span className="support-eyebrow">{selectedFromList.code}</span><h2>{selectedFromList.subject}</h2><span className={`support-status support-status--${selectedFromList.status}`}>{supportStatusLabels[selectedFromList.status]}</span></div><Button variant="secondary" size="sm" onClick={() => setShowNew(true)}>درخواست جدید</Button></div>
             <div className="support-messages" aria-live="polite">{(selected?.messages || []).map((item) => <article key={item.id} className={`support-message support-message--${item.authorType}`}><div className="support-message__meta"><strong>{item.authorName}</strong><time dateTime={item.createdAt}>{formatDate(item.createdAt)}</time></div><p>{item.body}</p></article>)}</div>
             <form className="support-reply" onSubmit={handleReply}><TextAreaField label="پیام جدید" value={reply} onChange={(event) => setReply(event.target.value)} placeholder="پاسخ یا توضیح تکمیلی خودت را بنویس…" rows={4} maxLength={10000} /><Button type="submit" loading={saving}>ارسال پیام</Button></form>
-          </div> : <div className="support-thread-placeholder"><span><Icon name="chat-bubble" size={32} aria-hidden="true" /></span><h2>یک درخواست را انتخاب کن</h2><p>یا برای گزارش یک مشکل جدید، روی «گزارش مشکل» بزن.</p></div>}
+          </div> : <div className="support-thread-placeholder"><span className="support-thread-placeholder__icon"><Icon name="chat-dots" size={30} aria-hidden="true" /></span><span className="support-eyebrow">شروع گفتگو با پشتیبانی</span><h2>مشکلی پیش آمده؟</h2><p>یک گزارش ثبت کن تا تیم پشتیبانی آن را بررسی کند. پاسخ‌ها را همین‌جا دنبال می‌کنی.</p><Button onClick={() => setShowNew(true)} startIcon={<Icon name="plus" size={18} aria-hidden="true" />}>ثبت گزارش جدید</Button></div>}
         </Card>
       </div>
     </main>

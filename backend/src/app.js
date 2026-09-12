@@ -17,6 +17,8 @@ const { createHealthRouter } = require('./modules/health/health.routes');
 const { createSmsRouter } = require('./modules/sms/sms.routes');
 const { createSmsService } = require('./modules/sms/sms.service');
 const { createAiRouter } = require('./modules/ai/ai.routes');
+const { createAiService } = require('./modules/ai/ai.service');
+const { createStoryMakerRouter } = require('./modules/story-maker/story-maker.routes');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createImageToImageRouter } = require('./modules/image-to-image/image-to-image.routes');
 const { createAuthMiddleware } = require('./modules/image-generation/auth.middleware');
@@ -573,6 +575,24 @@ function createApp({ repositories, runtimeConfig }) {
     imageGenerationController: imageGenerationModule.controller,
     imageGenerationService: imageGenerationModule.imageGenerationService,
     imageUnderstandingService: imageUnderstandingModule.imageUnderstandingService,
+    logger: { log }
+  }));
+
+  // Story maker owns its own request and prompt contract, while using the
+  // same runtime model/provider configuration as ordinary chat.
+  const storyMakerAiService = createAiService({
+    apiKey: metisApiKey,
+    baseUrl: metisBaseUrl,
+    openaiClient,
+    httpClient: axios,
+    promptService,
+    settingsRepository: repositories.settings,
+    logger: { log }
+  });
+  app.use(createStoryMakerRouter({
+    aiService: storyMakerAiService,
+    promptService,
+    principalResolver,
     logger: { log }
   }));
 

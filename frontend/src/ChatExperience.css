@@ -7096,3 +7096,230 @@
     transition: none !important;
   }
 }
+
+/* Empty-chat launcher: surface the creative tools directly instead of hiding
+   them behind a generic entry point. */
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-section {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 2px 10px;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading > span {
+  color: #3b3349;
+  font-size: .82rem;
+  font-weight: 850;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading small {
+  color: #8a94a5;
+  font-size: .73rem;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
+  min-width: 0;
+  min-height: 74px;
+  padding: 13px 12px;
+  border-radius: 16px;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--story {
+  border-color: rgba(216, 101, 40, .25);
+  background: linear-gradient(135deg, #fff, #fff6f0);
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--story:hover {
+  border-color: rgba(216, 101, 40, .52);
+  box-shadow: 0 8px 20px rgba(190, 76, 33, .10);
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon--story {
+  color: #cf5b25;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--all-tools .danoa-shortcut-icon {
+  color: #5f47bb;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:focus-visible {
+  outline: 3px solid var(--color-focus-ring-soft);
+  outline-offset: 3px;
+}
+
+@media (min-width: 601px) and (max-width: 1199px) {
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-section {
+    width: 100%;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading {
+    margin: 0 5px 7px;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading > span {
+    font-size: .76rem;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading small {
+    font-size: .67rem;
+  }
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading > span { color: var(--color-text); }
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading small { color: var(--color-muted); }
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--story { background: color-mix(in srgb, #d56528 12%, var(--color-surface-container-low)); border-color: color-mix(in srgb, #d56528 28%, var(--color-border)); }
+
+/* Give the launcher enough breathing room: these are destinations, not tiny
+   toolbar buttons. Two clear columns keep the titles and descriptions useful. */
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading {
+  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading small::before {
+  content: '·';
+  margin-left: 8px;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
+  min-height: 82px;
+  padding: 14px 16px;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+  border-radius: 13px;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-title {
+  font-size: .94rem;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-desc {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--story {
+  background: #fff8f3;
+}
+
+@media (max-width: 600px) {
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading {
+    gap: 5px;
+    margin-bottom: 7px;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-heading small::before {
+    margin-left: 5px;
+  }
+}
+
+/* Compact, centred tool picks: the chat stays the main action and tools are
+   always one calm tap away. */
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-section {
+  width: min(100%, 760px);
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--color-surface-container-lowest, #fff);
+  box-shadow: none;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon {
+  width: 22px;
+  height: 22px;
+  flex-basis: 22px;
+  border-radius: 0;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-text {
+  flex: 0 1 auto;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-title {
+  font-size: .86rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-desc,
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-arrow {
+  display: none;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--story {
+  border-color: rgba(216, 101, 40, .42);
+  background: #fff8f3;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--story .danoa-shortcut-title,
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--story .danoa-shortcut-icon {
+  color: #bf5524;
+}
+
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    padding: 0 12px !important;
+  }
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--story {
+  background: color-mix(in srgb, #d56528 13%, var(--color-surface-container-low));
+}
