@@ -3,12 +3,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button, Dialog, useNotification } from '../design-system/components';
 import Icon from '../components/Icon';
-import { clarifyStoryBrief, generateStoryScenario, prepareStoryBrief, prepareStoryPreview } from './storyMaker.api';
+import { clarifyStoryBrief, createStoryWorkspace, generateStoryScenario, getStoryWorkspace, listStoryWorkspaces, prepareStoryBrief, prepareStoryPreview, updateStoryWorkspace } from './storyMaker.api';
 import StoryEditorDialog from './StoryEditorDialog';
-import type { StoryAddedCharacter, StoryBrief, StoryContext, StoryDraft, StoryPlanPreview, StoryScenario, StoryVersion } from './storyMaker.types';
+import type { StoryAddedCharacter, StoryBrief, StoryContext, StoryDraft, StoryPlanPreview, StoryScenario, StoryVersion, StoryWorkspace, StoryWorkspaceStatus } from './storyMaker.types';
 import './StoryMakerPage.css';
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; workspaceId?: string; onOpenWorkspace?: (id: string, mode?: 'push' | 'replace') => void };
 type StoryTab = 'create' | 'history';
 type StoryFlow = 'idea' | 'preview';
 type WaitingMode = 'preview' | 'optimization';
@@ -42,6 +42,14 @@ function getDurationSeconds(value: string) {
   return Number.isFinite(seconds) ? clampDuration(seconds) : 10;
 }
 
+function getSceneCountForDuration(seconds: number) {
+  if (seconds <= 8) return 2;
+  if (seconds <= 15) return 3;
+  if (seconds <= 30) return 4;
+  if (seconds <= 45) return 6;
+  return 8;
+}
+
 function readStoryHistory(): StoryHistoryItem[] {
   try {
     const parsed: unknown = JSON.parse(window.localStorage.getItem(STORY_HISTORY_STORAGE_KEY) || '[]');
@@ -56,13 +64,17 @@ function readPendingStories(): StoryPendingItem[] {
   } catch { return []; }
 }
 
-export default function StoryMakerPage({ onBack }: Props) {
+export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId = '', onOpenWorkspace }: Props) {
   const [draft, setDraft] = useState<StoryDraft>(initialDraft);
   const [activeTab, setActiveTab] = useState<StoryTab>('create');
   const [flow, setFlow] = useState<StoryFlow>('idea');
   const [storyHistory, setStoryHistory] = useState<StoryHistoryItem[]>(readStoryHistory);
   const [pendingStories, setPendingStories] = useState<StoryPendingItem[]>(readPendingStories);
   const [activePendingId, setActivePendingId] = useState<string | null>(null);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(routeWorkspaceId || null);
+  const activeWorkspaceIdRef = useRef<string | null>(routeWorkspaceId || null);
+  const [remoteWorkspaces, setRemoteWorkspaces] = useState<StoryWorkspace[]>([]);
+  const [workspaceLoading, setWorkspaceLoading] = useState(Boolean(routeWorkspaceId));
   const [ideaTouched, setIdeaTouched] = useState(false);
   const [brief, setBrief] = useState<StoryBrief | null>(null);
   const [briefAnswers, setBriefAnswers] = useState<Record<string, string>>({});
@@ -94,6 +106,7 @@ export default function StoryMakerPage({ onBack }: Props) {
   const [scenarioError, setScenarioError] = useState('');
   const [scenarioDialogOpen, setScenarioDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const scenarioRequestRef = useRef<AbortController | null>(null);
   const { notify } = useNotification();
   const ideaError = ideaTouched && !draft.idea.trim() ? 'اول ایده‌ی داستان را بنویس.' : '';
   const activeBriefQuestion = brief?.questions[briefQuestionIndex] || null;
@@ -110,6 +123,51 @@ export default function StoryMakerPage({ onBack }: Props) {
   useEffect(() => {
     if (isDurationQuestion) setDurationSeconds(getDurationSeconds(briefAnswers.duration || ''));
   }, [briefAnswers.duration, isDurationQuestion]);
+
+  useEffect(() => {
+    let active = true;
+    void listStoryWorkspaces().then((items) => { if (active) setRemoteWorkspaces(items); }).catch(() => { /* Local history remains a fallback. */ });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!routeWorkspaceId) { setActiveWorkspaceId(null); activeWorkspaceIdRef.current = null; setWorkspaceLoading(false); return; }
+    let active = true;
+    setWorkspaceLoading(true);
+    void getStoryWorkspace(routeWorkspaceId).then((workspace) => {
+      if (!active) return;
+      setActiveWorkspaceId(workspace.id);
+      activeWorkspaceIdRef.current = workspace.id;
+      setDraft(workspace.draft || initialDraft);
+      setBrief(workspace.brief || null);
+      setBriefAnswers(workspace.briefAnswers || {});
+      setPlan(workspace.plan || null);
+      setCharacterNames(workspace.characterNames || []);
+      setCharacterDetails(workspace.characterDetails || []);
+      setScenario(workspace.scenario || '');
+      setScenarioStory(workspace.story || null);
+      setFlow(workspace.plan ? 'preview' : 'idea');
+      setWorkspaceLoading(false);
+    }).catch(() => { if (active) setWorkspaceLoading(false); });
+    return () => { active = false; };
+  }, [routeWorkspaceId]);
+
+  const persistWorkspace = async (status: StoryWorkspaceStatus, patch: Partial<StoryWorkspace> = {}) => {
+    const next = {
+      title: patch.title || plan?.title || draft.idea.trim().slice(0, 70) || 'داستان تازه‌ی من',
+      idea: patch.idea ?? draft.idea.trim(), status,
+      draft: patch.draft || draft, brief: patch.brief ?? brief, briefAnswers: patch.briefAnswers || briefAnswers,
+      plan: patch.plan ?? plan, characterNames: patch.characterNames || characterNames,
+      characterDetails: patch.characterDetails || characterDetails, scenario: patch.scenario ?? scenario,
+      story: patch.story ?? scenarioStory, versions: patch.versions || []
+    };
+    const workspace = activeWorkspaceIdRef.current
+      ? await updateStoryWorkspace(activeWorkspaceIdRef.current, next)
+      : await createStoryWorkspace(next);
+    if (!activeWorkspaceIdRef.current) { setActiveWorkspaceId(workspace.id); activeWorkspaceIdRef.current = workspace.id; onOpenWorkspace?.(workspace.id, 'replace'); }
+    setRemoteWorkspaces((items) => [workspace, ...items.filter((item) => item.id !== workspace.id)]);
+    return workspace;
+  };
 
   const makeContext = (answers = briefAnswers, names = characterNames, details = characterDetails, sourceBrief = brief): StoryContext | undefined => {
     if (!sourceBrief) return undefined;
@@ -145,6 +203,7 @@ export default function StoryMakerPage({ onBack }: Props) {
       return;
     }
     setIsPreparingPlan(true);
+    void persistWorkspace('generating', { brief: sourceBrief, briefAnswers: answers, characterNames: names, characterDetails: details });
     setWaitingMode('preview');
     setWaitingDialogOpen(true);
     const controller = new AbortController();
@@ -157,6 +216,7 @@ export default function StoryMakerPage({ onBack }: Props) {
       const nextCharacterNames = names.length ? names : nextPlan.characters.map((character) => character.name);
       setPlan(nextPlan);
       setCharacterNames(nextCharacterNames);
+      void persistWorkspace('preview', { title: nextPlan.title, plan: nextPlan, brief: sourceBrief, briefAnswers: answers, characterNames: nextCharacterNames, characterDetails: details });
       savePendingStory(nextPlan, answers, nextCharacterNames, details, sourceBrief, { ...draft, idea: draft.idea.trim() });
       setFlow('preview');
     } catch (error) {
@@ -229,18 +289,21 @@ export default function StoryMakerPage({ onBack }: Props) {
     const context = makeContext();
     if (!context) return;
     const duration = getDurationSeconds(briefAnswers.duration || '');
-    const durationLength: StoryDraft['length'] = duration <= 30 ? 'short' : duration <= 60 ? 'medium' : 'long';
     const storyDraft = {
       ...draft,
       idea: draft.idea.trim(),
-      length: durationLength
+      length: 'custom' as const,
+      customSceneCount: String(getSceneCountForDuration(duration))
     };
     setScenarioDialogOpen(true);
     setScenarioError('');
     setScenario('');
     setIsGenerating(true);
+    void persistWorkspace('generating');
+    const controller = new AbortController();
+    scenarioRequestRef.current = controller;
     try {
-      const result = await generateStoryScenario(storyDraft, context);
+      const result = await generateStoryScenario(storyDraft, context, controller.signal);
       setScenario(result.scenario);
       setScenarioStory(result.story);
       const storyId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -251,9 +314,20 @@ export default function StoryMakerPage({ onBack }: Props) {
         setPendingStories((items) => items.filter((item) => item.id !== activePendingId));
         setActivePendingId(null);
       }
+      void persistWorkspace('completed', { title: result.story.title || plan?.title || 'داستان من', scenario: result.scenario, story: result.story, versions: [initialVersion] });
     } catch (error) {
+      if (controller.signal.aborted) { void persistWorkspace('preview'); return; }
       setScenarioError(error instanceof Error ? error.message : 'سناریو ساخته نشد. لطفاً دوباره امتحان کن.');
-    } finally { setIsGenerating(false); }
+    } finally { if (scenarioRequestRef.current === controller) scenarioRequestRef.current = null; setIsGenerating(false); }
+  };
+
+  const closeScenarioDialog = () => {
+    if (isGenerating) {
+      scenarioRequestRef.current?.abort();
+      scenarioRequestRef.current = null;
+      void persistWorkspace('preview');
+    }
+    setScenarioDialogOpen(false);
   };
 
   const startBrief = async () => {
@@ -267,10 +341,12 @@ export default function StoryMakerPage({ onBack }: Props) {
     setCustomAnswerOpen(false);
     setCustomAnswer('');
     setIsPreparingBrief(true);
+    try { await persistWorkspace('briefing', { draft: { ...draft, idea: draft.idea.trim() }, brief: null, briefAnswers: {}, plan: null }); } catch { /* The guided flow can still continue while the connection recovers. */ }
     try {
       const nextBrief = await prepareStoryBrief({ ...draft, idea: draft.idea.trim() });
       if (nextBrief.questions.length !== 5) throw new Error('سؤال‌های لازم کامل آماده نشدند. لطفاً دوباره امتحان کن.');
       setBrief(nextBrief);
+      void persistWorkspace('briefing', { brief: nextBrief, briefAnswers: {}, plan: null });
     } catch (error) {
       setBriefError(error instanceof Error ? error.message : 'نتوانستم ایده را بررسی کنم.');
     } finally { setIsPreparingBrief(false); }
@@ -280,6 +356,7 @@ export default function StoryMakerPage({ onBack }: Props) {
     if (!brief || !activeBriefQuestion || !answer.trim()) return;
     const nextAnswers = { ...briefAnswers, [activeBriefQuestion.id]: answer.trim() };
     setBriefAnswers(nextAnswers);
+    void persistWorkspace('briefing', { briefAnswers: nextAnswers });
     setBriefValidationError('');
     setCustomAnswerOpen(false);
     setCustomAnswer('');
@@ -374,6 +451,7 @@ export default function StoryMakerPage({ onBack }: Props) {
     const version: StoryVersion = { id: `${activeStoryId}-${Date.now()}`, createdAt: new Date().toISOString(), label, scenario: nextScenario, story };
     setScenario(nextScenario); setScenarioStory(story);
     setStoryHistory((items) => items.map((item) => item.id === activeStoryId ? { ...item, title: story.title || item.title, scenario: nextScenario, story, versions: [...(item.versions || []), version].slice(-12) } : item));
+    void persistWorkspace('completed', { title: story.title || plan?.title || 'داستان من', scenario: nextScenario, story, versions: [...activeVersions, version].slice(-12) });
     notify.success('نسخه‌ی تازه‌ی سناریو ذخیره شد.');
   };
 
@@ -385,14 +463,14 @@ export default function StoryMakerPage({ onBack }: Props) {
   };
 
   const activeVersions = storyHistory.find((item) => item.id === activeStoryId)?.versions || [];
-  const savedStoryCount = storyHistory.length + pendingStories.length;
+  const savedStoryCount = remoteWorkspaces.length || storyHistory.length + pendingStories.length;
 
   return (
     <main className="story-maker" dir="rtl" id="main-content">
       <header className="story-maker__header">
         <button type="button" className="story-maker__back" onClick={onBack} aria-label="بازگشت به استودیو" title="بازگشت به استودیو"><Icon name="chevron-right" size={22} aria-hidden="true" /></button>
         <div className="story-maker__brand"><span className="story-maker__brand-mark" aria-hidden="true"><Icon name="story" size={22} /></span><span><strong>سناریو نویسی ( داستان من )</strong><small>ایده‌ات را به یک سناریوی حرفه‌ای تبدیل کن</small></span></div>
-        <span aria-hidden="true" />
+        <span className="story-maker__workspace-state" aria-live="polite">{workspaceLoading ? 'در حال باز کردن داستان…' : activeWorkspaceId ? 'ذخیره‌شده' : 'داستان تازه'}</span>
       </header>
 
       <nav className="story-maker__tabs" role="tablist" aria-label="بخش‌های داستان‌نویسی">
@@ -400,17 +478,19 @@ export default function StoryMakerPage({ onBack }: Props) {
         <button id="story-history-tab" type="button" role="tab" aria-selected={activeTab === 'history'} aria-controls="story-history-panel" tabIndex={activeTab === 'history' ? 0 : -1} className={activeTab === 'history' ? 'is-active' : ''} onClick={() => setActiveTab('history')} onKeyDown={handleTabKey}><Icon name="book" size={18} aria-hidden="true" /> داستان‌های من {savedStoryCount ? <span>{savedStoryCount}</span> : null}</button>
       </nav>
 
+      <ol className="story-maker__workspace-progress" aria-label="مسیر داستان">
+        {['ایده', 'انتخاب‌ها', 'طرح', 'سناریو'].map((label, index) => {
+          const current = scenarioStory ? 3 : plan ? 2 : brief ? 1 : 0;
+          return <li key={label} className={index < current ? 'is-done' : index === current ? 'is-current' : ''}><span>{index < current ? <Icon name="check" size={13} aria-hidden="true" /> : index + 1}</span><strong>{label}</strong></li>;
+        })}
+      </ol>
+
       {activeTab === 'create' ? <div className="story-maker__shell" id="story-create-panel" role="tabpanel" aria-labelledby="story-create-tab">
         {flow === 'idea' ? <section className="story-maker__idea-stage" aria-labelledby="story-maker-title">
           <div className="story-maker__idea-overview">
             <span className="story-maker__eyebrow"><Icon name="sparkle" size={15} aria-hidden="true" /> شروعِ قصه</span>
             <h1 id="story-maker-title">درمورد چی میخوای داستان بسازی ؟</h1>
             <p>ایده‌ات را بنویس؛ بعد قدم‌به‌قدم جزئیاتش را کامل می‌کنیم تا سناریویی دقیق و مخصوص خودت بسازیم.</p>
-            <ol className="story-maker__idea-steps" aria-label="مسیر ساخت سناریو">
-              <li><span>۱</span><div><strong>ایده را بنویس</strong><small>حتی یک جمله کوتاه کافی است.</small></div></li>
-              <li><span>۲</span><div><strong>جزئیات را مشخص کن</strong><small>فقط سؤال‌های لازم را می‌پرسیم.</small></div></li>
-              <li><span>۳</span><div><strong>طرح را تأیید کن</strong><small>بعد سناریوی نهایی را می‌سازیم.</small></div></li>
-            </ol>
           </div>
           <form className="story-maker__idea-form" onSubmit={prepareScenario} noValidate>
             <div className="story-maker__idea-form-heading"><span className="story-maker__idea-form-icon"><Icon name="edit" size={19} aria-hidden="true" /></span><div><strong>جرقه‌ی داستانت را اینجا بنویس</strong><small>هرچقدر ساده یا کامل، نقطه‌ی شروع ماست.</small></div></div>
@@ -434,6 +514,7 @@ export default function StoryMakerPage({ onBack }: Props) {
       </div> : <section className="story-maker__history" id="story-history-panel" role="tabpanel" aria-labelledby="story-history-tab">
         <div className="story-maker__history-heading"><div><span className="story-maker__eyebrow"><Icon name="book" size={15} aria-hidden="true" /> کتابخانه‌ی من</span><h1>داستان‌های من</h1><p>سناریوهای نهایی و طرح‌هایی که هنوز منتظر تأیید تو هستند.</p></div><span className="story-maker__history-count">{savedStoryCount} مورد</span></div>
         {pendingStories.length ? <section className="story-maker__history-section" aria-labelledby="pending-stories-title"><div className="story-maker__history-section-heading"><div><span className="story-maker__pending-label"><Icon name="sparkle" size={14} aria-hidden="true" /> در انتظار تأیید</span><h2 id="pending-stories-title">طرح‌های نیمه‌کاره</h2></div><small>از همین‌جا ادامه بده</small></div><div className="story-maker__history-grid">{pendingStories.map((item) => <button key={item.id} type="button" className="story-maker__history-card story-maker__history-card--pending" onClick={() => resumePendingStory(item)} aria-label={`ادامه‌ی طرح ${item.plan.title}`}><span className="story-maker__history-card-icon"><Icon name="sparkle" size={22} aria-hidden="true" /></span><span className="story-maker__history-card-body"><strong>{item.plan.title}</strong><span className="story-maker__history-idea">{item.draft.idea}</span><span className="story-maker__history-meta"><span>طرح اولیه آماده است</span><span>{formatStoryDate(item.updatedAt)}</span></span></span><span className="story-maker__continue-label">ادامه</span><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}</div></section> : null}
+        {remoteWorkspaces.length ? <section className="story-maker__history-section" aria-labelledby="cloud-stories-title"><div className="story-maker__history-section-heading"><div><span className="story-maker__history-label">فضاهای ذخیره‌شده</span><h2 id="cloud-stories-title">داستان‌های من</h2></div><small>روی هر داستان بزن و از همان مرحله ادامه بده</small></div><div className="story-maker__history-grid">{remoteWorkspaces.map((item) => <button key={item.id} type="button" className={`story-maker__history-card${item.status !== 'completed' ? ' story-maker__history-card--pending' : ''}`} onClick={() => onOpenWorkspace?.(item.id)} aria-label={`باز کردن ${item.title}`}><span className="story-maker__history-card-icon"><Icon name={item.status === 'completed' ? 'story' : 'sparkle'} size={22} aria-hidden="true" /></span><span className="story-maker__history-card-body"><strong>{item.title}</strong><span className="story-maker__history-idea">{item.idea}</span><span className="story-maker__history-meta"><span>{item.status === 'completed' ? 'سناریوی نهایی' : item.status === 'preview' ? 'منتظر تأیید' : 'در حال تکمیل'}</span><span>{formatStoryDate(item.updatedAt)}</span></span></span><span className="story-maker__continue-label">باز کن</span><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}</div></section> : null}
         {storyHistory.length ? <section className="story-maker__history-section" aria-labelledby="finished-stories-title"><div className="story-maker__history-section-heading"><div><span className="story-maker__history-label">سناریوهای نهایی</span><h2 id="finished-stories-title">داستان‌های کامل‌شده</h2></div></div><div className="story-maker__history-grid">{storyHistory.map((item) => <button key={item.id} type="button" className="story-maker__history-card" onClick={() => openHistoryStory(item)} aria-label={`باز کردن ${item.title}`}><span className="story-maker__history-card-icon"><Icon name="story" size={22} aria-hidden="true" /></span><span className="story-maker__history-card-body"><strong>{item.title}</strong><span className="story-maker__history-idea">{item.idea}</span><span className="story-maker__history-meta"><span>{item.scenes} صحنه</span><span>{formatStoryDate(item.createdAt)}</span></span></span><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}</div></section> : null}
         {!savedStoryCount ? <div className="story-maker__history-empty"><span><Icon name="book" size={32} aria-hidden="true" /></span><h2>کتاب داستانت هنوز خالیه</h2><p>اولین داستانت را بساز؛ بعد همیشه همین‌جا پیدایش می‌کنی.</p><Button type="button" onClick={() => { setActiveTab('create'); setFlow('idea'); }} startIcon={<Icon name="sparkle" size={17} aria-hidden="true" />}>ساخت داستان تازه</Button></div> : null}
       </section>}
@@ -504,10 +585,10 @@ export default function StoryMakerPage({ onBack }: Props) {
         </div>
       </Dialog>
 
-      <Dialog open={scenarioDialogOpen} title={isGenerating ? 'دانوآ دارد سناریو را می‌سازد…' : scenarioError ? 'دوباره امتحان کنیم؟' : 'سناریوی تو آماده شد!'} onClose={() => setScenarioDialogOpen(false)} showFooter={false} panelClassName="story-maker__dialog">
+      <Dialog open={scenarioDialogOpen} title={isGenerating ? 'دانوآ دارد سناریو را می‌سازد…' : scenarioError ? 'دوباره امتحان کنیم؟' : 'سناریوی تو آماده شد!'} onClose={closeScenarioDialog} closeLabel={isGenerating ? 'لغو ساخت سناریو' : 'بستن پنجره'} showFooter={false} panelClassName="story-maker__dialog">
         {isGenerating ? <div className="story-maker__dialog-loading" role="status" aria-live="polite"><Icon name="spinner" size={30} aria-hidden="true" /><strong>داریم صحنه‌ها و دیالوگ‌ها را می‌چینیم…</strong><span>یک کوچولو صبر کن.</span></div> : null}
         {scenarioError ? <div className="story-maker__dialog-error" role="alert"><Icon name="alert-triangle" size={22} aria-hidden="true" /><p>{scenarioError}</p><Button type="button" onClick={() => void runScenarioGeneration()}>دوباره بساز</Button></div> : null}
-        {scenario ? <><article className="story-maker__scenario" aria-label="سناریوی نهایی"><ReactMarkdown remarkPlugins={[remarkGfm]}>{scenario}</ReactMarkdown></article><div className="story-maker__dialog-actions"><Button type="button" variant="secondary" onClick={() => setScenarioDialogOpen(false)}>بستن</Button>{scenarioStory ? <Button type="button" variant="secondary" onClick={() => { setScenarioDialogOpen(false); setEditorOpen(true); }} startIcon={<Icon name="edit" size={18} aria-hidden="true" />}>ویرایش سناریو</Button> : null}<Button type="button" onClick={() => void copyScenario()} startIcon={<Icon name="copy" size={18} aria-hidden="true" />}>کپی سناریو</Button></div></> : null}
+        {scenario ? <><article className="story-maker__scenario" aria-label="سناریوی نهایی"><ReactMarkdown remarkPlugins={[remarkGfm]}>{scenario}</ReactMarkdown></article><div className="story-maker__dialog-actions"><Button type="button" variant="secondary" onClick={closeScenarioDialog}>بستن</Button>{scenarioStory ? <Button type="button" variant="secondary" onClick={() => { closeScenarioDialog(); setEditorOpen(true); }} startIcon={<Icon name="edit" size={18} aria-hidden="true" />}>ویرایش سناریو</Button> : null}<Button type="button" onClick={() => void copyScenario()} startIcon={<Icon name="copy" size={18} aria-hidden="true" />}>کپی سناریو</Button></div></> : null}
       </Dialog>
       <StoryEditorDialog open={editorOpen} story={scenarioStory} expectedScenes={scenarioStory?.scenes.length || 0} versions={activeVersions} onClose={() => setEditorOpen(false)} onSaved={saveEditedStory} onRestore={restoreStoryVersion} />
     </main>

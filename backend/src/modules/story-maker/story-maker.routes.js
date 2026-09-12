@@ -109,29 +109,63 @@ function normalizeFollowUpBrief(value, draft) {
   return { status, summary: cleanText(source.summary, 280) || draft.idea, resolvedDetails: cleanPairs(source.resolvedDetails, 8), assumptions: cleanPairs(source.assumptions, 5), questions: status === 'needs_clarification' ? questions : [] };
 }
 
-function createStoryMakerRouter({ aiService, promptService, principalResolver, logger = console }) {
+function createStoryMakerRouter({ aiService, promptService, principalResolver, storyWorkspaceRepository, logger = console }) {
   const router = express.Router();
   const requirePrincipal = createRequirePrincipal(principalResolver);
   const limiter = rateLimit({ windowMs: 60_000, max: 8, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => String(req.user?.id || req.ip) });
   const briefLimiter = rateLimit({ windowMs: 60_000, max: 10, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => String(req.user?.id || req.ip) });
+  const scenarioTimeoutMs = Math.max(30_000, Math.min(90_000, Number(process.env.STORY_MAKER_TIMEOUT_MS || 55_000)));
+  const scenarioMaxOutputTokens = Math.max(1_024, Math.min(8_192, Number(process.env.STORY_MAKER_MAX_OUTPUT_TOKENS || 5_120)));
+  const normalizeWorkspace = (value = {}) => {
+    const source = value && typeof value === 'object' ? value : {};
+    const status = ['idea', 'briefing', 'preview', 'generating', 'completed', 'error'].includes(source.status) ? source.status : 'idea';
+    const idea = typeof source.idea === 'string' ? source.idea.trim().replace(/\s+/g, ' ').slice(0, 240) : '';
+    const title = typeof source.title === 'string' ? source.title.trim().replace(/\s+/g, ' ').slice(0, 191) : (idea ? idea.slice(0, 70) : 'داستان تازه‌ی من');
+    return { ...source, title, idea, status };
+  };
+  const requireWorkspaceRepository = (req, res, next) => storyWorkspaceRepository ? next() : res.status(503).json({ error: 'STORY_WORKSPACE_UNAVAILABLE', message: 'فضای داستان فعلاً آماده نیست.' });
+
+  router.get('/api/story-workspaces', requirePrincipal, requireWorkspaceRepository, async (req, res) => {
+    try { return res.json({ workspaces: await storyWorkspaceRepository.list(req.user.id) }); } catch (error) { return res.status(500).json(publicError(error)); }
+  });
+  router.post('/api/story-workspaces', requirePrincipal, requireWorkspaceRepository, async (req, res) => {
+    try { return res.status(201).json({ workspace: await storyWorkspaceRepository.create(req.user.id, normalizeWorkspace(req.body?.workspace)) }); } catch (error) { return res.status(500).json(publicError(error)); }
+  });
+  router.get('/api/story-workspaces/:workspaceId', requirePrincipal, requireWorkspaceRepository, async (req, res) => {
+    try { const workspace = await storyWorkspaceRepository.get(req.user.id, req.params.workspaceId); return workspace ? res.json({ workspace }) : res.status(404).json({ error: 'STORY_WORKSPACE_NOT_FOUND', message: 'این داستان پیدا نشد.' }); } catch (error) { return res.status(500).json(publicError(error)); }
+  });
+  router.patch('/api/story-workspaces/:workspaceId', requirePrincipal, requireWorkspaceRepository, async (req, res) => {
+    try { const workspace = await storyWorkspaceRepository.update(req.user.id, req.params.workspaceId, normalizeWorkspace(req.body?.workspace)); return workspace ? res.json({ workspace }) : res.status(404).json({ error: 'STORY_WORKSPACE_NOT_FOUND', message: 'این داستان پیدا نشد.' }); } catch (error) { return res.status(500).json(publicError(error)); }
+  });
+
+  const requestScenarioCompletion = async (messages, requestId, { retryOnTimeout = true } = {}) => {
+    const options = { requestId, timeoutMs: scenarioTimeoutMs, maxOutputTokens: scenarioMaxOutputTokens, responseMimeType: 'application/json' };
+    try {
+      return await aiService.callOpenAI(messages, options);
+    } catch (error) {
+      if (error?.code !== 'UPSTREAM_TIMEOUT' || !retryOnTimeout) throw error;
+      logger.warn?.('STORY_MAKER', 'scenario_timeout_retrying', { requestId, timeoutMs: scenarioTimeoutMs });
+      return aiService.callOpenAI(messages, options);
+    }
+  };
 
   const finalizeStructuredScenario = async ({ draft, context, requestId }) => {
     const baseSystemPrompt = await promptService.getSystemPrompt();
     const prompt = buildScenarioPrompt(draft, context);
-    let result = await aiService.callOpenAI([
+    let result = await requestScenarioCompletion([
       { role: 'system', content: `${baseSystemPrompt}\n\nتو در این درخواست فقط سناریونویس داستان کودک هستی. دستورهای تخصصی بعدی را رعایت کن.` },
       { role: 'user', content: prompt }
-    ], { requestId });
+    ], requestId);
     let rawScenario = String(result?.reply || '').trim();
     let structuredScenario = normalizeScenario(parseJsonObject(rawScenario), draft.scenes);
     let quality = validateScenario(structuredScenario, draft.scenes);
     let repaired = false;
     if (!quality.valid) {
       repaired = true;
-      result = await aiService.callOpenAI([
+      result = await requestScenarioCompletion([
         { role: 'system', content: `${baseSystemPrompt}\n\nتو ویراستار فنی سناریوی کودک هستی. فقط خروجی JSON معتبر و کامل بده.` },
         { role: 'user', content: buildRepairPrompt(prompt, rawScenario, quality.errors) }
-      ], { requestId });
+      ], requestId, { retryOnTimeout: false });
       rawScenario = String(result?.reply || '').trim();
       structuredScenario = normalizeScenario(parseJsonObject(rawScenario), draft.scenes);
       quality = validateScenario(structuredScenario, draft.scenes);
@@ -230,20 +264,20 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, l
       if (revision.targetScene && (revision.targetScene < 1 || revision.targetScene > expectedScenes)) throw Object.assign(new Error('STORY_QUALITY_FAILED'), { code: 'STORY_QUALITY_FAILED' });
       const baseSystemPrompt = await promptService.getSystemPrompt();
       const prompt = buildRevisionPrompt(currentStory, revision);
-      let result = await aiService.callOpenAI([
+      let result = await requestScenarioCompletion([
         { role: 'system', content: `${baseSystemPrompt}\n\nتو ویراستار حرفه‌ای سناریوی کودک هستی. فقط JSON معتبر و کامل بده.` },
         { role: 'user', content: prompt }
-      ], { requestId: res.locals.requestId });
+      ], res.locals.requestId);
       let rawScenario = String(result?.reply || '').trim();
       let story = normalizeScenario(parseJsonObject(rawScenario), expectedScenes);
       let quality = validateScenario(story, expectedScenes);
       let repaired = false;
       if (!quality.valid) {
         repaired = true;
-        result = await aiService.callOpenAI([
+        result = await requestScenarioCompletion([
           { role: 'system', content: `${baseSystemPrompt}\n\nتو ویراستار فنی سناریوی کودک هستی. فقط خروجی JSON معتبر و کامل بده.` },
           { role: 'user', content: buildRepairPrompt(prompt, rawScenario, quality.errors) }
-        ], { requestId: res.locals.requestId });
+        ], res.locals.requestId, { retryOnTimeout: false });
         rawScenario = String(result?.reply || '').trim();
         story = normalizeScenario(parseJsonObject(rawScenario), expectedScenes);
         quality = validateScenario(story, expectedScenes);

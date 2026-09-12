@@ -296,7 +296,7 @@ function createAiService({
   };
 
   // ─── Gemini (Metis wrapper) helpers ──────────────────────────────
-  const buildGeminiPayload = (messages) => {
+  const buildGeminiPayload = (messages, options = {}) => {
     const systemMessage = messages.find((m) => m.role === 'system');
     const chatMessages = messages.filter((m) => m.role !== 'system');
 
@@ -313,10 +313,24 @@ function createAiService({
       };
     }
 
+    const generationConfig = {};
+    if (Number.isFinite(Number(options.temperature))) {
+      generationConfig.temperature = Math.max(0, Math.min(2, Number(options.temperature)));
+    }
+    if (Number.isFinite(Number(options.maxOutputTokens))) {
+      generationConfig.maxOutputTokens = Math.max(256, Math.min(8192, Math.round(Number(options.maxOutputTokens))));
+    }
+    if (options.responseMimeType === 'application/json') {
+      generationConfig.responseMimeType = 'application/json';
+    }
+    if (Object.keys(generationConfig).length) {
+      payload.generationConfig = generationConfig;
+    }
+
     return payload;
   };
 
-  const callGemini = async (messages, timeoutMs, requestId) => {
+  const callGemini = async (messages, timeoutMs, requestId, options = {}) => {
     if (!apiKey) {
       const error = new Error('METIS_API_KEY is missing');
       error.code = 'API_KEY_MISSING';
@@ -326,7 +340,11 @@ function createAiService({
     const runtimeConfig = await getChatSettings();
     const geminiModel = runtimeConfig.model || 'gemini-2.5-flash';
     const geminiEndpoint = `https://api.metisai.ir/v1beta/models/${geminiModel}:generateContent`;
-    const payload = buildGeminiPayload(messages);
+    const payload = buildGeminiPayload(messages, {
+      temperature: Number.isFinite(Number(options.temperature)) ? options.temperature : runtimeConfig.temperature,
+      maxOutputTokens: options.maxOutputTokens,
+      responseMimeType: options.responseMimeType
+    });
 
     try {
       log('GEMINI', 'request_started', { requestId, timeoutMs, model: geminiModel, endpoint: geminiEndpoint });
@@ -409,12 +427,20 @@ function createAiService({
     }
 
     const runtimeConfig = await getChatSettings();
+    const requestedTimeoutMs = Number(context.timeoutMs);
+    const totalTimeoutMs = Number.isFinite(requestedTimeoutMs)
+      ? Math.max(5000, Math.min(120000, requestedTimeoutMs))
+      : Math.max(5000, runtimeConfig.timeoutMs);
+    const requestedMaxOutputTokens = Number(context.maxOutputTokens);
+    const maxOutputTokens = Number.isFinite(requestedMaxOutputTokens)
+      ? Math.max(256, Math.min(8192, Math.round(requestedMaxOutputTokens)))
+      : undefined;
     const payload = {
       model: runtimeConfig.model,
       messages: buildChatMessages(messages),
-      temperature: runtimeConfig.temperature
+      temperature: runtimeConfig.temperature,
+      ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {})
     };
-    const totalTimeoutMs = Math.max(5000, runtimeConfig.timeoutMs);
     const sdkTimeoutMs = Math.min(8000, totalTimeoutMs);
     const fallbackTimeoutMs = Math.max(5000, totalTimeoutMs - sdkTimeoutMs);
     const requestId = context.requestId || 'unknown';
@@ -422,7 +448,11 @@ function createAiService({
     // Route Gemini models to the Metis Gemini wrapper
     if (isGeminiModel(runtimeConfig.model)) {
       log('CHAT', 'model_routed', { requestId, model: runtimeConfig.model, engine: 'gemini' });
-      return callGemini(messages, totalTimeoutMs, requestId);
+      return callGemini(messages, totalTimeoutMs, requestId, {
+        temperature: runtimeConfig.temperature,
+        maxOutputTokens,
+        responseMimeType: context.responseMimeType
+      });
     }
 
     try {

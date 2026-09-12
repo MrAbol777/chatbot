@@ -76,3 +76,22 @@ export type StoryScenario = {
 };
 
 export type StoryVersion = { id: string; createdAt: string; label: string; scenario: string; story: StoryScenario };
+
+export type StoryWorkspaceStatus = 'idea' | 'briefing' | 'preview' | 'generating' | 'completed' | 'error';
+export type StoryWorkspace = {
+  id: string;
+  title: string;
+  idea: string;
+  status: StoryWorkspaceStatus;
+  draft?: StoryDraft;
+  brief?: StoryBrief | null;
+  briefAnswers?: Record<string, string>;
+  plan?: StoryPlanPreview | null;
+  characterNames?: string[];
+  characterDetails?: StoryAddedCharacter[];
+  scenario?: string;
+  story?: StoryScenario | null;
+  versions?: StoryVersion[];
+  createdAt: string;
+  updatedAt: string;
+};

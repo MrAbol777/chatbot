@@ -19,6 +19,7 @@ const { createSmsService } = require('./modules/sms/sms.service');
 const { createAiRouter } = require('./modules/ai/ai.routes');
 const { createAiService } = require('./modules/ai/ai.service');
 const { createStoryMakerRouter } = require('./modules/story-maker/story-maker.routes');
+const { StoryWorkspaceRepository } = require('./modules/story-maker/story-workspace.repository');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createImageToImageRouter } = require('./modules/image-to-image/image-to-image.routes');
 const { createAuthMiddleware } = require('./modules/image-generation/auth.middleware');
@@ -593,6 +594,7 @@ function createApp({ repositories, runtimeConfig }) {
     aiService: storyMakerAiService,
     promptService,
     principalResolver,
+    storyWorkspaceRepository: new StoryWorkspaceRepository(repositories.db),
     logger: { log }
   }));
 

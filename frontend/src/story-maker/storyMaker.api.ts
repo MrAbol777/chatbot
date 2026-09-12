@@ -1,15 +1,29 @@
 import { createChatRequestError, safeFetch } from '../services/chatStream';
 import { buildScenarioPromptPayload } from './storyMaker.service';
-import type { StoryBrief, StoryContext, StoryDraft, StoryPlanPreview, StoryScenario } from './storyMaker.types';
+import type { StoryBrief, StoryContext, StoryDraft, StoryPlanPreview, StoryScenario, StoryWorkspace } from './storyMaker.types';
 
 type ScenarioResponse = { scenario?: string; story?: StoryScenario; model?: string; scenes?: number; quality?: { status: string; repaired: boolean }; error?: string; message?: string };
 type BriefResponse = { brief?: StoryBrief; model?: string; error?: string; message?: string };
 type PreviewResponse = { preview?: StoryPlanPreview; model?: string; error?: string; message?: string };
+type WorkspaceResponse = { workspace?: StoryWorkspace; workspaces?: StoryWorkspace[]; error?: string; message?: string };
 
 function authHeaders() {
   const token = localStorage.getItem('chat_auth_token');
   return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
+
+async function workspaceRequest(path: string, init?: RequestInit): Promise<WorkspaceResponse> {
+  const response = await safeFetch(path, { ...init, headers: authHeaders(), credentials: 'include' });
+  let data: WorkspaceResponse = {};
+  try { data = await response.json(); } catch { /* handled below */ }
+  if (!response.ok) throw createChatRequestError(data.message || 'فضای داستان در دسترس نیست.', response.status, data);
+  return data;
+}
+
+export async function listStoryWorkspaces() { return (await workspaceRequest('/api/story-workspaces')).workspaces || []; }
+export async function getStoryWorkspace(id: string) { const workspace = (await workspaceRequest(`/api/story-workspaces/${encodeURIComponent(id)}`)).workspace; if (!workspace) throw new Error('داستان پیدا نشد.'); return workspace; }
+export async function createStoryWorkspace(workspace: Omit<StoryWorkspace, 'id' | 'createdAt' | 'updatedAt'>) { const result = await workspaceRequest('/api/story-workspaces', { method: 'POST', body: JSON.stringify({ workspace }) }); if (!result.workspace) throw new Error('فضای داستان ساخته نشد.'); return result.workspace; }
+export async function updateStoryWorkspace(id: string, workspace: Omit<StoryWorkspace, 'id' | 'createdAt' | 'updatedAt'>) { const result = await workspaceRequest(`/api/story-workspaces/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ workspace }) }); if (!result.workspace) throw new Error('فضای داستان ذخیره نشد.'); return result.workspace; }
 
 export async function prepareStoryBrief(draft: StoryDraft, signal?: AbortSignal): Promise<StoryBrief> {
   const payload = buildScenarioPromptPayload(draft);

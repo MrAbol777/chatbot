@@ -299,6 +299,12 @@ html[data-color-mode='dark'] .story-maker__brief-intro p { color: var(--color-te
 .story-maker__history-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 3px; color: var(--color-muted); font-size: .7rem; }
 .story-maker__history-meta span + span::before { content: '•'; margin-left: 8px; }
 .story-maker__history-card > svg { flex: 0 0 auto; color: #d56528; }
+.story-maker__workspace-state { align-self: center; min-width: 84px; color: var(--color-muted); font-size: .72rem; text-align: left; }
+.story-maker__workspace-progress { display: flex; justify-content: center; gap: 0; max-width: 520px; margin: 18px auto 0; padding: 0; list-style: none; }
+.story-maker__workspace-progress li { position: relative; display: flex; flex: 1; align-items: center; gap: 7px; color: var(--color-muted); font-size: .74rem; }
+.story-maker__workspace-progress li:not(:last-child)::after { content: ''; flex: 1; height: 1px; margin-inline: 5px; background: var(--color-border); }
+.story-maker__workspace-progress span { display: grid; flex: 0 0 auto; place-items: center; width: 24px; height: 24px; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-surface-container-lowest); font-size: .7rem; }
+.story-maker__workspace-progress li.is-current { color: #a4431d; }.story-maker__workspace-progress li.is-current span { border-color: #d56528; color: #fff; background: #d56528; }.story-maker__workspace-progress li.is-done { color: #8d451f; }.story-maker__workspace-progress li.is-done span { border-color: color-mix(in srgb, #d56528 38%, var(--color-border)); color: #a4431d; background: #fff0e8; }
 
 .story-maker__history-empty { display: grid; justify-items: center; max-width: 440px; margin: 34px auto 16px; text-align: center; }
 .story-maker__history-empty > span { display: grid; place-items: center; width: 66px; height: 66px; margin-bottom: 13px; border-radius: 22px; color: #a4431d; background: #fff0e8; }
@@ -345,12 +351,6 @@ html[data-color-mode='dark'] .story-maker__history-empty > span { color: #ffc6aa
 .story-maker__plan-heading h1 { margin: 11px 0 7px; font-size: clamp(1.65rem, 3vw, 2.25rem); letter-spacing: -.035em; line-height: 1.28; }
 .story-maker__idea-overview > p,
 .story-maker__plan-heading > p { max-width: 650px; margin: 0; color: var(--color-muted); line-height: 1.85; }
-.story-maker__idea-steps { display: grid; gap: 11px; width: 100%; margin: auto 0 0; padding: 25px 0 0; list-style: none; }
-.story-maker__idea-steps li { display: flex; align-items: center; gap: 10px; }
-.story-maker__idea-steps li > span { display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px; border: 1px solid color-mix(in srgb, #d56528 25%, var(--color-border)); border-radius: 10px; color: #a4431d; background: #fff4ed; font-size: .75rem; font-weight: 900; }
-.story-maker__idea-steps li > div { display: grid; gap: 1px; }
-.story-maker__idea-steps strong { font-size: .8rem; }
-.story-maker__idea-steps small { color: var(--color-muted); font-size: .72rem; }
 .story-maker__idea-form { display: flex; flex-direction: column; justify-content: center; min-width: 0; margin: 0; padding: clamp(18px, 2.5vw, 26px); border: 1px solid color-mix(in srgb, #d56528 20%, var(--color-border)); border-radius: 22px; background: color-mix(in srgb, var(--color-surface-container-lowest) 94%, transparent); box-shadow: 0 11px 25px color-mix(in srgb, #b94720 7%, transparent); }
 .story-maker__idea-form-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
 .story-maker__idea-form-heading > div { display: grid; gap: 3px; }
@@ -479,10 +479,10 @@ html[data-color-mode='dark'] .story-maker__plan-note { color: var(--color-text);
   .story-maker__idea-stage,
   .story-maker__plan-stage { margin-top: 28px; }
   .story-maker__idea-stage { grid-template-columns: 1fr; gap: 18px; padding: 20px 15px; border-radius: 22px; }
+  .story-maker__workspace-progress { margin-inline: 14px; }.story-maker__workspace-progress strong { display: none; }
   .story-maker__idea-stage h1,
   .story-maker__plan-heading h1 { font-size: 1.55rem; }
   .story-maker__idea-overview { padding: 0; }
-  .story-maker__idea-steps { grid-template-columns: 1fr; gap: 8px; padding-top: 18px; }
   .story-maker__idea-form { padding: 16px; border-radius: 18px; }
   .story-maker__idea-form-heading { margin-bottom: 14px; }
   .story-maker__idea-form .story-maker__field textarea { min-height: 110px; }

@@ -159,6 +159,7 @@ const isKnownAppPath = (pathname: string) => (
   /^\/c\/[^/]+$/.test(pathname) ||
   pathname === '/studio' ||
   pathname === '/studio/story' ||
+  /^\/studio\/story\/[^/]+$/.test(pathname) ||
   pathname === '/studio/image' ||
   pathname === '/studio/video' ||
   pathname === '/images' ||
@@ -173,7 +174,7 @@ const isKnownAppPath = (pathname: string) => (
 const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
   if (pathname === '/studio') return 'studio';
-  if (pathname === '/studio/story') return 'story';
+  if (pathname === '/studio/story' || /^\/studio\/story\/[^/]+$/.test(pathname)) return 'story';
   if (pathname === '/studio/image' || pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/studio/video') return 'video';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
@@ -281,6 +282,10 @@ const sendVerificationCode = async (phone: string, mode: AuthMode): Promise<Veri
   return {
     deliveryStatus: payload?.deliveryStatus === 'uncertain' ? 'uncertain' : 'sent'
   };
+};
+const getStoryWorkspaceIdFromPath = (pathname: string) => {
+  const match = pathname.match(/^\/studio\/story\/([^/]+)$/);
+  return match ? decodeURIComponent(match[1]) : '';
 };
 
 const verifyCode = async (phone: string, code: string, mode: AuthMode): Promise<VerifyCodeResult> => {
@@ -1137,6 +1142,11 @@ function ChatApp() {
       setCurrentView('story');
       setSidebarOpen(false);
     });
+  };
+  const openStoryWorkspace = (workspaceId: string, mode: 'push' | 'replace' = 'push') => {
+    const nextPath = workspaceId ? `/studio/story/${encodeURIComponent(workspaceId)}` : '/studio/story';
+    mode === 'replace' ? window.history.replaceState({}, '', nextPath) : window.history.pushState({}, '', nextPath);
+    startTransition(() => { setCurrentView('story'); setSidebarOpen(false); });
   };
 
   const openSupport = () => {
@@ -3601,7 +3611,7 @@ notify.error(message);
         <Suspense fallback={<StudioRouteFallback />}>
           {currentView === 'support' ? <SupportCenter onBackToChat={() => navigateToView('chat')} /> : null}
           {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenStory={openStoryMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
-          {currentView === 'story' ? <StoryMakerPage onBack={returnToStudio} /> : null}
+          {currentView === 'story' ? <StoryMakerPage onBack={returnToStudio} workspaceId={getStoryWorkspaceIdFromPath(currentPathname)} onOpenWorkspace={openStoryWorkspace} /> : null}
           {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} onInsufficientBalance={setInsufficientBalance} /> : null}
           {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} onInsufficientBalance={setInsufficientBalance} /> : null}
         </Suspense>
