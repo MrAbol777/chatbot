@@ -349,12 +349,7 @@ export default function ImageStudio({
           <small>ایده‌ات را به تصویر تبدیل کن</small>
         </span>
       </div>
-      <Button type="button" variant="ghost" className="studio-header-back" onClick={onBack} aria-label={backLabel} title={backLabel}>
-        <svg className="studio-header-back__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M15 18 9 12l6-6" />
-        </svg>
-        <span className="studio-header-back__label">{backLabel}</span>
-      </Button>
+      <Button type="button" variant="ghost" iconOnly className="studio-header-back" onClick={onBack} aria-label={backLabel} title={backLabel} startIcon={<svg className="studio-header-back__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg>} />
       <span className="studio-header-spacer" aria-hidden="true" />
     </header>
     <div className="studio-tabs" role="tablist" aria-label="بخش‌های استودیوی تصویر"><span className={`studio-tab-indicator ${tab === 'gallery' ? 'gallery' : ''}`} aria-hidden="true" /><button type="button" role="tab" aria-selected={tab === 'create'} className={tab === 'create' ? 'active' : ''} onClick={() => setTab('create')}>ساخت تصویر</button><button type="button" role="tab" aria-selected={tab === 'gallery'} className={tab === 'gallery' ? 'active' : ''} onClick={() => setTab('gallery')}>تصاویر من</button></div>

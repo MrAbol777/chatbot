@@ -8,11 +8,11 @@ import StoryEditorDialog from './StoryEditorDialog';
 import type { StoryAddedCharacter, StoryBrief, StoryContext, StoryDraft, StoryPlanPreview, StoryScenario, StoryVersion, StoryWorkspace, StoryWorkspaceStatus } from './storyMaker.types';
 import './StoryMakerPage.css';
 
-type Props = { onBack: () => void; workspaceId?: string; onOpenWorkspace?: (id: string, mode?: 'push' | 'replace') => void };
+type Props = { onBack: () => void; workspaceId?: string; onOpenWorkspace?: (id: string, mode?: 'push' | 'replace') => void; onOpenCharacterMaker?: (scenario: string, title?: string) => void };
 type StoryTab = 'create' | 'history';
 type StoryFlow = 'idea' | 'preview';
 type WaitingMode = 'preview' | 'optimization';
-type StoryHistoryItem = { id: string; title: string; idea: string; scenario: string; scenes: number; createdAt: string; story?: StoryScenario; versions?: StoryVersion[] };
+type StoryHistoryItem = { id: string; title: string; idea: string; scenario: string; scenes: number; createdAt: string; story?: StoryScenario; versions?: StoryVersion[]; workspaceId?: string };
 type StoryPendingItem = { id: string; draft: StoryDraft; brief: StoryBrief; briefAnswers: Record<string, string>; plan: StoryPlanPreview; characterNames: string[]; characterDetails?: StoryAddedCharacter[]; createdAt: string; updatedAt: string };
 type CharacterEditorItem = StoryAddedCharacter & { isNew: boolean };
 const STORY_HISTORY_STORAGE_KEY = 'danoa-story-history-v1';
@@ -64,7 +64,7 @@ function readPendingStories(): StoryPendingItem[] {
   } catch { return []; }
 }
 
-export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId = '', onOpenWorkspace }: Props) {
+export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId = '', onOpenWorkspace, onOpenCharacterMaker }: Props) {
   const [draft, setDraft] = useState<StoryDraft>(initialDraft);
   const [activeTab, setActiveTab] = useState<StoryTab>('create');
   const [flow, setFlow] = useState<StoryFlow>('idea');
@@ -147,6 +147,11 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
       setScenario(workspace.scenario || '');
       setScenarioStory(workspace.story || null);
       setFlow(workspace.plan ? 'preview' : 'idea');
+      setActiveTab('create');
+      setScenarioDialogOpen(Boolean(workspace.status === 'completed' && workspace.scenario));
+      if (workspace.status === 'completed' && workspace.scenario) {
+        setStoryHistory((items) => items.map((item) => item.workspaceId || item.scenario !== workspace.scenario ? item : { ...item, workspaceId: workspace.id }));
+      }
       setWorkspaceLoading(false);
     }).catch(() => { if (active) setWorkspaceLoading(false); });
     return () => { active = false; };
@@ -309,12 +314,18 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
       const storyId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const initialVersion: StoryVersion = { id: `${storyId}-v1`, createdAt: new Date().toISOString(), label: 'نسخه‌ی اول', scenario: result.scenario, story: result.story };
       setActiveStoryId(storyId);
-      setStoryHistory((items) => [{ id: storyId, title: getStoryTitle(result.scenario, characterNames[0] || ''), idea: storyDraft.idea, scenario: result.scenario, scenes: result.scenes, createdAt: initialVersion.createdAt, story: result.story, versions: [initialVersion] }, ...items].slice(0, 24));
+      let completedWorkspaceId: string | undefined;
+      try {
+        const workspace = await persistWorkspace('completed', { title: result.story.title || plan?.title || 'داستان من', scenario: result.scenario, story: result.story, versions: [initialVersion] });
+        completedWorkspaceId = workspace.id;
+      } catch {
+        // Keep a local entry when the cloud workspace cannot be saved.
+      }
+      setStoryHistory((items) => [{ id: storyId, workspaceId: completedWorkspaceId, title: getStoryTitle(result.scenario, characterNames[0] || ''), idea: storyDraft.idea, scenario: result.scenario, scenes: result.scenes, createdAt: initialVersion.createdAt, story: result.story, versions: [initialVersion] }, ...items].slice(0, 24));
       if (activePendingId) {
         setPendingStories((items) => items.filter((item) => item.id !== activePendingId));
         setActivePendingId(null);
       }
-      void persistWorkspace('completed', { title: result.story.title || plan?.title || 'داستان من', scenario: result.scenario, story: result.story, versions: [initialVersion] });
     } catch (error) {
       if (controller.signal.aborted) { void persistWorkspace('preview'); return; }
       setScenarioError(error instanceof Error ? error.message : 'سناریو ساخته نشد. لطفاً دوباره امتحان کن.');
@@ -428,6 +439,11 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
     setScenarioError(''); setIsGenerating(false); setScenario(item.scenario); setScenarioStory(item.story || null); setActiveStoryId(item.id); setScenarioDialogOpen(true);
   };
 
+  const startCharacterDesign = () => {
+    if (!scenario.trim()) return;
+    onOpenCharacterMaker?.(scenario, scenarioStory?.title || plan?.title || 'سناریوی من');
+  };
+
   const resumePendingStory = (item: StoryPendingItem) => {
     setDraft(item.draft);
     setBrief(item.brief);
@@ -463,12 +479,16 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   };
 
   const activeVersions = storyHistory.find((item) => item.id === activeStoryId)?.versions || [];
-  const savedStoryCount = remoteWorkspaces.length || storyHistory.length + pendingStories.length;
+  const remotePendingWorkspaces = remoteWorkspaces.filter((item) => item.status !== 'completed');
+  const remoteCompletedWorkspaces = remoteWorkspaces.filter((item) => item.status === 'completed');
+  const remoteCompletedIds = new Set(remoteCompletedWorkspaces.map((item) => item.id));
+  const legacyHistory = storyHistory.filter((item) => !item.workspaceId || !remoteCompletedIds.has(item.workspaceId));
+  const savedStoryCount = pendingStories.length + remotePendingWorkspaces.length + remoteCompletedWorkspaces.length + legacyHistory.length;
 
   return (
     <main className="story-maker" dir="rtl" id="main-content">
       <header className="story-maker__header">
-        <button type="button" className="story-maker__back" onClick={onBack} aria-label="بازگشت به استودیو" title="بازگشت به استودیو"><Icon name="chevron-right" size={22} aria-hidden="true" /></button>
+        <button type="button" className="story-maker__back" onClick={onBack} aria-label="بازگشت به استودیو" title="بازگشت به استودیو"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg></button>
         <div className="story-maker__brand"><span className="story-maker__brand-mark" aria-hidden="true"><Icon name="story" size={22} /></span><span><strong>سناریو نویسی ( داستان من )</strong><small>ایده‌ات را به یک سناریوی حرفه‌ای تبدیل کن</small></span></div>
         <span className="story-maker__workspace-state" aria-live="polite">{workspaceLoading ? 'در حال باز کردن داستان…' : activeWorkspaceId ? 'ذخیره‌شده' : 'داستان تازه'}</span>
       </header>
@@ -514,8 +534,8 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
       </div> : <section className="story-maker__history" id="story-history-panel" role="tabpanel" aria-labelledby="story-history-tab">
         <div className="story-maker__history-heading"><div><span className="story-maker__eyebrow"><Icon name="book" size={15} aria-hidden="true" /> کتابخانه‌ی من</span><h1>داستان‌های من</h1><p>سناریوهای نهایی و طرح‌هایی که هنوز منتظر تأیید تو هستند.</p></div><span className="story-maker__history-count">{savedStoryCount} مورد</span></div>
         {pendingStories.length ? <section className="story-maker__history-section" aria-labelledby="pending-stories-title"><div className="story-maker__history-section-heading"><div><span className="story-maker__pending-label"><Icon name="sparkle" size={14} aria-hidden="true" /> در انتظار تأیید</span><h2 id="pending-stories-title">طرح‌های نیمه‌کاره</h2></div><small>از همین‌جا ادامه بده</small></div><div className="story-maker__history-grid">{pendingStories.map((item) => <button key={item.id} type="button" className="story-maker__history-card story-maker__history-card--pending" onClick={() => resumePendingStory(item)} aria-label={`ادامه‌ی طرح ${item.plan.title}`}><span className="story-maker__history-card-icon"><Icon name="sparkle" size={22} aria-hidden="true" /></span><span className="story-maker__history-card-body"><strong>{item.plan.title}</strong><span className="story-maker__history-idea">{item.draft.idea}</span><span className="story-maker__history-meta"><span>طرح اولیه آماده است</span><span>{formatStoryDate(item.updatedAt)}</span></span></span><span className="story-maker__continue-label">ادامه</span><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}</div></section> : null}
-        {remoteWorkspaces.length ? <section className="story-maker__history-section" aria-labelledby="cloud-stories-title"><div className="story-maker__history-section-heading"><div><span className="story-maker__history-label">فضاهای ذخیره‌شده</span><h2 id="cloud-stories-title">داستان‌های من</h2></div><small>روی هر داستان بزن و از همان مرحله ادامه بده</small></div><div className="story-maker__history-grid">{remoteWorkspaces.map((item) => <button key={item.id} type="button" className={`story-maker__history-card${item.status !== 'completed' ? ' story-maker__history-card--pending' : ''}`} onClick={() => onOpenWorkspace?.(item.id)} aria-label={`باز کردن ${item.title}`}><span className="story-maker__history-card-icon"><Icon name={item.status === 'completed' ? 'story' : 'sparkle'} size={22} aria-hidden="true" /></span><span className="story-maker__history-card-body"><strong>{item.title}</strong><span className="story-maker__history-idea">{item.idea}</span><span className="story-maker__history-meta"><span>{item.status === 'completed' ? 'سناریوی نهایی' : item.status === 'preview' ? 'منتظر تأیید' : 'در حال تکمیل'}</span><span>{formatStoryDate(item.updatedAt)}</span></span></span><span className="story-maker__continue-label">باز کن</span><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}</div></section> : null}
-        {storyHistory.length ? <section className="story-maker__history-section" aria-labelledby="finished-stories-title"><div className="story-maker__history-section-heading"><div><span className="story-maker__history-label">سناریوهای نهایی</span><h2 id="finished-stories-title">داستان‌های کامل‌شده</h2></div></div><div className="story-maker__history-grid">{storyHistory.map((item) => <button key={item.id} type="button" className="story-maker__history-card" onClick={() => openHistoryStory(item)} aria-label={`باز کردن ${item.title}`}><span className="story-maker__history-card-icon"><Icon name="story" size={22} aria-hidden="true" /></span><span className="story-maker__history-card-body"><strong>{item.title}</strong><span className="story-maker__history-idea">{item.idea}</span><span className="story-maker__history-meta"><span>{item.scenes} صحنه</span><span>{formatStoryDate(item.createdAt)}</span></span></span><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}</div></section> : null}
+        {remotePendingWorkspaces.length ? <section className="story-maker__history-section" aria-labelledby="cloud-stories-title"><div className="story-maker__history-section-heading"><div><span className="story-maker__pending-label"><Icon name="sparkle" size={14} aria-hidden="true" /> در انتظار تأیید</span><h2 id="cloud-stories-title">طرح‌های نیمه‌کاره</h2></div><small>روی هر طرح بزن و از همان مرحله ادامه بده</small></div><div className="story-maker__history-grid">{remotePendingWorkspaces.map((item) => <button key={item.id} type="button" className="story-maker__history-card story-maker__history-card--pending" onClick={() => onOpenWorkspace?.(item.id)} aria-label={`ادامه‌ی طرح ${item.title}`}><span className="story-maker__history-card-icon"><Icon name="sparkle" size={22} aria-hidden="true" /></span><span className="story-maker__history-card-body"><strong>{item.title}</strong><span className="story-maker__history-idea">{item.idea}</span><span className="story-maker__history-meta"><span>{item.status === 'preview' ? 'منتظر تأیید' : 'در حال تکمیل'}</span><span>{formatStoryDate(item.updatedAt)}</span></span></span><span className="story-maker__continue-label">ادامه</span><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}</div></section> : null}
+        {remoteCompletedWorkspaces.length || legacyHistory.length ? <section className="story-maker__history-section" aria-labelledby="finished-stories-title"><div className="story-maker__history-section-heading"><div><span className="story-maker__history-label">سناریوهای نهایی</span><h2 id="finished-stories-title">داستان‌های کامل‌شده</h2></div><small>برای دیدن سناریو روی داستان بزن</small></div><div className="story-maker__history-grid">{remoteCompletedWorkspaces.map((item) => <button key={item.id} type="button" className="story-maker__history-card" onClick={() => onOpenWorkspace?.(item.id)} aria-label={`باز کردن سناریوی ${item.title}`}><span className="story-maker__history-card-icon"><Icon name="story" size={22} aria-hidden="true" /></span><span className="story-maker__history-card-body"><strong>{item.title}</strong><span className="story-maker__history-idea">{item.idea}</span><span className="story-maker__history-meta"><span>سناریوی نهایی</span><span>{formatStoryDate(item.updatedAt)}</span></span></span><span className="story-maker__continue-label">باز کن</span><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}{legacyHistory.map((item) => <button key={item.id} type="button" className="story-maker__history-card" onClick={() => openHistoryStory(item)} aria-label={`باز کردن ${item.title}`}><span className="story-maker__history-card-icon"><Icon name="story" size={22} aria-hidden="true" /></span><span className="story-maker__history-card-body"><strong>{item.title}</strong><span className="story-maker__history-idea">{item.idea}</span><span className="story-maker__history-meta"><span>{item.scenes} صحنه</span><span>{formatStoryDate(item.createdAt)}</span></span></span><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}</div></section> : null}
         {!savedStoryCount ? <div className="story-maker__history-empty"><span><Icon name="book" size={32} aria-hidden="true" /></span><h2>کتاب داستانت هنوز خالیه</h2><p>اولین داستانت را بساز؛ بعد همیشه همین‌جا پیدایش می‌کنی.</p><Button type="button" onClick={() => { setActiveTab('create'); setFlow('idea'); }} startIcon={<Icon name="sparkle" size={17} aria-hidden="true" />}>ساخت داستان تازه</Button></div> : null}
       </section>}
 
@@ -588,7 +608,7 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
       <Dialog open={scenarioDialogOpen} title={isGenerating ? 'دانوآ دارد سناریو را می‌سازد…' : scenarioError ? 'دوباره امتحان کنیم؟' : 'سناریوی تو آماده شد!'} onClose={closeScenarioDialog} closeLabel={isGenerating ? 'لغو ساخت سناریو' : 'بستن پنجره'} showFooter={false} panelClassName="story-maker__dialog">
         {isGenerating ? <div className="story-maker__dialog-loading" role="status" aria-live="polite"><Icon name="spinner" size={30} aria-hidden="true" /><strong>داریم صحنه‌ها و دیالوگ‌ها را می‌چینیم…</strong><span>یک کوچولو صبر کن.</span></div> : null}
         {scenarioError ? <div className="story-maker__dialog-error" role="alert"><Icon name="alert-triangle" size={22} aria-hidden="true" /><p>{scenarioError}</p><Button type="button" onClick={() => void runScenarioGeneration()}>دوباره بساز</Button></div> : null}
-        {scenario ? <><article className="story-maker__scenario" aria-label="سناریوی نهایی"><ReactMarkdown remarkPlugins={[remarkGfm]}>{scenario}</ReactMarkdown></article><div className="story-maker__dialog-actions"><Button type="button" variant="secondary" onClick={closeScenarioDialog}>بستن</Button>{scenarioStory ? <Button type="button" variant="secondary" onClick={() => { closeScenarioDialog(); setEditorOpen(true); }} startIcon={<Icon name="edit" size={18} aria-hidden="true" />}>ویرایش سناریو</Button> : null}<Button type="button" onClick={() => void copyScenario()} startIcon={<Icon name="copy" size={18} aria-hidden="true" />}>کپی سناریو</Button></div></> : null}
+        {scenario ? <><aside className="story-maker__character-handoff" aria-label="مرحله بعدی ساخت کاراکتر"><span><Icon name="family" size={20} aria-hidden="true" /></span><div><strong>قدم بعدی: طراحی کاراکترها</strong><p>سناریو را آماده به کارگاه ساخت کاراکتر می‌بریم؛ تحلیل فقط با تأیید تو شروع می‌شود.</p></div></aside><article className="story-maker__scenario" aria-label="سناریوی نهایی"><ReactMarkdown remarkPlugins={[remarkGfm]}>{scenario}</ReactMarkdown></article><div className="story-maker__dialog-actions"><Button type="button" className="story-maker__design-characters" onClick={startCharacterDesign} startIcon={<Icon name="family" size={18} aria-hidden="true" />}>طراحی کاراکترها</Button><div className="story-maker__dialog-secondary-actions">{scenarioStory ? <Button type="button" variant="secondary" onClick={() => { closeScenarioDialog(); setEditorOpen(true); }} startIcon={<Icon name="edit" size={18} aria-hidden="true" />}>ویرایش سناریو</Button> : null}<Button type="button" variant="secondary" onClick={() => void copyScenario()} startIcon={<Icon name="copy" size={18} aria-hidden="true" />}>کپی سناریو</Button><Button type="button" variant="ghost" onClick={closeScenarioDialog}>بستن</Button></div></div></> : null}
       </Dialog>
       <StoryEditorDialog open={editorOpen} story={scenarioStory} expectedScenes={scenarioStory?.scenes.length || 0} versions={activeVersions} onClose={() => setEditorOpen(false)} onSaved={saveEditedStory} onRestore={restoreStoryVersion} />
     </main>

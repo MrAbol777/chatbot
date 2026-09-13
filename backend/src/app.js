@@ -20,6 +20,8 @@ const { createAiRouter } = require('./modules/ai/ai.routes');
 const { createAiService } = require('./modules/ai/ai.service');
 const { createStoryMakerRouter } = require('./modules/story-maker/story-maker.routes');
 const { StoryWorkspaceRepository } = require('./modules/story-maker/story-workspace.repository');
+const { createCharacterMakerRouter } = require('./modules/character-maker/character-maker.routes');
+const { CharacterWorkspaceRepository } = require('./modules/character-maker/character-workspace.repository');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createImageToImageRouter } = require('./modules/image-to-image/image-to-image.routes');
 const { createAuthMiddleware } = require('./modules/image-generation/auth.middleware');
@@ -595,6 +597,25 @@ function createApp({ repositories, runtimeConfig }) {
     promptService,
     principalResolver,
     storyWorkspaceRepository: new StoryWorkspaceRepository(repositories.db),
+    logger: { log }
+  }));
+
+  // Character maker is a separate creative context. It owns analysis and its
+  // library, while deliberately reusing the existing image API as a consumer.
+  const characterMakerAiService = createAiService({
+    apiKey: metisApiKey,
+    baseUrl: metisBaseUrl,
+    openaiClient,
+    httpClient: axios,
+    promptService,
+    settingsRepository: repositories.settings,
+    logger: { log }
+  });
+  app.use(createCharacterMakerRouter({
+    aiService: characterMakerAiService,
+    promptService,
+    principalResolver,
+    characterWorkspaceRepository: new CharacterWorkspaceRepository(repositories.db),
     logger: { log }
   }));
 

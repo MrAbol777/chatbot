@@ -129,7 +129,7 @@
 
 .danoa-studio-page__tools {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -337,6 +337,10 @@
 @media (max-width: 680px) {
   .danoa-studio-page { padding: 12px 16px 24px; }
   .danoa-studio-page__header { padding: 8px; }
+}
+
+@media (min-width: 681px) and (max-width: 980px) {
+  .danoa-studio-page__tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Compact mobile studio -----------------------------------------------------
@@ -664,6 +668,7 @@
 }
 
 .studio-tool-card--image { --studio-card-accent: #7c3aed; }
+.studio-tool-card--characters { --studio-card-accent: #a94ac9; }
 .studio-tool-card--video { --studio-card-accent: #0f8f88; }
 
 .studio-tool-card__icon {
@@ -828,6 +833,11 @@ html[data-color-mode='dark'] .studio-tool-card__icon {
 .studio-tool-card--story {
   --studio-card-accent: #d56528;
   --studio-card-wash: #fff2e8;
+}
+
+.studio-tool-card--characters {
+  --studio-card-accent: #a94ac9;
+  --studio-card-wash: #fbe9ff;
 }
 
 .studio-tool-card--video {
@@ -1053,9 +1063,9 @@ html[data-color-mode='dark'] .studio-tool-card__icon {
    video workspaces. The centered three-column grid also keeps the title in
    place when the back button changes between desktop and mobile. */
 .danoa-studio-page__header {
-  min-height: 56px;
+  min-height: 72px;
   margin: 20px 0;
-  padding: 10px 18px;
+  padding: 8px 12px;
   border: 1px solid color-mix(in srgb, var(--color-border) 48%, transparent);
   border-radius: 18px;
   background:

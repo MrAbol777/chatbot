@@ -202,7 +202,7 @@ function ImageViewer({ item, onClose, onDownload }: ImageViewerProps) {
   }, [scale]);
 
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+    if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('image-viewer-backdrop')) {
       onClose();
     }
   }, [onClose]);

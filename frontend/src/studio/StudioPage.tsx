@@ -11,6 +11,12 @@ const tools: StudioTool[] = [
     actionLabel: 'ساخت داستان'
   },
   {
+    id: 'characters',
+    title: 'ساخت کاراکتر',
+    description: 'شخصیت‌های سناریو را پیدا کن و برای هرکدام تصویر مرجع بساز',
+    actionLabel: 'ساخت کاراکترها'
+  },
+  {
     id: 'image',
     title: 'ساخت تصویر',
     description: 'تصویر دلخواهت را با هوش مصنوعی بساز یا ویرایش کن',
@@ -27,11 +33,12 @@ const tools: StudioTool[] = [
 type Props = {
   onBackToHome: () => void;
   onOpenStory: () => void;
+  onOpenCharacters: () => void;
   onOpenImage: () => void;
   onOpenVideo: () => void;
 };
 
-export default function StudioPage({ onBackToHome, onOpenStory, onOpenImage, onOpenVideo }: Props) {
+export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters, onOpenImage, onOpenVideo }: Props) {
   return (
     <main className="danoa-studio-page" dir="rtl">
       <div className="danoa-studio-page__shell">
@@ -51,14 +58,13 @@ export default function StudioPage({ onBackToHome, onOpenStory, onOpenImage, onO
           <Button
             type="button"
             variant="ghost"
+            iconOnly
             className="danoa-studio-page__back"
             onClick={onBackToHome}
             aria-label="بازگشت به گفتگو"
             title="بازگشت به گفتگو"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-            <span className="danoa-studio-page__back-label">بازگشت به گفتگو</span>
-          </Button>
+            startIcon={<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg>}
+          />
           <span className="danoa-studio-page__header-spacer" aria-hidden="true" />
         </header>
 
@@ -73,7 +79,7 @@ export default function StudioPage({ onBackToHome, onOpenStory, onOpenImage, onO
             <StudioToolCard
               key={tool.id}
               tool={tool}
-              onOpen={tool.id === 'story' ? onOpenStory : tool.id === 'image' ? onOpenImage : onOpenVideo}
+              onOpen={tool.id === 'story' ? onOpenStory : tool.id === 'characters' ? onOpenCharacters : tool.id === 'image' ? onOpenImage : onOpenVideo}
             />
           ))}
         </section>

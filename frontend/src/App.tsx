@@ -59,6 +59,7 @@ import { ChatHeader } from './components/chat/ChatHeader';
 import { ChatSidebar } from './components/chat/ChatSidebar';
 import { ChatMessageItem } from './components/chat/ChatMessageItem';
 import { ChatInputBar } from './components/chat/ChatInputBar';
+import { saveCharacterScenarioHandoff } from './character-maker/characterScenarioHandoff';
 import BroadcastMessageLayer from './components/BroadcastMessageLayer';
 import { AuthForm } from './components/auth/AuthForm';
 import NotFound from './NotFound';
@@ -89,6 +90,7 @@ import {
 const ImageStudio = lazy(() => import('./ImageStudio'));
 const StudioPage = lazy(() => import('./studio/StudioPage'));
 const StoryMakerPage = lazy(() => import('./story-maker/StoryMakerPage'));
+const CharacterMakerPage = lazy(() => import('./character-maker/CharacterMakerPage'));
 const VideoGenerationPage = lazy(() => import('./video-generation/VideoGenerationPage'));
 const SupportCenter = lazy(() => import('./support/SupportCenter'));
 
@@ -160,6 +162,7 @@ const isKnownAppPath = (pathname: string) => (
   pathname === '/studio' ||
   pathname === '/studio/story' ||
   /^\/studio\/story\/[^/]+$/.test(pathname) ||
+  pathname === '/studio/characters' ||
   pathname === '/studio/image' ||
   pathname === '/studio/video' ||
   pathname === '/images' ||
@@ -175,6 +178,7 @@ const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
   if (pathname === '/studio') return 'studio';
   if (pathname === '/studio/story' || /^\/studio\/story\/[^/]+$/.test(pathname)) return 'story';
+  if (pathname === '/studio/characters') return 'characters';
   if (pathname === '/studio/image' || pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/studio/video') return 'video';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
@@ -579,6 +583,7 @@ function ChatApp() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string>('');
+  const [, setRouteRefresh] = useState(0);
   const [hasHydratedRemoteConversations, setHasHydratedRemoteConversations] = useState(false);
   const [conversationLoadingId, setConversationLoadingId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(getInitialSidebarState);
@@ -1041,6 +1046,8 @@ function ChatApp() {
         ? '/studio'
         : view === 'story'
           ? '/studio/story'
+        : view === 'characters'
+          ? '/studio/characters'
         : view === 'video'
           ? '/studio/video'
           : view === 'images'
@@ -1143,10 +1150,29 @@ function ChatApp() {
       setSidebarOpen(false);
     });
   };
+
+  const openCharacterMaker = () => {
+    window.history.pushState({}, '', '/studio/characters');
+    startTransition(() => {
+      setCurrentView('characters');
+      setSidebarOpen(false);
+    });
+  };
+
+  const openCharacterMakerFromStory = (scenario: string, title?: string) => {
+    saveCharacterScenarioHandoff(scenario, title);
+    openCharacterMaker();
+  };
   const openStoryWorkspace = (workspaceId: string, mode: 'push' | 'replace' = 'push') => {
     const nextPath = workspaceId ? `/studio/story/${encodeURIComponent(workspaceId)}` : '/studio/story';
     mode === 'replace' ? window.history.replaceState({}, '', nextPath) : window.history.pushState({}, '', nextPath);
-    startTransition(() => { setCurrentView('story'); setSidebarOpen(false); });
+    startTransition(() => {
+      setCurrentView('story');
+      setSidebarOpen(false);
+      // The view is already "story" when opening an item from its library.
+      // Refresh the route owner so the new workspace id reaches StoryMakerPage.
+      setRouteRefresh((version) => version + 1);
+    });
   };
 
   const openSupport = () => {
@@ -3610,8 +3636,9 @@ notify.error(message);
         ) : null}
         <Suspense fallback={<StudioRouteFallback />}>
           {currentView === 'support' ? <SupportCenter onBackToChat={() => navigateToView('chat')} /> : null}
-          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenStory={openStoryMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
-          {currentView === 'story' ? <StoryMakerPage onBack={returnToStudio} workspaceId={getStoryWorkspaceIdFromPath(currentPathname)} onOpenWorkspace={openStoryWorkspace} /> : null}
+          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenStory={openStoryMaker} onOpenCharacters={openCharacterMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
+          {currentView === 'story' ? <StoryMakerPage onBack={returnToStudio} workspaceId={getStoryWorkspaceIdFromPath(currentPathname)} onOpenWorkspace={openStoryWorkspace} onOpenCharacterMaker={openCharacterMakerFromStory} /> : null}
+          {currentView === 'characters' ? <CharacterMakerPage onBack={returnToStudio} /> : null}
           {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} onInsufficientBalance={setInsufficientBalance} /> : null}
           {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} onInsufficientBalance={setInsufficientBalance} /> : null}
         </Suspense>
@@ -4076,13 +4103,19 @@ notify.error(message);
                     <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
                   </button>
 
-                  <button type="button" className="danoa-shortcut-card" onClick={openImageStudioFromStudio}>
+                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--characters" onClick={openCharacterMaker}>
+                    <div className="danoa-shortcut-icon danoa-shortcut-icon--characters"><Icon name="family" size={20} /></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت کاراکتر</strong><span className="danoa-shortcut-desc">هویت تصویری ثابت برای شخصیت‌های داستانت</span></div>
+                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+                  </button>
+
+                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--image" onClick={openImageStudioFromStudio}>
                     <div className="danoa-shortcut-icon danoa-shortcut-icon--image"><Icon name="studio-image" size={20} /></div>
                     <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت تصویر</strong><span className="danoa-shortcut-desc">خلق تصاویر از متن و ایده‌های شما</span></div>
                     <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
                   </button>
 
-                  <button type="button" className="danoa-shortcut-card" onClick={openVideoStudio}>
+                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--video" onClick={openVideoStudio}>
                     <div className="danoa-shortcut-icon danoa-shortcut-icon--video"><Icon name="studio-video" size={20} /></div>
                     <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت ویدیو</strong><span className="danoa-shortcut-desc">تبدیل ایده‌ها به ویدیوهای جذاب</span></div>
                     <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>

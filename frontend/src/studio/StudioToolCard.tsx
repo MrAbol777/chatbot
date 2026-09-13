@@ -12,6 +12,13 @@ function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
       <path d="M8 9h6M8 12h7M8 15h4" />
       <path d="m18.1 4.3.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7.7-1.9Z" />
     </svg>
+  ) : toolId === 'characters' ? (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="8" cy="8.3" r="2.4" />
+      <circle cx="16.2" cy="8.3" r="2.4" />
+      <path d="M3.7 18.5c.5-3 2.1-4.7 4.6-4.7s4.1 1.7 4.6 4.7M11.3 18.5c.5-3 2.1-4.7 4.6-4.7s4.1 1.7 4.6 4.7" />
+      <path d="m17.7 3.2.45 1.2 1.2.45-1.2.45-.45 1.2-.45-1.2-1.2-.45 1.2-.45.45-1.2Z" />
+    </svg>
   ) : toolId === 'image' ? (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
@@ -28,9 +35,11 @@ function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
 export default function StudioToolCard({ tool, onOpen }: Props) {
   const toolMeta = tool.id === 'story'
     ? { type: 'داستان‌پردازی', index: '01' }
+    : tool.id === 'characters'
+      ? { type: 'طراحی شخصیت', index: '02' }
     : tool.id === 'image'
-      ? { type: 'خلق تصویر', index: '02' }
-      : { type: 'خلق ویدیو', index: '03' };
+      ? { type: 'خلق تصویر', index: '03' }
+      : { type: 'خلق ویدیو', index: '04' };
 
   return (
     <button
