@@ -365,7 +365,7 @@ export default function ImageStudio({
         <section className="studio-prompt-card">
           <div className="studio-prompt-block">
             <label htmlFor="studio-prompt"><span>{imageToImageActive || editSource ? 'چه تغییری می‌خواهی؟' : 'چی توی ذهنت داری؟'}</span><small>{prompt.length}/{promptLimit.toLocaleString('fa-IR')}</small></label>
-            <p className="studio-field-help">سوژه، سبک، نور و حس تصویر را با چند کلمه توضیح بده.</p>
+            <p className="studio-field-help">ایده‌ات را کوتاه و روشن بنویس.</p>
             <div className="studio-textarea-wrap"><Icon name="sparkle" size="1em" className="studio-input-spark" aria-hidden="true" /><textarea ref={promptInputRef} id="studio-prompt" value={prompt} onChange={(e) => { setPrompt(e.target.value.slice(0, promptLimit)); setError(''); }} placeholder="مثلاً یک کلبه‌ی شیشه‌ای وسط جنگل، نور صبح و حس آرام..." rows={5} disabled={busy} maxLength={promptLimit} /></div>
             <div className="studio-mobile-create-controls">
               {imageSettings(true)}

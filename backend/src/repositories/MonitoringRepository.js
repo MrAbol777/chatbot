@@ -61,6 +61,43 @@ class MonitoringRepository {
     return Number(rows[0]?.total || 0);
   }
 
+  async getUserMonitoringSnapshot(from, to) {
+    const rows = await this.optionalRows(
+      `SELECT
+         COUNT(*) AS total_users,
+         COALESCE(SUM(is_banned = 1), 0) AS suspended_users,
+         COALESCE(SUM(registered_at >= ? AND registered_at < ? AND is_banned = 0), 0) AS new_users,
+         COALESCE(SUM(last_active >= ? AND last_active < ? AND is_banned = 0), 0) AS active_users,
+         COALESCE(SUM(last_active >= ? AND last_active < ? AND registered_at < ? AND is_banned = 0), 0) AS returning_users,
+         COALESCE(SUM(last_active >= ? AND last_active < ? AND registered_at >= ? AND registered_at < ? AND is_banned = 0), 0) AS activated_new_users
+       FROM app_users`,
+      [from, to, from, to, from, to, from, from, to, from, to]
+    );
+    const row = rows[0] || {};
+    return {
+      totalUsers: Number(row.total_users || 0),
+      suspendedUsers: Number(row.suspended_users || 0),
+      newUsers: Number(row.new_users || 0),
+      activeUsers: Number(row.active_users || 0),
+      returningUsers: Number(row.returning_users || 0),
+      activatedNewUsers: Number(row.activated_new_users || 0)
+    };
+  }
+
+  async getUserActivityRows(from, to, limit = 50000) {
+    return this.optionalRows(
+      `SELECT user_id, registered_at, last_active
+       FROM app_users
+       WHERE is_banned = 0
+         AND ((last_active >= ? AND last_active < ?)
+          OR (registered_at >= ? AND registered_at < ?)
+         )
+       ORDER BY COALESCE(last_active, registered_at) ASC
+       LIMIT ?`,
+      [from, to, from, to, Math.min(50000, Math.max(1, Number(limit) || 50000))]
+    );
+  }
+
   async getRequestRows(from, to, limit = 50000) {
     return this.optionalRows(
       `SELECT route, method, status_code, duration_ms, created_at

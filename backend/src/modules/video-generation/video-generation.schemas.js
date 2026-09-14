@@ -1,8 +1,7 @@
 const { fail } = require('./video-generation.errors');
 const clean = (value, max = 191) => String(value || '').trim().slice(0, max);
-const exactPrompt = (value, max = 4000) => {
+const exactPrompt = (value) => {
   if (typeof value !== 'string' || value.trim().length < 3) throw fail('VIDEO_GENERATION_INVALID_PROMPT', 'توضیح ویدیو کافی نیست.');
-  if (value.length > max) throw fail('VIDEO_GENERATION_PROMPT_TOO_LONG', 'متن درخواست از سقف مجاز بیشتر است.', 400);
   return value;
 };
 function validateSubmit(input, { modelKeyRequired = true } = {}) {

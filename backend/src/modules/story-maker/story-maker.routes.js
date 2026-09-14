@@ -8,6 +8,7 @@ const { buildRepairPrompt, buildRevisionPrompt, buildScenarioMarkdown, normalize
 
 function publicError(error) {
   if (error?.message === 'STORY_IDEA_REQUIRED') return { status: 400, error: 'STORY_IDEA_REQUIRED', message: 'اول ایده‌ی داستان را بنویس.' };
+  if (error?.message === 'STORY_IMPROVEMENT_REQUIRED') return { status: 400, error: 'STORY_IMPROVEMENT_REQUIRED', message: 'بگو کدام بخش داستان را دوست نداشتی یا می‌خواهی تغییر کند.' };
   if (error?.message === 'STORY_REVISION_REQUIRED') return { status: 400, error: 'STORY_REVISION_REQUIRED', message: 'بگو دوست داری چه چیزی تغییر کند.' };
   if (error?.code === 'UPSTREAM_TIMEOUT') return { status: 504, error: 'STORY_GENERATION_TIMEOUT', message: 'ساخت داستان کمی طول کشید؛ دوباره امتحان کن.' };
   if (error?.code === 'STORY_QUALITY_FAILED') return { status: 502, error: 'STORY_QUALITY_FAILED', message: 'سناریو جزئیات کافی نداشت؛ لطفاً دوباره امتحان کن.' };
@@ -21,7 +22,7 @@ function fallbackBrief(draft) {
     resolvedDetails: [],
     assumptions: [],
     questions: [
-      { id: 'age', question: 'این قصه برای چه گروه سنی‌ای ساخته شود؟', hint: 'تا زبان و حال‌وهوای داستان دقیق‌تر شود.', options: ['۰ تا ۳ سال', '۴ تا ۷ سال', '۸ تا ۱۲ سال', '۱۳ تا ۱۷ سال', '۱۸ سال به بالا'] },
+      { id: 'age', question: 'این قصه برای چه گروه سنی‌ای ساخته شود؟', hint: 'تا زبان و حال‌وهوای داستان دقیق‌تر شود.', options: ['۰ تا ۳ سال', '۴ تا ۷ سال', '۸ تا ۱۲ سال', '۱۳ تا ۱۷ سال', '۱۸ تا ۲۵ سال'] },
       { id: 'format', question: 'دوست داری قصه‌ات را چطور ببینیم؟', hint: 'سبک تصویر و روایت را با این انتخاب هماهنگ می‌کنیم.', options: ['انیمیشن', 'فیلم سینمایی'] },
       { id: 'duration', question: 'داستانت چند ثانیه باشد؟', hint: 'عدد را بکش یا خودت تایپ کن؛ از ۲ تا ۶۰ ثانیه.', options: [] },
       { id: 'location', question: 'ماجرا کجا اتفاق بیفتد؟', hint: 'یک دنیا برای شروع قصه انتخاب کن.', options: ['همان دنیای ایده', 'یک جای خیالی شگفت‌انگیز', 'یک مکان واقعی و آشنا'] },
@@ -47,6 +48,16 @@ function normalizeRevisionRequest(value) {
   return { request, targetScene: Number.isFinite(targetScene) ? targetScene : null };
 }
 
+function normalizeStoryImprovement(value) {
+  const feedback = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 800) : '';
+  if (!feedback) {
+    const error = new Error('STORY_IMPROVEMENT_REQUIRED');
+    error.status = 400;
+    throw error;
+  }
+  return feedback;
+}
+
 function normalizeBrief(value, draft) {
   const source = value && typeof value === 'object' ? value : {};
   const cleanText = (item, max) => typeof item === 'string' ? item.trim().replace(/\s+/g, ' ').slice(0, max) : '';
@@ -55,10 +66,10 @@ function normalizeBrief(value, draft) {
     id: cleanText(item?.id, 32).replace(/[^a-z0-9-]/gi, '') || `detail-${index + 1}`,
     question: cleanText(item?.question, 120),
     hint: cleanText(item?.hint, 130),
-    options: (Array.isArray(item?.options) ? item.options : []).slice(0, 4).map((option) => cleanText(option, 52)).filter(Boolean)
+    options: (Array.isArray(item?.options) ? item.options : []).slice(0, 4).map((option) => cleanText(option, 120)).filter(Boolean)
   })).filter((item) => item.question && (item.id === 'duration' || item.options.length >= 2));
   const fixedChoices = {
-    age: { question: 'این قصه برای چه گروه سنی‌ای ساخته شود؟', hint: 'تا زبان و حال‌وهوای داستان دقیق‌تر شود.', options: ['۰ تا ۳ سال', '۴ تا ۷ سال', '۸ تا ۱۲ سال', '۱۳ تا ۱۷ سال', '۱۸ سال به بالا'] },
+    age: { question: 'این قصه برای چه گروه سنی‌ای ساخته شود؟', hint: 'تا زبان و حال‌وهوای داستان دقیق‌تر شود.', options: ['۰ تا ۳ سال', '۴ تا ۷ سال', '۸ تا ۱۲ سال', '۱۳ تا ۱۷ سال', '۱۸ تا ۲۵ سال'] },
     format: { question: 'دوست داری قصه‌ات را چطور ببینیم؟', hint: 'فقط قالب دلخواهت را انتخاب کن.', options: ['انیمیشن', 'فیلم سینمایی'] },
     duration: { question: 'داستانت چند ثانیه باشد؟', hint: 'عدد را بکش یا خودت تایپ کن؛ از ۲ تا ۶۰ ثانیه.', options: [] }
   };
@@ -99,11 +110,11 @@ function normalizeFollowUpBrief(value, draft) {
   const source = value && typeof value === 'object' ? value : {};
   const cleanText = (item, max) => typeof item === 'string' ? item.trim().replace(/\s+/g, ' ').slice(0, max) : '';
   const cleanPairs = (items, maxItems) => (Array.isArray(items) ? items : []).slice(0, maxItems).map((item) => ({ label: cleanText(item?.label, 70), value: cleanText(item?.value, 150) })).filter((item) => item.label && item.value);
-  const questions = (Array.isArray(source.questions) ? source.questions : []).slice(0, 6).map((item, index) => ({
+  const questions = (Array.isArray(source.questions) ? source.questions : []).slice(0, 2).map((item, index) => ({
     id: cleanText(item?.id, 32).replace(/[^a-z0-9-]/gi, '') || `detail-${index + 1}`,
     question: cleanText(item?.question, 120),
     hint: cleanText(item?.hint, 130),
-    options: (Array.isArray(item?.options) ? item.options : []).slice(0, 4).map((option) => cleanText(option, 52)).filter(Boolean)
+    options: (Array.isArray(item?.options) ? item.options : []).slice(0, 4).map((option) => cleanText(option, 120)).filter(Boolean)
   })).filter((item) => item.question && item.options.length >= 2);
   const status = source.status === 'needs_clarification' && questions.length ? 'needs_clarification' : 'ready';
   return { status, summary: cleanText(source.summary, 280) || draft.idea, resolvedDetails: cleanPairs(source.resolvedDetails, 8), assumptions: cleanPairs(source.assumptions, 5), questions: status === 'needs_clarification' ? questions : [] };
@@ -196,10 +207,11 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
     try {
       const draft = normalizeStoryDraft(req.body?.draft);
       const context = normalizeStoryContext(req.body?.context);
+      const feedback = normalizeStoryImprovement(req.body?.feedback);
       const baseSystemPrompt = await promptService.getSystemPrompt();
       const result = await aiService.callOpenAI([
         { role: 'system', content: `${baseSystemPrompt}\n\nتو در این درخواست فقط سردبیرِ شفاف‌سازی ایده‌ی داستان هستی. فقط JSON معتبر برگردان و هرگز سناریو ننویس.` },
-        { role: 'user', content: buildFollowUpClarificationPrompt(draft, context) }
+        { role: 'user', content: buildFollowUpClarificationPrompt(draft, context, feedback) }
       ], { requestId: res.locals.requestId });
       const brief = normalizeFollowUpBrief(parseJsonObject(result?.reply), draft);
       logger.log?.('STORY_MAKER', 'follow_up_prepared', { requestId: res.locals.requestId, userId: req.user?.id, status: brief.status, questionCount: brief.questions.length, model: result.model });

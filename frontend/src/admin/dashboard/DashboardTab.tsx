@@ -153,6 +153,21 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
     label: formatChartTime(item.timestamp, range)
   })), [dashboard?.traffic, range]);
 
+  const dashboardUsers = dashboard?.users || {
+    total: dashboard?.kpis.totalUsers || 0,
+    active: dashboard?.kpis.activeUsers.value || 0,
+    newUsers: { value: 0, changePct: 0 },
+    returningUsers: 0,
+    suspendedUsers: 0,
+    activationRate: 0,
+    series: []
+  };
+
+  const userActivity = useMemo(() => (dashboardUsers.series || []).map((item) => ({
+    ...item,
+    label: formatChartTime(item.timestamp, range)
+  })), [dashboardUsers.series, range]);
+
   const noaUsage = useMemo(() => (dashboard?.noa?.captured || []).map((item) => ({
     ...item,
     label: ACTION_LABELS[item.actionKey] || item.actionKey
@@ -232,8 +247,39 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             <KpiCard label="نرخ موفقیت" value={`${faNumber(dashboard.kpis.successRate.value, 1)}%`} change={dashboard.kpis.successRate.changePct} tone="success" helper="پاسخ‌های بدون خطا" />
             <KpiCard label="خطای درخواست" value={`${faNumber(dashboard.kpis.errorRate.value, 1)}%`} change={dashboard.kpis.errorRate.changePct} tone="danger" inverseTrend helper="مقایسه با دوره قبل" />
             <KpiCard label="p95 زمان پاسخ" value={formatDuration(dashboard.kpis.p95LatencyMs.value)} change={dashboard.kpis.p95LatencyMs.changePct} tone="warning" inverseTrend helper="کندترین ۵ درصد" />
-            <KpiCard label="کاربر فعال" value={faNumber(dashboard.kpis.activeUsers.value)} change={dashboard.kpis.activeUsers.changePct} tone="neutral" helper={`از ${faNumber(dashboard.kpis.totalUsers)} کاربر`} />
+            <KpiCard label="کاربران فعال" value={faNumber(dashboard.kpis.activeUsers.value)} change={dashboard.kpis.activeUsers.changePct} tone="neutral" helper={`از ${faNumber(dashboard.kpis.totalUsers)} کاربر`} />
             <KpiCard label="مصرف نوآ" value={faNumber(dashboard.kpis.noaSpent.value, 2)} change={dashboard.kpis.noaSpent.changePct} tone="primary" inverseTrend helper={`${faNumber(dashboard.kpis.tokens.value)} توکن ثبت‌شده`} />
+          </section>
+
+          <section className="monitoring-users-section" aria-labelledby="monitoring-users-heading">
+            <div className="monitoring-section-heading">
+              <div>
+                <h4 id="monitoring-users-heading">پایش کاربران</h4>
+                <p>رشد ثبت‌نام، بازگشت و فعالیت کاربران در بازه انتخاب‌شده</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate?.('users')}>مدیریت کاربران</Button>
+            </div>
+            <div className="monitoring-users-layout">
+              <div className="monitoring-user-stats">
+                <div><span>کل کاربران</span><strong>{faNumber(dashboardUsers.total)}</strong><small>حساب ثبت‌شده</small></div>
+                <div><span>کاربران جدید</span><strong>{faNumber(dashboardUsers.newUsers.value)}</strong><small className={dashboardUsers.newUsers.changePct >= 0 ? 'monitoring-good' : 'monitoring-bad'}>{dashboardUsers.newUsers.changePct > 0 ? '+' : ''}{faNumber(dashboardUsers.newUsers.changePct, 1)}٪ نسبت به دوره قبل</small></div>
+                <div><span>کاربران بازگشتی</span><strong>{faNumber(dashboardUsers.returningUsers)}</strong><small>فعال و عضوِ پیش از این بازه</small></div>
+                <div><span>فعال‌سازی کاربران جدید</span><strong>{faNumber(dashboardUsers.activationRate, 1)}٪</strong><small>{faNumber(dashboardUsers.suspendedUsers)} حساب مسدود</small></div>
+              </div>
+              <div className="monitoring-user-chart" role="img" aria-label="نمودار فعالیت و ثبت‌نام کاربران در بازه انتخاب‌شده">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={220}>
+                  <ComposedChart data={userActivity}>
+                    <CartesianGrid stroke="var(--monitoring-grid)" vertical={false} />
+                    <XAxis dataKey="label" stroke="var(--monitoring-muted)" tickLine={false} axisLine={false} minTickGap={24} />
+                    <YAxis stroke="var(--monitoring-muted)" tickLine={false} axisLine={false} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: 'var(--monitoring-surface)', borderColor: 'var(--monitoring-border)', borderRadius: 10 }} />
+                    <Legend />
+                    <Area type="monotone" dataKey="activeUsers" name="کاربران فعال" fill="var(--monitoring-primary-soft)" stroke="var(--monitoring-primary)" strokeWidth={2} isAnimationActive={false} />
+                    <Line type="monotone" dataKey="newUsers" name="ثبت‌نام جدید" stroke="var(--monitoring-secondary)" strokeWidth={2} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </section>
 
           <section className="monitoring-chart-grid">

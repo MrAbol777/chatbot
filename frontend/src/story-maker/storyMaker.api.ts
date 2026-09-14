@@ -38,10 +38,10 @@ export async function prepareStoryBrief(draft: StoryDraft, signal?: AbortSignal)
   return data.brief;
 }
 
-export async function clarifyStoryBrief(draft: StoryDraft, context: StoryContext, signal?: AbortSignal): Promise<StoryBrief> {
+export async function clarifyStoryBrief(draft: StoryDraft, context: StoryContext, feedback: string, signal?: AbortSignal): Promise<StoryBrief> {
   const payload = buildScenarioPromptPayload(draft);
   const response = await safeFetch('/api/story-scenarios/brief/clarify', {
-    method: 'POST', headers: authHeaders(), credentials: 'include', body: JSON.stringify({ draft: payload.draft, context }), signal
+    method: 'POST', headers: authHeaders(), credentials: 'include', body: JSON.stringify({ draft: payload.draft, context, feedback }), signal
   });
   let data: BriefResponse = {};
   try { data = await response.json(); } catch { /* handled below */ }

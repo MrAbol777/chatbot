@@ -39,8 +39,23 @@ test('clarification prompt always asks for the five guided choices', () => {
   assert.match(prompt, /۰ تا ۳ سال/);
   assert.match(prompt, /«انیمیشن» و «فیلم سینمایی»/);
   assert.match(prompt, /options آن حتماً آرایه‌ی خالی باشد/);
+  assert.match(prompt, /۱۸ تا ۲۵ سال/);
   assert.match(prompt, /فقط JSON معتبر/);
   assert.match(prompt, /یه خرگوش دزده/);
+});
+
+test('scenario prompt requires causal scene handoffs, visible reactions, and Persian pronunciation guidance', () => {
+  const draft = normalizeStoryDraft({ idea: 'نوجوانی برای پیدا کردن یک کتاب گمشده وارد کتابخانه می‌شود', mood: 'mystery', place: 'school', length: 'short', ending: 'surprising' });
+  const prompt = buildScenarioPrompt(draft);
+  assert.match(prompt, /از نتیجه‌ی صحنه‌ی قبل شروع شود/);
+  assert.match(prompt, /reaction/);
+  assert.match(prompt, /outcome/);
+  assert.match(prompt, /حرکت‌های لازمِ فارسی\/عربی/);
+  assert.match(prompt, /اُوی/);
+  assert.match(prompt, /لاگ‌لاین، تایم‌لاین، بیت، شات، پلان، کات، نریشن و پرامپت/);
+  assert.match(prompt, /specialAbility/);
+  assert.match(prompt, /دوست‌های قهرمان باید نقش و تواناییِ متفاوت داشته باشند/);
+  assert.match(prompt, /openingHook/);
 });
 
 test('preview prompt keeps user-selected character names and does not request a scenario', () => {
@@ -65,10 +80,12 @@ test('new character role and purpose are included in both preview and final scen
   assert.match(buildScenarioPrompt(draft, context), /نقش و دلیل حضورشان را دقیقاً رعایت کن/);
 });
 
-test('follow-up prompt asks only for story-critical unknowns and forbids assumptions', () => {
+test('follow-up prompt limits story-critical suggested-choice questions and forbids assumptions', () => {
   const draft = normalizeStoryDraft({ idea: 'یک خرس کوچولو دنبال بادبادکش می‌گردد', mood: 'adventure', place: 'forest', length: 'medium', ending: 'happy' });
   const prompt = buildFollowUpClarificationPrompt(draft, { answers: { 'گروه سنی': '۷ تا ۹ سال' } });
   assert.match(prompt, /فقط وقتی مجاز است که جوابش روی سناریو اثر واقعی داشته باشد/);
+  assert.match(prompt, /حداکثر ۲ سؤال/);
+  assert.match(prompt, /گزینه‌ی «خودم می‌نویسم» را داخل options نگذار/);
   assert.match(prompt, /قهرمان، هدف، تعارض اصلی/);
   assert.match(prompt, /assumptions را خالی بگذار/);
 });

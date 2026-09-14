@@ -78,6 +78,30 @@ const buildTrafficSeries = (rows, from, to, bucketMs) => {
   }));
 };
 
+const buildUserSeries = (rows, from, to, bucketMs) => {
+  const start = Math.floor(from.getTime() / bucketMs) * bucketMs;
+  const end = to.getTime();
+  const buckets = new Map();
+  for (let cursor = start; cursor < end; cursor += bucketMs) {
+    buckets.set(cursor, { timestamp: new Date(cursor).toISOString(), activeUsers: 0, newUsers: 0 });
+  }
+
+  for (const row of rows) {
+    const activeAt = new Date(row.last_active || 0).getTime();
+    if (activeAt >= from.getTime() && activeAt < end) {
+      const bucket = buckets.get(Math.floor(activeAt / bucketMs) * bucketMs);
+      if (bucket) bucket.activeUsers += 1;
+    }
+    const registeredAt = new Date(row.registered_at || 0).getTime();
+    if (registeredAt >= from.getTime() && registeredAt < end) {
+      const bucket = buckets.get(Math.floor(registeredAt / bucketMs) * bucketMs);
+      if (bucket) bucket.newUsers += 1;
+    }
+  }
+
+  return [...buckets.values()];
+};
+
 const summarizeRequests = (rows) => {
   const total = rows.length;
   const errors = rows.filter((row) => number(row.status_code) >= 400).length;
@@ -244,7 +268,10 @@ function createMonitoringService({ repository, settingsRepository = null, runtim
       recentErrors,
       topErrors,
       imageStorage,
-      videoStorage
+      videoStorage,
+      currentUserMonitoring,
+      previousUserMonitoring,
+      userActivityRows
     ] = await Promise.all([
       repository.getTotalUsers(),
       repository.getActiveUsers(from, to),
@@ -262,7 +289,16 @@ function createMonitoringService({ repository, settingsRepository = null, runtim
       repository.getRecentErrors(from, to),
       repository.getTopErrors(from, to),
       checkStorage(runtimeConfig.ai?.image?.storageDir || env.IMAGE_STORAGE_DIR, 'imageStorage'),
-      checkStorage(env.VIDEO_STORAGE_ROOT, 'videoStorage')
+      checkStorage(env.VIDEO_STORAGE_ROOT, 'videoStorage'),
+      typeof repository.getUserMonitoringSnapshot === 'function'
+        ? repository.getUserMonitoringSnapshot(from, to)
+        : Promise.resolve(null),
+      typeof repository.getUserMonitoringSnapshot === 'function'
+        ? repository.getUserMonitoringSnapshot(previousFrom, from)
+        : Promise.resolve(null),
+      typeof repository.getUserActivityRows === 'function'
+        ? repository.getUserActivityRows(from, to)
+        : Promise.resolve([])
     ]);
 
     let databaseLatencyMs = 0;
@@ -279,6 +315,25 @@ function createMonitoringService({ repository, settingsRepository = null, runtim
     const totalTokens = chatRows.reduce((sum, row) => sum + tokenTotal(row.token_usage), 0);
     const noaSpent = noa.captured.reduce((sum, row) => sum + row.amount, 0);
     const previousNoaSpent = previousNoa.captured.reduce((sum, row) => sum + row.amount, 0);
+    const userMonitoring = currentUserMonitoring || {
+      totalUsers,
+      suspendedUsers: 0,
+      newUsers: 0,
+      activeUsers,
+      returningUsers: 0,
+      activatedNewUsers: 0
+    };
+    const previousUsers = previousUserMonitoring || {
+      totalUsers,
+      suspendedUsers: 0,
+      newUsers: 0,
+      activeUsers: previousActiveUsers,
+      returningUsers: 0,
+      activatedNewUsers: 0
+    };
+    const userActivationRate = userMonitoring.newUsers
+      ? round((userMonitoring.activatedNewUsers / userMonitoring.newUsers) * 100, 1)
+      : 0;
     const chatCapabilityRows = chatRows.map((row) => ({
       ...row,
       status: row.error_code ? 'failed' : 'completed',
@@ -360,8 +415,8 @@ function createMonitoringService({ repository, settingsRepository = null, runtim
       },
       health,
       kpis: {
-        totalUsers,
-        activeUsers: { value: activeUsers, changePct: changePct(activeUsers, previousActiveUsers) },
+        totalUsers: userMonitoring.totalUsers,
+        activeUsers: { value: userMonitoring.activeUsers, changePct: changePct(userMonitoring.activeUsers, previousUsers.activeUsers) },
         requests: { value: requestSummary.total, changePct: changePct(requestSummary.total, previousRequestSummary.total) },
         successRate: { value: requestSummary.successRate, changePct: round(requestSummary.successRate - previousRequestSummary.successRate, 1) },
         errorRate: { value: requestSummary.errorRate, changePct: round(requestSummary.errorRate - previousRequestSummary.errorRate, 1) },
@@ -370,6 +425,15 @@ function createMonitoringService({ repository, settingsRepository = null, runtim
         tokens: { value: Math.round(totalTokens), source: 'recorded' }
       },
       traffic: buildTrafficSeries(requestRows, from, to, rangeConfig.bucketMs),
+      users: {
+        total: userMonitoring.totalUsers,
+        active: userMonitoring.activeUsers,
+        newUsers: { value: userMonitoring.newUsers, changePct: changePct(userMonitoring.newUsers, previousUsers.newUsers) },
+        returningUsers: userMonitoring.returningUsers,
+        suspendedUsers: userMonitoring.suspendedUsers,
+        activationRate: userActivationRate,
+        series: buildUserSeries(userActivityRows, from, to, rangeConfig.bucketMs)
+      },
       capabilities,
       providers,
       queues,
@@ -400,6 +464,7 @@ function createMonitoringService({ repository, settingsRepository = null, runtim
 module.exports = {
   RANGE_CONFIG,
   buildTrafficSeries,
+  buildUserSeries,
   createMonitoringService,
   percentile,
   summarizeRequests,

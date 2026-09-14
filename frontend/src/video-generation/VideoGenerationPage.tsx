@@ -25,7 +25,7 @@ const ALLOWED_RATIOS = ['9:16', '16:9', '1:1'];
 const ALLOWED_RESOLUTIONS = ['480p'];
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const LOCAL_DEMO_CAPABILITY: VideoCapabilityOption = Object.freeze({ allowedAspectRatios: ['9:16', '16:9', '1:1'], allowedDurations: ALLOWED_DURATIONS, allowedQualities: [], allowedResolutions: ALLOWED_RESOLUTIONS, maxPromptLength: 4000, supportsNegativePrompt: false, supportsAudio: false });
+const LOCAL_DEMO_CAPABILITY: VideoCapabilityOption = Object.freeze({ allowedAspectRatios: ['9:16', '16:9', '1:1'], allowedDurations: ALLOWED_DURATIONS, allowedQualities: [], allowedResolutions: ALLOWED_RESOLUTIONS, maxPromptLength: null, supportsNegativePrompt: false, supportsAudio: false });
 const sanitizeCapability = (routeCapability?: VideoCapabilityOption): VideoCapabilityOption | null => routeCapability ? {
   ...routeCapability,
   allowedDurations: routeCapability.allowedDurations.map(String).filter((value) => ALLOWED_DURATIONS.includes(value)),
@@ -58,7 +58,7 @@ const readVideoStudioSession = (): VideoStudioSessionState => {
     return {
       createStep: value.createStep === 'form' || value.createStep === 'review' ? value.createStep : 'style',
       styleKey: typeof value.styleKey === 'string' ? value.styleKey : '',
-      prompt: typeof value.prompt === 'string' ? value.prompt.slice(0, 2000) : '',
+      prompt: typeof value.prompt === 'string' ? value.prompt : '',
       aspectRatio: typeof value.aspectRatio === 'string' ? value.aspectRatio : '',
       duration: typeof value.duration === 'string' ? value.duration : '',
       resolution: typeof value.resolution === 'string' ? value.resolution : '',
@@ -224,8 +224,8 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
   }, [active?.id, active?.status, loadOptions]);
 
   const handleSubmit = async () => {
-    const maxPromptLength = activeCapability?.maxPromptLength ?? 2000;
-    if (!activeCapability || !selectedProfile || submitting || mediaUploading || submitInFlightRef.current || (lastSubmitAtRef.current && Date.now() - lastSubmitAtRef.current < 500) || prompt.trim().length < 3 || prompt.length > maxPromptLength) return;
+    const maxPromptLength = activeCapability?.maxPromptLength;
+    if (!activeCapability || !selectedProfile || submitting || mediaUploading || submitInFlightRef.current || (lastSubmitAtRef.current && Date.now() - lastSubmitAtRef.current < 500) || prompt.trim().length < 3 || (maxPromptLength !== null && maxPromptLength !== undefined && prompt.length > maxPromptLength)) return;
     if (localDemoMode) { setDemoComplete(true); return; }
     lastSubmitAtRef.current = Date.now() || 1; submitInFlightRef.current = true; setSubmitting(true); setDetailError('');
     try {

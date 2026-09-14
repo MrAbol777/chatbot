@@ -5,6 +5,7 @@ import './styles/fonts.css';
 import './design-system/tokens/tokens.css';
 import './design-system/styles/base.css';
 import './design-system/styles/components.css';
+import './ProfessionalExperience.css';
 import { installAuthenticatedFetch } from './auth/danoaSession';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ToastProvider } from './design-system/components';

@@ -45,8 +45,8 @@ export default function VideoGenerationForm(props: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const settingsPanelId = useId();
   const fileInputId = useId();
-  const maxPromptLength = props.capability?.maxPromptLength ?? 2000;
-  const promptError = !props.prompt.trim() ? 'ایدهٔ ویدیو را بنویسید.' : props.prompt.trim().length < 3 ? 'ایده باید حداقل ۳ کاراکتر باشد.' : props.prompt.length > maxPromptLength ? `حداکثر ${maxPromptLength} کاراکتر مجاز است.` : '';
+  const maxPromptLength = props.capability?.maxPromptLength;
+  const promptError = !props.prompt.trim() ? 'ایدهٔ ویدیو را بنویسید.' : props.prompt.trim().length < 3 ? 'ایده باید حداقل ۳ کاراکتر باشد.' : maxPromptLength !== null && maxPromptLength !== undefined && props.prompt.length > maxPromptLength ? `حداکثر ${maxPromptLength} کاراکتر مجاز است.` : '';
   const submit = (event: FormEvent) => { event.preventDefault(); if (!promptError && !props.mediaUploading) props.onReview(); };
   const ratioTitle = (ratio: string) => ratio === '16:9' ? 'افقی' : ratio === '9:16' ? 'عمودی' : 'مربع';
   const durationValues = [...new Set((props.capability?.allowedDurations || []).map(Number).filter(Number.isInteger))].sort((a, b) => a - b);
@@ -69,10 +69,10 @@ export default function VideoGenerationForm(props: Props) {
       <section className="video-prompt-card video-prompt-card--text" aria-labelledby="video-prompt-heading">
         <div className="video-selected-style"><span aria-hidden="true"><Icon name="sparkle" size="1em" /></span><div><small>سبک انتخاب‌شده</small><strong>{props.profile.displayName}</strong></div><button type="button" onClick={props.onBack}>تغییر سبک</button></div>
         <div className="video-mode-banner"><span aria-hidden="true"><Icon name="sparkle" size="1.1em" /></span><div><strong>{usingImage ? 'تصویر به ویدیو' : 'متن یا تصویر به ویدیو'}</strong><small>{usingImage ? 'تصویر، قاب شروع ویدیو است؛ با متن حرکت و اتفاق صحنه را توضیح بده.' : 'ایده را بنویس یا از بخش کناری یک تصویر مرجع اضافه کن.'}</small></div><b>AI</b></div>
-        <div className="video-prompt-card__heading"><div><span className="video-step-kicker">مرحله ۲ از ۳</span><h2 id="video-prompt-heading">چه ویدیویی بسازیم؟</h2><p>سوژه، فضا و نوع حرکت را ساده و روشن توصیف کن.</p></div><Icon name="sparkle" size="1em" className="video-spark" aria-hidden="true" /></div>
+        <div className="video-prompt-card__heading"><div><span className="video-step-kicker">مرحله ۲ از ۳</span><h2 id="video-prompt-heading">چه ویدیویی بسازیم؟</h2><p>ایده و حرکت اصلی صحنه را بنویس.</p></div><Icon name="sparkle" size="1em" className="video-spark" aria-hidden="true" /></div>
 
-        <label className="video-prompt-label" htmlFor="video-prompt"><span>ایدهٔ ویدیو <b aria-hidden="true">*</b></span><small>{faNumber(props.prompt.length)}/{faNumber(maxPromptLength)}</small></label>
-        <div className="video-textarea-wrap"><Icon name="sparkle" size="1em" className="video-textarea-spark" aria-hidden="true" /><textarea id="video-prompt" value={props.prompt} onChange={(event) => props.setPrompt(event.target.value)} onBlur={() => setPromptTouched(true)} placeholder="مثلاً یک روباه کوچک در جنگل مه‌آلود قدم می‌زند و دوربین آرام دنبالش می‌کند…" rows={7} maxLength={maxPromptLength} required aria-invalid={promptTouched && Boolean(promptError)} aria-describedby={promptTouched && promptError ? 'video-prompt-error' : 'video-prompt-help'} /></div>
+        <label className="video-prompt-label" htmlFor="video-prompt"><span>ایدهٔ ویدیو <b aria-hidden="true">*</b></span><small>{faNumber(props.prompt.length)} کاراکتر · بدون محدودیت</small></label>
+        <div className="video-textarea-wrap"><Icon name="sparkle" size="1em" className="video-textarea-spark" aria-hidden="true" /><textarea id="video-prompt" value={props.prompt} onChange={(event) => props.setPrompt(event.target.value)} onBlur={() => setPromptTouched(true)} placeholder="مثلاً یک روباه کوچک در جنگل مه‌آلود قدم می‌زند و دوربین آرام دنبالش می‌کند…" rows={7} required aria-invalid={promptTouched && Boolean(promptError)} aria-describedby={promptTouched && promptError ? 'video-prompt-error' : 'video-prompt-help'} /></div>
         {promptTouched && promptError ? <p id="video-prompt-error" className="video-prompt-error" role="alert">{promptError}</p> : <p id="video-prompt-help" className="video-prompt-help">جزئیات کوتاه مثل نور، حرکت دوربین و حال‌وهوای صحنه نتیجه را بهتر می‌کند.</p>}
 
         <div className="video-idea-section" aria-labelledby="video-idea-heading"><span id="video-idea-heading">برای شروع، یکی از این ایده‌ها را امتحان کن</span><div className="video-ideas">{PROMPT_IDEAS.map((idea) => <button key={idea} type="button" onClick={() => props.setPrompt(idea)}>{idea}</button>)}</div></div>

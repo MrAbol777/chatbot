@@ -68,13 +68,15 @@ test('budget reduction removes only lower-priority system tiers and never change
   });
 });
 
-test('compiler fails clearly instead of truncating a user request that cannot fit with core rules', async () => {
+test('compiler keeps the full user request in metadata and compacts it for a tiny provider budget', async () => {
   await withCompiler(async (compiler) => {
     const exactUser = `START-${'ز'.repeat(1500)}-END`;
-    assert.throws(
-      () => compiler.compile({profile,userPrompt:exactUser,settings:input,maxCompiledPromptLength:256}),
-      (error) => error.code === 'T2V_COMPILED_PROMPT_TOO_LONG' && error.details.userChars === exactUser.length
-    );
+    const result = compiler.compile({profile,userPrompt:exactUser,settings:input,maxCompiledPromptLength:256});
+    assert.equal(result.userPrompt, exactUser);
+    assert.equal(result.userPromptWasCompacted, true);
+    assert.ok(result.compiledPrompt.length <= 256);
+    assert.match(result.compiledPrompt, /START-/);
+    assert.match(result.compiledPrompt, /-END/);
   });
 });
 
@@ -93,27 +95,27 @@ test('routed T2V persists direct-runtime prompt and safe assembly metadata witho
   });
 });
 
-test('public options keep 4000 exact user characters while exposing the 8000 final budget', async () => {
+test('public options expose an unlimited user prompt and the provider final budget', async () => {
   const service=createVideoGenerationService({
     repository:{},noaBillingService:createNoaBillingFixture(),provider:{},
     routeResolver:{publicRouteFor:async(capability)=>{if(capability==='video.image_to_video')throw Object.assign(new Error('disabled'),{code:'AI_ROUTE_DISABLED'});return {snapshot:{providerKey:'bananaai'},model};}},
     promptProfileRepository:{listPublic:async()=>[profile]},isFeatureEnabled:()=>true
   });
   const options=await service.options();
-  assert.equal(options.capabilities['video.text_to_video'].maxPromptLength,4000);
+  assert.equal(options.capabilities['video.text_to_video'].maxPromptLength,null);
   assert.equal(options.capabilities['video.text_to_video'].providerPromptMaxLength,8000);
 });
 
-test('routed T2V maps an impossible combined budget to a clear pre-persistence error', async () => {
+test('routed T2V compacts an impossible combined budget before persistence', async () => {
   await withCompiler(async (compiler) => {
     let persisted=false;
     const tinyModel={...model,max_prompt_length:256};
     const fixture=serviceFixture({compiler,rowModel:tinyModel});
     fixture.service.submit;
     const original=fixture.getStored;
-    await assert.rejects(fixture.service.submit({userId:'user-1',idempotencyKey:'t2v-too-long',input}),{code:'VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG'});
+    await fixture.service.submit({userId:'user-1',idempotencyKey:'t2v-too-long',input});
     persisted=Boolean(original());
-    assert.equal(persisted,false);
+    assert.equal(persisted,true);
   });
 });
 

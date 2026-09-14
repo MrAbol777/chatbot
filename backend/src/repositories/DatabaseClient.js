@@ -5,6 +5,7 @@ const { ensureBroadcastMessageSchema } = require('../modules/broadcast-messages/
 const { ensureSupportSchema } = require('../modules/support/support.schema');
 const { ensureMonitoringSchema } = require('../modules/monitoring/monitoring.schema');
 const { ensureCharacterWorkspaceSchema } = require('../modules/character-maker/character-workspace.schema');
+const { ensureStoryboardWorkspaceSchema } = require('../modules/storyboard-maker/storyboard-workspace.schema');
 
 class DatabaseClient {
   constructor({ databaseUrl, databaseHost }) {
@@ -406,6 +407,7 @@ class DatabaseClient {
       await ensureSupportSchema(this.pool);
       await ensureMonitoringSchema(this.pool);
       await ensureCharacterWorkspaceSchema(this.pool);
+      await ensureStoryboardWorkspaceSchema(this.pool);
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS story_workspaces (
           workspace_id VARCHAR(64) PRIMARY KEY,

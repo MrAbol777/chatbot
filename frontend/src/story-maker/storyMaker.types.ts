@@ -61,10 +61,13 @@ export type StoryContext = Pick<StoryBrief, 'summary' | 'resolvedDetails' | 'ass
   characterDetails?: StoryAddedCharacter[];
 };
 
-export type StoryCharacter = { name: string; description: string; goal: string; voiceStyle: string };
-export type StoryScene = { number: number; title: string; goal: string; setting: string; visual: string; camera: string; action: string; dialogue: string; narration: string; sound: string; continuity: string; transition: string; imagePrompt: string };
+export type StoryCharacter = { name: string; description: string; personality: string; specialAbility: string; relationship: string; visualSignature: string; goal: string; voiceStyle: string };
+export type StoryScene = { number: number; title: string; duration: string; presentCharacters: string; emotion: string; goal: string; setting: string; visual: string; camera: string; action: string; dialogue: string; narration: string; reaction: string; sound: string; continuity: string; outcome: string; transition: string; imagePrompt: string };
 export type StoryScenario = {
   title: string;
+  audience: string;
+  duration: string;
+  openingHook: string;
   logline: string;
   message: string;
   visualStyle: string;

@@ -91,6 +91,7 @@ const ImageStudio = lazy(() => import('./ImageStudio'));
 const StudioPage = lazy(() => import('./studio/StudioPage'));
 const StoryMakerPage = lazy(() => import('./story-maker/StoryMakerPage'));
 const CharacterMakerPage = lazy(() => import('./character-maker/CharacterMakerPage'));
+const StoryboardMakerPage = lazy(() => import('./storyboard-maker/StoryboardMakerPage'));
 const VideoGenerationPage = lazy(() => import('./video-generation/VideoGenerationPage'));
 const SupportCenter = lazy(() => import('./support/SupportCenter'));
 
@@ -163,6 +164,7 @@ const isKnownAppPath = (pathname: string) => (
   pathname === '/studio/story' ||
   /^\/studio\/story\/[^/]+$/.test(pathname) ||
   pathname === '/studio/characters' ||
+  pathname === '/studio/storyboard' ||
   pathname === '/studio/image' ||
   pathname === '/studio/video' ||
   pathname === '/images' ||
@@ -179,6 +181,7 @@ const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/studio') return 'studio';
   if (pathname === '/studio/story' || /^\/studio\/story\/[^/]+$/.test(pathname)) return 'story';
   if (pathname === '/studio/characters') return 'characters';
+  if (pathname === '/studio/storyboard') return 'storyboard';
   if (pathname === '/studio/image' || pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/studio/video') return 'video';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
@@ -1048,6 +1051,8 @@ function ChatApp() {
           ? '/studio/story'
         : view === 'characters'
           ? '/studio/characters'
+        : view === 'storyboard'
+          ? '/studio/storyboard'
         : view === 'video'
           ? '/studio/video'
           : view === 'images'
@@ -1155,6 +1160,14 @@ function ChatApp() {
     window.history.pushState({}, '', '/studio/characters');
     startTransition(() => {
       setCurrentView('characters');
+      setSidebarOpen(false);
+    });
+  };
+
+  const openStoryboardMaker = () => {
+    window.history.pushState({}, '', '/studio/storyboard');
+    startTransition(() => {
+      setCurrentView('storyboard');
       setSidebarOpen(false);
     });
   };
@@ -3636,9 +3649,10 @@ notify.error(message);
         ) : null}
         <Suspense fallback={<StudioRouteFallback />}>
           {currentView === 'support' ? <SupportCenter onBackToChat={() => navigateToView('chat')} /> : null}
-          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenStory={openStoryMaker} onOpenCharacters={openCharacterMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
+          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenStory={openStoryMaker} onOpenCharacters={openCharacterMaker} onOpenStoryboard={openStoryboardMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
           {currentView === 'story' ? <StoryMakerPage onBack={returnToStudio} workspaceId={getStoryWorkspaceIdFromPath(currentPathname)} onOpenWorkspace={openStoryWorkspace} onOpenCharacterMaker={openCharacterMakerFromStory} /> : null}
           {currentView === 'characters' ? <CharacterMakerPage onBack={returnToStudio} /> : null}
+          {currentView === 'storyboard' ? <StoryboardMakerPage onBack={returnToStudio} /> : null}
           {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} onInsufficientBalance={setInsufficientBalance} /> : null}
           {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} onInsufficientBalance={setInsufficientBalance} /> : null}
         </Suspense>
@@ -4091,8 +4105,8 @@ notify.error(message);
               </div>
 
               <div className="danoa-hero-heading-block">
-                <h1 className="danoa-hero-title">امروز چه کاری می‌تونم برات انجام بدم؟</h1>
-                <p className="danoa-hero-subtitle">دانوآ، دستیار هوشمند شما برای یادگیری، خلق محتوا و تصمیم‌گیری بهتر.</p>
+                <h1 className="danoa-hero-title">می‌خوای چه کاری انجام بدی؟</h1>
+                <p className="danoa-hero-subtitle">پیامت را بنویس یا یکی از ابزارها را انتخاب کن.</p>
               </div>
 
               <section className="danoa-shortcuts-section" aria-label="ابزارهای خلاق دانوآ">

@@ -121,6 +121,19 @@ export type DashboardStats = {
     errorRate: number;
     averageLatencyMs: number;
   }>;
+  users: {
+    total: number;
+    active: number;
+    newUsers: { value: number; changePct: number };
+    returningUsers: number;
+    suspendedUsers: number;
+    activationRate: number;
+    series: Array<{
+      timestamp: string;
+      activeUsers: number;
+      newUsers: number;
+    }>;
+  };
   capabilities: Array<{
     key: string;
     label: string;

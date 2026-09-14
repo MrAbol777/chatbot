@@ -17,6 +17,12 @@ const tools: StudioTool[] = [
     actionLabel: 'ساخت کاراکترها'
   },
   {
+    id: 'storyboard',
+    title: 'ساخت استوری‌برد',
+    description: 'داستان و عکس کاراکترها را بده؛ قاب‌های داستانت را بساز',
+    actionLabel: 'ساخت استوری‌برد'
+  },
+  {
     id: 'image',
     title: 'ساخت تصویر',
     description: 'تصویر دلخواهت را با هوش مصنوعی بساز یا ویرایش کن',
@@ -34,11 +40,12 @@ type Props = {
   onBackToHome: () => void;
   onOpenStory: () => void;
   onOpenCharacters: () => void;
+  onOpenStoryboard: () => void;
   onOpenImage: () => void;
   onOpenVideo: () => void;
 };
 
-export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters, onOpenImage, onOpenVideo }: Props) {
+export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters, onOpenStoryboard, onOpenImage, onOpenVideo }: Props) {
   return (
     <main className="danoa-studio-page" dir="rtl">
       <div className="danoa-studio-page__shell">
@@ -70,8 +77,8 @@ export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters
 
         <section className="danoa-studio-page__hero" aria-labelledby="studio-title">
           <span className="danoa-studio-page__eyebrow">ابزارهای خلاقانه</span>
-          <h2 className="danoa-studio-page__hero-title">ایده‌ات را به واقعیت تبدیل کن</h2>
-          <p>ابزار مناسب را برای ساخت محتوای خلاقانه انتخاب کن</p>
+          <h2 className="danoa-studio-page__hero-title">یک ابزار انتخاب کن</h2>
+          <p>از همین‌جا شروع می‌کنی.</p>
         </section>
 
         <section className="danoa-studio-page__tools" aria-label="ابزارهای استودیو">
@@ -79,7 +86,7 @@ export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters
             <StudioToolCard
               key={tool.id}
               tool={tool}
-              onOpen={tool.id === 'story' ? onOpenStory : tool.id === 'characters' ? onOpenCharacters : tool.id === 'image' ? onOpenImage : onOpenVideo}
+              onOpen={tool.id === 'story' ? onOpenStory : tool.id === 'characters' ? onOpenCharacters : tool.id === 'storyboard' ? onOpenStoryboard : tool.id === 'image' ? onOpenImage : onOpenVideo}
             />
           ))}
         </section>

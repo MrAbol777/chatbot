@@ -4,7 +4,7 @@ const { createHash } = require('crypto');
 const { VIDEO_PROMPT_PRESETS } = require('./video-prompt-presets');
 
 const COMPILER_VERSION = '3';
-const DEFAULT_MAX_USER_PROMPT_LENGTH = 2000;
+const DEFAULT_MAX_USER_PROMPT_LENGTH = Number.MAX_SAFE_INTEGER;
 const DEFAULT_MAX_COMPILED_PROMPT_LENGTH = 2000;
 const CONTROL_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
@@ -34,6 +34,15 @@ const truncate = (value, maximum) => {
   if (maximum <= 1) return normalized.slice(0, maximum);
   return `${normalized.slice(0, maximum - 1).trimEnd()}…`;
 };
+const compactUserPrompt = (value, maximum) => {
+  const text = normalizeText(value);
+  if (text.length <= maximum) return text;
+  const marker = `\n[… ${text.length - maximum + 1} کاراکتر فشرده شد …]\n`;
+  const available = Math.max(1, maximum - marker.length);
+  const head = Math.ceil(available * 0.7);
+  const tail = available - head;
+  return `${text.slice(0, head)}${marker}${tail ? text.slice(-tail) : ''}`;
+};
 
 function compileWithinBudget({ profileKey, baseSystemPrompt, styleProfile, nonNegotiableRules, userPrompt, decisions, settingLine, outputQuality, maximum }) {
   const baseLead = baseSystemPrompt.split(/\n|(?<=[.!؟])\s+/u).map(normalizeText).find((value) => value && !/^#{1,6}\s|^-{3,}$/.test(value)) || `Follow the ${profileKey} animation profile.`;
@@ -58,15 +67,17 @@ function compileWithinBudget({ profileKey, baseSystemPrompt, styleProfile, nonNe
   for (const value of styleProfile) addIfFits(1, value);
   for (const rule of decisions) addIfFits(4, `- ${rule}`);
 
+  const fixed = renderSections(sections.map(([title, lines], index) => [title, index === 3 ? [] : lines]));
+  const userBudget = Math.max(1, maximum - fixed.length);
+  sections[3][1] = [compactUserPrompt(userPrompt, userBudget)];
   const compiled = renderSections(sections);
-  if (compiled.length > maximum) {
-    throw new VideoPromptCompilerError('VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG', 'متن درخواست پس از اعمال قواعد سبک از سقف مدل بیشتر است.');
-  }
-  return compiled;
+  if (compiled.length <= maximum) return compiled;
+  const minimalPrefix = '[[USER REQUEST]]\n';
+  return `${minimalPrefix}${compactUserPrompt(userPrompt, Math.max(1, maximum - minimalPrefix.length))}`.slice(0, maximum);
 }
 
 class VideoPromptCompiler {
-  constructor({ maxUserPromptLength = DEFAULT_MAX_USER_PROMPT_LENGTH } = {}) {
+  constructor({ maxUserPromptLength = Number.MAX_SAFE_INTEGER } = {}) {
     this.maxUserPromptLength = Number(maxUserPromptLength);
     if (!Number.isSafeInteger(this.maxUserPromptLength) || this.maxUserPromptLength < 3) throw new Error('maxUserPromptLength is invalid.');
   }
@@ -75,11 +86,11 @@ class VideoPromptCompiler {
     if (!profile || !profile.profile_key || !profile.version || !profile.base_system_prompt || !profile.execution_template) {
       throw new VideoPromptCompilerError('VIDEO_PROMPT_PROFILE_INVALID', 'نسخه پروفایل ویدیو کامل نیست.');
     }
-    const normalizedUserPrompt = normalizeText(userPrompt);
+  const normalizedUserPrompt = normalizeText(userPrompt);
     const compiledLimit = Number(maxCompiledPromptLength);
     if (!Number.isSafeInteger(compiledLimit) || compiledLimit < 256) throw new Error('maxCompiledPromptLength is invalid.');
     if (normalizedUserPrompt.length < 3) throw new VideoPromptCompilerError('VIDEO_GENERATION_INVALID_PROMPT', 'توضیح حرکت باید حداقل ۳ کاراکتر باشد.');
-    if (normalizedUserPrompt.length > this.maxUserPromptLength) throw new VideoPromptCompilerError('VIDEO_GENERATION_PROMPT_TOO_LONG', `حداکثر ${this.maxUserPromptLength} کاراکتر مجاز است.`);
+    if (Number.isFinite(this.maxUserPromptLength) && normalizedUserPrompt.length > this.maxUserPromptLength) throw new VideoPromptCompilerError('VIDEO_GENERATION_PROMPT_TOO_LONG', `حداکثر ${this.maxUserPromptLength} کاراکتر مجاز است.`);
 
     const manifest = parseManifest(profile.rules_manifest_json);
     const canonicalManifest = VIDEO_PROMPT_PRESETS.find((item) => item.profileKey === String(profile.profile_key))?.rulesManifest || null;

@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   buildTrafficSeries,
+  buildUserSeries,
   createMonitoringService,
   percentile,
   tokenTotal
@@ -28,6 +29,17 @@ test('monitoring helpers calculate percentiles, tokens and filled traffic bucket
     averageLatencyMs: 200
   });
   assert.equal(series[1].requests, 0);
+
+  const userSeries = buildUserSeries([
+    { registered_at: '2026-08-27T00:01:00.000Z', last_active: '2026-08-27T00:02:00.000Z' },
+    { registered_at: '2026-08-20T00:01:00.000Z', last_active: '2026-08-27T00:06:00.000Z' }
+  ], from, to, 5 * 60 * 1000);
+  assert.deepEqual(userSeries[0], {
+    timestamp: '2026-08-27T00:00:00.000Z', activeUsers: 1, newUsers: 1
+  });
+  assert.deepEqual(userSeries[1], {
+    timestamp: '2026-08-27T00:05:00.000Z', activeUsers: 1, newUsers: 0
+  });
 });
 
 test('monitoring overview combines real usage, queues, provider health and alerts', async () => {
@@ -57,6 +69,18 @@ test('monitoring overview combines real usage, queues, provider health and alert
     getQueueSnapshot: async () => ({ images: {}, videos: { processing: 1 }, staleImages: 0, staleVideos: 1 }),
     getRecentErrors: async () => [],
     getTopErrors: async () => [],
+    getUserMonitoringSnapshot: async () => ({
+      totalUsers: 120,
+      suspendedUsers: 3,
+      newUsers: 8,
+      activeUsers: 34,
+      returningUsers: 26,
+      activatedNewUsers: 6
+    }),
+    getUserActivityRows: async () => [{
+      registered_at: '2026-08-27T06:00:00.000Z',
+      last_active: '2026-08-27T07:00:00.000Z'
+    }],
     ping: async () => 8
   };
 
@@ -69,10 +93,12 @@ test('monitoring overview combines real usage, queues, provider health and alert
   const overview = await service.getOverview({ range: '24h' });
 
   assert.equal(overview.kpis.totalUsers, 120);
-  assert.equal(overview.kpis.activeUsers.value, 30);
+  assert.equal(overview.kpis.activeUsers.value, 34);
   assert.equal(overview.kpis.requests.value, 20);
   assert.equal(overview.kpis.tokens.value, 250);
   assert.equal(overview.kpis.noaSpent.value, 12);
+  assert.equal(overview.users.newUsers.value, 8);
+  assert.equal(overview.users.activationRate, 75);
   assert.equal(overview.capabilities.find((item) => item.key === 'image').successRate, 100);
   assert.ok(overview.alerts.some((item) => item.id === 'stale-video-jobs'));
   assert.ok(overview.alerts.some((item) => item.id === 'noa-unresolved'));

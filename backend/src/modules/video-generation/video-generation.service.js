@@ -2,7 +2,6 @@ const { createHash, randomUUID } = require('crypto');
 const { fail } = require('./video-generation.errors');
 const { validateSubmit } = require('./video-generation.schemas');
 const { BANANAAI_IMAGE_TO_VIDEO_MODEL_ID, BANANAAI_TEXT_TO_VIDEO_MODEL_ID, BANANAAI_TEXT_TO_VIDEO_MODEL_KEY, BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH } = require('./video-model.registry');
-const TEXT_TO_VIDEO_USER_PROMPT_LIMIT = 4000;
 function hash(value) { return createHash('sha256').update(value).digest('hex'); }
 function jsonArray(value) { if (Array.isArray(value)) return value; try { const parsed = JSON.parse(value || '[]'); return Array.isArray(parsed) ? parsed : []; } catch (_) { return []; } }
 function modelDto(model) { return { internalKey:model.internal_key, displayNameFa:model.display_name_fa, displayName:model.display_name || null, descriptionFa:model.description_fa, supportsTextToVideo:Boolean(model.supports_text_to_video), supportsImageToVideo:Boolean(model.supports_image_to_video), supportsNegativePrompt:Boolean(model.supports_negative_prompt), supportsAudio:Boolean(model.supports_audio), allowedAspectRatios:jsonArray(model.allowed_aspect_ratios), allowedDurations:jsonArray(model.allowed_durations).map(String), allowedQualities:jsonArray(model.allowed_qualities), allowedResolutions:jsonArray(model.allowed_resolutions), maxPromptLength:model.max_prompt_length == null ? null : Number(model.max_prompt_length) }; }
@@ -58,7 +57,9 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
   const validateModelOptions = (model, data, { routed = false } = {}) => {
     const allows = (json, value) => { const values = jsonArray(json).map(String); return !values.length || values.includes(String(value)); };
     const promptLimit = model.max_prompt_length == null ? null : Number(model.max_prompt_length);
-    const providerPromptLimitAppliesToInput = !(routed && data.mode === 'text-to-video');
+    // Routed requests are compiled before they reach the provider. The raw
+    // user prompt must not be rejected against the provider prompt cap.
+    const providerPromptLimitAppliesToInput = !routed;
     if ((data.mode==='text-to-video'&&!model.supports_text_to_video)||(data.mode==='image-to-video'&&!model.supports_image_to_video)||!allows(model.allowed_aspect_ratios,data.aspectRatio)||!allows(model.allowed_durations,data.duration)||(jsonArray(model.allowed_qualities).length ? !allows(model.allowed_qualities,data.quality) : Boolean(data.quality) && !routed)||(jsonArray(model.allowed_resolutions).length ? !allows(model.allowed_resolutions,data.resolution) : false)||(providerPromptLimitAppliesToInput && promptLimit !== null && data.prompt.length>promptLimit)||(data.negativePrompt && !model.supports_negative_prompt)||(data.generateAudio && !model.supports_audio)) {
       throw fail('VIDEO_GENERATION_OPTIONS_NOT_ALLOWED','تنظیمات انتخاب‌شده برای مدل مجاز نیست.');
     }
@@ -83,9 +84,7 @@ function createVideoGenerationService({ repository, noaBillingService, provider,
               allowedDurations: dto.allowedDurations,
               allowedQualities: dto.allowedQualities,
               allowedResolutions: dto.allowedResolutions,
-              maxPromptLength: capability === 'video.text_to_video'
-                ? TEXT_TO_VIDEO_USER_PROMPT_LIMIT
-                : Math.max(3, (dto.maxPromptLength == null ? 2000 : Math.min(2000, dto.maxPromptLength)) - 800),
+              maxPromptLength: null,
               providerPromptMaxLength: capability === 'video.text_to_video'
                 ? (dto.maxPromptLength == null ? BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH : dto.maxPromptLength)
                 : dto.maxPromptLength,

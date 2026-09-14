@@ -22,6 +22,16 @@ class TextToVideoPromptCompilerError extends Error {
 }
 
 const sha256 = (value) => createHash('sha256').update(String(value), 'utf8').digest('hex');
+function compactUserPrompt(value, maximum) {
+  const text = String(value || '');
+  if (text.length <= maximum) return text;
+  if (maximum <= 1) return text.slice(0, maximum);
+  const marker = `\n[… ${text.length - maximum + 1} کاراکتر فشرده شد …]\n`;
+  const available = Math.max(1, maximum - marker.length);
+  const head = Math.ceil(available * 0.7);
+  const tail = available - head;
+  return `${text.slice(0, head)}${marker}${tail ? text.slice(-tail) : ''}`;
+}
 
 function parseTiers(source) {
   const value = String(source || '');
@@ -51,7 +61,7 @@ function assemble({ rules, userPrompt, settings }) {
     '[SYSTEM PRODUCTION RULES — APPLY INTERNALLY]',
     rules,
     settingsBlock(settings),
-    `[USER REQUEST — AUTHORITATIVE CREATIVE CONTENT; PRESERVE ALL ${userPrompt.length} CHARACTERS]`,
+    '[USER REQUEST — AUTHORITATIVE CREATIVE CONTENT]',
     userPrompt,
     '[END USER REQUEST]',
     'Generate the video now from the complete USER REQUEST under the SYSTEM PRODUCTION RULES and OUTPUT SETTINGS.'
@@ -104,10 +114,53 @@ function createTextToVideoPromptCompiler({
       }
     }
 
-    const corePrompt = assemble({ rules: tiers.CORE, userPrompt: exactUserPrompt, settings });
-    throw new TextToVideoPromptCompilerError('T2V_COMPILED_PROMPT_TOO_LONG', {
+    const rules = tiers.CORE;
+    const fixedPrompt = assemble({ rules, userPrompt: '', settings });
+    const userBudget = Math.max(1, limit - fixedPrompt.length);
+    const compiledUserPrompt = compactUserPrompt(exactUserPrompt, userBudget);
+    const compiledPrompt = assemble({ rules, userPrompt: compiledUserPrompt, settings });
+    if (compiledPrompt.length > limit) {
+      const minimalPrefix = '[USER REQUEST]\n';
+      const minimalUserPrompt = compactUserPrompt(exactUserPrompt, Math.max(1, limit - minimalPrefix.length));
+      const minimalPrompt = `${minimalPrefix}${minimalUserPrompt}`.slice(0, limit);
+      return Object.freeze({
+        profileKey: String(profile?.profile_key || profile?.profileKey || settings?.styleKey || '').trim() || null,
+        profileVersion: Number(profile?.version || profile?.currentVersion || 1),
+        compilerVersion,
+        systemPromptVersion,
+        systemPromptHash,
+        assemblyMode: 'user-only-compacted',
+        includedTiers: [],
+        userPrompt: exactUserPrompt,
+        compiledUserPrompt: minimalUserPrompt,
+        userPromptWasCompacted: true,
+        userPromptHash: sha256(exactUserPrompt),
+        compiledPrompt: minimalPrompt,
+        compiledPromptHash: sha256(minimalPrompt),
+        systemChars: 0,
+        userChars: exactUserPrompt.length,
+        finalChars: minimalPrompt.length,
+        providerPromptLimit: limit
+      });
+    }
+    const profileKey = String(profile?.profile_key || profile?.profileKey || settings?.styleKey || '').trim() || null;
+    return Object.freeze({
+      profileKey,
+      profileVersion: Number(profile?.version || profile?.currentVersion || 1),
+      compilerVersion,
+      systemPromptVersion,
+      systemPromptHash,
+      assemblyMode: 'core-compacted',
+      includedTiers: ['CORE'],
+      userPrompt: exactUserPrompt,
+      compiledUserPrompt,
+      userPromptWasCompacted: compiledUserPrompt !== exactUserPrompt,
+      userPromptHash: sha256(exactUserPrompt),
+      compiledPrompt,
+      compiledPromptHash: sha256(compiledPrompt),
+      systemChars: rules.length,
       userChars: exactUserPrompt.length,
-      minimumFinalChars: corePrompt.length,
+      finalChars: compiledPrompt.length,
       providerPromptLimit: limit
     });
   }

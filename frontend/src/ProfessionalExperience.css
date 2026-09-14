@@ -1,0 +1,251 @@
+/* Professional density pass -------------------------------------------------
+   This layer deliberately sits after feature styles. It preserves each flow's
+   behavior while making the first decision obvious and secondary detail quiet. */
+
+:root {
+  --experience-page-max: 1120px;
+  --experience-title: clamp(1.5rem, 2.4vw, 2rem);
+  --experience-title-compact: clamp(1.32rem, 2vw, 1.72rem);
+  --experience-copy: 0.92rem;
+  --experience-section-gap: clamp(18px, 3vw, 32px);
+}
+
+h1, h2, h3 { text-wrap: balance; }
+
+/* Public landing: retain warmth, remove billboard scale. */
+.landing-hero { padding-block: clamp(56px, 7vw, 82px) !important; }
+.landing-hero h1 {
+  max-width: 15ch !important;
+  font-size: clamp(2.2rem, 5vw, 3.75rem) !important;
+  line-height: 1.18 !important;
+}
+.landing-hero-lead { max-width: 52ch; }
+.landing-section { padding-block: clamp(52px, 7vw, 80px) !important; }
+
+/* Chat: conversation is the primary action, tools remain a compact choice. */
+.chat-shell.view-chat .danoa-empty-hero {
+  width: min(100%, 720px);
+  padding: 12px 16px 8px;
+}
+.chat-shell.view-chat .danoa-hero-heading-block { margin-bottom: 20px; }
+.chat-shell.view-chat .danoa-hero-title {
+  max-width: 16ch;
+  margin-inline: auto;
+  margin-bottom: 7px;
+  font-size: var(--experience-title);
+  font-weight: 800;
+  line-height: 1.25;
+}
+.chat-shell.view-chat .danoa-hero-subtitle {
+  max-width: 42ch;
+  margin-inline: auto;
+  font-size: var(--experience-copy);
+  line-height: 1.55;
+}
+.chat-shell.view-chat .danoa-hero-sparkles { display: none; }
+
+/* The short welcome question is a single unit on tablet and desktop. */
+@media (min-width: 768px) {
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-empty-hero .danoa-hero-title {
+    max-width: none !important;
+    white-space: nowrap !important;
+    font-size: clamp(1.45rem, 2vw, 1.8rem) !important;
+  }
+}
+
+.chat-shell.view-chat .danoa-shortcuts-row {
+  grid-template-columns: repeat(auto-fit, minmax(145px, max-content));
+  justify-content: center;
+  gap: 8px;
+}
+.chat-shell.view-chat .danoa-shortcut-card {
+  min-height: 42px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  box-shadow: none;
+}
+.chat-shell.view-chat .danoa-shortcut-icon {
+  width: 22px;
+  height: 22px;
+  flex-basis: 22px;
+}
+.chat-shell.view-chat .danoa-shortcut-title { font-size: .8rem; }
+.chat-shell.view-chat .danoa-shortcut-desc,
+.chat-shell.view-chat .danoa-shortcut-arrow { display: none; }
+.chat-shell.view-chat .danoa-input-area { padding-top: 12px !important; }
+.chat-shell.view-chat .danoa-suggestions-row {
+  gap: 6px;
+  max-width: 620px;
+  margin-inline: auto;
+}
+.chat-shell.view-chat .danoa-suggestion-chip {
+  min-height: 32px;
+  padding-inline: 10px;
+  font-size: .75rem;
+}
+.chat-shell.view-chat .danoa-disclaimer { font-size: .7rem; }
+
+/* Shared studio headers and first steps. */
+.danoa-studio-page__header,
+.story-maker__header,
+.character-maker__header,
+.studio-header,
+.video-generation-page__header,
+.noa-page__header {
+  min-height: 60px !important;
+  height: auto !important;
+  border-radius: 16px !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.danoa-studio-page__brand-copy small,
+.story-maker__brand small,
+.character-maker__brand-copy small,
+.studio-brand-copy small,
+.video-generation-page__brand small { display: none; }
+
+.danoa-studio-page__hero {
+  padding-block: clamp(22px, 4vw, 40px) !important;
+}
+.danoa-studio-page__hero-title {
+  margin-block: 4px !important;
+  font-size: var(--experience-title) !important;
+}
+.danoa-studio-page__hero p { font-size: var(--experience-copy); }
+.studio-tool-card { min-height: 0 !important; }
+.studio-tool-card__topline,
+.studio-tool-card__status { display: none; }
+.studio-tool-card__copy h2 { font-size: 1rem !important; }
+.studio-tool-card__copy p { font-size: .8rem !important; line-height: 1.55; }
+.studio-tool-card__action { margin-top: 10px !important; font-size: .8rem !important; }
+
+/* Story: the textarea is the start, not a conclusion after a hero. */
+.story-maker { padding-top: 12px !important; }
+.story-maker__header { margin-bottom: 10px !important; }
+.story-maker__tabs { margin-block: 10px !important; }
+.story-maker__tabs button { min-height: 42px !important; font-size: .82rem !important; }
+.story-maker__workspace-progress {
+  max-width: 420px;
+  margin: 0 auto 18px !important;
+  gap: 4px !important;
+}
+.story-maker__workspace-progress li strong { font-size: .72rem !important; }
+.story-maker__workspace-progress li span { width: 25px !important; height: 25px !important; }
+.story-maker__idea-stage {
+  grid-template-columns: minmax(0, 600px) !important;
+  justify-content: center !important;
+  gap: 18px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.story-maker__idea-overview { text-align: center; }
+.story-maker__idea-stage h1,
+.story-maker__plan-heading h1 {
+  margin-block: 7px !important;
+  font-size: var(--experience-title) !important;
+  line-height: 1.22 !important;
+}
+.story-maker__idea-stage > .story-maker__idea-overview > p {
+  max-width: 46ch;
+  margin-inline: auto;
+  font-size: var(--experience-copy) !important;
+}
+.story-maker__idea-form { padding: 18px !important; border-radius: 18px !important; }
+.story-maker__idea-form-heading small { font-size: .76rem !important; }
+.story-maker__field-meta span:first-child { font-size: .72rem; }
+
+/* Character maker: keep the task, remove the promotional hero weight. */
+.character-maker { padding-top: 12px !important; }
+.character-maker__header { margin-bottom: 12px !important; }
+.character-maker__tabs { margin-bottom: 14px !important; }
+.character-maker__tabs button { min-height: 40px !important; font-size: .8rem !important; }
+.character-maker__hero {
+  min-height: 0 !important;
+  padding: clamp(24px, 4vw, 42px) clamp(20px, 4vw, 44px) !important;
+  border-radius: 20px !important;
+}
+.character-maker__orbital { display: none !important; }
+.character-maker__hero-copy { max-width: 620px !important; }
+.character-maker__hero h1 {
+  margin-block: 7px !important;
+  font-size: var(--experience-title) !important;
+  line-height: 1.22 !important;
+}
+.character-maker__hero p { font-size: var(--experience-copy) !important; line-height: 1.65 !important; }
+.character-maker__hero-points { display: none !important; }
+.character-maker__scenario-panel { margin-top: 16px !important; padding: 18px !important; border-radius: 18px !important; }
+.character-maker__scenario-panel h2 { font-size: 1.1rem !important; }
+.character-maker__scenario-panel p { font-size: .82rem !important; }
+
+/* Image and video: advanced control stays available but starts visually quiet. */
+.studio-header,
+.video-generation-page__header { margin-bottom: 10px !important; }
+.studio-tabs,
+.video-generation-tabs { margin-block: 10px !important; }
+.studio-tabs button,
+.video-generation-tabs button { min-height: 40px !important; font-size: .82rem !important; }
+.studio-create-grid,
+.video-studio-create__grid { gap: 16px !important; }
+.studio-prompt-card,
+.video-prompt-card { border-radius: 18px !important; }
+.studio-prompt-card label > span,
+.video-prompt-card__heading h2 { font-size: var(--experience-title-compact) !important; }
+.studio-field-help,
+.video-prompt-card__heading p,
+.video-prompt-help { font-size: .82rem !important; }
+.studio-idea-section,
+.video-idea-section { margin-top: 14px !important; }
+.studio-ideas button,
+.video-ideas button { font-size: .75rem !important; }
+.studio-settings-card,
+.video-settings-card { box-shadow: none !important; }
+
+/* Supporting product pages: prioritize the job over decorative summary blocks. */
+.noa-page { gap: 12px !important; }
+.noa-wallet { gap: 12px !important; }
+.noa-wallet__balance { min-height: 104px !important; padding: 18px 20px !important; box-shadow: var(--shadow-md) !important; }
+.noa-wallet__balance-main strong { font-size: clamp(1.5rem, 2.5vw, 2.2rem) !important; }
+.profile-page-header,
+.support-page__header { min-height: 60px !important; }
+.profile-page-header h1,
+.support-page__header h1 { font-size: var(--experience-title-compact) !important; }
+.profile-page-header > div > span,
+.support-page__header p { font-size: .82rem !important; }
+.profile-stats-grid { gap: 8px !important; }
+.profile-stat-card { padding: 12px !important; }
+.support-page__steps { margin-top: 10px !important; }
+
+/* Authentication remains intentionally linear. */
+.auth-card h1,
+.register-card h1 { font-size: var(--experience-title) !important; }
+.auth-card .subtitle,
+.register-card .subtitle { font-size: .9rem !important; line-height: 1.65 !important; }
+
+@media (max-width: 680px) {
+  .landing-hero-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    width: min(100%, 320px);
+  }
+  .landing-hero-actions .ds-button {
+    width: 100% !important;
+    justify-content: center;
+  }
+  .landing-demo-badge--top,
+  .landing-demo-badge--bottom { display: none !important; }
+  .chat-shell.view-chat .danoa-empty-hero { padding-inline: 12px; }
+  .chat-shell.view-chat .danoa-shortcuts-row { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .chat-shell.view-chat .danoa-shortcut-card { justify-content: center; }
+  .chat-shell.view-chat .danoa-shortcut-text { flex: 0 1 auto; }
+  .story-maker__workspace-progress li strong { display: none; }
+  .story-maker__workspace-progress { max-width: 210px; }
+  .story-maker__idea-form { padding: 16px !important; }
+  .character-maker__hero { padding: 22px 18px !important; }
+  .studio-tool-card { padding: 18px !important; }
+  .noa-page { height: auto !important; min-height: 100dvh; overflow: visible !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .danoa-empty-hero,
+  .danoa-shortcuts-row { animation: none !important; }
+}

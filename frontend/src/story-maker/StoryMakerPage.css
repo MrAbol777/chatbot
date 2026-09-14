@@ -152,7 +152,7 @@ html[data-color-mode='dark'] .story-maker__scenario h2,html[data-color-mode='dar
 .story-maker__brief-question h3 { margin: 2px 0 3px; font-size: .9rem; line-height: 1.45; }
 .story-maker__brief-question p { margin: 0 0 9px; color: var(--color-muted); font-size: .75rem; line-height: 1.55; }
 .story-maker__brief-options { display: flex; flex-wrap: wrap; gap: 7px; }
-.story-maker__brief-options button { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: 11px; color: var(--color-text); background: var(--color-surface-2); font: inherit; font-size: .76rem; font-weight: 700; cursor: pointer; }
+.story-maker__brief-options button { display: inline-flex; align-items: center; gap: 6px; max-width: min(100%, 540px); min-height: 34px; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 11px; color: var(--color-text); background: var(--color-surface-2); font: inherit; font-size: .76rem; font-weight: 700; line-height: 1.55; text-align: right; white-space: normal; cursor: pointer; }
 .story-maker__brief-options button.is-selected { border-color: color-mix(in srgb, #d56528 65%, var(--color-border)); color: #a4431d; background: #fff0e8; }
 .story-maker__brief-options button:last-child { border-style: dashed; color: var(--color-muted); }
 .story-maker__brief-options button:last-child.is-selected { border-style: solid; color: #a4431d; }
@@ -355,20 +355,26 @@ html[data-color-mode='dark'] .story-maker__history-empty > span { color: #ffc6aa
 .story-maker__plan-heading h1 { margin: 11px 0 7px; font-size: clamp(1.65rem, 3vw, 2.25rem); letter-spacing: -.035em; line-height: 1.28; }
 .story-maker__idea-overview > p,
 .story-maker__plan-heading > p { max-width: 650px; margin: 0; color: var(--color-muted); line-height: 1.85; }
+.story-maker__idea-overview > p { color: color-mix(in srgb, var(--color-muted) 72%, transparent); }
 .story-maker__idea-form { display: flex; flex-direction: column; justify-content: center; min-width: 0; margin: 0; padding: clamp(18px, 2.5vw, 26px); border: 1px solid color-mix(in srgb, #d56528 20%, var(--color-border)); border-radius: 22px; background: color-mix(in srgb, var(--color-surface-container-lowest) 94%, transparent); box-shadow: 0 11px 25px color-mix(in srgb, #b94720 7%, transparent); }
 .story-maker__idea-form-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
 .story-maker__idea-form-heading > div { display: grid; gap: 3px; }
 .story-maker__idea-form-heading strong { font-size: .93rem; }
-.story-maker__idea-form-heading small { color: var(--color-muted); font-size: .75rem; }
+.story-maker__idea-form-heading small { color: color-mix(in srgb, var(--color-muted) 72%, transparent); font-size: .75rem; }
 .story-maker__idea-form-icon { display: grid; flex: 0 0 auto; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #dc6f2b, #be4c21); box-shadow: 0 7px 14px rgba(190,76,33,.2); }
 .story-maker__idea-form .story-maker__field textarea { min-height: 144px; font-size: .96rem; }
+.story-maker__idea-form .story-maker__field textarea::placeholder {
+  color: color-mix(in srgb, var(--color-muted) 42%, transparent) !important;
+  opacity: 1;
+}
 .story-maker__idea-form .story-maker__submit { margin-top: 12px; }
 .story-maker__idea-form .story-maker__submit-button { width: 100%; min-width: 0; }
 
-.story-maker__plan-heading { max-width: 700px; margin-bottom: 18px; }
-.story-maker__world-section { margin-bottom: 14px; }
-.story-maker__world-section > h2 { margin: 0 0 8px; color: #a4431d; font-size: .86rem; font-weight: 900; }
-.story-maker__world-card { display: grid; gap: 9px; padding: 16px 18px; border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent); border-radius: 18px; background: var(--color-surface-container-lowest); box-shadow: 0 8px 20px color-mix(in srgb, #b94720 5%, transparent); }
+.story-maker__story-overview-card { display: grid; gap: 18px; margin-bottom: 14px; padding: clamp(18px, 2.4vw, 26px); border: 1px solid color-mix(in srgb, #d56528 20%, var(--color-border)); border-radius: 24px; background: linear-gradient(135deg, color-mix(in srgb, #fff8f3 92%, var(--color-surface-container-lowest)), var(--color-surface-container-lowest)); box-shadow: 0 12px 30px color-mix(in srgb, #b94720 7%, transparent); }
+.story-maker__plan-heading { max-width: 700px; margin: 0; }
+.story-maker__world-section { display: grid; grid-template-columns: minmax(105px, .24fr) minmax(0, 1fr); gap: 14px; align-items: start; margin: 0; padding-top: 16px; border-top: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent); }
+.story-maker__world-section > h2 { margin: 3px 0 0; color: #a4431d; font-size: .82rem; font-weight: 900; }
+.story-maker__world-card { display: grid; gap: 7px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .story-maker__world-card p { margin: 0; color: var(--color-text); font-size: .98rem; font-weight: 800; line-height: 1.75; }
 .story-maker__world-card > span { color: var(--color-muted); font-size: .78rem; }
 .story-maker__world-card i { margin-inline: 4px; color: #d56528; font-style: normal; }
@@ -470,6 +476,7 @@ html[data-color-mode='dark'] .story-maker__history-empty > span { color: #ffc6aa
 
 html[data-color-mode='dark'] .story-maker__idea-stage { background: linear-gradient(145deg, color-mix(in srgb, #d56528 12%, var(--color-surface-2)), var(--color-surface-container-lowest)); }
 html[data-color-mode='dark'] .story-maker__idea-form { background: color-mix(in srgb, var(--color-surface-container-lowest) 88%, #d56528 6%); }
+html[data-color-mode='dark'] .story-maker__story-overview-card { background: linear-gradient(135deg, color-mix(in srgb, #d56528 12%, var(--color-surface-2)), var(--color-surface-container-lowest)); }
 html[data-color-mode='dark'] .story-maker__wait-status { background: color-mix(in srgb, #d56528 12%, var(--color-surface-2)); }
 html[data-color-mode='dark'] .story-maker__plan-card > span,
 html[data-color-mode='dark'] .story-maker__world-section > h2,
@@ -491,6 +498,9 @@ html[data-color-mode='dark'] .story-maker__plan-note { color: var(--color-text);
   .story-maker__idea-form-heading { margin-bottom: 14px; }
   .story-maker__idea-form .story-maker__field textarea { min-height: 110px; }
   .story-maker__plan-grid { grid-template-columns: 1fr; }
+  .story-maker__story-overview-card { gap: 15px; padding: 18px; border-radius: 20px; }
+  .story-maker__world-section { grid-template-columns: 1fr; gap: 6px; padding-top: 14px; }
+  .story-maker__world-section > h2 { margin-top: 0; }
   .story-maker__plan-card--wide { grid-column: auto; }
   .story-maker__answer-summary { grid-template-columns: 1fr; }
   .story-maker__plan-actions { align-items: stretch; flex-direction: column-reverse; }
@@ -530,4 +540,49 @@ html[data-color-mode='dark'] .story-maker__plan-note { color: var(--color-text);
   .story-maker__design-characters { width: 100%; }
   .story-maker__dialog-secondary-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .story-maker__dialog-secondary-actions .ds-button { min-width: 0; padding-inline: 7px; font-size: .78rem; }
+}
+
+/* The short waiting state is intentionally quiet: one action, one progress cue. */
+.story-maker__wait-dialog.ds-dialog-panel { width: min(460px, calc(100% - 28px)); padding: clamp(20px, 4vw, 28px); }
+.story-maker__wait-content { gap: 13px; padding: 18px 4px 4px; }
+.story-maker__wait-spinner { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px; color: #d56528; background: #fff3ec; }
+.story-maker__wait-spinner svg { animation: story-maker-spin 1s linear infinite; }
+.story-maker__wait-copy { gap: 5px; max-width: 350px; }
+.story-maker__wait-copy strong { font-size: .98rem; }
+.story-maker__wait-copy p { font-size: .8rem; line-height: 1.75; }
+.story-maker__wait-progress { width: min(270px, 84%); height: 4px; }
+.story-maker__wait-progress i { background: #d56528; }
+.story-maker__wait-caption { display: inline-flex; align-items: center; gap: 5px; color: var(--color-muted); font-size: .72rem; }
+.story-maker__wait-caption svg { color: var(--color-success); }
+.story-maker__optimization-complete { display: grid; justify-items: center; gap: 14px; padding: 28px 8px 8px; text-align: center; }
+.story-maker__optimization-complete > span { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; color: #fff; background: var(--color-success); box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-success) 12%, transparent); animation: story-maker-complete-pop 320ms cubic-bezier(.2, .85, .35, 1.25) both; }
+.story-maker__optimization-complete strong { display: block; color: var(--color-text); font-size: 1.12rem; }
+.story-maker__optimization-complete p { max-width: 330px; margin: 6px 0 0; color: var(--color-muted); font-size: .84rem; line-height: 1.8; }
+.story-maker__optimization-complete .ds-button { min-width: 100px; margin-top: 3px; }
+@keyframes story-maker-complete-pop { from { transform: scale(.55); opacity: .2; } to { transform: scale(1); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .story-maker__wait-spinner svg { animation: none; }
+  .story-maker__optimization-complete > span { animation: none; }
+}
+
+.story-maker__improvement-dialog.ds-dialog-panel { width: min(500px, calc(100% - 28px)); }
+.story-maker__improvement-form { display: grid; gap: 12px; padding-top: 5px; }
+.story-maker__improvement-form > div:first-child { display: grid; gap: 5px; }
+.story-maker__improvement-form strong { font-size: 1rem; }
+.story-maker__improvement-form p { margin: 0; color: var(--color-muted); font-size: .82rem; line-height: 1.75; }
+.story-maker__improvement-form textarea { width: 100%; min-height: 118px; box-sizing: border-box; padding: 12px; border: 1px solid color-mix(in srgb, #d56528 30%, var(--color-border)); border-radius: 14px; color: var(--color-text); background: var(--color-surface-container-lowest); font: inherit; line-height: 1.75; resize: vertical; }
+.story-maker__improvement-form textarea::placeholder { color: color-mix(in srgb, var(--color-muted) 55%, transparent); opacity: 1; }
+.story-maker__improvement-form textarea:focus { border-color: #d56528; outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, #d56528 15%, transparent); }
+.story-maker__improvement-meta { display: flex; justify-content: flex-start; margin-top: -6px; color: var(--color-muted); font-size: .72rem; }
+.story-maker__improvement-actions { display: flex; justify-content: flex-start; gap: 9px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent); }
+.story-maker__plan-update { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 10px; margin: 0 0 18px; padding: 13px 14px; border: 1px solid color-mix(in srgb, var(--color-success) 35%, var(--color-border)); border-radius: 16px; background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface-container-lowest)); box-shadow: 0 10px 24px color-mix(in srgb, var(--color-success) 8%, transparent); }
+.story-maker__plan-update > span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: #fff; background: var(--color-success); }
+.story-maker__plan-update strong { display: block; color: var(--color-text); font-size: .9rem; }
+.story-maker__plan-update p { margin: 3px 0 0; color: var(--color-muted); font-size: .78rem; line-height: 1.7; }
+.story-maker__plan-update button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 9px; color: var(--color-muted); background: transparent; font: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer; }
+.story-maker__plan-update button:hover { color: var(--color-text); background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+@media (max-width: 600px) {
+  .story-maker__improvement-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .story-maker__improvement-actions .ds-button { min-width: 0; }
 }

@@ -22,6 +22,8 @@ const { createStoryMakerRouter } = require('./modules/story-maker/story-maker.ro
 const { StoryWorkspaceRepository } = require('./modules/story-maker/story-workspace.repository');
 const { createCharacterMakerRouter } = require('./modules/character-maker/character-maker.routes');
 const { CharacterWorkspaceRepository } = require('./modules/character-maker/character-workspace.repository');
+const { createStoryboardMakerRouter } = require('./modules/storyboard-maker/storyboard-maker.routes');
+const { StoryboardWorkspaceRepository } = require('./modules/storyboard-maker/storyboard-workspace.repository');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createImageToImageRouter } = require('./modules/image-to-image/image-to-image.routes');
 const { createAuthMiddleware } = require('./modules/image-generation/auth.middleware');
@@ -597,6 +599,23 @@ function createApp({ repositories, runtimeConfig }) {
     promptService,
     principalResolver,
     storyWorkspaceRepository: new StoryWorkspaceRepository(repositories.db),
+    logger: { log }
+  }));
+
+  const storyboardMakerAiService = createAiService({
+    apiKey: metisApiKey,
+    baseUrl: metisBaseUrl,
+    openaiClient,
+    httpClient: axios,
+    promptService,
+    settingsRepository: repositories.settings,
+    logger: { log }
+  });
+  app.use(createStoryboardMakerRouter({
+    aiService: storyboardMakerAiService,
+    promptService,
+    principalResolver,
+    storyboardWorkspaceRepository: new StoryboardWorkspaceRepository(repositories.db),
     logger: { log }
   }));
 

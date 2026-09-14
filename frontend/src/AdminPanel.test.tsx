@@ -23,7 +23,17 @@ const monitoringPayload = {
     noaSpent: { value: 38, changePct: 2 },
     tokens: { value: 12800, source: 'recorded' }
   },
-  traffic: [], capabilities: [], providers: [],
+  traffic: [],
+  users: {
+    total: 150,
+    active: 42,
+    newUsers: { value: 12, changePct: 20 },
+    returningUsers: 30,
+    suspendedUsers: 2,
+    activationRate: 75,
+    series: []
+  },
+  capabilities: [], providers: [],
   queues: { images: {}, videos: {}, staleImages: 0, staleVideos: 0 },
   noa: { captured: [], unresolved: { total: 0, amount: 0 } },
   storage: { image: { status: 'healthy', writable: true, freePercent: 50 }, video: { status: 'disabled', writable: false, freePercent: null } },
@@ -66,6 +76,7 @@ describe('AdminPanel modular navigation, RBAC and lazy loading', () => {
     expect(screen.getByRole('button', { name: 'داشبورد' })).toHaveAttribute('aria-current', 'page');
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/admin/monitoring/overview?range=24h', { credentials: 'include' }));
     expect(await screen.findByText('مرکز پایش دانوآ')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'پایش کاربران' })).toBeInTheDocument();
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'نوآ و قیمت‌گذاری' })).toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'ایمنی و نظارت' })).toBeInTheDocument();

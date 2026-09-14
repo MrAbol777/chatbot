@@ -207,7 +207,8 @@ async function applyVideoPromptProfilesMigration(connection) {
   await ensureColumn(connection, 'app_video_generations', 'prompt_profile_key', 'VARCHAR(64) NULL AFTER prompt_profile_version_id');
   await ensureColumn(connection, 'app_video_generations', 'prompt_profile_version', 'INT NULL AFTER prompt_profile_key');
   await ensureColumn(connection, 'app_video_generations', 'prompt_compiler_version', 'VARCHAR(32) NULL AFTER prompt_profile_version');
-  await ensureColumn(connection, 'app_video_generations', 'user_prompt', 'TEXT NULL AFTER prompt');
+  await ensureColumn(connection, 'app_video_generations', 'user_prompt', 'MEDIUMTEXT NULL AFTER prompt');
+  await connection.query("ALTER TABLE app_video_generations MODIFY COLUMN user_prompt MEDIUMTEXT NULL");
   await ensureColumn(connection, 'app_video_generations', 'compiled_prompt', 'MEDIUMTEXT NULL AFTER user_prompt');
   await ensureColumn(connection, 'app_video_generations', 'compiled_prompt_hash', 'CHAR(64) NULL AFTER compiled_prompt');
   await ensureIndex(connection, 'app_video_generations', 'idx_video_generations_prompt_profile_version', '`prompt_profile_version_id`, `created_at`');

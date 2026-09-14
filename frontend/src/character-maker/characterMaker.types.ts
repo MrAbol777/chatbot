@@ -3,12 +3,16 @@ export type CharacterImageState = {
   status?: 'idle' | 'QUEUE' | 'WAITING' | 'RUNNING' | 'COMPLETED' | 'ERROR';
   imageUrl?: string | null;
   previousImageUrl?: string | null;
-  operation?: 'generate' | 'edit';
+  operation?: 'generate' | 'edit' | 'sheet';
   error?: string | null;
 };
 
 export type CharacterProfile = {
   id: string;
+  assetId: string;
+  sheetAssetId: string;
+  reference?: string;
+  characterSheetReference?: string;
   name: string;
   role: string;
   archetype: string;
@@ -22,9 +26,12 @@ export type CharacterProfile = {
   imagePrompt: string;
   negativePrompt: string;
   image?: CharacterImageState;
+  characterSheet?: CharacterImageState;
 };
 
 export type StorySetting = {
+  assetId: string;
+  reference?: string;
   name: string;
   description: string;
   imagePrompt: string;
@@ -36,6 +43,7 @@ export type CharacterAnalysis = {
   title: string;
   summary: string;
   visualStyle: string;
+  stylePrompt: string;
   relationships: Array<{ from: string; to: string; label: string }>;
   characters: CharacterProfile[];
   setting: StorySetting;
@@ -44,6 +52,8 @@ export type CharacterAnalysis = {
 export type CharacterWorkspaceStatus = 'review' | 'generating' | 'completed' | 'error';
 export type CharacterWorkspace = {
   id: string;
+  assetId?: string;
+  reference?: string;
   title: string;
   scenario: string;
   status: CharacterWorkspaceStatus;
