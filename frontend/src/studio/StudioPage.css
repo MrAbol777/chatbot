@@ -670,6 +670,7 @@
 .studio-tool-card--image { --studio-card-accent: #7c3aed; }
 .studio-tool-card--characters { --studio-card-accent: #a94ac9; }
 .studio-tool-card--video { --studio-card-accent: #0f8f88; }
+.studio-tool-card--direct-video { --studio-card-accent: #0d7490; --studio-card-wash: #e2f6fb; }
 
 .studio-tool-card__icon {
   color: var(--studio-card-accent, var(--color-primary));

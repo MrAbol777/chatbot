@@ -16,7 +16,7 @@ import InsufficientBalanceDialog from './components/InsufficientBalanceDialog';
 import type { IconName } from './components/Icon';
 import ProfileForm from './components/ProfileForm';
 import StarterIdeasDialog from './components/chat/StarterIdeasDialog';
-import { getInitialColorMode, persistColorMode, type ColorMode } from './theme/colorMode';
+import { persistColorMode } from './theme/colorMode';
 import NoaWalletPanel from './noa/NoaWalletPanel';
 import { formatDecimalFa } from './noa/decimal';
 import { fetchPendingNoaNotifications } from './noa/noa.service';
@@ -55,6 +55,7 @@ import {
   postChatStream
 } from './services/chatStream';
 import { buildImageDownloadName } from './components/chat/MessageImage';
+import { loadProfile, PROFILE_KEY, resolveAuthenticatedProfile, type AppProfile } from './appSession';
 import { ChatHeader } from './components/chat/ChatHeader';
 import { ChatSidebar } from './components/chat/ChatSidebar';
 import { ChatMessageItem } from './components/chat/ChatMessageItem';
@@ -93,6 +94,7 @@ const StoryMakerPage = lazy(() => import('./story-maker/StoryMakerPage'));
 const CharacterMakerPage = lazy(() => import('./character-maker/CharacterMakerPage'));
 const StoryboardMakerPage = lazy(() => import('./storyboard-maker/StoryboardMakerPage'));
 const VideoGenerationPage = lazy(() => import('./video-generation/VideoGenerationPage'));
+const DirectSceneVideoPage = lazy(() => import('./direct-scene-video/DirectSceneVideoPage'));
 const SupportCenter = lazy(() => import('./support/SupportCenter'));
 
 const StudioRouteFallback = () => (
@@ -101,7 +103,6 @@ const StudioRouteFallback = () => (
   </main>
 );
 
-const PROFILE_KEY = 'chat_profile';
 const PROFILES_KEY = 'chat_profiles';
 const CONVERSATIONS_KEY = 'chat_conversations';
 const ACTIVE_CONVERSATION_KEY = 'chat_active_conversation_id';
@@ -140,8 +141,6 @@ const writeSessionValue = (key: string, value: string) => {
   }
 };
 
-type AppProfile = UserProfile & { id?: number | string; authProvider?: 'otp' | 'viana' };
-
 const removeLegacyLocalDevelopmentCredentials = () => {
   if (!import.meta.env.DEV) return;
   try {
@@ -167,6 +166,7 @@ const isKnownAppPath = (pathname: string) => (
   pathname === '/studio/storyboard' ||
   pathname === '/studio/image' ||
   pathname === '/studio/video' ||
+  pathname === '/studio/direct-video' ||
   pathname === '/images' ||
   pathname === '/generate' ||
   pathname === '/photos' ||
@@ -184,6 +184,7 @@ const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/studio/storyboard') return 'storyboard';
   if (pathname === '/studio/image' || pathname === '/images' || pathname === '/generate' || pathname === '/photos') return 'images';
   if (pathname === '/studio/video') return 'video';
+  if (pathname === '/studio/direct-video') return 'direct-video';
   if (pathname === '/profile' || pathname === '/settings') return 'profile';
   if (pathname === '/noa') return 'noa';
   if (pathname === '/support') return 'support';
@@ -501,44 +502,6 @@ const conversationVisualIcon = (index: number): IconName => {
   return icons[index % icons.length];
 };
 
-export const loadProfile = (): AppProfile | null => {
-  try {
-    const rawProfile = localStorage.getItem(PROFILE_KEY);
-    if (!rawProfile) return null;
-
-    const parsed = JSON.parse(rawProfile) as Partial<AppProfile>;
-    if (!parsed?.name || typeof parsed.name !== 'string' || !Number.isFinite(Number(parsed.age))) {
-      return null;
-    }
-
-    return {
-      ...parsed,
-      name: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : 'کاربر',
-      age: Number(parsed.age),
-      personality: normalizePersonality(parsed.personality)
-    };
-  } catch (err) {
-    console.error('[profile] Failed to load profile:', err);
-    return null;
-  }
-};
-
-export const resolveAuthenticatedProfile = (
-  serverSession: DanoaSessionResponse,
-  cachedProfile: AppProfile | null
-): AppProfile | null => {
-  if (!serverSession.authenticated || !serverSession.profile || !serverSession.userId) {
-    return null;
-  }
-
-  return {
-    ...serverSession.profile,
-    id: serverSession.userId,
-    authProvider: serverSession.provider,
-    personality: cachedProfile?.personality || createDefaultPersonality()
-  };
-};
-
 function ChatApp() {
   // Persisted profile data is only a recovery/personalization hint. The server session
   // is the sole authority that can promote it into authenticated application state.
@@ -634,14 +597,8 @@ function ChatApp() {
   const [profileFormName, setProfileFormName] = useState('');
   const [profileFormAge, setProfileFormAge] = useState('');
   const [profileFormErrors, setProfileFormErrors] = useState<{ name?: string; age?: string }>({});
-  const [colorMode, setColorMode] = useState<ColorMode>(() =>
-    typeof window === 'undefined' ? 'light' : getInitialColorMode()
-  );
-
-  const handleColorModeChange = (nextMode: ColorMode) => {
-    setColorMode(nextMode);
-    persistColorMode(nextMode);
-  };
+  // The user-facing theme is light-only until dark mode receives its own review.
+  useEffect(() => { persistColorMode('light'); }, []);
   const [, setTheme] = useState<'energy' | 'calm'>('energy');
   const { notify, confirm } = useNotification();
 
@@ -1055,6 +1012,8 @@ function ChatApp() {
           ? '/studio/storyboard'
         : view === 'video'
           ? '/studio/video'
+        : view === 'direct-video'
+          ? '/studio/direct-video'
           : view === 'images'
             ? '/images'
             : view === 'profile'
@@ -1146,6 +1105,13 @@ function ChatApp() {
       return;
     }
     navigateToView('chat');
+  };
+  const openDirectSceneVideo = () => {
+    window.history.pushState({}, '', '/studio/direct-video');
+    startTransition(() => {
+      setCurrentView('direct-video');
+      setSidebarOpen(false);
+    });
   };
 
   const openStoryMaker = () => {
@@ -3649,12 +3615,13 @@ notify.error(message);
         ) : null}
         <Suspense fallback={<StudioRouteFallback />}>
           {currentView === 'support' ? <SupportCenter onBackToChat={() => navigateToView('chat')} /> : null}
-          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenStory={openStoryMaker} onOpenCharacters={openCharacterMaker} onOpenStoryboard={openStoryboardMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} /> : null}
+          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenStory={openStoryMaker} onOpenCharacters={openCharacterMaker} onOpenStoryboard={openStoryboardMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} onOpenDirectVideo={openDirectSceneVideo} /> : null}
           {currentView === 'story' ? <StoryMakerPage onBack={returnToStudio} workspaceId={getStoryWorkspaceIdFromPath(currentPathname)} onOpenWorkspace={openStoryWorkspace} onOpenCharacterMaker={openCharacterMakerFromStory} /> : null}
-          {currentView === 'characters' ? <CharacterMakerPage onBack={returnToStudio} /> : null}
+          {currentView === 'characters' ? <CharacterMakerPage onBack={returnToStudio} onOpenStoryboard={openStoryboardMaker} /> : null}
           {currentView === 'storyboard' ? <StoryboardMakerPage onBack={returnToStudio} /> : null}
           {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} onInsufficientBalance={setInsufficientBalance} /> : null}
           {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} onInsufficientBalance={setInsufficientBalance} /> : null}
+          {currentView === 'direct-video' ? <DirectSceneVideoPage onBack={returnToStudio} /> : null}
         </Suspense>
         {false ? (
           <main className="generate-page">
@@ -3779,8 +3746,6 @@ notify.error(message);
                   profileFormName={profileFormName}
                   profileFormAge={profileFormAge}
                   profileFormErrors={profileFormErrors}
-                  colorMode={colorMode}
-                  onColorModeChange={handleColorModeChange}
                   onNameChange={(event) => setProfileFormName(event.target.value)}
                   onAgeChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
                   onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات با موفقیت ذخیره شد'); }}
@@ -3954,8 +3919,6 @@ notify.error(message);
                 profileFormName={profileFormName}
                 profileFormAge={profileFormAge}
                 profileFormErrors={profileFormErrors}
-                colorMode={colorMode}
-                onColorModeChange={handleColorModeChange}
                 onNameChange={(event) => setProfileFormName(event.target.value)}
                 onAgeChange={(event) => setProfileFormAge(filterLocalizedDigits(event.target.value))}
                 onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات ذخیره شد'); }}
@@ -4120,6 +4083,12 @@ notify.error(message);
                   <button type="button" className="danoa-shortcut-card danoa-shortcut-card--characters" onClick={openCharacterMaker}>
                     <div className="danoa-shortcut-icon danoa-shortcut-icon--characters"><Icon name="family" size={20} /></div>
                     <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت کاراکتر</strong><span className="danoa-shortcut-desc">هویت تصویری ثابت برای شخصیت‌های داستانت</span></div>
+                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+                  </button>
+
+                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--storyboard" onClick={openStoryboardMaker}>
+                    <div className="danoa-shortcut-icon danoa-shortcut-icon--storyboard"><Icon name="gallery" size={20} /></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت استوری‌برد</strong><span className="danoa-shortcut-desc">داستانت را صحنه‌به‌صحنه تصویر کن</span></div>
                     <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
                   </button>
 

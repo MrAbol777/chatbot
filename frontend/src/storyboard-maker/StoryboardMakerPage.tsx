@@ -6,6 +6,7 @@ import { getImageToImageJob, startImageToImage } from '../services/imageToImage'
 import type { ImageToImageJob } from '../services/imageToImage';
 import { listCharacterWorkspaces } from '../character-maker/characterMaker.api';
 import { analyzeStoryboard, createStoryboardWorkspace, getStoryboardWorkspace, listStoryboardWorkspaces, updateStoryboardWorkspace } from './storyboardMaker.api';
+import { readStoryboardScenarioHandoff } from './storyboardScenarioHandoff';
 import type { StoryboardCharacterReference, StoryboardPlan, StoryboardSceneState, StoryboardWorkspace, StoryboardWorkspaceStatus } from './storyboardMaker.types';
 import './StoryboardMakerPage.css';
 
@@ -67,7 +68,8 @@ function LibraryCharacterImage({ src, alt }: { src: string; alt: string }) {
 }
 
 export default function StoryboardMakerPage({ onBack }: Props) {
-  const [script, setScript] = useState('');
+  const [scenarioHandoff] = useState(() => readStoryboardScenarioHandoff());
+  const [script, setScript] = useState(() => readStoryboardScenarioHandoff()?.scenario || '');
   const [references, setReferences] = useState<StoryboardCharacterReference[]>([]);
   const [plan, setPlan] = useState<StoryboardPlan | null>(null);
   const [scenes, setScenes] = useState<StoryboardSceneState[]>([]);
@@ -344,6 +346,7 @@ export default function StoryboardMakerPage({ onBack }: Props) {
     </header>
     <nav className="storyboard-maker__tabs" role="tablist" aria-label="بخش‌های استوری‌برد"><button id="storyboard-create-tab" type="button" role="tab" aria-selected={activeTab === 'create'} aria-controls="storyboard-create-panel" tabIndex={activeTab === 'create' ? 0 : -1} onClick={() => setActiveTab('create')}><Icon name="sparkle" size={17} aria-hidden="true" /> ساخت استوری‌برد</button><button id="storyboard-history-tab" type="button" role="tab" aria-selected={activeTab === 'history'} aria-controls="storyboard-history-panel" tabIndex={activeTab === 'history' ? 0 : -1} onClick={() => setActiveTab('history')}><Icon name="book" size={17} aria-hidden="true" /> استوری‌بردهای من <i>{workspaces.length.toLocaleString('fa-IR')}</i></button></nav>
 
+    {activeTab === 'create' && stage === 'form' && scenarioHandoff ? <aside className="storyboard-maker__handoff" role="status"><Icon name="check" size={18} aria-hidden="true" /><span>داستان «{scenarioHandoff.title || 'تو'}» آماده است؛ لازم نیست آن را دوباره بنویسی.</span></aside> : null}
     {activeTab === 'history' ? <section id="storyboard-history-panel" role="tabpanel" aria-labelledby="storyboard-history-tab" className="storyboard-maker__history">
       <header><span>کتابخانهٔ استوری‌برد</span><h1>داستان‌هایی که تصویر کرده‌ای</h1><p>هر استوری‌برد را باز کن تا پیش‌نمایش و قاب‌های ساخته‌شده‌اش را ببینی.</p></header>
       {workspacesLoading ? <div className="storyboard-maker__history-state" role="status"><Icon name="spinner" size={28} aria-hidden="true" />در حال آوردن استوری‌بردها…</div> : historyError ? <p className="storyboard-maker__error" role="alert">{historyError}</p> : workspaces.length ? <div className="storyboard-maker__history-grid">{workspaces.map((workspace) => <button type="button" key={workspace.id} onClick={() => void openHistoryWorkspace(workspace.id)}><span><Icon name="story" size={22} aria-hidden="true" /></span><div><strong>{workspace.title}</strong><p>{workspace.script}</p><small>{new Intl.DateTimeFormat('fa-IR', { day: 'numeric', month: 'long' }).format(new Date(workspace.updatedAt))}</small></div><i>{workspace.status === 'completed' ? 'تکمیل‌شده' : workspace.status === 'generating' ? 'در حال ساخت' : 'آمادهٔ بررسی'}</i><Icon name="chevron-left" size={19} aria-hidden="true" /></button>)}</div> : <div className="storyboard-maker__history-state"><Icon name="book" size={30} aria-hidden="true" /><h2>هنوز استوری‌بردی نداری</h2><p>داستان اولت را بساز تا این‌جا نگهش داریم.</p><Button type="button" onClick={() => setActiveTab('create')}>ساخت اولین استوری‌برد</Button></div>}

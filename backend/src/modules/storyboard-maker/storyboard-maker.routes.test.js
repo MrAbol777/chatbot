@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { normalizeStoryboardRequest } = require('./storyboard-maker.prompt');
-const { normalizeStoryboardPlan, normalizeStoryboardWorkspace } = require('./storyboard-maker.routes');
+const { normalizeStoryboardPlan, normalizeStoryboardWorkspace, parseJsonObject, parseStoryboardPlanReply } = require('./storyboard-maker.routes');
 
 test('normalizes a storyboard plan and retains only supplied character ids', () => {
   const request = normalizeStoryboardRequest({
@@ -60,4 +60,13 @@ test('keeps finished storyboard frames in a saved workspace', () => {
   assert.equal(workspace.status, 'completed');
   assert.equal(workspace.scenes[0].status, 'completed');
   assert.equal(workspace.scenes[0].imageUrl, '/api/generated-images/scene-1.png');
+});
+
+test('recovers one JSON object when a provider adds prose around it', () => {
+  const reply = 'Here is the requested plan:\n```json\n{"title":"ماجرای آوا","scenes":[{"title":"شروع","description":"آوا سفر را آغاز می‌کند.","characterIds":["ava"],"imagePrompt":"Warm animated storyboard frame."}]}\n```';
+  const parsed = parseJsonObject(reply);
+  assert.equal(parsed.title, 'ماجرای آوا');
+
+  const plan = parseStoryboardPlanReply(reply, [{ id: 'ava', name: 'آوا' }]);
+  assert.equal(plan.scenes.length, 1);
 });

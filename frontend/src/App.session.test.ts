@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { createElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ChatApp, { resolveAuthenticatedProfile } from './App';
+import ChatApp from './App';
+import { resolveAuthenticatedProfile } from './appSession';
 import { ToastProvider } from './design-system/components';
 
 const cachedProfile = {

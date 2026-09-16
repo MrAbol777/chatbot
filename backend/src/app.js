@@ -24,6 +24,7 @@ const { createCharacterMakerRouter } = require('./modules/character-maker/charac
 const { CharacterWorkspaceRepository } = require('./modules/character-maker/character-workspace.repository');
 const { createStoryboardMakerRouter } = require('./modules/storyboard-maker/storyboard-maker.routes');
 const { StoryboardWorkspaceRepository } = require('./modules/storyboard-maker/storyboard-workspace.repository');
+const { createDirectSceneVideoRouter } = require('./modules/direct-scene-video/direct-scene-video.routes');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createImageToImageRouter } = require('./modules/image-to-image/image-to-image.routes');
 const { createAuthMiddleware } = require('./modules/image-generation/auth.middleware');
@@ -107,6 +108,24 @@ function createApp({ repositories, runtimeConfig }) {
       console.error('[settings] failed to read settings, using defaults', error instanceof Error ? error.message : String(error));
       return {};
     }
+  };
+
+  // This route intentionally exposes only client-safe limits.  Never return
+  // the complete settings store because it may include provider credentials.
+  const publicSettingKeys = [
+    'upload.image.max_size_mb',
+    'upload.image.max_files',
+    'upload.image.allowed_types',
+    'auth.validation.age_min',
+    'auth.validation.age_max'
+  ];
+  const getPublicSettings = async () => {
+    const settings = await getAppSettings();
+    return Object.fromEntries(
+      publicSettingKeys
+        .filter((key) => Object.prototype.hasOwnProperty.call(settings, key))
+        .map((key) => [key, settings[key]])
+    );
   };
 
   const getUploadSettings = async () => {
@@ -356,6 +375,10 @@ function createApp({ repositories, runtimeConfig }) {
     repository: repositories.monitoring,
     logger: console
   }));
+
+  app.get('/api/settings/public', async (_req, res) => {
+    return res.json({ settings: await getPublicSettings() });
+  });
 
   // Upload Router
   const uploadRouter = express.Router();
@@ -616,6 +639,16 @@ function createApp({ repositories, runtimeConfig }) {
     promptService,
     principalResolver,
     storyboardWorkspaceRepository: new StoryboardWorkspaceRepository(repositories.db),
+    logger: { log }
+  }));
+  app.use(createDirectSceneVideoRouter({
+    aiService: storyboardMakerAiService,
+    promptService,
+    principalResolver,
+    storyboardWorkspaceRepository: new StoryboardWorkspaceRepository(repositories.db),
+    videoService: videoGenerationModule.service,
+    videoStorage: videoGenerationModule.storage,
+    ffmpegPath: process.env.FFMPEG_PATH || 'ffmpeg',
     logger: { log }
   }));
 

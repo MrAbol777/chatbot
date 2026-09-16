@@ -397,6 +397,14 @@ html[data-color-mode='dark'] .story-maker__history-empty > span { color: #ffc6aa
 .story-maker__answer-summary > div { display: grid; gap: 4px; padding: 10px 11px; border-radius: 13px; background: color-mix(in srgb, var(--color-surface-2) 82%, transparent); }
 .story-maker__answer-summary small { color: var(--color-muted); font-size: .7rem; line-height: 1.5; }
 .story-maker__answer-summary strong { font-size: .82rem; }
+.story-maker__choices-section { display: grid; gap: 12px; margin-top: 2px; }
+.story-maker__choices-toggle { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 2px 4px; border: 0; color: #a4431d; background: transparent; cursor: pointer; font: inherit; font-size: .84rem; font-weight: 900; text-align: inherit; }
+.story-maker__choices-toggle:focus-visible { outline: 2px solid #d56528; outline-offset: 4px; border-radius: 10px; }
+.story-maker__choices-toggle-action { display: inline-flex; align-items: center; gap: 4px; color: var(--color-muted); font-size: .74rem; font-weight: 800; }
+.story-maker__choices-toggle-action svg { transition: transform 180ms ease-out; }
+.story-maker__choices-toggle.is-open .story-maker__choices-toggle-action svg { transform: rotate(180deg); }
+.story-maker__answer-summary-wrap { padding: 14px; border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent); border-radius: 19px; background: var(--color-surface-container-lowest); box-shadow: 0 8px 20px color-mix(in srgb, #b94720 5%, transparent); transform: translateY(-8px); opacity: 0; transition: transform 180ms ease-out, opacity 180ms ease-out; }
+.story-maker__answer-summary-wrap.is-open { transform: translateY(0); opacity: 1; }
 .story-maker__plan-note { display: flex; align-items: flex-start; gap: 8px; margin: 18px 0; padding: 13px; border-radius: 15px; color: #8d451f; background: #fff4ec; font-size: .83rem; line-height: 1.7; }
 .story-maker__plan-note svg { flex: 0 0 auto; margin-top: 2px; }
 .story-maker__plan-card--choices { margin-top: 0; }
@@ -516,7 +524,7 @@ html[data-color-mode='dark'] .story-maker__plan-note { color: var(--color-text);
   .story-maker__new-character-fields { grid-template-columns: 1fr; }
 }
 
-@media (prefers-reduced-motion: reduce) { .story-maker__plan-progress i,.story-maker__wait-progress i { animation: none; transform: translateX(65%); }.story-maker__wait-orbit::before,.story-maker__wait-orbit::after,.story-maker__wait-orbit i,.story-maker__wait-orbit b,.story-maker__wait-status span:last-child svg { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .story-maker__plan-progress i,.story-maker__wait-progress i { animation: none; transform: translateX(65%); }.story-maker__wait-orbit::before,.story-maker__wait-orbit::after,.story-maker__wait-orbit i,.story-maker__wait-orbit b,.story-maker__wait-status span:last-child svg { animation: none; }.story-maker__choices-toggle-action svg,.story-maker__answer-summary-wrap { transition: none; } }
 
 .story-maker__character-handoff {
   display: flex;
@@ -586,3 +594,14 @@ html[data-color-mode='dark'] .story-maker__plan-note { color: var(--color-text);
   .story-maker__improvement-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .story-maker__improvement-actions .ds-button { min-width: 0; }
 }
+
+/* Light-mode workspace cleanup: one reading surface, not cards inside cards. */
+.story-maker { background: var(--color-bg); }
+.story-maker__header { border-bottom: 1px solid var(--color-border); box-shadow: none; background: var(--color-surface-2); }
+.story-maker__idea-overview, .story-maker__story-overview-card, .story-maker__plan-card { box-shadow: none; }
+.story-maker__idea-overview { padding-bottom: 12px; background: transparent; }
+.story-maker__idea-overview::before, .story-maker__idea-overview::after { display: none; }
+.story-maker__idea-form, .story-maker__story-overview-card { border: 1px solid var(--color-border); border-radius: 18px; background: var(--color-surface-2); }
+.story-maker__plan-grid { gap: 12px; }
+.story-maker__plan-card { border-color: var(--color-border); border-radius: 14px; background: var(--color-surface-1); }
+.story-maker__hero-points, .story-maker__decorations { display: none; }

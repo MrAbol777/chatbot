@@ -1305,3 +1305,14 @@ body.studio-viewer-open .chat-studio-switcher {
   border-radius: 18px;
   box-shadow: 0 6px 22px color-mix(in srgb, var(--primary) 6%, transparent), inset 0 1px rgba(255, 255, 255, .82);
 }
+
+/* Light-mode workspace cleanup: prompt first, options second. */
+.studio { background: var(--color-bg, var(--surface)); }
+.studio-header { border-bottom: 1px solid var(--surface-border, var(--color-border)); box-shadow: none; background: var(--surface, var(--color-surface-2)); }
+.studio-create-grid { align-items: start; gap: 16px; }
+.studio-prompt-card, .studio-settings-card, .studio-edit-workspace { border-color: var(--surface-border, var(--color-border)); box-shadow: none; background: var(--surface, var(--color-surface-2)); }
+.studio-prompt-card { border-radius: 18px; }
+.studio-settings-card { border-radius: 16px; }
+.studio-ideas { gap: 8px; }
+.studio-idea-chip, .studio-settings-accordion, .studio-reference-picker { box-shadow: none; }
+.studio-submit-dock { border-top: 1px solid var(--surface-border, var(--color-border)); background: transparent; }

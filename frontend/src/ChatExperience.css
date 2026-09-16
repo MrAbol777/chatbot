@@ -7383,6 +7383,13 @@ html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--characters .danoa-shortcut-title,
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--characters .danoa-shortcut-icon { color: #a93fca; }
 
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--storyboard {
+  border-color: rgba(102, 72, 198, .36);
+  background: #f8f6ff;
+}
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--storyboard .danoa-shortcut-title,
+.chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--storyboard .danoa-shortcut-icon { color: #6648c6; }
+
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--image {
   border-color: rgba(125, 75, 223, .34);
   background: #f8f6ff;
@@ -7405,6 +7412,7 @@ html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .
 .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--all-tools .danoa-shortcut-icon { color: #55617d; }
 
 html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--characters { background: color-mix(in srgb, #b34cce 16%, var(--color-surface-container-low)); }
+html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--storyboard { background: color-mix(in srgb, #6648c6 16%, var(--color-surface-container-low)); }
 html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--image { background: color-mix(in srgb, #7344dd 16%, var(--color-surface-container-low)); }
 html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--video { background: color-mix(in srgb, #078f91 16%, var(--color-surface-container-low)); }
 html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--all-tools { background: color-mix(in srgb, #55617d 14%, var(--color-surface-container-low)); }

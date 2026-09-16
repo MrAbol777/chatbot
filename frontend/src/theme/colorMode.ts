@@ -6,8 +6,8 @@ export function readStoredColorMode(): ColorMode | null {
   if (typeof window === 'undefined') return null;
   try {
     const stored = window.localStorage.getItem(COLOR_MODE_STORAGE_KEY);
-    if (stored === 'light' || stored === 'dark') {
-      return stored;
+    if (stored === 'light') {
+      return 'light';
     }
   } catch (error) {
     console.warn('[colorMode] Failed to read stored color mode:', error);
@@ -29,25 +29,26 @@ export function getSystemColorMode(): ColorMode {
 }
 
 export function getInitialColorMode(): ColorMode {
-  const stored = readStoredColorMode();
-  if (stored) {
-    return stored;
-  }
   return 'light';
 }
 
 export function applyColorMode(mode: ColorMode): void {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
-  root.setAttribute('data-color-mode', mode);
-  root.style.colorScheme = mode;
+  // Dark mode is deliberately paused while the product is light-mode only.
+  // Coercing old callers/preferences here prevents a stale localStorage value
+  // from resurrecting an unreviewed interface.
+  const nextMode = mode === 'dark' ? 'light' : mode;
+  root.setAttribute('data-color-mode', nextMode);
+  root.style.colorScheme = nextMode;
 }
 
 export function persistColorMode(mode: ColorMode): void {
-  applyColorMode(mode);
+  const nextMode = mode === 'dark' ? 'light' : mode;
+  applyColorMode(nextMode);
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(COLOR_MODE_STORAGE_KEY, mode);
+    window.localStorage.setItem(COLOR_MODE_STORAGE_KEY, nextMode);
   } catch (error) {
     console.warn('[colorMode] Failed to persist color mode to localStorage:', error);
   }

@@ -33,6 +33,12 @@ const tools: StudioTool[] = [
     title: 'ساخت ویدیو',
     description: 'ایده‌ات را بنویس و ویدیوی هوش مصنوعی بساز',
     actionLabel: 'شروع ساخت ویدیو'
+  },
+  {
+    id: 'direct-video',
+    title: 'تبدیل مستقیم صحنه به ویدیو',
+    description: 'استوری‌برد و سناریو را بده؛ ویدیوی کامل و یکپارچه تحویل بگیر',
+    actionLabel: 'تبدیل استوری‌برد'
   }
 ];
 
@@ -43,9 +49,10 @@ type Props = {
   onOpenStoryboard: () => void;
   onOpenImage: () => void;
   onOpenVideo: () => void;
+  onOpenDirectVideo: () => void;
 };
 
-export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters, onOpenStoryboard, onOpenImage, onOpenVideo }: Props) {
+export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters, onOpenStoryboard, onOpenImage, onOpenVideo, onOpenDirectVideo }: Props) {
   return (
     <main className="danoa-studio-page" dir="rtl">
       <div className="danoa-studio-page__shell">
@@ -86,7 +93,7 @@ export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters
             <StudioToolCard
               key={tool.id}
               tool={tool}
-              onOpen={tool.id === 'story' ? onOpenStory : tool.id === 'characters' ? onOpenCharacters : tool.id === 'storyboard' ? onOpenStoryboard : tool.id === 'image' ? onOpenImage : onOpenVideo}
+              onOpen={tool.id === 'story' ? onOpenStory : tool.id === 'characters' ? onOpenCharacters : tool.id === 'storyboard' ? onOpenStoryboard : tool.id === 'image' ? onOpenImage : tool.id === 'video' ? onOpenVideo : onOpenDirectVideo}
             />
           ))}
         </section>

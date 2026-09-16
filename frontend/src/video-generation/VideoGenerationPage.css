@@ -605,3 +605,13 @@ main.video-generation-page .video-generation-workspace {
   .video-settings-accordion__chevron svg,
   .video-reference-picker__empty { transition: none; }
 }
+
+/* Light-mode workspace cleanup: the three video steps stay calm and readable. */
+.video-generation-page { background: var(--color-bg); }
+.video-generation-page__header { border-bottom: 1px solid var(--color-border); box-shadow: none; background: var(--color-surface-2); }
+.video-generation-tabs { box-shadow: none; background: transparent; }
+.video-generation-workspace { max-width: 1060px; }
+.video-style-selection, .video-generation-form, .video-review, .video-active-status, .video-gallery { border-color: var(--color-border); box-shadow: none; background: var(--color-surface-2); }
+.video-prompt-card, .video-settings-card, .video-reference-picker { border-color: var(--color-border); box-shadow: none; background: var(--color-surface-1); }
+.video-style-option:hover, .video-settings-accordion, .video-reference-picker__empty { box-shadow: none; }
+.video-style-selection::before, .video-generation-form::before, .video-review::before { display: none; }

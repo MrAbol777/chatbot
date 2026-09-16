@@ -1,12 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  COLOR_MODE_STORAGE_KEY,
-  readStoredColorMode,
-  getSystemColorMode,
-  getInitialColorMode,
-  applyColorMode,
-  persistColorMode
-} from './colorMode';
+import { COLOR_MODE_STORAGE_KEY, readStoredColorMode, getInitialColorMode, applyColorMode, persistColorMode } from './colorMode';
 
 describe('colorMode utility', () => {
   beforeEach(() => {
@@ -15,102 +8,31 @@ describe('colorMode utility', () => {
     document.documentElement.style.colorScheme = '';
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+  afterEach(() => vi.restoreAllMocks());
 
-  it('reads stored color mode correctly', () => {
-    expect(readStoredColorMode()).toBeNull();
-
+  it('accepts only the light preference', () => {
     localStorage.setItem(COLOR_MODE_STORAGE_KEY, 'dark');
-    expect(readStoredColorMode()).toBe('dark');
-
+    expect(readStoredColorMode()).toBeNull();
     localStorage.setItem(COLOR_MODE_STORAGE_KEY, 'light');
     expect(readStoredColorMode()).toBe('light');
-
-    localStorage.setItem(COLOR_MODE_STORAGE_KEY, 'invalid-value');
-    expect(readStoredColorMode()).toBeNull();
-  });
-
-  it('handles localStorage read errors gracefully', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('SecurityError');
-    });
-    expect(readStoredColorMode()).toBeNull();
-  });
-
-  it('detects system color mode using matchMedia', () => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: query === '(prefers-color-scheme: dark)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn()
-    }));
-    expect(getSystemColorMode()).toBe('dark');
-
-    window.matchMedia = vi.fn().mockImplementation(() => ({
-      matches: false,
-      media: '',
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn()
-    }));
-    expect(getSystemColorMode()).toBe('light');
-  });
-
-  it('defaults to light mode and prioritizes a stored user preference', () => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: query === '(prefers-color-scheme: dark)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn()
-    }));
-
-    // No stored mode -> use the product default, regardless of system mode.
-    expect(getInitialColorMode()).toBe('light');
-
-    // Stored mode = light -> use light even though system is dark
-    localStorage.setItem(COLOR_MODE_STORAGE_KEY, 'light');
     expect(getInitialColorMode()).toBe('light');
   });
 
-  it('applies color mode attribute and color-scheme style to html root', () => {
+  it('coerces any legacy dark request to light', () => {
     applyColorMode('dark');
-    expect(document.documentElement.getAttribute('data-color-mode')).toBe('dark');
-    expect(document.documentElement.style.colorScheme).toBe('dark');
-
-    applyColorMode('light');
     expect(document.documentElement.getAttribute('data-color-mode')).toBe('light');
     expect(document.documentElement.style.colorScheme).toBe('light');
   });
 
-  it('persists color mode to localStorage and applies it', () => {
+  it('persists the light preference even when a legacy caller requests dark', () => {
     persistColorMode('dark');
-    expect(localStorage.getItem(COLOR_MODE_STORAGE_KEY)).toBe('dark');
-    expect(document.documentElement.getAttribute('data-color-mode')).toBe('dark');
-
-    persistColorMode('light');
     expect(localStorage.getItem(COLOR_MODE_STORAGE_KEY)).toBe('light');
     expect(document.documentElement.getAttribute('data-color-mode')).toBe('light');
   });
 
-  it('handles localStorage write errors gracefully during persistColorMode', () => {
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('QuotaExceeded');
-    });
-    // Should not throw, should still apply attribute
-    persistColorMode('dark');
-    expect(document.documentElement.getAttribute('data-color-mode')).toBe('dark');
+  it('still applies light when storage is unavailable', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceeded'); });
+    persistColorMode('light');
+    expect(document.documentElement.getAttribute('data-color-mode')).toBe('light');
   });
 });

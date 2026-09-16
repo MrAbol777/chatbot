@@ -69,3 +69,14 @@ html[data-color-mode='dark'] .storyboard-maker { background:radial-gradient(circ
 @media (max-width:700px) { .storyboard-maker__size-options { grid-template-columns:1fr; gap:9px; }.storyboard-maker__size-options button { min-height:76px; grid-template-columns:62px 1fr; justify-content:start; padding:12px 15px; }.storyboard-maker__size-shape.is-landscape { width:52px; height:30px; }.storyboard-maker__size-shape.is-portrait { width:28px; height:48px; margin-inline:12px; }.storyboard-maker__size-shape.is-square { width:40px; height:40px; margin-inline:6px; } }
 .storyboard-maker__panel-footer .ds-button.storyboard-maker__step-next { min-width:126px; min-height:44px; padding-inline:18px; font-size:.92rem; }
 @media (max-width:700px) { .storyboard-maker__panel-footer .ds-button.storyboard-maker__step-next { width:auto; align-self:flex-start; } }
+
+/* Light-mode workspace cleanup. */
+.storyboard-maker { background: var(--color-bg); }
+.storyboard-maker__header { border-bottom: 1px solid var(--color-border); box-shadow: none; background: var(--color-surface-2); }
+.storyboard-maker__start, .storyboard-maker__panel, .storyboard-maker__overview, .storyboard-maker__board { box-shadow: none; }
+.storyboard-maker__panel, .storyboard-maker__overview, .storyboard-maker__board { border-color: var(--color-border); background: var(--color-surface-2); }
+.storyboard-maker__flow-heading { padding-block: 24px 12px; background: transparent; }
+.storyboard-maker__flow-heading::before, .storyboard-maker__flow-heading::after { display: none; }
+.storyboard-maker__reference, .storyboard-maker__scene, .storyboard-maker__overview-scenes article { border-color: var(--color-border); box-shadow: none; background: var(--color-surface-1); }
+.storyboard-maker__handoff { display: flex; align-items: center; gap: 9px; width: min(100%, 920px); margin: 18px auto 0; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--color-success) 32%, var(--color-border)); border-radius: 14px; color: var(--color-text); background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface-2)); font-size: .88rem; }
+.storyboard-maker__handoff svg { color: var(--color-success); }

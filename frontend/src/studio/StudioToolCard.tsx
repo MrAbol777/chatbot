@@ -30,6 +30,12 @@ function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
       <path d="M8 8.5h8M8 12h3.5M13.5 12H16M8 15.5h8" />
       <path d="m17.3 2.8.45 1.25 1.25.45-1.25.45-.45 1.25-.45-1.25-1.25-.45 1.25-.45.45-1.25Z" />
     </svg>
+  ) : toolId === 'direct-video' ? (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3.5" y="5" width="12.5" height="14" rx="3" />
+      <path d="m16 10 4-2.2v8.4L16 14M7.5 9.5h4.5M7.5 12h4.5M7.5 14.5h3" />
+      <path d="m18.1 3.2.45 1.2 1.2.45-1.2.45-.45 1.2-.45-1.2-1.2-.45 1.2-.45.45-1.2Z" />
+    </svg>
   ) : (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <rect x="3.5" y="5" width="12.5" height="14" rx="3" />
@@ -47,7 +53,9 @@ export default function StudioToolCard({ tool, onOpen }: Props) {
       ? { type: 'استوری‌برد', index: '03' }
       : tool.id === 'image'
         ? { type: 'خلق تصویر', index: '04' }
-        : { type: 'خلق ویدیو', index: '05' };
+      : tool.id === 'video'
+        ? { type: 'خلق ویدیو', index: '05' }
+        : { type: 'کارگردانی خودکار', index: '06' };
 
   return (
     <button

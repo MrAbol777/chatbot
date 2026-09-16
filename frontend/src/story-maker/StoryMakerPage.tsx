@@ -109,6 +109,13 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   const [answerPickerOpen, setAnswerPickerOpen] = useState(false);
   const [plan, setPlan] = useState<StoryPlanPreview | null>(null);
   const [planUpdateMessage, setPlanUpdateMessage] = useState('');
+  const [isChoiceSummaryOpen, setIsChoiceSummaryOpen] = useState(false);
+  const [isChoiceSummaryMounted, setIsChoiceSummaryMounted] = useState(false);
+  const choiceSummaryTimerRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (choiceSummaryTimerRef.current !== null) window.clearTimeout(choiceSummaryTimerRef.current);
+  }, []);
   const [isPreparingPlan, setIsPreparingPlan] = useState(false);
   const [characterNames, setCharacterNames] = useState<string[]>([]);
   const [characterDetails, setCharacterDetails] = useState<StoryAddedCharacter[]>([]);
@@ -127,6 +134,7 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   const ideaError = ideaTouched && !draft.idea.trim() ? 'اول ایده‌ی داستان را بنویس.' : '';
   const activeBriefQuestion = brief?.questions[briefQuestionIndex] || null;
   const isDurationQuestion = activeBriefQuestion?.id === 'duration';
+  const allowsCustomBriefAnswer = activeBriefQuestion?.id !== 'format';
   const isImprovementQuestion = isOptimizingIdea && Boolean(activeBriefQuestion) && briefQuestionIndex >= 5;
   const improvementQuestionCount = isOptimizingIdea ? Math.max(0, (brief?.questions.length || 0) - 5) : 0;
   const improvementQuestionNumber = isImprovementQuestion ? briefQuestionIndex - 4 : 0;
@@ -575,6 +583,21 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   };
 
   const activeVersions = storyHistory.find((item) => item.id === activeStoryId)?.versions || [];
+  const toggleChoiceSummary = () => {
+    if (choiceSummaryTimerRef.current !== null) window.clearTimeout(choiceSummaryTimerRef.current);
+
+    if (isChoiceSummaryOpen) {
+      setIsChoiceSummaryOpen(false);
+      choiceSummaryTimerRef.current = window.setTimeout(() => {
+        setIsChoiceSummaryMounted(false);
+        choiceSummaryTimerRef.current = null;
+      }, 180);
+      return;
+    }
+
+    setIsChoiceSummaryMounted(true);
+    window.requestAnimationFrame(() => setIsChoiceSummaryOpen(true));
+  };
   const remotePendingWorkspaces = remoteWorkspaces.filter((item) => item.status !== 'completed');
   const remoteCompletedWorkspaces = remoteWorkspaces.filter((item) => item.status === 'completed');
   const remoteCompletedIds = new Set(remoteCompletedWorkspaces.map((item) => item.id));
@@ -620,7 +643,16 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
               <article className="story-maker__plan-card"><span>مسیر کلی قصه</span><dl><div><dt>شروع</dt><dd>{plan.storyPath.beginning}</dd></div><div><dt>چالش</dt><dd>{plan.storyPath.challenge}</dd></div><div><dt>اوج</dt><dd>{plan.storyPath.climax}</dd></div><div><dt>فرجام</dt><dd>{plan.storyPath.resolution}</dd></div></dl></article>
             </div>
             <p className="story-maker__plan-note"><Icon name="lightbulb" size={18} aria-hidden="true" /> این پنج انتخاب، مبنای ساخت سناریوی نهایی هستند؛ فعلاً فقط نقشه‌ی راه را می‌بینی و صحنه‌ها و دیالوگ‌ها هنوز ساخته نشده‌اند.</p>
-            <article className="story-maker__plan-card story-maker__plan-card--choices"><span>انتخاب‌های تو</span><div className="story-maker__answer-summary">{brief?.questions.map((question) => <div key={question.id}><small>{question.question}</small><strong>{briefAnswers[question.id] || 'به انتخاب دانوآ'}</strong></div>)}</div><div className="story-maker__plan-actions"><div className="story-maker__plan-edits"><Button type="button" variant="secondary" onClick={openCharacterEditor} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>ویرایش نام شخصیت‌ها</Button><Button type="button" variant="secondary" onClick={() => setAnswerPickerOpen(true)} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>ویرایش جزئیات</Button><Button type="button" variant="secondary" onClick={() => { setImprovementError(''); setImprovementDialogOpen(true); }} startIcon={<Icon name="sparkle" size={17} aria-hidden="true" />}>داستان را بهترش کن</Button></div><Button type="button" size="lg" loading={isGenerating} onClick={() => void runScenarioGeneration()} endIcon={<Icon name="sparkle" size={19} aria-hidden="true" />}>اوکیه، سناریو رو بساز</Button></div></article>
+            <section className="story-maker__choices-section" aria-labelledby="story-choices-title">
+              <button id="story-choices-title" type="button" className={`story-maker__choices-toggle${isChoiceSummaryOpen ? ' is-open' : ''}`} onClick={toggleChoiceSummary} aria-expanded={isChoiceSummaryOpen} aria-controls="story-choices-summary">
+                <span>انتخاب‌های تو</span>
+                <span className="story-maker__choices-toggle-action">{isChoiceSummaryOpen ? 'بستن انتخاب‌ها' : 'مشاهدهٔ انتخاب‌ها'} <Icon name="chevron-down" size={18} aria-hidden="true" /></span>
+              </button>
+              {isChoiceSummaryMounted ? <div id="story-choices-summary" className={`story-maker__answer-summary-wrap${isChoiceSummaryOpen ? ' is-open' : ' is-closing'}`} aria-hidden={!isChoiceSummaryOpen}>
+                <div className="story-maker__answer-summary">{brief?.questions.map((question) => <div key={question.id}><small>{question.question}</small><strong>{briefAnswers[question.id] || 'به انتخاب دانوآ'}</strong></div>)}</div>
+              </div> : null}
+              <div className="story-maker__plan-actions"><div className="story-maker__plan-edits"><Button type="button" variant="secondary" onClick={openCharacterEditor} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>ویرایش نام شخصیت‌ها</Button><Button type="button" variant="secondary" onClick={() => setAnswerPickerOpen(true)} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>ویرایش جزئیات</Button><Button type="button" variant="secondary" onClick={() => { setImprovementError(''); setImprovementDialogOpen(true); }} startIcon={<Icon name="sparkle" size={17} aria-hidden="true" />}>داستان را بهترش کن</Button></div><Button type="button" size="lg" loading={isGenerating} onClick={() => void runScenarioGeneration()} endIcon={<Icon name="sparkle" size={19} aria-hidden="true" />}>اوکیه، سناریو رو بساز</Button></div>
+            </section>
           </> : null}
         </section>}
       </div> : <section className="story-maker__history" id="story-history-panel" role="tabpanel" aria-labelledby="story-history-tab">
@@ -662,8 +694,8 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
                   </form>
                 ) : (
                   <>
-                    <div className="story-maker__brief-options" role="radiogroup" aria-label={activeBriefQuestion.question}>{activeBriefQuestion.options.map((option) => <button key={option} type="button" role="radio" aria-checked={briefAnswers[activeBriefQuestion.id] === option} className={briefAnswers[activeBriefQuestion.id] === option ? 'is-selected' : ''} onClick={() => applyAnswer(option)}>{option}{briefAnswers[activeBriefQuestion.id] === option ? <OptionCheck /> : null}</button>)}<button type="button" className={customAnswerOpen ? 'is-selected' : ''} onClick={() => { setCustomAnswerOpen(true); setCustomAnswer(briefAnswers[activeBriefQuestion.id] || ''); }}>خودم می‌نویسم</button></div>
-                    {customAnswerOpen ? <form className="story-maker__custom-answer" onSubmit={(event) => { event.preventDefault(); applyAnswer(customAnswer); }}><input value={customAnswer} onChange={(event) => setCustomAnswer(event.target.value.slice(0, 100))} placeholder="انتخاب خودت را بنویس" autoFocus maxLength={100} /><Button type="submit" size="sm">ثبت انتخاب</Button></form> : null}
+                    <div className="story-maker__brief-options" role="radiogroup" aria-label={activeBriefQuestion.question}>{activeBriefQuestion.options.map((option) => <button key={option} type="button" role="radio" aria-checked={briefAnswers[activeBriefQuestion.id] === option} className={briefAnswers[activeBriefQuestion.id] === option ? 'is-selected' : ''} onClick={() => applyAnswer(option)}>{option}{briefAnswers[activeBriefQuestion.id] === option ? <OptionCheck /> : null}</button>)}{allowsCustomBriefAnswer ? <button type="button" className={customAnswerOpen ? 'is-selected' : ''} onClick={() => { setCustomAnswerOpen(true); setCustomAnswer(briefAnswers[activeBriefQuestion.id] || ''); }}>خودم می‌نویسم</button> : null}</div>
+                    {allowsCustomBriefAnswer && customAnswerOpen ? <form className="story-maker__custom-answer" onSubmit={(event) => { event.preventDefault(); applyAnswer(customAnswer); }}><input value={customAnswer} onChange={(event) => setCustomAnswer(event.target.value.slice(0, 100))} placeholder="انتخاب خودت را بنویس" autoFocus maxLength={100} /><Button type="submit" size="sm">ثبت انتخاب</Button></form> : null}
                   </>
                 )}
                 {briefValidationError ? <p className="story-maker__error" role="alert">{briefValidationError}</p> : null}
@@ -674,12 +706,11 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
         ) : null}
       </Dialog>
 
-      <Dialog open={waitingDialogOpen} title={waitingMode === 'preview' ? 'داریم طرح اولیه‌ی قصه را می‌چینیم' : 'داریم داستانت را بهتر می‌کنیم'} onClose={cancelWaiting} closeLabel="انصراف از آماده‌سازی" showFooter={false} panelClassName="story-maker__wait-dialog">
+      <Dialog open={waitingDialogOpen} title="در حال آماده‌سازی" onClose={cancelWaiting} closeLabel="انصراف از آماده‌سازی" showFooter={false} panelClassName="story-maker__wait-dialog">
         <div className="story-maker__wait-content" role="status" aria-live="polite">
           <span className="story-maker__wait-spinner" aria-hidden="true"><Icon name="spinner" size={25} /></span>
-          <div className="story-maker__wait-copy"><strong>{waitingMode === 'preview' ? 'خلاصه‌ی داستانت در حال آماده شدن است' : 'داریم فقط نکته‌های مهم داستانت را بررسی می‌کنیم'}</strong><p>{waitingMode === 'preview' ? 'دنیای داستان، شخصیت‌ها و مسیر کلی را برای تأیید آماده می‌کنیم.' : 'اگر لازم باشد، حداکثر دو سؤال کوتاه و هدفمند می‌پرسیم.'}</p></div>
+          <div className="story-maker__wait-copy"><strong>{waitingMode === 'preview' ? 'خلاصه‌ی داستان آماده می‌شود…' : 'داستانت در حال بررسی است…'}</strong></div>
           <div className="story-maker__wait-progress" aria-hidden="true"><i /></div>
-          <small className="story-maker__wait-caption"><Icon name="check" size={14} aria-hidden="true" /> انتخاب‌های اصلی ثبت شده‌اند</small>
         </div>
       </Dialog>
 

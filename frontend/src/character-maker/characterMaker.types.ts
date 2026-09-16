@@ -3,7 +3,7 @@ export type CharacterImageState = {
   status?: 'idle' | 'QUEUE' | 'WAITING' | 'RUNNING' | 'COMPLETED' | 'ERROR';
   imageUrl?: string | null;
   previousImageUrl?: string | null;
-  operation?: 'generate' | 'edit' | 'sheet';
+  operation?: 'generate' | 'edit' | 'sheet' | 'setting-sheet';
   error?: string | null;
 };
 
@@ -31,12 +31,14 @@ export type CharacterProfile = {
 
 export type StorySetting = {
   assetId: string;
+  sheetAssetId?: string;
   reference?: string;
   name: string;
   description: string;
   imagePrompt: string;
   negativePrompt: string;
   image?: CharacterImageState;
+  settingSheet?: CharacterImageState;
 };
 
 export type CharacterAnalysis = {

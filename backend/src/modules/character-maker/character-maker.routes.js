@@ -44,7 +44,7 @@ function normalizeAnalysis(value, scenario) {
     stylePrompt: cleanPrompt(source.stylePrompt) || 'High-quality stylized 3D animated family-film visual language, expressive but believable proportions, softly rounded forms, polished non-photoreal materials, warm cinematic lighting, cohesive color grading, and the same studio-quality render for every character and environment. Never use live action, photographic realism, or real-person likeness.',
     relationships: (Array.isArray(source.relationships) ? source.relationships : []).slice(0, 24).map((item) => ({ from: clean(item?.from, 32), to: clean(item?.to, 32), label: clean(item?.label, 120) })).filter((item) => item.from && item.to && item.label),
     characters,
-    setting: { assetId: settingAssetId, name: clean(setting.name, 100) || 'فضای داستان', description: clean(setting.description, 420), imagePrompt: cleanPrompt(setting.imagePrompt), negativePrompt: cleanPrompt(setting.negativePrompt), image: setting.image }
+    setting: { assetId: settingAssetId, sheetAssetId: `${settingAssetId}-setting-sheet`, name: clean(setting.name, 100) || 'فضای داستان', description: clean(setting.description, 420), imagePrompt: cleanPrompt(setting.imagePrompt), negativePrompt: cleanPrompt(setting.negativePrompt), image: setting.image, settingSheet: setting.settingSheet }
   };
 }
 
@@ -68,12 +68,13 @@ function findWorkspaceAsset(workspace, assetIdValue) {
   const sheetOwner = analysis.characters?.find((item) => item.sheetAssetId === assetIdValue);
   if (sheetOwner) return { kind: 'character-sheet', assetId: sheetOwner.sheetAssetId, character: sheetOwner, image: sheetOwner.characterSheet };
   if (analysis.setting?.assetId === assetIdValue) return { kind: 'setting', assetId: analysis.setting.assetId, setting: analysis.setting, image: analysis.setting.image };
+  if (analysis.setting?.sheetAssetId === assetIdValue) return { kind: 'setting-sheet', assetId: analysis.setting.sheetAssetId, setting: analysis.setting, image: analysis.setting.settingSheet };
   return null;
 }
 
 function needsAssetBackfill(workspace) {
   const analysis = workspace?.analysis;
-  return Boolean(!workspace?.assetId || (analysis && (!analysis.setting?.assetId || (analysis.characters || []).some((item) => !item.assetId || !item.sheetAssetId))));
+  return Boolean(!workspace?.assetId || (analysis && (!analysis.setting?.assetId || !analysis.setting?.sheetAssetId || (analysis.characters || []).some((item) => !item.assetId || !item.sheetAssetId))));
 }
 
 function createCharacterMakerRouter({ aiService, promptService, principalResolver, characterWorkspaceRepository, logger = console }) {

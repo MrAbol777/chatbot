@@ -125,8 +125,8 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
   const requirePrincipal = createRequirePrincipal(principalResolver);
   const limiter = rateLimit({ windowMs: 60_000, max: 8, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => String(req.user?.id || req.ip) });
   const briefLimiter = rateLimit({ windowMs: 60_000, max: 10, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => String(req.user?.id || req.ip) });
-  const scenarioTimeoutMs = Math.max(30_000, Math.min(90_000, Number(process.env.STORY_MAKER_TIMEOUT_MS || 55_000)));
-  const scenarioMaxOutputTokens = Math.max(1_024, Math.min(8_192, Number(process.env.STORY_MAKER_MAX_OUTPUT_TOKENS || 5_120)));
+  const scenarioTimeoutMs = Math.max(30_000, Math.min(90_000, Number(process.env.STORY_MAKER_TIMEOUT_MS || 90_000)));
+  const scenarioMaxOutputTokens = Math.max(1_024, Math.min(8_192, Number(process.env.STORY_MAKER_MAX_OUTPUT_TOKENS || 8_192)));
   const normalizeWorkspace = (value = {}) => {
     const source = value && typeof value === 'object' ? value : {};
     const status = ['idea', 'briefing', 'preview', 'generating', 'completed', 'error'].includes(source.status) ? source.status : 'idea';

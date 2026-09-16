@@ -11,7 +11,18 @@ const cleanText = (value, maxLength) => typeof value === 'string'
 
 function parseJsonObject(value) {
   const raw = String(value || '').trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
-  try { return JSON.parse(raw); } catch { return null; }
+  try { return JSON.parse(raw); } catch {
+    // Some providers prepend a short sentence despite responseMimeType.  We can
+    // safely recover a single JSON object, but never try to invent a plan here.
+    const firstBrace = raw.indexOf('{');
+    const lastBrace = raw.lastIndexOf('}');
+    if (firstBrace < 0 || lastBrace <= firstBrace) return null;
+    try { return JSON.parse(raw.slice(firstBrace, lastBrace + 1)); } catch { return null; }
+  }
+}
+
+function parseStoryboardPlanReply(reply, characters) {
+  return normalizeStoryboardPlan(parseJsonObject(reply), characters);
 }
 
 function normalizeStoryboardPlan(value, characters) {
@@ -123,14 +134,41 @@ function createStoryboardMakerRouter({ aiService, promptService, principalResolv
     try {
       const request = normalizeStoryboardRequest(req.body);
       const baseSystemPrompt = await promptService.getSystemPrompt();
-      const result = await aiService.callOpenAI([
+      const messages = [
         { role: 'system', content: `${baseSystemPrompt}\n\nدر این درخواست فقط طراح استوری‌برد کودک هستی. فقط JSON معتبر برگردان.` },
         { role: 'user', content: buildStoryboardPlanPrompt(request) }
-      ], { requestId: res.locals.requestId, timeoutMs: 60_000, maxOutputTokens: 4_096, responseMimeType: 'application/json' });
-      const plan = normalizeStoryboardPlan(parseJsonObject(result?.reply), request.characters);
-      logger.log?.('STORYBOARD_MAKER', 'plan_prepared', { requestId: res.locals.requestId, userId: req.user?.id, sceneCount: plan.scenes.length, characterCount: request.characters.length, model: result.model });
+      ];
+      let result = await aiService.callOpenAI(messages, { requestId: res.locals.requestId, timeoutMs: 60_000, maxOutputTokens: 4_096, responseMimeType: 'application/json' });
+      let repaired = false;
+      let plan;
+      try {
+        plan = parseStoryboardPlanReply(result?.reply, request.characters);
+      } catch (error) {
+        // Retry once only when the provider answered but broke the strict JSON
+        // contract. This is a repair of the same analysis, not a new user job.
+        if (error?.message !== 'STORYBOARD_PLAN_INVALID') throw error;
+        repaired = true;
+        logger.log?.('STORYBOARD_MAKER', 'plan_repair_started', {
+          requestId: res.locals.requestId,
+          userId: req.user?.id,
+          reason: 'invalid_provider_plan'
+        });
+        result = await aiService.callOpenAI([
+          { role: 'system', content: `${baseSystemPrompt}\n\nYour previous storyboard answer was invalid. Return ONLY one valid JSON object that exactly follows the requested storyboard schema. Include 2 to 6 usable scenes; every scene must have a non-empty Persian description and a non-empty English imagePrompt. Do not add markdown or prose.` },
+          { role: 'user', content: buildStoryboardPlanPrompt(request) }
+        ], { requestId: res.locals.requestId, timeoutMs: 60_000, maxOutputTokens: 4_096, responseMimeType: 'application/json' });
+        plan = parseStoryboardPlanReply(result?.reply, request.characters);
+      }
+      logger.log?.('STORYBOARD_MAKER', 'plan_prepared', { requestId: res.locals.requestId, userId: req.user?.id, sceneCount: plan.scenes.length, characterCount: request.characters.length, model: result.model, repaired });
       return res.json({ plan, model: result.model });
     } catch (error) {
+      logger.log?.('STORYBOARD_MAKER', 'plan_failed', {
+        requestId: res.locals.requestId,
+        userId: req.user?.id,
+        reason: error?.message === 'STORYBOARD_PLAN_INVALID' ? 'invalid_provider_plan_after_repair' : 'analysis_request_failed',
+        code: error?.code || null,
+        status: error?.status || null
+      });
       const payload = publicError(error);
       return res.status(payload.status).json(payload);
     }
@@ -139,4 +177,4 @@ function createStoryboardMakerRouter({ aiService, promptService, principalResolv
   return router;
 }
 
-module.exports = { createStoryboardMakerRouter, normalizeStoryboardPlan, normalizeStoryboardWorkspace };
+module.exports = { createStoryboardMakerRouter, normalizeStoryboardPlan, normalizeStoryboardWorkspace, parseJsonObject, parseStoryboardPlanReply };
