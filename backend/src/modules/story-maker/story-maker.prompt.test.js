@@ -58,6 +58,35 @@ test('scenario prompt requires causal scene handoffs, visible reactions, and Per
   assert.match(prompt, /openingHook/);
 });
 
+test('scenario prompt protects the user subject while allowing creative completion and character continuity', () => {
+  const draft = normalizeStoryDraft({ idea: 'ادب', mood: 'funny', place: 'school', length: 'short', ending: 'happy' });
+  const prompt = buildScenarioPrompt(draft);
+  assert.match(prompt, /هسته‌ی غیرقابل‌تغییر داستان/);
+  assert.match(prompt, /فقط جاهای خالی را پُر کن/);
+  assert.match(prompt, /موضوعِ اولیه باید در شروع، مسیرِ اتفاق‌ها و نتیجه‌ی پایانی دیده شود/);
+  assert.match(prompt, /سنِ ظاهری، انسان یا موجودبودن/);
+  assert.match(prompt, /لباس یا وسیله‌ی مهمِ آن لحظه/);
+  assert.match(prompt, /بی‌دلیل تغییر نمی‌کند/);
+  assert.match(prompt, /شدت خلاقیت را با مقدار اطلاعات کاربر تنظیم کن/);
+  assert.match(prompt, /یک موضوع اصلی، یک هدف روشن و یک مشکل مرکزی/);
+  assert.match(prompt, /رسانه‌ای دیداری و شنیداری است/);
+  assert.match(prompt, /پرونده‌ی کاملِ ده‌بخشی/);
+  assert.match(prompt, /هیچ مقدارِ خالی، «نامشخص»/);
+  assert.match(prompt, /هر ده بخشِ پرونده‌ی نهایی را کامل/);
+});
+
+test('scenario prompt defines production handoff without taking storyboard decisions', () => {
+  const draft = normalizeStoryDraft({ idea: 'یک روباه کوچولو از آب می‌ترسد', mood: 'adventure', place: 'forest', length: 'short', ending: 'heroic' });
+  const prompt = buildScenarioPrompt(draft);
+  assert.match(prompt, /منبعِ واحدِ حقیقت/);
+  assert.match(prompt, /visualBible مشترک/);
+  assert.match(prompt, /Character Blueprint کامل/);
+  assert.match(prompt, /C01، C02/);
+  assert.match(prompt, /locationId، وضعیت آغاز و پایان/);
+  assert.match(prompt, /اندازه‌ی نما، زاویه، حرکت، ترکیب‌بندی، لنز و مدتِ نما را برای Storyboard Generator بگذار/);
+  assert.match(prompt, /"schemaVersion":2/);
+});
+
 test('preview prompt keeps user-selected character names and does not request a scenario', () => {
   const draft = normalizeStoryDraft({ idea: 'یک خرس کوچولو دنبال بادبادکش می‌گردد', mood: 'adventure', place: 'forest', length: 'medium', ending: 'happy' });
   const prompt = buildStoryPreviewPrompt(draft, {

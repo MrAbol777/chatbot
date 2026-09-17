@@ -1,6 +1,11 @@
 'use strict';
 
 const clean = (value, max = 500) => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, max) : '';
+const id = (value, prefix, fallback) => {
+  const candidate = clean(value, 12).toUpperCase();
+  return new RegExp(`^${prefix}\\d{2}$`).test(candidate) ? candidate : `${prefix}${String(fallback).padStart(2, '0')}`;
+};
+const list = (value, max, mapper) => (Array.isArray(value) ? value : []).slice(0, max).map(mapper);
 
 function parseJsonObject(reply) {
   const text = String(reply || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
@@ -12,23 +17,58 @@ function parseJsonObject(reply) {
 
 function normalizeScenario(value, expectedScenes) {
   const source = value && typeof value === 'object' ? value : {};
-  const characters = (Array.isArray(source.characters) ? source.characters : []).slice(0, 5).map((character) => ({
+  const schemaVersion = Number(source.schemaVersion) === 2 ? 2 : 1;
+  const visualBible = {
+    style: clean(source.visualBible?.style, 180),
+    animationStyle: clean(source.visualBible?.animationStyle, 160),
+    characterDesignLanguage: clean(source.visualBible?.characterDesignLanguage, 240),
+    environmentDesignLanguage: clean(source.visualBible?.environmentDesignLanguage, 240),
+    colorLightingMood: clean(source.visualBible?.colorLightingMood, 200),
+    consistencyRules: clean(source.visualBible?.consistencyRules, 320)
+  };
+  const characters = list(source.characters, 5, (character, index) => ({
+    id: id(character?.id, 'C', index + 1),
     name: clean(character?.name, 60),
+    role: clean(character?.role, 100),
     description: clean(character?.description, 180),
     personality: clean(character?.personality, 160),
+    apparentAge: clean(character?.apparentAge, 80),
+    speciesType: clean(character?.speciesType, 100),
+    bodyProportions: clean(character?.bodyProportions, 180),
+    face: clean(character?.face, 180),
+    eyes: clean(character?.eyes, 140),
+    hairOrFur: clean(character?.hairOrFur, 140),
+    clothing: clean(character?.clothing, 180),
+    accessories: clean(character?.accessories, 140),
+    colors: clean(character?.colors, 140),
+    uniqueVisualTraits: clean(character?.uniqueVisualTraits, 180),
+    expressions: clean(character?.expressions, 160),
+    bodyLanguage: clean(character?.bodyLanguage, 160),
+    goalsFears: clean(character?.goalsFears, 200),
+    consistencyRules: clean(character?.consistencyRules, 240),
     specialAbility: clean(character?.specialAbility, 160),
     relationship: clean(character?.relationship, 140),
     visualSignature: clean(character?.visualSignature, 140),
     goal: clean(character?.goal, 140),
     voiceStyle: clean(character?.voiceStyle, 100)
   })).filter((character) => character.name);
-  const sceneFields = ['title', 'duration', 'presentCharacters', 'emotion', 'goal', 'setting', 'visual', 'camera', 'action', 'dialogue', 'narration', 'reaction', 'sound', 'continuity', 'outcome', 'transition', 'imagePrompt'];
-  const scenes = (Array.isArray(source.scenes) ? source.scenes : []).slice(0, expectedScenes + 1).map((scene, index) => {
-    const normalized = { number: index + 1 };
+  const locations = list(source.locations, 8, (location, index) => ({
+    id: id(location?.id, 'L', index + 1), name: clean(location?.name, 100), description: clean(location?.description, 240),
+    environmentDetails: clean(location?.environmentDetails, 240), timeWeather: clean(location?.timeWeather, 140),
+    lighting: clean(location?.lighting, 160), continuityRules: clean(location?.continuityRules, 240)
+  }));
+  const props = list(source.props, 12, (prop, index) => ({
+    id: id(prop?.id, 'P', index + 1), name: clean(prop?.name, 100), description: clean(prop?.description, 180),
+    ownerOrLocation: clean(prop?.ownerOrLocation, 120), initialState: clean(prop?.initialState, 160), consistencyRules: clean(prop?.consistencyRules, 220)
+  }));
+  const sceneFields = ['title', 'duration', 'presentCharacters', 'emotion', 'goal', 'setting', 'visual', 'camera', 'visualIntent', 'action', 'dialogue', 'narration', 'reaction', 'sound', 'continuity', 'startState', 'endState', 'propStates', 'outcome', 'transition', 'imagePrompt'];
+  const scenes = list(source.scenes, expectedScenes + 1, (scene, index) => {
+    const normalized = { id: id(scene?.id, 'SC', index + 1), number: index + 1, locationId: clean(scene?.locationId, 12).toUpperCase(), characterIds: list(scene?.characterIds, 8, (characterId) => clean(characterId, 12).toUpperCase()).filter(Boolean) };
     sceneFields.forEach((field) => { normalized[field] = clean(scene?.[field], field === 'imagePrompt' ? 600 : 420); });
     return normalized;
   });
   return {
+    schemaVersion,
     title: clean(source.title, 100),
     audience: clean(source.audience, 120),
     duration: clean(source.duration, 80),
@@ -36,8 +76,11 @@ function normalizeScenario(value, expectedScenes) {
     logline: clean(source.logline, 260),
     message: clean(source.message, 180),
     visualStyle: clean(source.visualStyle, 160),
+    visualBible,
     world: clean(source.world, 240),
     characters,
+    locations,
+    props,
     storyBeats: {
       setup: clean(source.storyBeats?.setup, 240),
       goal: clean(source.storyBeats?.goal, 180),
@@ -59,6 +102,24 @@ function validateScenario(scenario, expectedScenes) {
   scenario.characters.forEach((character, index) => ['description', 'personality', 'specialAbility', 'relationship', 'visualSignature', 'goal', 'voiceStyle'].forEach((field) => {
     if (!character[field]) errors.push(`character_${index + 1}_missing_${field}`);
   }));
+  if (scenario.schemaVersion === 2) {
+    ['style', 'animationStyle', 'characterDesignLanguage', 'environmentDesignLanguage', 'colorLightingMood', 'consistencyRules'].forEach((field) => {
+      if (!scenario.visualBible[field]) errors.push(`missing_visualBible_${field}`);
+    });
+    if (!scenario.locations.length) errors.push('missing_locations');
+    scenario.locations.forEach((location, index) => ['name', 'description', 'environmentDetails', 'timeWeather', 'lighting', 'continuityRules'].forEach((field) => {
+      if (!location[field]) errors.push(`location_${index + 1}_missing_${field}`);
+    }));
+    scenario.props.forEach((prop, index) => ['name', 'description', 'ownerOrLocation', 'initialState', 'consistencyRules'].forEach((field) => {
+      if (!prop[field]) errors.push(`prop_${index + 1}_missing_${field}`);
+    }));
+    scenario.characters.forEach((character, index) => ['role', 'apparentAge', 'speciesType', 'bodyProportions', 'face', 'eyes', 'hairOrFur', 'clothing', 'accessories', 'colors', 'uniqueVisualTraits', 'expressions', 'bodyLanguage', 'goalsFears', 'consistencyRules'].forEach((field) => {
+      if (!character[field]) errors.push(`character_${index + 1}_missing_${field}`);
+    }));
+    if (new Set(scenario.characters.map((character) => character.id)).size !== scenario.characters.length) errors.push('duplicate_character_ids');
+    if (new Set(scenario.locations.map((location) => location.id)).size !== scenario.locations.length) errors.push('duplicate_location_ids');
+    if (new Set(scenario.props.map((prop) => prop.id)).size !== scenario.props.length) errors.push('duplicate_prop_ids');
+  }
   ['setup', 'goal', 'obstacle', 'climax', 'resolution'].forEach((field) => {
     if (!scenario.storyBeats[field]) errors.push(`missing_beat_${field}`);
   });
@@ -67,6 +128,19 @@ function validateScenario(scenario, expectedScenes) {
   scenario.scenes.forEach((scene, index) => requiredSceneFields.forEach((field) => {
     if (!scene[field]) errors.push(`scene_${index + 1}_missing_${field}`);
   }));
+  if (scenario.schemaVersion === 2) {
+    const characterIds = new Set(scenario.characters.map((character) => character.id));
+    const locationIds = new Set(scenario.locations.map((location) => location.id));
+    const propIds = new Set(scenario.props.map((prop) => prop.id));
+    if (new Set(scenario.scenes.map((scene) => scene.id)).size !== scenario.scenes.length) errors.push('duplicate_scene_ids');
+    scenario.scenes.forEach((scene, index) => {
+      if (!locationIds.has(scene.locationId)) errors.push(`scene_${index + 1}_invalid_locationId`);
+      if (!scene.characterIds.length) errors.push(`scene_${index + 1}_missing_characterIds`);
+      scene.characterIds.forEach((characterId) => { if (!characterIds.has(characterId)) errors.push(`scene_${index + 1}_invalid_characterId_${characterId}`); });
+      ['visualIntent', 'startState', 'endState'].forEach((field) => { if (!scene[field]) errors.push(`scene_${index + 1}_missing_${field}`); });
+      scene.propStates.split(/[،,]/).map((item) => item.trim().split(/[:：]/)[0]).filter(Boolean).forEach((propId) => { if (!propIds.has(propId)) errors.push(`scene_${index + 1}_invalid_propState_${propId}`); });
+    });
+  }
   return { valid: errors.length === 0, errors };
 }
 
@@ -83,15 +157,22 @@ function buildScenarioMarkdown(scenario) {
     `**جایی که داستان رخ می‌دهد:** ${scenario.world}`,
     `**ظاهرِ تصویرها:** ${scenario.visualStyle}`,
     '',
-    '## شخصیت‌های داستان'
+    ...(scenario.schemaVersion === 2 ? ['', '## راهنمای یکپارچه‌ی ساخت', `**سبکِ واحد:** ${scenario.visualBible.style}`, `**شیوه‌ی جان‌بخشی:** ${scenario.visualBible.animationStyle}`, `**زبان طراحی شخصیت‌ها:** ${scenario.visualBible.characterDesignLanguage}`, `**زبان طراحی محیط‌ها:** ${scenario.visualBible.environmentDesignLanguage}`, `**رنگ، نور و حس:** ${scenario.visualBible.colorLightingMood}`, `**قانون‌های ثابت‌ماندن ظاهر:** ${scenario.visualBible.consistencyRules}`] : []),
+    '', '## شخصیت‌های داستان'
   ];
   scenario.characters.forEach((character) => {
-    lines.push(`### ${character.name}`, `**ظاهر و ویژگی‌ها:** ${character.description}`, `**رفتار و اخلاق:** ${character.personality}`, `**تواناییِ ویژه:** ${character.specialAbility}`, `**رابطه با قهرمان:** ${character.relationship}`, `**نشانه‌ی ظاهریِ ثابت:** ${character.visualSignature}`, `**چیزی که می‌خواهد:** ${character.goal}`, `**شیوه‌ی حرف‌زدن:** ${character.voiceStyle}`, '');
+    lines.push(`### ${character.id}: ${character.name}`, `**نقش:** ${character.role || character.relationship}`, `**ظاهر و ویژگی‌ها:** ${character.description}`, ...(scenario.schemaVersion === 2 ? [`**سنِ ظاهری و گونه:** ${character.apparentAge}؛ ${character.speciesType}`, `**اندام و نسبت‌ها:** ${character.bodyProportions}`, `**چهره و چشم‌ها:** ${character.face}؛ ${character.eyes}`, `**مو یا پوشش بدن:** ${character.hairOrFur}`, `**لباس و اکسسوری:** ${character.clothing}؛ ${character.accessories}`, `**رنگ‌ها و نشانه‌های ویژه:** ${character.colors}؛ ${character.uniqueVisualTraits}`, `**حالت‌ها و زبان بدن:** ${character.expressions}؛ ${character.bodyLanguage}`, `**هدف و ترس:** ${character.goalsFears}`, `**قانون‌های ثابت‌ماندن:** ${character.consistencyRules}`] : []), `**رفتار و اخلاق:** ${character.personality}`, `**تواناییِ ویژه:** ${character.specialAbility}`, `**رابطه با قهرمان:** ${character.relationship}`, `**نشانه‌ی ظاهریِ ثابت:** ${character.visualSignature}`, `**چیزی که می‌خواهد:** ${character.goal}`, `**شیوه‌ی حرف‌زدن:** ${character.voiceStyle}`, '');
   });
+  if (scenario.schemaVersion === 2) {
+    lines.push('## مکان‌ها و وسایل مهم');
+    scenario.locations.forEach((location) => lines.push(`### ${location.id}: ${location.name}`, `**توصیف:** ${location.description}`, `**جزئیات محیط:** ${location.environmentDetails}`, `**زمان و هوا:** ${location.timeWeather}`, `**نور:** ${location.lighting}`, `**قانون تداوم:** ${location.continuityRules}`, ''));
+    scenario.props.forEach((prop) => lines.push(`### ${prop.id}: ${prop.name}`, `**توصیف:** ${prop.description}`, `**صاحب یا جای آغاز:** ${prop.ownerOrLocation}`, `**وضعیت آغاز:** ${prop.initialState}`, `**قانون تداوم:** ${prop.consistencyRules}`, ''));
+  }
   lines.push('## مسیر داستان', `**شروع:** ${scenario.storyBeats.setup}`, `**چیزی که قهرمان می‌خواهد:** ${scenario.storyBeats.goal}`, `**مشکل اصلی:** ${scenario.storyBeats.obstacle}`, `**هیجان‌انگیزترین بخش:** ${scenario.storyBeats.climax}`, `**پایان ماجرا:** ${scenario.storyBeats.resolution}`, '', '## داستان، بخش‌به‌بخش');
   scenario.scenes.forEach((scene) => {
     lines.push(
-      `### بخش ${scene.number}: ${scene.title}`,
+      `### ${scene.id} — بخش ${scene.number}: ${scene.title}`,
+      ...(scenario.schemaVersion === 2 ? [`**مکان:** ${scene.locationId}`, `**شخصیت‌ها با شناسه:** ${scene.characterIds.join('، ')}`, `**هدف دیداری:** ${scene.visualIntent}`] : []),
       `**زمان این بخش:** ${scene.duration}`,
       `**شخصیت‌های حاضر:** ${scene.presentCharacters}`,
       `**حسِ اصلی:** ${scene.emotion}`,
@@ -105,6 +186,7 @@ function buildScenarioMarkdown(scenario) {
       `**واکنش شخصیت‌ها:** ${scene.reaction}`,
       `**صدا و موسیقی:** ${scene.sound}`,
       `**ارتباط با بخش قبل:** ${scene.continuity}`,
+      ...(scenario.schemaVersion === 2 ? [`**وضعیت در آغاز:** ${scene.startState}`, `**وضعیت در پایان:** ${scene.endState}`, ...(scene.propStates ? [`**وضعیت وسایل:** ${scene.propStates}`] : [])] : []),
       `**نتیجه‌ی این بخش:** ${scene.outcome}`,
       `**رفتن به بخش بعد:** ${scene.transition}`,
       `**متنِ ساخت تصویر یا ویدیو:** ${scene.imagePrompt}`,
@@ -128,9 +210,9 @@ function buildRevisionPrompt(scenario, { request, targetScene }) {
   const scope = targetScene ? `فقط صحنه ${targetScene} را تغییر بده و باقی صحنه‌ها، شخصیت‌ها و مسیر داستان را تا حد ممکن ثابت نگه دار.` : 'تغییر در کل داستان مجاز است، اما جزئیات مفید و انتخاب‌های قبلی کودک را حفظ کن.';
   return [
     'تو ویراستار حرفه‌ای سناریوی کودک هستی. فقط JSON معتبر و کامل با همان ساختار سناریوی ورودی برگردان؛ Markdown یا توضیح اضافه ننویس.',
-    'تمام فیلدهای سناریو باید کامل بمانند: مخاطب، مدت، اتفاق جذاب شروع، شخصیت‌پردازیِ کامل هر شخصیت، و برای هر بخش زمان، شخصیت‌های حاضر، حس، هدف، فضا، تصویر، دوربین، اتفاق، دیالوگ، نریشن، واکنش، صدا، پیوستگی، نتیجه، برش و متنِ ساخت تصویر/ویدیو.',
+    'تمام فیلدهای سناریو باید کامل بمانند، از جمله راهنمای یکپارچه‌ی ساخت، شناسه‌های ثابت، شناسنامه‌ی کامل شخصیت، مکان‌ها و وسایل مهم، و برای هر بخش زمان، شخصیت‌ها، مکان، حس، هدف دیداری، وضعیت آغاز و پایان، پیوستگی و نتیجه.',
     'برای هر شخصیت، رفتار و اخلاق، تواناییِ ویژه، رابطه با قهرمان و نشانه‌ی ظاهریِ ثابت را نگه دار یا بهتر کن. دوست‌های قهرمان باید نقشِ واقعی و تواناییِ متفاوت داشته باشند؛ شخصیتِ تزئینی نساز.',
-    'پیوستگی نام، ظاهر، هدف و لحن شخصیت‌ها را حفظ کن. هر صحنه باید از نتیجه‌ی صحنه‌ی قبل آغاز شود و outcome آن، علت روشنِ صحنه‌ی بعد باشد. واکنش شخصیت‌ها را قابل‌دیدن و اثرگذار نگه دار.',
+    'شناسه‌های C، L، P و SC را تغییر نده و هر ارجاع را معتبر نگه دار. راهنمای یکپارچه‌ی ساخت، نام، ظاهر، هدف و لحن شخصیت‌ها را حفظ کن. هر صحنه باید از نتیجه‌ی صحنه‌ی قبل آغاز شود و outcome آن، علت روشنِ صحنه‌ی بعد باشد. واکنش شخصیت‌ها را قابل‌دیدن و اثرگذار نگه دار.',
     'همه‌ی متن‌ها فارسیِ معیار باشند. در دیالوگ و نریشن، برای تلفظ بی‌ابهام از کسره‌ی اضافه، همزه و حرکت‌های لازمِ فارسی/عربی استفاده کن؛ فقط اعراب‌گذاریِ درست و ضروری مجاز است.',
     'خروجی برای کاربر عادی است؛ در مقدار فیلدها از اصطلاحات فنی و خارجی مانند لاگ‌لاین، تایم‌لاین، بیت، شات، پلان، کات، نریشن و پرامپت استفاده نکن و همان مفهوم را با فارسیِ ساده بنویس.',
     scope,

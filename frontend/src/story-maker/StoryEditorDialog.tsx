@@ -16,7 +16,7 @@ type Props = {
 };
 
 type EditorTab = 'ai' | 'manual';
-type SceneField = Exclude<keyof StoryScenario['scenes'][number], 'number'>;
+type SceneField = 'title' | 'goal' | 'setting' | 'visual' | 'camera' | 'duration' | 'presentCharacters' | 'emotion' | 'action' | 'dialogue' | 'narration' | 'reaction' | 'sound' | 'continuity' | 'outcome' | 'transition' | 'imagePrompt';
 
 const sceneFields: Array<{ key: SceneField; label: string; rows?: number }> = [
   { key: 'goal', label: 'هدف صحنه' }, { key: 'setting', label: 'فضا' }, { key: 'visual', label: 'تصویر' }, { key: 'camera', label: 'دوربین' },
@@ -50,7 +50,7 @@ export default function StoryEditorDialog({ open, story, expectedScenes, version
     window.requestAnimationFrame(() => document.getElementById(`story-editor-${next}-tab`)?.focus());
   };
 
-  const updateStory = <K extends Exclude<keyof StoryScenario, 'characters' | 'scenes' | 'storyBeats'>>(key: K, value: StoryScenario[K]) => {
+  const updateStory = <K extends Exclude<keyof StoryScenario, 'schemaVersion' | 'visualBible' | 'characters' | 'locations' | 'props' | 'scenes' | 'storyBeats'>>(key: K, value: StoryScenario[K]) => {
     setEditableStory((current) => current ? { ...current, [key]: value } : current);
   };
   const updateBeat = (key: keyof StoryScenario['storyBeats'], value: string) => setEditableStory((current) => current ? { ...current, storyBeats: { ...current.storyBeats, [key]: value } } : current);

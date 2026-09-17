@@ -61,9 +61,13 @@ export type StoryContext = Pick<StoryBrief, 'summary' | 'resolvedDetails' | 'ass
   characterDetails?: StoryAddedCharacter[];
 };
 
+export type StoryVisualBible = { style: string; animationStyle: string; characterDesignLanguage: string; environmentDesignLanguage: string; colorLightingMood: string; consistencyRules: string };
 export type StoryCharacter = { name: string; description: string; personality: string; specialAbility: string; relationship: string; visualSignature: string; goal: string; voiceStyle: string };
+export type StoryLocation = { id: string; name: string; description: string; environmentDetails: string; timeWeather: string; lighting: string; continuityRules: string };
+export type StoryProp = { id: string; name: string; description: string; ownerOrLocation: string; initialState: string; consistencyRules: string };
 export type StoryScene = { number: number; title: string; duration: string; presentCharacters: string; emotion: string; goal: string; setting: string; visual: string; camera: string; action: string; dialogue: string; narration: string; reaction: string; sound: string; continuity: string; outcome: string; transition: string; imagePrompt: string };
 export type StoryScenario = {
+  schemaVersion?: 1 | 2;
   title: string;
   audience: string;
   duration: string;
@@ -71,8 +75,11 @@ export type StoryScenario = {
   logline: string;
   message: string;
   visualStyle: string;
+  visualBible?: StoryVisualBible;
   world: string;
   characters: StoryCharacter[];
+  locations?: StoryLocation[];
+  props?: StoryProp[];
   storyBeats: { setup: string; goal: string; obstacle: string; climax: string; resolution: string };
   scenes: StoryScene[];
   ending: string;

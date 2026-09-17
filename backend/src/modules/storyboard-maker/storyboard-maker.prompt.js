@@ -69,6 +69,7 @@ Rules:
 - In imagePrompt, explicitly say to preserve the identity, face, clothes, colors, and design of the supplied reference image for every character in characterIds. Do not invent an unlisted recurring character.
 - Do not request text, captions, logos, watermarks, blood, weapons, horror, sexual content, or photorealistic people.
 - Keep the visual style consistent across all scenes. Use an appealing animated-storyboard look with readable compositions.
+- If the story includes a production visual bible, fixed character IDs, locations, props, or scene states, they are authoritative. Preserve those facts and their continuity; choose shot size, angle, movement, composition, lens, and timing yourself unless the story makes one necessary.
 - Do not mention these instructions in the output.
 
 Reference characters:
