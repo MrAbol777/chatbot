@@ -74,10 +74,10 @@ function LibraryCharacterImage({ src, alt }: { src: string; alt: string }) {
     return () => { active = false; if (objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl); };
   }, [src]);
   return blobUrl ? (
-    <img src={blobUrl} alt={alt} />
+    <img src={blobUrl} alt={alt} className="storyboard-library-modal__img" />
   ) : (
-    <span style={{ display: 'grid', placeItems: 'center', color: 'var(--color-muted)' }}>
-      <Icon name="spinner" size={22} />
+    <span className="storyboard-library-modal__img-loading">
+      <Icon name="spinner" size={20} />
     </span>
   );
 }
@@ -211,7 +211,10 @@ export default function StoryboardMakerPage({ onBack, onOpenDirectVideo }: Props
     setLibraryError('');
     setSelectedLibraryKeys([]);
     try {
-      const workspaces = await listCharacterWorkspaces();
+      const workspaceSummaries = await listCharacterWorkspaces();
+      // The list endpoint intentionally returns workspace summaries, so fetch each
+      // workspace before reading its saved character assets.
+      const workspaces = await Promise.all(workspaceSummaries.map((workspace) => getCharacterWorkspace(workspace.id)));
       const sheets = workspaces.flatMap((workspace) => (workspace.analysis?.characters || []).flatMap((character) => {
         const imageUrl = character.characterSheet?.status === 'COMPLETED'
           ? character.characterSheet.imageUrl || character.characterSheet.previousImageUrl || ''
@@ -440,7 +443,7 @@ export default function StoryboardMakerPage({ onBack, onOpenDirectVideo }: Props
             <Icon name="story" size={22} />
           </span>
           <div className="storyboard-maker__brand-copy">
-            <strong>ساخت استوری‌برد</strong>
+            <strong>کارگاه صحنه‌سازی</strong>
             <small>داستانت را صحنه‌به‌صحنه تصویرگری کن</small>
           </div>
         </div>
@@ -449,7 +452,7 @@ export default function StoryboardMakerPage({ onBack, onOpenDirectVideo }: Props
       </header>
 
       {/* Navigation Tabs */}
-      <nav className="storyboard-maker__tabs" role="tablist" aria-label="بخش‌های استوری‌برد">
+      <nav className="storyboard-maker__tabs" role="tablist" aria-label="بخش‌های صحنه‌سازی">
         <button
           id="storyboard-create-tab"
           type="button"
@@ -459,7 +462,7 @@ export default function StoryboardMakerPage({ onBack, onOpenDirectVideo }: Props
           onClick={() => setActiveTab('create')}
         >
           <Icon name="sparkles" size={16} />
-          <span>کارگاه استوری‌برد</span>
+          <span>کارگاه صحنه‌سازی</span>
         </button>
         <button
           id="storyboard-history-tab"
@@ -700,31 +703,72 @@ export default function StoryboardMakerPage({ onBack, onOpenDirectVideo }: Props
 
                 {/* Step 3: Aspect Ratio */}
                 {formStep === 3 && (
-                  <div>
+                  <div className="storyboard-maker__ratio-step">
                     <div className="storyboard-maker__panel-intro">
-                      <h2>دوست داری شکل ویدیو چطور باشد؟</h2>
-                      <p>یک اندازه برای کادر صحنه‌ها انتخاب کن:</p>
+                      <h2>اندازهٔ کارتونت چطور باشد؟</h2>
+                      <p>یک شکل برای قاب تصویرها انتخاب کن:</p>
                     </div>
 
-                    <div className="storyboard-maker__ratio-grid" role="radiogroup">
+                    <div className="storyboard-maker__ratio-grid" role="radiogroup" aria-label="انتخاب اندازه ویدیو">
                       {([
-                        { ratio: '16:9' as const, label: 'افقی (تلویزیونی و کامپیوتر)', shape: 'landscape' },
-                        { ratio: '9:16' as const, label: 'عمودی (مخصوص گوشی و استوری)', shape: 'portrait' },
-                        { ratio: '1:1' as const, label: 'مربع (پست اینستاگرام)', shape: 'square' }
-                      ]).map(({ ratio, label, shape }) => (
-                        <button
-                          type="button"
-                          key={ratio}
-                          role="radio"
-                          aria-checked={aspectRatio === ratio}
-                          className={`storyboard-maker__ratio-card ${aspectRatio === ratio ? 'is-selected' : ''}`}
-                          onClick={() => setAspectRatio(ratio)}
-                        >
-                          <span className={`storyboard-maker__ratio-shape is-${shape}`} aria-hidden="true" />
-                          <strong>{label}</strong>
-                          <small>{ratio}</small>
-                        </button>
-                      ))}
+                        {
+                          ratio: '16:9' as const,
+                          label: 'تلویزیون و کامپیوتر',
+                          tag: 'پیشنهادی برای کارتون',
+                          shape: 'landscape' as const,
+                          isRecommended: true
+                        },
+                        {
+                          ratio: '9:16' as const,
+                          label: 'گوشی موبایل',
+                          tag: '',
+                          shape: 'portrait' as const,
+                          isRecommended: false
+                        },
+                        {
+                          ratio: '1:1' as const,
+                          label: 'کتاب قصه (مربعی)',
+                          tag: '',
+                          shape: 'square' as const,
+                          isRecommended: false
+                        }
+                      ]).map(({ ratio, label, tag, shape, isRecommended }) => {
+                        const isSelected = aspectRatio === ratio;
+                        return (
+                          <button
+                            type="button"
+                            key={ratio}
+                            role="radio"
+                            aria-checked={isSelected}
+                            className={`storyboard-maker__ratio-card ${isSelected ? 'is-selected' : ''}`}
+                            onClick={() => setAspectRatio(ratio)}
+                          >
+                            {/* Checkmark indicator only when selected */}
+                            {isSelected && (
+                              <span className="storyboard-maker__ratio-check" aria-hidden="true">
+                                <Icon name="check" size={13} />
+                              </span>
+                            )}
+
+                            {/* Recommended badge */}
+                            {isRecommended && (
+                              <span className="storyboard-maker__ratio-tag">
+                                <Icon name="sparkle" size={12} />
+                                <span>{tag}</span>
+                              </span>
+                            )}
+
+                            {/* Visual Device Illustration */}
+                            <div className={`storyboard-maker__ratio-visual is-${shape}`} aria-hidden="true">
+                              <div className="storyboard-maker__ratio-screen">
+                                <span className="storyboard-maker__ratio-screen-art" />
+                              </div>
+                            </div>
+
+                            <strong className="storyboard-maker__ratio-label">{label}</strong>
+                          </button>
+                        );
+                      })}
                     </div>
 
                     <div className="storyboard-maker__panel-footer">
@@ -737,7 +781,7 @@ export default function StoryboardMakerPage({ onBack, onOpenDirectVideo }: Props
                       </button>
                       <button
                         type="submit"
-                        className="danoa-btn danoa-btn--primary"
+                        className="danoa-btn danoa-btn--primary storyboard-maker__cta-btn"
                         disabled={isAnalyzing}
                       >
                         <Icon name={isAnalyzing ? 'spinner' : 'sparkles'} size={18} />
@@ -952,28 +996,29 @@ export default function StoryboardMakerPage({ onBack, onOpenDirectVideo }: Props
         onClose={() => { if (!isAddingFromLibrary) setLibraryOpen(false); }}
         dismissible={!isAddingFromLibrary}
         showFooter={false}
+        panelClassName="storyboard-library-modal"
       >
-        <div dir="rtl" style={{ display: 'grid', gap: 14 }}>
-          <p style={{ color: 'var(--color-muted)', fontSize: '0.86rem', margin: 0 }}>
-            شخصیت‌های ساخته‌شدهٔ خودت را انتخاب کن تا در این داستان هم حضور داشته باشند.
+        <div className="storyboard-library-modal__content" dir="rtl">
+          <p className="storyboard-library-modal__subtitle">
+            روی هر شخصیتی که دوست داری در این داستان حضور داشته باشد کلیک کن:
           </p>
 
           {libraryLoading && (
-            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--color-muted)' }}>
-              <Icon name="spinner" size={28} />
-              <p style={{ marginTop: 8 }}>در حال باز کردن کتابخانه…</p>
+            <div className="storyboard-library-modal__loading">
+              <Icon name="spinner" size={32} />
+              <p>در حال باز کردن کمد شخصیت‌ها…</p>
             </div>
           )}
 
           {!libraryLoading && libraryError && (
-            <p style={{ color: 'var(--color-danger)', fontSize: '0.85rem', margin: '4px 0' }}>{libraryError}</p>
+            <div className="storyboard-library-modal__error">
+              <Icon name="alert-triangle" size={16} />
+              <span>{libraryError}</span>
+            </div>
           )}
 
           {!libraryLoading && librarySheets.length ? (
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-              gap: 10, maxHeight: 300, overflowY: 'auto', padding: 2
-            }}>
+            <div className="storyboard-library-modal__grid">
               {librarySheets.map((sheet) => {
                 const selected = selectedLibraryKeys.includes(sheet.key);
                 const alreadyAdded = references.some((ref) => ref.sourceKey === sheet.key);
@@ -982,46 +1027,77 @@ export default function StoryboardMakerPage({ onBack, onOpenDirectVideo }: Props
                   <button
                     type="button"
                     key={sheet.key}
-                    style={{
-                      border: selected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                      borderRadius: 12, padding: 6, background: selected ? 'var(--color-primary-soft)' : 'var(--color-surface-2)',
-                      cursor: alreadyAdded ? 'not-allowed' : 'pointer', opacity: alreadyAdded ? 0.5 : 1, textAlign: 'right'
-                    }}
+                    className={`storyboard-library-modal__card ${selected ? 'is-selected' : ''} ${alreadyAdded ? 'is-added' : ''}`}
                     disabled={alreadyAdded || isAddingFromLibrary}
                     onClick={() => toggleLibrarySheet(sheet.key)}
+                    title={alreadyAdded ? `${sheet.name} قبلاً اضافه شده است` : sheet.name}
                   >
-                    <div style={{ width: '100%', aspectRatio: '1/1', borderRadius: 8, overflow: 'hidden', marginBottom: 4 }}>
+                    {/* Checkmark when selected */}
+                    {selected && (
+                      <span className="storyboard-library-modal__check" aria-hidden="true">
+                        <Icon name="check" size={14} />
+                      </span>
+                    )}
+
+                    {/* Added badge */}
+                    {alreadyAdded && (
+                      <span className="storyboard-library-modal__added-badge" aria-hidden="true">
+                        <Icon name="check" size={11} />
+                        <span>اضافه شده</span>
+                      </span>
+                    )}
+
+                    <div className="storyboard-library-modal__img-wrap">
                       <LibraryCharacterImage src={sheet.imageUrl} alt={sheet.name} />
                     </div>
-                    <strong style={{ display: 'block', fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {sheet.name}
-                    </strong>
-                    <small style={{ color: 'var(--color-muted)', fontSize: '0.7rem' }}>
-                      {alreadyAdded ? 'قبلاً اضافه شده' : sheet.workspaceTitle}
-                    </small>
+
+                    <div className="storyboard-library-modal__card-info">
+                      <strong>{sheet.name}</strong>
+                      <small>{sheet.workspaceTitle || 'شخصیت آماده'}</small>
+                    </div>
                   </button>
                 );
               })}
             </div>
+          ) : !libraryLoading && !libraryError ? (
+            <div className="storyboard-library-modal__empty">
+              <Icon name="family" size={44} />
+              <h4>هنوز شخصیتی با نماهای آماده نداری</h4>
+              <p>ابتدا در بخش «ساخت کاراکتر»، شخصیت‌های داستانت را بساز تا در این بخش نمایش داده شوند.</p>
+            </div>
           ) : null}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-            <button
-              type="button"
-              className="danoa-btn danoa-btn--secondary danoa-btn--sm"
-              onClick={() => setLibraryOpen(false)}
-              disabled={isAddingFromLibrary}
-            >
-              انصراف
-            </button>
-            <button
-              type="button"
-              className="danoa-btn danoa-btn--primary danoa-btn--sm"
-              disabled={!selectedLibraryKeys.length || isAddingFromLibrary}
-              onClick={() => void addSelectedLibrarySheets()}
-            >
-              {isAddingFromLibrary ? 'در حال افزودن…' : `افزودن ${selectedLibraryKeys.length.toLocaleString('fa-IR')} شخصیت`}
-            </button>
+          <div className="storyboard-library-modal__footer">
+            <span className="storyboard-library-modal__count">
+              {selectedLibraryKeys.length > 0
+                ? `${selectedLibraryKeys.length.toLocaleString('fa-IR')} شخصیت انتخاب شد`
+                : 'شخصیت‌های مورد نظرت را انتخاب کن'}
+            </span>
+            <div className="storyboard-library-modal__footer-btns">
+              <button
+                type="button"
+                className="danoa-btn danoa-btn--secondary danoa-btn--sm"
+                onClick={() => setLibraryOpen(false)}
+                disabled={isAddingFromLibrary}
+              >
+                انصراف
+              </button>
+              <button
+                type="button"
+                className="danoa-btn danoa-btn--primary danoa-btn--sm"
+                disabled={!selectedLibraryKeys.length || isAddingFromLibrary}
+                onClick={() => void addSelectedLibrarySheets()}
+              >
+                <Icon name={isAddingFromLibrary ? 'spinner' : 'plus'} size={15} />
+                <span>
+                  {isAddingFromLibrary
+                    ? 'در حال افزودن…'
+                    : selectedLibraryKeys.length > 0
+                    ? `افزودن ${selectedLibraryKeys.length.toLocaleString('fa-IR')} شخصیت`
+                    : 'افزودن به داستان'}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </Dialog>

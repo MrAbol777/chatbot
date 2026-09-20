@@ -18,15 +18,15 @@ const tools: StudioTool[] = [
   },
   {
     id: 'characters',
-    title: 'ساخت کاراکتر',
+    title: 'ساخت شخصیت‌ها',
     description: 'شخصیت‌های سناریو را پیدا کن و برای هرکدام تصویر مرجع بساز',
-    actionLabel: 'ساخت کاراکترها'
+    actionLabel: 'ساخت شخصیت‌ها'
   },
   {
     id: 'storyboard',
-    title: 'ساخت استوری‌برد',
+    title: 'کارگاه صحنه‌سازی',
     description: 'داستان و عکس کاراکترها را بده؛ قاب‌های داستانت را بساز',
-    actionLabel: 'ساخت استوری‌برد'
+    actionLabel: 'کارگاه صحنه‌سازی'
   },
   {
     id: 'image',

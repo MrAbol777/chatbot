@@ -58,7 +58,7 @@ export default function StudioToolCard({ tool, onOpen }: Props) {
     : tool.id === 'characters'
       ? { type: 'طراحی شخصیت', index: '02' }
     : tool.id === 'storyboard'
-      ? { type: 'استوری‌برد', index: '03' }
+      ? { type: 'صحنه‌سازی', index: '03' }
       : tool.id === 'image'
         ? { type: 'خلق تصویر', index: '04' }
       : tool.id === 'video'

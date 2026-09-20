@@ -517,7 +517,7 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
             <Icon name="family" size={22} />
           </span>
           <div className="character-maker__brand-copy">
-            <strong>ساخت کاراکتر</strong>
+            <strong>ساخت شخصیت‌ها</strong>
             <small>هویت تصویری برای داستان‌های تو</small>
           </div>
         </div>
@@ -526,7 +526,7 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
       </header>
 
       {/* Navigation Tabs */}
-      <nav className="character-maker__tabs" role="tablist" aria-label="بخش‌های ساخت کاراکتر">
+      <nav className="character-maker__tabs" role="tablist" aria-label="بخش‌های ساخت شخصیت‌ها">
         <button
           id="character-create-tab"
           type="button"
@@ -565,7 +565,7 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
             </div>
             <button type="button" className="danoa-btn danoa-btn--primary" onClick={() => setTab('create')}>
               <Icon name="plus" size={16} />
-              <span>ساخت کاراکتر جدید</span>
+              <span>ساخت شخصیت جدید</span>
             </button>
           </div>
 

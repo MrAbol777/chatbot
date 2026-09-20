@@ -4096,13 +4096,13 @@ notify.error(message);
 
                   <button type="button" className="danoa-shortcut-card danoa-shortcut-card--characters" onClick={openCharacterMaker}>
                     <div className="danoa-shortcut-icon danoa-shortcut-icon--characters"><Icon name="family" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت کاراکتر</strong><span className="danoa-shortcut-desc">هویت تصویری ثابت برای شخصیت‌های داستانت</span></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت شخصیت‌ها</strong><span className="danoa-shortcut-desc">هویت تصویری ثابت برای شخصیت‌های داستانت</span></div>
                     <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
                   </button>
 
                   <button type="button" className="danoa-shortcut-card danoa-shortcut-card--storyboard" onClick={openStoryboardMaker}>
                     <div className="danoa-shortcut-icon danoa-shortcut-icon--storyboard"><Icon name="gallery" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت استوری‌برد</strong><span className="danoa-shortcut-desc">داستانت را صحنه‌به‌صحنه تصویر کن</span></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">کارگاه صحنه‌سازی</strong><span className="danoa-shortcut-desc">داستانت را صحنه‌به‌صحنه تصویر کن</span></div>
                     <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
                   </button>
 
