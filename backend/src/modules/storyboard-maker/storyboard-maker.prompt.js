@@ -59,6 +59,9 @@ Return valid JSON only, with this exact shape:
       "characterIds": ["character-id"],
       "imagePrompt": "detailed English image-generation prompt",
       "negativePrompt": "short English negative prompt"
+      ,"sourceSceneId": "SC-1 when present in the source story",
+      "locationIds": ["L-1"],
+      "propIds": ["P-1"]
     }
   ]
 }
@@ -70,6 +73,7 @@ Rules:
 - Do not request text, captions, logos, watermarks, blood, weapons, horror, sexual content, or photorealistic people.
 - Keep the visual style consistent across all scenes. Use an appealing animated-storyboard look with readable compositions.
 - If the story includes a production visual bible, fixed character IDs, locations, props, or scene states, they are authoritative. Preserve those facts and their continuity; choose shot size, angle, movement, composition, lens, and timing yourself unless the story makes one necessary.
+- Copy the source SC-, L-, P- and C- identifiers exactly whenever they are present. Never replace an existing identifier with a newly invented one.
 - Do not mention these instructions in the output.
 
 Reference characters:

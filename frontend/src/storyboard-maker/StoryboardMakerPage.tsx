@@ -4,13 +4,15 @@ import Icon from '../components/Icon';
 import { fetchProtectedImageBlobUrl } from '../services/imageGeneration';
 import { getImageToImageJob, startImageToImage } from '../services/imageToImage';
 import type { ImageToImageJob } from '../services/imageToImage';
-import { listCharacterWorkspaces } from '../character-maker/characterMaker.api';
+import { getCharacterWorkspace, listCharacterWorkspaces } from '../character-maker/characterMaker.api';
 import { analyzeStoryboard, createStoryboardWorkspace, getStoryboardWorkspace, listStoryboardWorkspaces, updateStoryboardWorkspace } from './storyboardMaker.api';
 import { readStoryboardScenarioHandoff } from './storyboardScenarioHandoff';
+import { transitionAnimationProject } from '../animation-maker/animationMaker.api';
+import { saveAnimationVideoHandoff } from '../animation-maker/animationVideoHandoff';
 import type { StoryboardCharacterReference, StoryboardPlan, StoryboardSceneState, StoryboardWorkspace, StoryboardWorkspaceStatus } from './storyboardMaker.types';
 import './StoryboardMakerPage.css';
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; onOpenDirectVideo?: () => void };
 const MAX_REFERENCES = 4;
 type LibraryCharacterSheet = { key: string; name: string; workspaceTitle: string; imageUrl: string };
 type StoryboardStage = 'form' | 'waiting-preview' | 'preview' | 'scenes';
@@ -67,7 +69,7 @@ function LibraryCharacterImage({ src, alt }: { src: string; alt: string }) {
   return blobUrl ? <img src={blobUrl} alt={alt} /> : <span className="storyboard-maker__library-image-wait"><Icon name="spinner" size={22} aria-hidden="true" /></span>;
 }
 
-export default function StoryboardMakerPage({ onBack }: Props) {
+export default function StoryboardMakerPage({ onBack, onOpenDirectVideo }: Props) {
   const [scenarioHandoff] = useState(() => readStoryboardScenarioHandoff());
   const [script, setScript] = useState(() => readStoryboardScenarioHandoff()?.scenario || '');
   const [references, setReferences] = useState<StoryboardCharacterReference[]>([]);
@@ -88,6 +90,7 @@ export default function StoryboardMakerPage({ onBack }: Props) {
   const [librarySheets, setLibrarySheets] = useState<LibraryCharacterSheet[]>([]);
   const [selectedLibraryKeys, setSelectedLibraryKeys] = useState<string[]>([]);
   const [isAddingFromLibrary, setIsAddingFromLibrary] = useState(false);
+  const [autoReferenceStatus, setAutoReferenceStatus] = useState('');
   const [workspaces, setWorkspaces] = useState<StoryboardWorkspace[]>([]);
   const [workspacesLoading, setWorkspacesLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
@@ -107,6 +110,58 @@ export default function StoryboardMakerPage({ onBack }: Props) {
     void listStoryboardWorkspaces().then((items) => { if (active) setWorkspaces(items); }).catch(() => { if (active) setHistoryError('دریافت استوری‌بردهای قبلی انجام نشد.'); }).finally(() => { if (active) setWorkspacesLoading(false); });
     return () => { active = false; };
   }, []);
+
+  const materializeLibrarySheets = async (sheets: LibraryCharacterSheet[]) => Promise.all(sheets.map(async (sheet) => {
+    const objectUrl = await fetchProtectedImageBlobUrl(sheet.imageUrl);
+    try {
+      const response = await fetch(objectUrl);
+      if (!response.ok) throw new Error('دریافت کاراکترشیت انجام نشد.');
+      const blob = await response.blob();
+      const file = new File([blob], `${sheet.name || 'character'}.png`, { type: blob.type || 'image/png' });
+      const previewUrl = URL.createObjectURL(file);
+      previewUrlsRef.current.add(previewUrl);
+      return { id: makeId(), name: sheet.name, file, previewUrl, sourceKey: sheet.key } satisfies StoryboardCharacterReference;
+    } finally { if (objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl); }
+  }));
+
+  useEffect(() => {
+    const workspaceId = scenarioHandoff?.characterWorkspaceId;
+    if (!workspaceId) return;
+    let active = true;
+    setAutoReferenceStatus('در حال آماده‌سازی کاراکترشیت‌های تأییدشده…');
+    void (async () => {
+      try {
+        const workspace = await getCharacterWorkspace(workspaceId);
+        const allReadySheets = (workspace.analysis?.characters || []).flatMap((character) => {
+          const imageUrl = character.characterSheet?.status === 'COMPLETED'
+            ? character.characterSheet.imageUrl || character.characterSheet.previousImageUrl || ''
+            : '';
+          return imageUrl ? [{ key: `${workspace.id}:${character.id}`, name: character.name, workspaceTitle: workspace.title, imageUrl }] : [];
+        });
+        const sheets = allReadySheets.slice(0, MAX_REFERENCES);
+        if (!sheets.length) throw new Error('کاراکترشیت آماده‌ای برای این سناریو پیدا نشد.');
+        const items = await materializeLibrarySheets(sheets);
+        if (!active) {
+          items.forEach((item) => { URL.revokeObjectURL(item.previewUrl); previewUrlsRef.current.delete(item.previewUrl); });
+          return;
+        }
+        setReferences((current) => {
+          if (current.length) {
+            items.forEach((item) => { URL.revokeObjectURL(item.previewUrl); previewUrlsRef.current.delete(item.previewUrl); });
+            return current;
+          }
+          return items;
+        });
+        setFormStep((current) => current === 1 ? 2 : current);
+        setAutoReferenceStatus(allReadySheets.length > MAX_REFERENCES
+          ? `${items.length.toLocaleString('fa-IR')} کاراکترشیت از ${allReadySheets.length.toLocaleString('fa-IR')} مورد خودکار اضافه شد. هر قاب حداکثر ${MAX_REFERENCES.toLocaleString('fa-IR')} مرجع تصویری می‌گیرد؛ برای صحنه‌های دیگر از کتابخانه کاراکترهای لازم را انتخاب کن.`
+          : `${items.length.toLocaleString('fa-IR')} کاراکترشیتِ همین داستان خودکار اضافه شد؛ این‌ها مرجع ثابت ساخت همهٔ قاب‌ها هستند.`);
+      } catch (reason) {
+        if (active) setAutoReferenceStatus(reason instanceof Error ? reason.message : 'افزودن خودکار کاراکترشیت‌ها انجام نشد؛ از کتابخانه انتخابشان کن.');
+      }
+    })();
+    return () => { active = false; };
+  }, [scenarioHandoff?.characterWorkspaceId]);
 
   const addReferences = (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -164,18 +219,7 @@ export default function StoryboardMakerPage({ onBack }: Props) {
     setIsAddingFromLibrary(true);
     setLibraryError('');
     try {
-      const items = await Promise.all(chosen.map(async (sheet) => {
-        const objectUrl = await fetchProtectedImageBlobUrl(sheet.imageUrl);
-        try {
-          const response = await fetch(objectUrl);
-          if (!response.ok) throw new Error('دریافت کاراکترشیت انجام نشد.');
-          const blob = await response.blob();
-          const file = new File([blob], `${sheet.name || 'character'}.png`, { type: blob.type || 'image/png' });
-          const previewUrl = URL.createObjectURL(file);
-          previewUrlsRef.current.add(previewUrl);
-          return { id: makeId(), name: sheet.name, file, previewUrl, sourceKey: sheet.key } satisfies StoryboardCharacterReference;
-        } finally { if (objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl); }
-      }));
+      const items = await materializeLibrarySheets(chosen);
       setReferences((current) => [...current, ...items]);
       setLibraryOpen(false);
       notify.success(`${items.length.toLocaleString('fa-IR')} کاراکترشیت اضافه شد.`);
@@ -243,9 +287,13 @@ export default function StoryboardMakerPage({ onBack }: Props) {
     setStage('waiting-preview');
     setIsAnalyzing(true);
     try {
+      if (scenarioHandoff?.animationProjectId) await transitionAnimationProject(scenarioHandoff.animationProjectId, 'storyboard_generating', { characterWorkspaceId: scenarioHandoff.characterWorkspaceId });
       const nextPlan = await analyzeStoryboard(cleanScript, references.map(({ id, name }) => ({ id, name: name.trim() })), feedback);
       setPlan(nextPlan);
-      const initialScenes = nextPlan.scenes.map((scene) => ({ ...scene, status: 'idle' as const }));
+      const totalDuration = scenarioHandoff?.durationSeconds || 0;
+      const baseDuration = totalDuration ? Math.floor(totalDuration / nextPlan.scenes.length) : 0;
+      const remainder = totalDuration ? totalDuration % nextPlan.scenes.length : 0;
+      const initialScenes = nextPlan.scenes.map((scene, index) => ({ ...scene, sourceSceneId: scene.sourceSceneId || `SC-${index + 1}`, durationSeconds: totalDuration ? baseDuration + (index < remainder ? 1 : 0) : undefined, status: 'idle' as const }));
       scenesRef.current = initialScenes;
       setScenes(initialScenes);
       const overviewJob = await startImageToImage({
@@ -258,7 +306,8 @@ export default function StoryboardMakerPage({ onBack }: Props) {
       setOverviewImageUrl(overviewUrl);
       setRevisionRequest('');
       setStage('preview');
-      void persistStoryboard('review', { plan: nextPlan, scenes: initialScenes, overviewImageUrl: overviewUrl, characters: references.map(({ id, name }) => ({ id, name: name.trim() })) }).catch(() => notify.error('پیش‌نمایش آماده است، اما ذخیره در تاریخچه انجام نشد.'));
+      const saved = await persistStoryboard('review', { plan: nextPlan, scenes: initialScenes, overviewImageUrl: overviewUrl, characters: references.map(({ id, name }) => ({ id, name: name.trim() })) });
+      if (scenarioHandoff?.animationProjectId && saved) await transitionAnimationProject(scenarioHandoff.animationProjectId, 'storyboard_review', { storyboardWorkspaceId: saved.id, revisionRequest: feedback });
       notify.success('پیش‌نمایش استوری‌برد آماده است.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'تحلیل داستان انجام نشد.');
@@ -297,14 +346,16 @@ export default function StoryboardMakerPage({ onBack }: Props) {
     const files = (sceneReferences.length ? sceneReferences : references).map((reference) => reference.file);
     if (!files.length) { updateScene(scene.id, { status: 'error', error: 'عکس مرجع این سکانس پیدا نشد.' }); return; }
     setActiveSceneId(scene.id);
+    const isRegeneration = scene.status === 'completed';
     const generatingScenes = updateScene(scene.id, { status: 'generating', error: '', imageUrl: undefined });
     void persistStoryboard('generating', { scenes: generatingScenes }).catch(() => {});
     try {
       const prompt = `${scene.imagePrompt}\n\nNEGATIVE PROMPT: ${scene.negativePrompt || 'text, watermark, logo, horror, violence, duplicate character, deformed face'}`;
       const job = await startImageToImage({ prompt, aspectRatio, files, idempotencyKey: makeImageKey() });
       const imageUrl = await waitForImageJob(job);
-      const completedScenes = updateScene(scene.id, { status: 'completed', imageUrl, error: '' });
-      void persistStoryboard(completedScenes.every((item) => item.status === 'completed') ? 'completed' : 'generating', { scenes: completedScenes }).catch(() => {});
+      const completedScenes = updateScene(scene.id, { status: 'completed', imageUrl, imageJobId: job.id, error: '' });
+      const saved = await persistStoryboard(completedScenes.every((item) => item.status === 'completed') ? 'completed' : 'generating', { scenes: completedScenes });
+      if (scenarioHandoff?.animationProjectId && saved && isRegeneration) await transitionAnimationProject(scenarioHandoff.animationProjectId, 'storyboard_review', { storyboardWorkspaceId: saved.id, revisionRequest: `بازتولید قاب ${scene.sourceSceneId || scene.id}` });
     } catch (reason) {
       const failedScenes = updateScene(scene.id, { status: 'error', error: reason instanceof Error ? reason.message : 'ساخت این قاب انجام نشد.' });
       void persistStoryboard('error', { scenes: failedScenes }).catch(() => {});
@@ -323,6 +374,23 @@ export default function StoryboardMakerPage({ onBack }: Props) {
     setStage('scenes');
     void persistStoryboard('generating').catch(() => {});
     void generateAll();
+  };
+
+  const approveStoryboard = async () => {
+    if (!plan || scenes.some((scene) => scene.status !== 'completed')) { setError('اول همهٔ قاب‌ها را کامل کن.'); return; }
+    const expected = scenarioHandoff?.durationSeconds || 0;
+    const actual = scenes.reduce((sum, scene) => sum + Number(scene.durationSeconds || 0), 0);
+    if (expected && actual !== expected) { setError('جمع زمان صحنه‌ها با مدت فیلم یکی نیست.'); return; }
+    try {
+      const saved = await persistStoryboard('completed', { scenes });
+      if (scenarioHandoff?.animationProjectId && saved) {
+        const approved = await transitionAnimationProject(scenarioHandoff.animationProjectId, 'storyboard_approved', { storyboardWorkspaceId: saved.id });
+        await transitionAnimationProject(approved.id, 'video_queued', { videoPayload: { animationProjectId: approved.id, scenarioId: approved.sourceLinks.storyWorkspaceId, scenarioVersion: approved.review.scenarioVersion, characterSheetVersion: approved.review.characterVersion, storyboardId: saved.id, storyboardVersion: approved.review.storyboardVersion, duration: approved.preferences.durationSeconds, aspectRatio: approved.preferences.aspectRatio, visualStyle: approved.preferences.style, audioSettings: approved.preferences.audio } });
+        saveAnimationVideoHandoff({ animationProjectId: approved.id, storyboardWorkspaceId: saved.id, storyWorkspaceId: approved.sourceLinks.storyWorkspaceId, characterWorkspaceId: approved.sourceLinks.characterWorkspaceId, scenarioVersion: approved.review.scenarioVersion, characterVersion: approved.review.characterVersion, storyboardVersion: approved.review.storyboardVersion, durationSeconds: approved.preferences.durationSeconds, aspectRatio: approved.preferences.aspectRatio, visualStyle: approved.preferences.style, audio: approved.preferences.audio });
+      }
+      notify.success('استوری‌برد تأیید شد. ویدیوی واقعی در مرحلهٔ بعدی صف می‌شود.');
+      onOpenDirectVideo?.();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'تأیید استوری‌برد ذخیره نشد.'); }
   };
 
   const resetStoryboard = () => {
@@ -359,6 +427,7 @@ export default function StoryboardMakerPage({ onBack }: Props) {
         </section> : null}
         {formStep === 2 ? <section className="storyboard-maker__panel storyboard-maker__panel--active storyboard-maker__panel--references"><div className="storyboard-maker__panel-heading"><span className="storyboard-maker__panel-icon"><Icon name="family" size={20} aria-hidden="true" /></span><div><h2>کاراکترشیت‌ها را اضافه کن</h2><p>برای ثابت‌ماندن ظاهر کاراکترها، حداقل یک کاراکترشیت لازم است.</p></div></div>
           <input ref={fileInputRef} className="storyboard-maker__file-input" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={addReferences} />
+          {autoReferenceStatus ? <p className="storyboard-maker__auto-reference-status" role="status"><Icon name="check" size={17} aria-hidden="true" />{autoReferenceStatus}</p> : null}
           <div className="storyboard-maker__reference-grid">{references.map((reference) => <article className="storyboard-maker__reference" key={reference.id}><img src={reference.previewUrl} alt={`عکس مرجع ${reference.name || 'کاراکتر'}`} /><div><label>نام کاراکتر<input value={reference.name} onChange={(event) => updateReferenceName(reference.id, event.target.value)} maxLength={60} /></label><button type="button" onClick={() => removeReference(reference.id)} aria-label={`حذف ${reference.name || 'کاراکتر'}`} title="حذف عکس">×</button></div></article>)}</div>
           {references.length < MAX_REFERENCES ? <div className="storyboard-maker__reference-actions"><Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} startIcon={<Icon name="studio-image" size={18} aria-hidden="true" />}>آپلود کاراکترشیت</Button><Button type="button" variant="secondary" onClick={() => void openLibrary()} startIcon={<Icon name="book" size={18} aria-hidden="true" />}>انتخاب از کتابخانه</Button></div> : null}
           <div className="storyboard-maker__panel-footer"><Button type="button" variant="ghost" onClick={() => setFormStep(1)}>بازگشت</Button><Button type="button" className="storyboard-maker__step-next" onClick={() => goToFormStep(3)} disabled={!references.length} endIcon={<Icon name="chevron-left" size={17} aria-hidden="true" />}>ادامه</Button></div>
@@ -385,10 +454,10 @@ export default function StoryboardMakerPage({ onBack }: Props) {
     </section> : stage === 'scenes' && plan ? <section className="storyboard-maker__board" aria-live="polite">
       <header className="storyboard-maker__board-head"><div><span>استوری‌برد آماده است</span><h1>{plan.title}</h1><p>{plan.summary}</p></div><div className="storyboard-maker__progress"><strong>{completed.toLocaleString('fa-IR')} از {scenes.length.toLocaleString('fa-IR')} قاب</strong><i><b style={{ width: `${scenes.length ? (completed / scenes.length) * 100 : 0}%` }} /></i></div></header>
       <div className="storyboard-maker__style-note"><Icon name="sparkle" size={18} aria-hidden="true" /><span>سبک همه‌ی قاب‌ها: <strong>{plan.visualStyle}</strong></span></div>
-      <div className="storyboard-maker__board-actions"><Button type="button" onClick={() => void generateAll()} loading={Boolean(activeSceneId)} disabled={Boolean(activeSceneId)} startIcon={<Icon name="studio-image" size={18} aria-hidden="true" />}>{activeSceneId ? 'در حال ساخت یک قاب…' : completed ? 'ساخت قاب‌های باقی‌مانده' : 'ساخت همه‌ی قاب‌ها'}</Button><Button type="button" variant="secondary" onClick={resetStoryboard}>شروع یک داستان تازه</Button></div>
+      <div className="storyboard-maker__board-actions"><Button type="button" onClick={() => void generateAll()} loading={Boolean(activeSceneId)} disabled={Boolean(activeSceneId)} startIcon={<Icon name="studio-image" size={18} aria-hidden="true" />}>{activeSceneId ? 'در حال ساخت یک قاب…' : completed ? 'ساخت قاب‌های باقی‌مانده' : 'ساخت همه‌ی قاب‌ها'}</Button>{completed === scenes.length ? <Button type="button" onClick={() => void approveStoryboard()} disabled={Boolean(activeSceneId)}>تأیید و ادامه</Button> : null}<Button type="button" variant="secondary" onClick={resetStoryboard}>شروع یک داستان تازه</Button></div>
       <div className="storyboard-maker__scene-list">{scenes.map((scene) => <article className={`storyboard-maker__scene is-${scene.status}`} key={scene.id}>
         <div className="storyboard-maker__frame">{scene.status === 'completed' ? <ProtectedSceneImage src={scene.imageUrl} alt={`تصویر ${scene.title}`} /> : <div className="storyboard-maker__frame-placeholder"><span>{scene.number.toLocaleString('fa-IR')}</span><Icon name={scene.status === 'generating' ? 'spinner' : 'studio-image'} size={32} aria-hidden="true" /><p>{scene.status === 'generating' ? 'در حال ساخت تصویر…' : 'هنوز ساخته نشده'}</p></div>}</div>
-        <div className="storyboard-maker__scene-body"><div className="storyboard-maker__scene-title"><span>سکانس {scene.number.toLocaleString('fa-IR')}</span><h2>{scene.title}</h2></div><p>{scene.description}</p><dl><div><dt>اتفاق</dt><dd>{scene.action}</dd></div><div><dt>دوربین</dt><dd>{scene.camera}</dd></div>{scene.dialogue ? <div><dt>دیالوگ</dt><dd>{scene.dialogue}</dd></div> : null}</dl>
+        <div className="storyboard-maker__scene-body"><div className="storyboard-maker__scene-title"><span>سکانس {scene.number.toLocaleString('fa-IR')}{scene.durationSeconds ? ` · ${scene.durationSeconds.toLocaleString('fa-IR')} ثانیه` : ''}</span><h2>{scene.title}</h2></div><p>{scene.description}</p><dl><div><dt>اتفاق</dt><dd>{scene.action}</dd></div><div><dt>دوربین</dt><dd>{scene.camera}</dd></div>{scene.dialogue ? <div><dt>دیالوگ</dt><dd>{scene.dialogue}</dd></div> : null}</dl>
           <label className="storyboard-maker__prompt-field">پرامپت این قاب<textarea value={scene.imagePrompt} onChange={(event) => updateScene(scene.id, { imagePrompt: event.target.value.slice(0, 2400) })} maxLength={2400} /></label>
           {scene.error ? <p className="storyboard-maker__error" role="alert">{scene.error}</p> : null}
           <Button type="button" variant={scene.status === 'completed' ? 'secondary' : 'primary'} onClick={() => void generateScene(scene)} loading={activeSceneId === scene.id} disabled={Boolean(activeSceneId)} startIcon={<Icon name="sparkle" size={17} aria-hidden="true" />}>{scene.status === 'completed' ? 'ساخت دوباره این قاب' : 'ساخت این قاب'}</Button>

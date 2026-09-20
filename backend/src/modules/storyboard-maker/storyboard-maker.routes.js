@@ -44,7 +44,10 @@ function normalizeStoryboardPlan(value, characters) {
       mood: cleanText(scene?.mood, 100),
       characterIds: characterIds.length ? characterIds : [characters[0].id],
       imagePrompt: cleanText(scene?.imagePrompt, 2400),
-      negativePrompt: cleanText(scene?.negativePrompt, 600)
+      negativePrompt: cleanText(scene?.negativePrompt, 600),
+      sourceSceneId: cleanText(scene?.sourceSceneId, 64).replace(/[^A-Za-z0-9_-]/g, ''),
+      locationIds: (Array.isArray(scene?.locationIds) ? scene.locationIds : []).map((id) => cleanText(id, 64).replace(/[^A-Za-z0-9_-]/g, '')).filter(Boolean).slice(0, 8),
+      propIds: (Array.isArray(scene?.propIds) ? scene.propIds : []).map((id) => cleanText(id, 64).replace(/[^A-Za-z0-9_-]/g, '')).filter(Boolean).slice(0, 8)
     };
   }).filter((scene) => scene.description && scene.imagePrompt);
   if (scenes.length < 1) {
@@ -81,7 +84,9 @@ function normalizeStoryboardWorkspace(value) {
       ...scene,
       status: ['idle', 'generating', 'completed', 'error'].includes(saved.status) ? saved.status : 'idle',
       imageUrl: cleanText(saved.imageUrl, 1200) || undefined,
+      imageJobId: cleanText(saved.imageJobId, 80).replace(/[^A-Za-z0-9_-]/g, '') || undefined,
       error: cleanText(saved.error, 360) || undefined
+      ,durationSeconds: Number.isInteger(saved.durationSeconds) ? Math.max(1, Math.min(180, saved.durationSeconds)) : undefined
     };
   });
   return {

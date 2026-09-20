@@ -5,6 +5,16 @@ const axios = require('axios');
 dotenv.config({
   path: path.join(__dirname, '../.env')
 });
+// A host-run backend cannot resolve Docker's `mysql` service name.  Keep
+// machine-specific overrides out of the tracked environment file so the same
+// DATABASE_URL continues to work unchanged inside the Compose network.
+dotenv.config({
+  path: path.join(__dirname, '../.env.local'),
+  override: true
+});
+
+const { initDns } = require('./bootstrap/dns');
+initDns({ logger: console, env: process.env });
 
 const { loadRuntimeConfig } = require('./bootstrap/config');
 const { log } = require('./bootstrap/logging');
@@ -13,17 +23,22 @@ const { createApp } = require('./app');
 const { initBaleMonitor } = require('./modules/bale_monitor');
 const { createConfiguredVideoWorkerRuntime } = require('./modules/video-generation/worker/video-worker.bootstrap');
 const { createConfiguredImageToImageRuntime } = require('./modules/image-to-image/worker/image-to-image.bootstrap');
+const { createImageToImageStorage } = require('./modules/image-to-image/image-to-image.storage');
+const { createDirectSceneVideoMontage } = require('./modules/direct-scene-video/direct-scene-video.montage');
+const { createAnimationVideoPipeline } = require('./modules/animation-maker/animation-video-pipeline');
+const { createAnimationVideoRuntime } = require('./modules/animation-maker/animation-video.runtime');
 const { reconcileExpiredNoaOperations } = require('./modules/noa');
 
 const runtimeConfig = loadRuntimeConfig(process.env);
 const repositories = createRepositories();
-const { app, noaBillingService, conversationMemoryService, setVideoWorkerRuntimeGetter } = createApp({
+const { app, noaBillingService, conversationMemoryService, videoGenerationModule, setVideoWorkerRuntimeGetter } = createApp({
   repositories,
   runtimeConfig
 });
 
 let videoWorkerRuntime = null;
 let imageToImageWorkerRuntime = null;
+let animationVideoRuntime = null;
 let serverSignalHandlersInstalled = false;
 setVideoWorkerRuntimeGetter(() => videoWorkerRuntime);
 
@@ -37,6 +52,7 @@ async function startServer({ installSignalHandlers = true } = {}) {
     shutdownPromise = (async () => {
       console.log('[BOOT] Starting graceful shutdown...');
       await imageToImageWorkerRuntime?.stop?.();
+      await animationVideoRuntime?.stop?.();
       await videoWorkerRuntime?.stop?.();
       if (noaExpiryTimer) clearInterval(noaExpiryTimer);
       if (server) await new Promise((resolve) => server.close(resolve));
@@ -77,6 +93,19 @@ async function startServer({ installSignalHandlers = true } = {}) {
       logger: console
     });
     await imageToImageWorkerRuntime.start();
+
+    animationVideoRuntime = createAnimationVideoRuntime({
+      pipeline: createAnimationVideoPipeline({
+        db: repositories.db,
+        videoService: videoGenerationModule.service,
+        inputMedia: videoGenerationModule.inputMedia,
+        imageStorage: createImageToImageStorage({ rootDirectory: runtimeConfig.ai.imageToImage.storageDir, maxBytes: runtimeConfig.ai.imageToImage.maxInputBytes }),
+        montage: createDirectSceneVideoMontage({ videoService: videoGenerationModule.service, videoStorage: videoGenerationModule.storage, ffmpegPath: process.env.FFMPEG_PATH || 'ffmpeg', logger: console }),
+        logger: console
+      }),
+      intervalMs: Number(process.env.ANIMATION_VIDEO_WORKER_INTERVAL_MS || 5_000), logger: console
+    });
+    await animationVideoRuntime.start();
 
     const sweepExpiredNoaReservations = async () => {
       const released = await noaBillingService.releaseExpiredReservations({ limit: 250 });

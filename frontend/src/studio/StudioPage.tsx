@@ -5,6 +5,12 @@ import './StudioPage.css';
 
 const tools: StudioTool[] = [
   {
+    id: 'animation',
+    title: 'انیمیشن‌سازی',
+    description: 'ایده‌ات را قدم‌به‌قدم به یک فیلم کوتاه تبدیل کن',
+    actionLabel: 'ساخت فیلم'
+  },
+  {
     id: 'story',
     title: 'سناریو نویسی ( داستان من )',
     description: 'قهرمان و دنیایت را انتخاب کن؛ سناریوی داستانی‌ات آماده می‌شود',
@@ -44,6 +50,7 @@ const tools: StudioTool[] = [
 
 type Props = {
   onBackToHome: () => void;
+  onOpenAnimation: () => void;
   onOpenStory: () => void;
   onOpenCharacters: () => void;
   onOpenStoryboard: () => void;
@@ -52,7 +59,7 @@ type Props = {
   onOpenDirectVideo: () => void;
 };
 
-export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters, onOpenStoryboard, onOpenImage, onOpenVideo, onOpenDirectVideo }: Props) {
+export default function StudioPage({ onBackToHome, onOpenAnimation, onOpenStory, onOpenCharacters, onOpenStoryboard, onOpenImage, onOpenVideo, onOpenDirectVideo }: Props) {
   return (
     <main className="danoa-studio-page" dir="rtl">
       <div className="danoa-studio-page__shell">
@@ -93,7 +100,7 @@ export default function StudioPage({ onBackToHome, onOpenStory, onOpenCharacters
             <StudioToolCard
               key={tool.id}
               tool={tool}
-              onOpen={tool.id === 'story' ? onOpenStory : tool.id === 'characters' ? onOpenCharacters : tool.id === 'storyboard' ? onOpenStoryboard : tool.id === 'image' ? onOpenImage : tool.id === 'video' ? onOpenVideo : onOpenDirectVideo}
+              onOpen={tool.id === 'animation' ? onOpenAnimation : tool.id === 'story' ? onOpenStory : tool.id === 'characters' ? onOpenCharacters : tool.id === 'storyboard' ? onOpenStoryboard : tool.id === 'image' ? onOpenImage : tool.id === 'video' ? onOpenVideo : onOpenDirectVideo}
             />
           ))}
         </section>

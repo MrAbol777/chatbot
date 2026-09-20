@@ -7,6 +7,8 @@ import type { VideoGenerationStatus, VideoInputMedia } from '../video-generation
 import { listStoryboardWorkspaces, getStoryboardWorkspace } from '../storyboard-maker/storyboardMaker.api';
 import type { StoryboardWorkspace } from '../storyboard-maker/storyboardMaker.types';
 import { composeDirectSceneVideo, createDirectSceneVideoPlan } from './directSceneVideo.service';
+import { readAnimationVideoHandoff } from '../animation-maker/animationVideoHandoff';
+import { getAnimationVideoJob, retryAnimationVideoScene, transitionAnimationProject, type AnimationVideoJob } from '../animation-maker/animationMaker.api';
 import type { DirectSceneSource, DirectSceneVideoPlan } from './directSceneVideo.types';
 import './DirectSceneVideoPage.css';
 
@@ -44,6 +46,8 @@ async function waitForSceneVideo(generationId: string): Promise<{ id: string; st
 }
 
 export default function DirectSceneVideoPage({ onBack }: Props) {
+  const [animationHandoff] = useState(() => readAnimationVideoHandoff());
+  const [animationJob, setAnimationJob] = useState<AnimationVideoJob | null>(null);
   const fileInputId = useId();
   const [mode, setMode] = useState<SourceMode>('workspace');
   const [workspaces, setWorkspaces] = useState<StoryboardWorkspace[]>([]);
@@ -69,6 +73,15 @@ export default function DirectSceneVideoPage({ onBack }: Props) {
     })();
     return () => urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
   }, []);
+
+  useEffect(() => { if (animationHandoff?.storyboardWorkspaceId) void selectWorkspace(animationHandoff.storyboardWorkspaceId); }, [animationHandoff?.storyboardWorkspaceId]);
+  useEffect(() => {
+    if (!animationHandoff) return;
+    let active = true;
+    const refresh = async () => { try { const job = await getAnimationVideoJob(animationHandoff.animationProjectId); if (active && job) setAnimationJob(job); } catch (reason) { if (active) setError(reason instanceof Error ? reason.message : 'دریافت وضعیت ویدیو انجام نشد.'); } };
+    void refresh(); const timer = window.setInterval(() => { void refresh(); }, 4_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [animationHandoff]);
 
   const sources = mode === 'workspace' ? (workspace ? toSources(workspace) : []) : uploadedScenes;
 
@@ -112,6 +125,7 @@ export default function DirectSceneVideoPage({ onBack }: Props) {
       const resolution = capability.allowedResolutions[0] || capability.allowedQualities[0] || '480p';
       const aspectRatio = workspace?.aspectRatio || '16:9';
       const ids: string[] = [];
+      if (animationHandoff) throw new Error('ویدیوی این پروژه در صف Worker است؛ وضعیت را از همین صفحه دنبال کن.');
       for (let index = 0; index < plan.scenes.length; index += 1) {
         const item = plan.scenes[index];
         const source = sources.find((scene) => scene.id === item.sourceSceneId);
@@ -127,7 +141,7 @@ export default function DirectSceneVideoPage({ onBack }: Props) {
       setRenderState('در حال اتصال حرفه‌ای صحنه‌ها…');
       const result = await composeDirectSceneVideo(ids);
       setFinalVideo(result); setRenderState('ویدیوی نهایی آماده است.');
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'ساخت ویدیو انجام نشد.'); setRenderState(''); }
+    } catch (reason) { if (animationHandoff) void transitionAnimationProject(animationHandoff.animationProjectId, 'failed').catch(() => {}); setError(reason instanceof Error ? reason.message : 'ساخت ویدیو انجام نشد.'); setRenderState(''); }
     finally { setRendering(false); }
   };
   const makePlan = async () => {
@@ -144,6 +158,8 @@ export default function DirectSceneVideoPage({ onBack }: Props) {
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'برنامهٔ ساخت ویدیو آماده نشد.'); }
     finally { setLoadingPlan(false); }
   };
+
+  if (animationHandoff) return <main className="direct-scene-video" dir="rtl"><header className="direct-scene-video__header"><Button type="button" variant="ghost" onClick={onBack}>بازگشت</Button><div><span>ویدیوی انیمیشن</span><h1>ساخت ویدیوی واقعی</h1></div></header><section className="direct-scene-video__review" aria-live="polite"><div className="direct-scene-video__intro"><span>وضعیت پروژه</span><h2>{animationJob?.status === 'completed' ? 'ویدیوی تو آماده است' : animationJob?.status === 'failed' ? 'یک مرحله نیاز به تلاش دوباره دارد' : 'داریم ویدیو را می‌سازیم'}</h2><p>{animationJob?.status === 'processing' ? 'ساخت صحنه‌ها و سپس مونتاژ در حال انجام است.' : 'آماده‌سازی پروژه ← ساخت صحنه‌ها ← مونتاژ ← آماده‌سازی خروجی'}</p></div>{animationJob?.scenes?.map((scene) => <article className="direct-scene-video__audio" key={scene.sourceSceneId}><div><strong>صحنه {scene.order.toLocaleString('fa-IR')} · {scene.durationSeconds.toLocaleString('fa-IR')} ثانیه</strong><p>{scene.status === 'failed' ? scene.errorMessage || 'ساخت این صحنه انجام نشد.' : scene.status}</p></div>{scene.status === 'failed' ? <Button type="button" onClick={() => void retryAnimationVideoScene(animationHandoff.animationProjectId, scene.sourceSceneId).then(() => setError('')).catch((reason) => setError(reason instanceof Error ? reason.message : 'تلاش دوباره انجام نشد.'))}>دوباره بساز</Button> : null}</article>)}{error ? <InlineMessage variant="error" text={error} /> : null}{animationJob?.finalContentUrl ? <section className="direct-scene-video__final"><video controls src={animationJob.finalContentUrl} /><a href={`${animationJob.finalContentUrl}?download=1`}>دانلود ویدیوی نهایی</a></section> : null}</section></main>;
 
   return <main className="direct-scene-video" dir="rtl">
     <header className="direct-scene-video__header">

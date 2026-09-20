@@ -6,7 +6,13 @@ type Props = {
 };
 
 function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
-  return toolId === 'story' ? (
+  return toolId === 'animation' ? (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3.5" y="5" width="12.5" height="14" rx="3" />
+      <path d="m16 10 4-2.2v8.4L16 14M8 9.2l4.2 2.8-4.2 2.8V9.2Z" />
+      <path d="m18.1 3.2.45 1.2 1.2.45-1.2.45-.45 1.2-.45-1.2-1.2-.45 1.2-.45.45-1.2Z" />
+    </svg>
+  ) : toolId === 'story' ? (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M6 5.5h9.5A2.5 2.5 0 0 1 18 8v10.5H7.7A2.7 2.7 0 0 1 5 15.8V6.5c0-.6.4-1 1-1Z" />
       <path d="M8 9h6M8 12h7M8 15h4" />
@@ -45,7 +51,9 @@ function ToolIcon({ toolId }: { toolId: StudioTool['id'] }) {
 }
 
 export default function StudioToolCard({ tool, onOpen }: Props) {
-  const toolMeta = tool.id === 'story'
+  const toolMeta = tool.id === 'animation'
+    ? { type: 'فیلم‌سازی کامل', index: '00' }
+    : tool.id === 'story'
     ? { type: 'داستان‌پردازی', index: '01' }
     : tool.id === 'characters'
       ? { type: 'طراحی شخصیت', index: '02' }

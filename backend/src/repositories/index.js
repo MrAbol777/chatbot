@@ -18,9 +18,10 @@ const { SupportRepository } = require('../modules/support/support.repository');
 function createRepositories() {
   const db = new DatabaseClient({
     databaseUrl: typeof process.env.DATABASE_URL === 'string' ? process.env.DATABASE_URL.trim() : '',
-    databaseHost: process.env.NODE_ENV === 'development'
-      ? process.env.LOCAL_DATABASE_HOST
-      : ''
+    // LOCAL_DATABASE_HOST is intentionally an explicit opt-in override. It
+    // lets a host-run Node process connect to a local MySQL instance while a
+    // Docker deployment keeps using the hostname embedded in DATABASE_URL.
+    databaseHost: process.env.LOCAL_DATABASE_HOST || process.env.DATABASE_HOST || ''
   });
 
   const users = new UserRepository(db);

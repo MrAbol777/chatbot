@@ -12,6 +12,8 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 
 const { now, log } = require('./bootstrap/logging');
+const { initDns } = require('./bootstrap/dns');
+initDns({ logger: { log }, env: process.env });
 const { createAdminRouter } = require('./adminRoutes');
 const { createHealthRouter } = require('./modules/health/health.routes');
 const { createSmsRouter } = require('./modules/sms/sms.routes');
@@ -24,6 +26,8 @@ const { createCharacterMakerRouter } = require('./modules/character-maker/charac
 const { CharacterWorkspaceRepository } = require('./modules/character-maker/character-workspace.repository');
 const { createStoryboardMakerRouter } = require('./modules/storyboard-maker/storyboard-maker.routes');
 const { StoryboardWorkspaceRepository } = require('./modules/storyboard-maker/storyboard-workspace.repository');
+const { createAnimationMakerRouter } = require('./modules/animation-maker/animation-maker.routes');
+const { AnimationProjectRepository } = require('./modules/animation-maker/animation-project.repository');
 const { createDirectSceneVideoRouter } = require('./modules/direct-scene-video/direct-scene-video.routes');
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createImageToImageRouter } = require('./modules/image-to-image/image-to-image.routes');
@@ -669,6 +673,18 @@ function createApp({ repositories, runtimeConfig }) {
     principalResolver,
     characterWorkspaceRepository: new CharacterWorkspaceRepository(repositories.db),
     logger: { log }
+  }));
+
+  // Animation Maker coordinates the existing Story, Character, Storyboard and
+  // Video contexts. It owns only its project/review records and therefore must
+  // be mounted before the generic `/api` 404 handler below.
+  app.use(createAnimationMakerRouter({
+    principalResolver,
+    animationProjectRepository: new AnimationProjectRepository(repositories.db),
+    storyWorkspaceRepository: new StoryWorkspaceRepository(repositories.db),
+    characterWorkspaceRepository: new CharacterWorkspaceRepository(repositories.db),
+    storyboardWorkspaceRepository: new StoryboardWorkspaceRepository(repositories.db),
+    videoStorage: videoGenerationModule.storage
   }));
 
   // Conversations router

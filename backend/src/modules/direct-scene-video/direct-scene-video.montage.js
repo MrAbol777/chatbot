@@ -48,7 +48,7 @@ function createDirectSceneVideoMontage({ videoService, videoStorage, ffmpegPath 
       if (!stat.isFile() || stat.size < 1024) throw Object.assign(new Error('DIRECT_VIDEO_MONTAGE_EMPTY'), { code: 'DIRECT_VIDEO_MONTAGE_FAILED' });
       completed.set(montageId, { userId: String(userId), resultKey, sizeBytes: stat.size, createdAt: new Date().toISOString() });
       logger.log?.('DIRECT_SCENE_VIDEO', 'montage_completed', { userId: String(userId), montageId, sceneCount: ids.length, sizeBytes: stat.size });
-      return { montageId, contentUrl: `/api/direct-scene-video/${encodeURIComponent(montageId)}/content`, downloadUrl: `/api/direct-scene-video/${encodeURIComponent(montageId)}/content?download=1`, sizeBytes: stat.size };
+      return { montageId, storageKey: resultKey, contentUrl: `/api/direct-scene-video/${encodeURIComponent(montageId)}/content`, downloadUrl: `/api/direct-scene-video/${encodeURIComponent(montageId)}/content?download=1`, sizeBytes: stat.size };
     } finally {
       await fs.unlink(listPath).catch(() => {});
     }

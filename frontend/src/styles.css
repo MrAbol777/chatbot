@@ -9570,7 +9570,9 @@ select:focus-visible {
 
 .chat-shell.view-profile .bg-blob,
 .chat-shell.view-generate .bg-blob,
-.chat-shell.view-noa .bg-blob {
+.chat-shell.view-noa .bg-blob,
+.chat-shell.view-animation .bg-blob,
+.chat-shell.view-direct-video .bg-blob {
   display: none;
 }
 
@@ -9579,7 +9581,9 @@ select:focus-visible {
 .app-shell.chat-shell.view-images,
 .app-shell.chat-shell.view-video,
 .app-shell.chat-shell.view-studio,
-.app-shell.chat-shell.view-noa {
+.app-shell.chat-shell.view-noa,
+.app-shell.chat-shell.view-animation,
+.app-shell.chat-shell.view-direct-video {
   width: 100%;
   min-height: 100dvh;
   height: auto;
@@ -9811,7 +9815,9 @@ select:focus-visible {
 .app-shell.chat-shell.view-noa,
 .app-shell.chat-shell.view-studio,
 .app-shell.chat-shell.view-images,
-.app-shell.chat-shell.view-video {
+.app-shell.chat-shell.view-video,
+.app-shell.chat-shell.view-animation,
+.app-shell.chat-shell.view-direct-video {
   min-height: 100dvh;
   padding: 0;
   align-items: stretch;
@@ -9824,7 +9830,9 @@ select:focus-visible {
 .chat-shell.view-noa .chat-card,
 .chat-shell.view-studio .chat-card,
 .chat-shell.view-images .chat-card,
-.chat-shell.view-video .chat-card {
+.chat-shell.view-video .chat-card,
+.chat-shell.view-animation .chat-card,
+.chat-shell.view-direct-video .chat-card {
   width: 100%;
   max-width: none;
   min-height: 100dvh;
@@ -9839,7 +9847,9 @@ select:focus-visible {
 .chat-shell.view-video,
 .chat-shell.view-profile,
 .chat-shell.view-generate,
-.chat-shell.view-noa {
+.chat-shell.view-noa,
+.chat-shell.view-animation,
+.chat-shell.view-direct-video {
   height: auto;
   overflow: visible;
   background: var(--color-bg, #f8f7fb);
@@ -9847,7 +9857,9 @@ select:focus-visible {
 
 .chat-shell.view-studio .chat-card,
 .chat-shell.view-images .chat-card,
-.chat-shell.view-video .chat-card {
+.chat-shell.view-video .chat-card,
+.chat-shell.view-animation .chat-card,
+.chat-shell.view-direct-video .chat-card {
   display: block;
   overflow: visible;
   background: transparent;

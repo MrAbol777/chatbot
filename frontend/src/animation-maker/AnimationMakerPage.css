@@ -1,0 +1,779 @@
+/* ==========================================================================
+   Animation Maker Page — Long-form Workspace Layout & UI Polish
+   ========================================================================== */
+
+/* The chat shell normally locks the viewport height and hides overflow.
+   These resets allow the animation maker workspace to own the viewport
+   and scroll smoothly without any cutoff content. */
+.app-shell.chat-shell.view-animation {
+  display: block;
+  height: auto;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.app-shell.chat-shell.view-animation .chat-card {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  min-height: 100dvh;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.app-shell.chat-shell.view-animation .bg-blob {
+  display: none;
+}
+
+/* Base Page Surface */
+.animation-maker {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at 12% 5%, color-mix(in srgb, var(--color-primary, #630ed4) 9%, transparent), transparent 32%),
+    radial-gradient(circle at 88% 25%, color-mix(in srgb, #f472b6 7%, transparent), transparent 30%),
+    var(--color-bg);
+  padding: 16px clamp(16px, 4vw, 48px) max(48px, env(safe-area-inset-bottom, 24px));
+}
+
+/* Header */
+.animation-maker__header {
+  width: min(100%, 740px);
+  margin: 0 auto 24px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-surface-2) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-sm, 0 4px 16px rgba(0, 0, 0, 0.03));
+}
+
+.animation-maker__back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
+  border-radius: 13px;
+  color: var(--color-primary);
+  background: var(--color-surface-2);
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--motion-ease-standard), background var(--motion-fast) var(--motion-ease-standard);
+}
+
+.animation-maker__back:hover {
+  background: var(--color-primary-soft);
+  transform: scale(1.03);
+}
+
+.animation-maker__back:active {
+  transform: scale(0.96);
+}
+
+.animation-maker__back:focus-visible,
+.animation-maker button:focus-visible,
+.animation-maker input:focus-visible,
+.animation-maker textarea:focus-visible {
+  outline: 3px solid var(--color-focus-ring-soft, rgba(99, 14, 212, 0.2));
+  outline-offset: 2px;
+}
+
+.animation-maker__brand {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.animation-maker__brand-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary, #630ed4), #8b5cf6);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--color-primary, #630ed4) 28%, transparent);
+}
+
+.animation-maker__brand-text strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.animation-maker__brand-text span {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.animation-maker__header-spacer {
+  width: 44px;
+  height: 44px;
+}
+
+/* Content Container */
+.animation-maker__content {
+  width: min(100%, 680px);
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main Card */
+.animation-maker__card {
+  display: grid;
+  gap: 20px;
+  padding: clamp(24px, 5vw, 40px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 26px;
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  box-shadow:
+    0 16px 40px -12px color-mix(in srgb, var(--color-primary, #630ed4) 8%, transparent),
+    0 2px 10px rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: animation-fade-in 0.25s ease-out;
+}
+
+@keyframes animation-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animation-maker__card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+/* Progress Area */
+.animation-maker__progress {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.animation-maker__progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.animation-maker__progress-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-2));
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.animation-maker__progress-title {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.animation-maker__progress-track {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-border) 50%, var(--color-surface-2));
+}
+
+.animation-maker__progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary, #630ed4), #a855f7);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary, #630ed4) 40%, transparent);
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Question Heading */
+.animation-maker__question-heading h1 {
+  margin: 0 0 6px;
+  font-size: clamp(1.45rem, 3.8vw, 1.95rem);
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.animation-maker__question-heading p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.94rem;
+  line-height: 1.7;
+}
+
+.animation-maker__multi-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface-2));
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+/* Options Grid */
+.animation-maker__options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.animation-maker__option-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 84px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 18px;
+  color: var(--color-text);
+  background: var(--color-surface-container-lowest, var(--color-surface));
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast) var(--motion-ease-standard),
+    background var(--motion-fast) var(--motion-ease-standard),
+    transform var(--motion-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-fast) var(--motion-ease-standard);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.animation-maker__option-btn:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 65%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary-soft) 40%, var(--color-surface));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.animation-maker__option-btn:active {
+  transform: scale(0.98);
+}
+
+.animation-maker__option-btn.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow:
+    0 0 0 1px var(--color-primary),
+    0 8px 24px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.animation-maker__option-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.animation-maker__option-text strong {
+  font-size: 0.98rem;
+  font-weight: 750;
+  color: var(--color-text);
+  line-height: 1.35;
+}
+
+.animation-maker__option-text span {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.animation-maker__indicator {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border: 2px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  transition: all 0.2s ease;
+}
+
+.animation-maker__indicator.is-checkbox {
+  border-radius: 8px;
+}
+
+.animation-maker__indicator.is-checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.animation-maker__option--wide {
+  grid-column: 1 / -1;
+}
+
+/* Custom Inputs & Duration */
+.animation-maker__custom-duration,
+.animation-maker__input-wrap {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.animation-maker__location-choice {
+  display: grid;
+  gap: 12px;
+}
+
+.animation-maker__location-choice > p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.animation-maker__location-suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.animation-maker__location-option {
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  color: var(--color-text);
+  background: var(--color-surface-container-lowest, var(--color-surface));
+  font: inherit;
+  font-weight: 750;
+  text-align: right;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--motion-ease-standard), background var(--motion-fast) var(--motion-ease-standard), transform var(--motion-fast) var(--motion-ease-standard);
+}
+
+.animation-maker__location-option:hover:not(:disabled),
+.animation-maker__location-option.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.animation-maker__location-option:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.animation-maker__location-option--custom {
+  grid-column: 1 / -1;
+}
+
+.animation-maker__reference {
+  display: grid;
+  gap: 12px;
+}
+
+.animation-maker__upload-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 2px dashed color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-surface-2) 70%, transparent);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.animation-maker__upload-box:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.animation-maker__upload-box input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.animation-maker__upload-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  flex: 0 0 auto;
+}
+
+.animation-maker__upload-label {
+  display: grid;
+  gap: 3px;
+}
+
+.animation-maker__upload-label strong {
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.animation-maker__upload-label small {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.animation-maker__upload-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-success);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* Actions Footer */
+.animation-maker__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+
+.animation-maker__actions-right {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.animation-maker__error {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+/* Welcome Mode */
+.animation-maker__welcome-shell {
+  display: grid;
+  gap: 24px;
+}
+
+.animation-maker__hero {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: clamp(32px, 6vh, 60px) 16px;
+  text-align: center;
+}
+
+.animation-maker__hero h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  line-height: 1.3;
+  letter-spacing: -0.03em;
+}
+
+.animation-maker__hero p {
+  max-width: 32rem;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1.05rem;
+  line-height: 1.85;
+}
+
+.animation-maker__spark {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border-radius: 26px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.animation-maker__resume {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.animation-maker__resume h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.animation-maker__resume-list {
+  display: grid;
+  gap: 10px;
+}
+
+.animation-maker__resume-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+  transition: border-color var(--motion-fast), transform var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.animation-maker__resume-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.animation-maker__resume-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  flex: 0 0 auto;
+}
+
+.animation-maker__resume-info {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.animation-maker__resume-info strong {
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.animation-maker__resume-info span {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.animation-maker__resume-arrow {
+  color: var(--color-muted);
+  flex: 0 0 auto;
+}
+
+/* Summary Mode */
+.animation-maker__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.animation-maker__summary-item {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: color-mix(in srgb, var(--color-surface-2) 60%, transparent);
+}
+
+.animation-maker__summary-item dt {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  margin-bottom: 2px;
+}
+
+.animation-maker__summary-item dd {
+  margin: 0;
+  font-weight: 750;
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+
+/* Scenario Mode */
+.animation-maker__logline {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.animation-maker__scenario-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.animation-maker__scenario-meta-item {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: color-mix(in srgb, var(--color-surface-2) 60%, transparent);
+}
+
+.animation-maker__scenario-meta-item dt {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  margin-bottom: 2px;
+}
+
+.animation-maker__scenario-meta-item dd {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.animation-maker__scenario-details {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-surface-2);
+}
+
+.animation-maker__scenario-details summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  font-size: 0.88rem;
+  font-weight: 750;
+  color: var(--color-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.animation-maker__scenario-details pre {
+  margin: 0;
+  padding: 16px;
+  max-height: 280px;
+  overflow: auto;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-container-lowest, var(--color-surface));
+  font-family: inherit;
+  font-size: 0.86rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  color: var(--color-text);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .animation-maker {
+    padding: 10px 12px 36px;
+  }
+
+  .animation-maker__header {
+    width: 100%;
+    min-height: 60px;
+    margin-bottom: 16px;
+    border-radius: 16px;
+  }
+
+  .animation-maker__card {
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+
+  .animation-maker__options {
+    grid-template-columns: 1fr;
+  }
+
+  .animation-maker__summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .animation-maker__scenario-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .animation-maker__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .animation-maker__actions > .ds-button {
+    width: 100%;
+  }
+
+  .animation-maker__actions-right {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .animation-maker__actions-right > .ds-button {
+    width: 100%;
+  }
+
+  .animation-maker__location-suggestions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark Mode */
+html[data-color-mode='dark'] .animation-maker {
+  background:
+    radial-gradient(circle at 12% 5%, rgba(139, 92, 246, 0.14), transparent 32%),
+    radial-gradient(circle at 88% 25%, rgba(244, 114, 182, 0.1), transparent 30%),
+    var(--color-bg);
+}
+
+html[data-color-mode='dark'] .animation-maker__card {
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+
+html[data-color-mode='dark'] .animation-maker__option-btn {
+  background: var(--color-surface-container-lowest, rgba(255, 255, 255, 0.04));
+}
+
+html[data-color-mode='dark'] .animation-maker__scenario-details pre {
+  background: var(--color-surface-container-lowest, rgba(0, 0, 0, 0.25));
+}

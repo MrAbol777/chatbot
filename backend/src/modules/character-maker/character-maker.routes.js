@@ -14,11 +14,18 @@ const assetId = (value, prefix) => {
 };
 
 function parseJson(value) {
+  const raw = String(value || '').trim();
   try {
-    const raw = String(value || '').trim();
     const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1] || raw;
     return JSON.parse(fenced);
-  } catch { return {}; }
+  } catch {
+    // Providers occasionally add a short explanation around JSON despite the
+    // requested response MIME type. Recover the object, never fabricate one.
+    const firstBrace = raw.indexOf('{');
+    const lastBrace = raw.lastIndexOf('}');
+    if (firstBrace < 0 || lastBrace <= firstBrace) return {};
+    try { return JSON.parse(raw.slice(firstBrace, lastBrace + 1)); } catch { return {}; }
+  }
 }
 
 function normalizeAnalysis(value, scenario) {
@@ -46,6 +53,10 @@ function normalizeAnalysis(value, scenario) {
     characters,
     setting: { assetId: settingAssetId, sheetAssetId: `${settingAssetId}-setting-sheet`, name: clean(setting.name, 100) || 'فضای داستان', description: clean(setting.description, 420), imagePrompt: cleanPrompt(setting.imagePrompt), negativePrompt: cleanPrompt(setting.negativePrompt), image: setting.image, settingSheet: setting.settingSheet }
   };
+}
+
+function parseCharacterAnalysisReply(reply, scenario) {
+  return normalizeAnalysis(parseJson(reply), scenario);
 }
 
 function normalizeWorkspace(value) {
@@ -88,13 +99,28 @@ function createCharacterMakerRouter({ aiService, promptService, principalResolve
     if (!scenario) return res.status(400).json({ error: 'SCENARIO_REQUIRED', message: 'اول سناریو را وارد کن.' });
     try {
       const baseSystemPrompt = await promptService.getSystemPrompt();
-      const result = await aiService.callOpenAI([
+      const messages = [
         { role: 'system', content: `${baseSystemPrompt}\n\nYou are only a character-analysis engine. Return valid JSON and never prose.` },
         { role: 'user', content: buildCharacterAnalysisPrompt(scenario) }
-      ], { requestId: res.locals.requestId, responseMimeType: 'application/json', maxOutputTokens: 6000 });
-      const analysis = normalizeAnalysis(parseJson(result?.reply), scenario);
+      ];
+      let result = await aiService.callOpenAI(messages, { requestId: res.locals.requestId, responseMimeType: 'application/json', maxOutputTokens: 6000 });
+      let analysis = parseCharacterAnalysisReply(result?.reply, scenario);
+      let repaired = false;
+      if (!analysis.characters.length) {
+        repaired = true;
+        logger.log?.('CHARACTER_MAKER', 'analysis_repair_started', {
+          requestId: res.locals.requestId,
+          userId: req.user?.id,
+          reason: 'invalid_provider_analysis'
+        });
+        result = await aiService.callOpenAI([
+          { role: 'system', content: `${baseSystemPrompt}\n\nYour previous character-analysis answer was invalid. Return ONLY one valid JSON object that exactly follows the requested schema. Include every named, recurring, or story-driving character with a non-empty Persian name and a non-empty English imagePrompt. Do not add markdown or prose.` },
+          { role: 'user', content: buildCharacterAnalysisPrompt(scenario) }
+        ], { requestId: res.locals.requestId, responseMimeType: 'application/json', maxOutputTokens: 6000 });
+        analysis = parseCharacterAnalysisReply(result?.reply, scenario);
+      }
       if (!analysis.characters.length) return res.status(422).json({ error: 'NO_CHARACTERS_FOUND', message: 'شخصیت مشخصی در سناریو پیدا نشد؛ سناریو را کمی دقیق‌تر بنویس.' });
-      logger.log?.('CHARACTER_MAKER', 'analysis_prepared', { requestId: res.locals.requestId, userId: req.user?.id, characterCount: analysis.characters.length, model: result.model });
+      logger.log?.('CHARACTER_MAKER', 'analysis_prepared', { requestId: res.locals.requestId, userId: req.user?.id, characterCount: analysis.characters.length, model: result.model, repaired });
       return res.json({ analysis, model: result.model || null });
     } catch (error) {
       logger.error?.('CHARACTER_MAKER', 'analysis_failed', { requestId: res.locals.requestId, message: error instanceof Error ? error.message : String(error) });
@@ -136,4 +162,4 @@ function createCharacterMakerRouter({ aiService, promptService, principalResolve
   return router;
 }
 
-module.exports = { createCharacterMakerRouter, normalizeAnalysis, normalizeWorkspace, getAssetReference, findWorkspaceAsset, needsAssetBackfill };
+module.exports = { createCharacterMakerRouter, normalizeAnalysis, normalizeWorkspace, parseCharacterAnalysisReply, getAssetReference, findWorkspaceAsset, needsAssetBackfill };

@@ -423,6 +423,106 @@ class DatabaseClient {
           CONSTRAINT fk_story_workspaces_user FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS animation_projects (
+          project_id VARCHAR(64) PRIMARY KEY,
+          user_id VARCHAR(191) NOT NULL,
+          title VARCHAR(191) NOT NULL,
+          idea MEDIUMTEXT NOT NULL,
+          stage ENUM('idea','questions','summary','scenario','characters','storyboard','video','completed','error') NOT NULL DEFAULT 'idea',
+          status VARCHAR(32) NOT NULL DEFAULT 'draft',
+          project JSON NOT NULL,
+          created_at DATETIME NOT NULL,
+          updated_at DATETIME NOT NULL,
+          INDEX idx_animation_projects_user_updated (user_id, updated_at),
+          INDEX idx_animation_projects_user_stage (user_id, stage),
+          CONSTRAINT fk_animation_projects_user FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+      // Early local installations created the table before `idea` and `stage`
+      // became first-class columns. CREATE TABLE IF NOT EXISTS does not repair
+      // that schema, so a normal project list would otherwise fail with an
+      // unknown-column database error.
+      const addedAnimationIdea = await this.ensureColumn('animation_projects', 'idea', 'MEDIUMTEXT NULL AFTER title');
+      const addedAnimationStage = await this.ensureColumn(
+        'animation_projects',
+        'stage',
+        "ENUM('idea','questions','summary','scenario','characters','storyboard','video','completed','error') NULL AFTER idea"
+      );
+      if (addedAnimationIdea || addedAnimationStage) {
+        await this.pool.query(`
+          UPDATE animation_projects
+          SET idea = CASE
+            WHEN JSON_VALID(project) THEN COALESCE(
+              NULLIF(JSON_UNQUOTE(JSON_EXTRACT(project, '$.userInput.idea')), ''),
+              NULLIF(JSON_UNQUOTE(JSON_EXTRACT(project, '$.idea')), ''),
+              title
+            )
+            ELSE title
+          END
+          WHERE idea IS NULL OR TRIM(idea) = ''
+        `);
+        await this.pool.query(`
+          UPDATE animation_projects
+          SET stage = CASE
+            WHEN JSON_VALID(project)
+              AND JSON_UNQUOTE(JSON_EXTRACT(project, '$.stage')) IN ('idea','questions','summary','scenario','characters','storyboard','video','completed','error')
+              THEN JSON_UNQUOTE(JSON_EXTRACT(project, '$.stage'))
+            ELSE 'idea'
+          END
+          WHERE stage IS NULL OR stage NOT IN ('idea','questions','summary','scenario','characters','storyboard','video','completed','error')
+        `);
+        await this.pool.query(`
+          ALTER TABLE animation_projects
+            MODIFY idea MEDIUMTEXT NOT NULL,
+            MODIFY stage ENUM('idea','questions','summary','scenario','characters','storyboard','video','completed','error') NOT NULL DEFAULT 'idea'
+        `);
+      }
+      // Existing installations created status as an ENUM in migration 054.
+      // VARCHAR keeps that data intact while allowing the explicit review states.
+      await this.pool.query("ALTER TABLE animation_projects MODIFY status VARCHAR(32) NOT NULL DEFAULT 'draft'");
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS animation_video_jobs (
+          animation_job_id VARCHAR(64) PRIMARY KEY,
+          project_id VARCHAR(64) NOT NULL,
+          user_id VARCHAR(191) NOT NULL,
+          generation_id VARCHAR(64) NULL,
+          status VARCHAR(32) NOT NULL,
+          payload JSON NOT NULL,
+          worker_lease_owner VARCHAR(191) NULL,
+          worker_lease_until DATETIME NULL,
+          final_storage_key VARCHAR(512) NULL,
+          safe_error_code VARCHAR(100) NULL,
+          safe_error_message VARCHAR(500) NULL,
+          created_at DATETIME NOT NULL,
+          updated_at DATETIME NOT NULL,
+          INDEX idx_animation_video_jobs_project (project_id, updated_at),
+          INDEX idx_animation_video_jobs_generation (generation_id),
+          CONSTRAINT fk_animation_video_jobs_project FOREIGN KEY (project_id) REFERENCES animation_projects(project_id) ON DELETE CASCADE,
+          CONSTRAINT fk_animation_video_jobs_user FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS animation_video_scenes (
+          animation_scene_job_id VARCHAR(80) PRIMARY KEY,
+          animation_job_id VARCHAR(64) NOT NULL,
+          source_scene_id VARCHAR(80) NOT NULL,
+          scene_order INT NOT NULL,
+          status VARCHAR(32) NOT NULL,
+          duration_seconds INT NOT NULL,
+          storyboard_image_job_id VARCHAR(80) NULL,
+          video_generation_id VARCHAR(64) NULL,
+          output_storage_key VARCHAR(512) NULL,
+          safe_error_code VARCHAR(100) NULL,
+          safe_error_message VARCHAR(500) NULL,
+          retry_count INT NOT NULL DEFAULT 0,
+          created_at DATETIME NOT NULL,
+          updated_at DATETIME NOT NULL,
+          UNIQUE KEY uq_animation_video_scene (animation_job_id, source_scene_id),
+          INDEX idx_animation_video_scenes_status (animation_job_id, status, scene_order),
+          CONSTRAINT fk_animation_video_scenes_job FOREIGN KEY (animation_job_id) REFERENCES animation_video_jobs(animation_job_id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
 
       console.log(`[DB] Connected to MySQL at ${this.host}:${this.port}`);
     })();
@@ -444,8 +544,9 @@ class DatabaseClient {
 
   async ensureColumn(tableName, columnName, definition) {
     const [rows] = await this.pool.query(`SHOW COLUMNS FROM \`${tableName}\` LIKE ?`, [columnName]);
-    if (rows.length > 0) return;
+    if (rows.length > 0) return false;
     await this.pool.query(`ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${definition}`);
+    return true;
   }
 
   async ensureIndex(tableName, indexName, columnName) {

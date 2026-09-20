@@ -6,6 +6,7 @@ import { fetchProtectedImageBlobUrl, type GalleryImage, getImageGenerationStatus
 import { analyzeCharacters, createCharacterWorkspace, getCharacterWorkspace, listCharacterWorkspaces, updateCharacterWorkspace } from './characterMaker.api';
 import { clearCharacterScenarioHandoff, readCharacterScenarioHandoff, type CharacterScenarioHandoff } from './characterScenarioHandoff';
 import { saveStoryboardScenarioHandoff } from '../storyboard-maker/storyboardScenarioHandoff';
+import { transitionAnimationProject } from '../animation-maker/animationMaker.api';
 import type { CharacterImageState, CharacterProfile, CharacterWorkspace, CharacterWorkspaceStatus } from './characterMaker.types';
 import './CharacterMakerPage.css';
 
@@ -84,6 +85,8 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
   const activeItems = useMemo(() => analysis ? [...analysis.characters.map((character) => ({ id: character.id, prompt: buildStyleLockedPrompt(analysis.stylePrompt, character.imagePrompt), ratio: '1:1' as const, kind: 'character' as const })), { id: 'setting', prompt: buildStyleLockedPrompt(analysis.stylePrompt, analysis.setting.imagePrompt), ratio: '16:9' as const, kind: 'setting' as const }] : [], [analysis]);
   const completedCount = activeItems.filter((item) => (item.kind === 'setting' ? analysis?.setting.image : analysis?.characters.find((character) => character.id === item.id)?.image)?.status === 'COMPLETED').length;
   const pendingImageCount = activeItems.filter((item) => isImagePending(item.kind === 'setting' ? analysis?.setting.image : analysis?.characters.find((character) => character.id === item.id)?.image)).length;
+  const completedSheetCount = analysis?.characters.filter((character) => character.characterSheet?.status === 'COMPLETED').length || 0;
+  const allCharacterSheetsReady = Boolean(analysis?.characters.length) && completedSheetCount === analysis?.characters.length;
   const imageEditSource = imageEditTarget
     ? imageEditTarget.asset === 'setting'
       ? analysis?.setting.image
@@ -131,10 +134,13 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
   const handleAnalyze = async () => {
     const text = scenario.trim();
     if (!text) { setError('سناریو را وارد کن تا شخصیت‌ها را پیدا کنیم.'); return; }
+    const animation = scenarioHandoff;
     setError(''); setIsAnalyzing(true);
     try {
+      if (animation?.animationProjectId) await transitionAnimationProject(animation.animationProjectId, 'characters_generating', { storyWorkspaceId: animation.storyWorkspaceId, scenarioVersion: animation.scenarioVersion });
       const nextAnalysis = await analyzeCharacters(text);
       const saved = await createCharacterWorkspace({ title: nextAnalysis.title, scenario: text, status: 'review', analysis: nextAnalysis });
+      if (animation?.animationProjectId) await transitionAnimationProject(animation.animationProjectId, 'characters_review', { characterWorkspaceId: saved.id });
       shouldAutoScrollResults.current = true;
       setWorkspace(saved); setScenario(text); setTab('create');
       setIsImageGenerationConfirmOpen(true);
@@ -208,6 +214,7 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
           ? { ...workspace, analysis: { ...workspace.analysis, characters: workspace.analysis.characters.map((item) => item.id === imageEditTarget.id ? { ...item, image: nextImage, characterSheet: undefined } : item) } }
           : updateImageState(workspace, imageEditTarget.id, nextImage);
       await persist(next, 'generating');
+      if (scenarioHandoff?.animationProjectId) await transitionAnimationProject(scenarioHandoff.animationProjectId, 'characters_review', { characterWorkspaceId: next.id, revisionRequest: `${imageEditTarget.name}: ${request}` });
       setImageEditTarget(null); setImageEditRequest('');
       notify.success(`ویرایش ${imageEditTarget.asset === 'sheet' ? 'کاراکترشیت' : imageEditTarget.asset === 'setting-sheet' ? 'لوکیشن‌شیت' : 'تصویر'} ${imageEditTarget.name} شروع شد؛ هویت اصلی حفظ می‌شود.`);
     } catch (cause) { setImageEditError(cause instanceof Error ? cause.message : 'ویرایش تصویر شروع نشد.'); }
@@ -231,6 +238,7 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
       const next = updateCharacterSheet(workspace, character.id, imageState(result.taskId, { operation: 'sheet' }));
       setWorkspace(next);
       await persist(next, 'generating');
+      if (scenarioHandoff?.animationProjectId) await transitionAnimationProject(scenarioHandoff.animationProjectId, 'characters_review', { characterWorkspaceId: next.id, revisionRequest: `بازتولید کاراکترشیت ${character.name}` });
       notify.success(`ساخت کاراکترشیت ${character.name} شروع شد.`);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'ساخت کاراکترشیت شروع نشد.'); }
     finally { setCreatingSheetFor(null); }
@@ -256,6 +264,25 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
       notify.success(`ساخت نماهای مرجع ${setting.name} شروع شد.`);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'ساخت نماهای لوکیشن شروع نشد.'); }
     finally { setIsCreatingSettingSheet(false); }
+  };
+
+  const approveCharactersAndOpenStoryboard = async () => {
+    if (!workspace?.analysis) return;
+    const sheetsReady = workspace.analysis.characters.every((character) => character.characterSheet?.status === 'COMPLETED');
+    if (!sheetsReady) { setError('اول کاراکترشیت همهٔ شخصیت‌ها را کامل کن تا ظاهرشان در قاب‌ها ثابت بماند.'); return; }
+    try {
+      if (scenarioHandoff?.animationProjectId) {
+        await transitionAnimationProject(scenarioHandoff.animationProjectId, 'characters_approved', { characterWorkspaceId: workspace.id });
+      }
+      saveStoryboardScenarioHandoff(scenario, analysis?.title || workspace.title, {
+        animationProjectId: scenarioHandoff?.animationProjectId,
+        storyWorkspaceId: scenarioHandoff?.storyWorkspaceId,
+        characterWorkspaceId: workspace.id,
+        scenarioVersion: scenarioHandoff?.scenarioVersion,
+        durationSeconds: scenarioHandoff?.durationSeconds
+      });
+      onOpenStoryboard();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'تأیید کاراکترها ذخیره نشد.'); }
   };
 
   const generateImages = async () => {
@@ -366,7 +393,7 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
         <label className="character-maker__scenario-input"><span className="character-maker__scenario-label">سناریوی داستان</span><textarea aria-label="سناریوی داستان" value={scenario} onChange={(event) => setScenario(event.target.value.slice(0, 8000))} placeholder="سناریوی داستانت را اینجا بنویس یا پیست کن… مثلاً: آرین، پسری کنجکاو، همراه دوست رباتش نیکا وارد کتابخانه‌ی شناور شهر می‌شود…" maxLength={8000} disabled={isAnalyzing} /></label>
         <div className="character-maker__scenario-footer"><small>{new Intl.NumberFormat('fa-IR').format(scenario.length)} / ۸٬۰۰۰</small><Button type="button" className={scenarioHandoff ? 'character-maker__analyze-button is-story-handoff' : 'character-maker__analyze-button'} onClick={() => void handleAnalyze()} disabled={isAnalyzing || !scenario.trim()} startIcon={<Icon name={isAnalyzing ? 'spinner' : 'sparkle'} size={18} aria-hidden="true" />}>{isAnalyzing ? 'داریم سناریو را می‌خوانیم…' : 'تشخیص کاراکترها'}</Button></div>
       </section>
-      {analysis ? <div className="character-maker__storyboard-next"><span>قدم بعدی</span><p>شخصیت‌ها را نگه می‌داریم تا در استوری‌برد دوباره داستانت را ننویسی.</p><Button type="button" variant="secondary" onClick={() => { saveStoryboardScenarioHandoff(scenario, analysis.title); onOpenStoryboard(); }} startIcon={<Icon name="story" size={18} aria-hidden="true" />}>ادامه با استوری‌برد</Button></div> : null}
+      {analysis ? <div className="character-maker__storyboard-next"><span>قدم بعدی · {completedSheetCount.toLocaleString('fa-IR')} از {analysis.characters.length.toLocaleString('fa-IR')} کاراکترشیت آماده</span><p>{allCharacterSheetsReady ? 'کاراکترشیت‌ها خودکار همراه سناریو به استوری‌برد می‌روند و مرجع ثابت ساخت قاب‌های هر سکانس می‌شوند.' : 'ابتدا کاراکترشیت همهٔ شخصیت‌ها را کامل کن؛ سپس آن‌ها خودکار وارد استوری‌برد خواهند شد.'}</p><Button type="button" variant="secondary" onClick={() => void approveCharactersAndOpenStoryboard()} disabled={!allCharacterSheetsReady} startIcon={<Icon name="story" size={18} aria-hidden="true" />}>{allCharacterSheetsReady ? 'تأیید و رفتن به استوری‌برد' : 'در انتظار تکمیل کاراکترشیت‌ها'}</Button></div> : null}
       {error ? <p className="character-maker__error" role="alert"><Icon name="alert-triangle" size={18} aria-hidden="true" />{error}</p> : null}
       {analysis ? <section ref={resultsRef} className="character-maker__results" aria-live="polite" tabIndex={-1}><div className="character-maker__result-heading"><div><span className="character-maker__step">۲</span><h2>{analysis.title}</h2><p>{analysis.summary}</p></div><div className="character-maker__result-actions"><span>{completedCount} از {activeItems.length} تصویر آماده</span><Button type="button" onClick={requestImageGeneration} disabled={isGenerating || pendingImageCount > 0} startIcon={<Icon name={isGenerating || pendingImageCount > 0 ? 'spinner' : 'studio-image'} size={18} aria-hidden="true" />}>{isGenerating ? 'در حال ارسال…' : pendingImageCount ? 'تصاویر در حال ساخت‌اند' : completedCount ? 'تکمیل تصاویر' : 'ساخت همه‌ی تصاویر'}</Button></div></div>{pendingImageCount ? <div className="character-maker__generation-progress" role="status"><Icon name="spinner" size={20} aria-hidden="true" /><div><strong>{new Intl.NumberFormat('fa-IR').format(pendingImageCount)} تصویر در حال ساخت است</strong><span>تصاویر خودکار به‌روز می‌شوند؛ لازم نیست دوباره دکمه‌ای بزنی.</span></div></div> : null}<div className="character-maker__style-bar"><Icon name="sparkles" size={18} aria-hidden="true" /><span>سبک تصویر:</span><strong>{analysis.visualStyle}</strong></div><div className="character-maker__character-grid">{analysis.characters.map((character, index) => <article key={character.id} className="character-maker__character-card" aria-busy={isImagePending(character.image)}><div className="character-maker__image"><ImagePreviewButton image={character.image} alt={`تصویر ${character.name}`} onOpen={() => { const imageUrl = character.image?.imageUrl || character.image?.previousImageUrl; if (imageUrl) setImagePreview({ id: character.image?.taskId || character.id, name: character.name, imageUrl, ratio: '1:1' }); }} /><ImageGenerationNotice name={character.name} image={character.image} /><span className={`character-maker__image-status is-${character.image?.status || 'idle'}`}>{character.image?.status === 'RUNNING' || character.image?.status === 'QUEUE' ? <Icon name="spinner" size={14} aria-hidden="true" /> : <Icon name={character.image?.status === 'COMPLETED' ? 'check' : character.image?.status === 'ERROR' ? 'alert-triangle' : 'sparkle'} size={14} aria-hidden="true" />}{statusText(character.image?.status)}</span></div><div className="character-maker__character-main"><span className="character-maker__character-number">کاراکتر {index + 1}</span><h3>{character.name}</h3><p>{character.role || 'نقش داستانی'}</p></div><dl><div><dt>شخصیت</dt><dd>{character.personality || 'در حال تکمیل'}</dd></div><div><dt>رابطه</dt><dd>{character.relationshipNote || 'براساس سناریو'}</dd></div></dl><div className="character-maker__image-edit-action"><Button type="button" variant="secondary" onClick={() => openImageEditor({ id: character.id, name: character.name, ratio: '1:1', asset: 'image' })} disabled={character.image?.status !== 'COMPLETED'} startIcon={<Icon name="edit" size={16} aria-hidden="true" />}>ویرایش تصویر</Button><Button type="button" onClick={() => void createCharacterSheet(character)} loading={creatingSheetFor === character.id} disabled={character.image?.status !== 'COMPLETED' || Boolean(creatingSheetFor) || (Boolean(character.characterSheet?.taskId) && character.characterSheet?.status !== 'ERROR')} startIcon={<Icon name={creatingSheetFor === character.id ? 'spinner' : 'sparkles'} size={16} aria-hidden="true" />}>{character.characterSheet?.status === 'ERROR' ? 'ساخت دوبارهٔ کاراکترشیت' : 'ساخت کاراکترشیت'}</Button></div>{character.characterSheet ? <section className="character-maker__sheet-card" aria-label={`کاراکترشیت ${character.name}`}><div className="character-maker__sheet-image"><ImagePreviewButton image={character.characterSheet} alt={`کاراکترشیت ${character.name}`} onOpen={() => { const imageUrl = character.characterSheet?.imageUrl || character.characterSheet?.previousImageUrl; if (imageUrl) setImagePreview({ id: character.characterSheet?.taskId || `${character.id}-sheet`, name: `کاراکترشیت ${character.name}`, imageUrl, ratio: '16:9' }); }} /><span className={`character-maker__image-status is-${character.characterSheet.status || 'idle'}`}>{character.characterSheet.status === 'RUNNING' || character.characterSheet.status === 'QUEUE' ? <Icon name="spinner" size={14} aria-hidden="true" /> : <Icon name={character.characterSheet.status === 'COMPLETED' ? 'check' : character.characterSheet.status === 'ERROR' ? 'alert-triangle' : 'sparkle'} size={14} aria-hidden="true" />}{character.characterSheet.status === 'COMPLETED' ? 'کاراکترشیت آماده است' : character.characterSheet.status === 'ERROR' ? 'ساخت ناموفق بود' : 'در حال ساخت کاراکترشیت'}</span></div><div className="character-maker__sheet-copy"><div><span>کاراکترشیت</span><h4>{character.name}</h4></div><Button type="button" variant="secondary" onClick={() => openImageEditor({ id: character.id, name: character.name, ratio: '16:9', asset: 'sheet' })} disabled={character.characterSheet.status !== 'COMPLETED'} startIcon={<Icon name="edit" size={15} aria-hidden="true" />}>ویرایش</Button></div></section> : null}</article>)}</div><article className="character-maker__setting-card"><div className="character-maker__setting-image"><ImagePreviewButton image={analysis.setting.image} alt={`فضای ${analysis.setting.name}`} onOpen={() => { const imageUrl = analysis.setting.image?.imageUrl || analysis.setting.image?.previousImageUrl; if (imageUrl) setImagePreview({ id: analysis.setting.image?.taskId || 'setting', name: analysis.setting.name, imageUrl, ratio: '16:9' }); }} /><ImageGenerationNotice name={analysis.setting.name} image={analysis.setting.image} /></div><div><span className="character-maker__character-number">فضای داستان</span><h3>{analysis.setting.name}</h3><p>{analysis.setting.description}</p><div className="character-maker__setting-actions"><Button type="button" variant="secondary" className="character-maker__setting-edit" onClick={() => openImageEditor({ id: 'setting', name: analysis.setting.name, ratio: '16:9', asset: 'setting' })} disabled={analysis.setting.image?.status !== 'COMPLETED'} startIcon={<Icon name="edit" size={16} aria-hidden="true" />}>ویرایش تصویر</Button></div></div></article></section> : null}
     </section>}

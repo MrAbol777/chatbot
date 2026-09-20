@@ -19,6 +19,10 @@ export type StoryboardScene = {
   characterIds: string[];
   imagePrompt: string;
   negativePrompt: string;
+  sourceSceneId?: string;
+  locationIds?: string[];
+  propIds?: string[];
+  durationSeconds?: number;
 };
 
 export type StoryboardPlan = {
@@ -31,6 +35,7 @@ export type StoryboardPlan = {
 export type StoryboardSceneState = StoryboardScene & {
   status: 'idle' | 'generating' | 'completed' | 'error';
   imageUrl?: string;
+  imageJobId?: string;
   error?: string;
 };
 

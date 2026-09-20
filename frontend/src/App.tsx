@@ -90,6 +90,7 @@ import {
 
 const ImageStudio = lazy(() => import('./ImageStudio'));
 const StudioPage = lazy(() => import('./studio/StudioPage'));
+const AnimationMakerPage = lazy(() => import('./animation-maker/AnimationMakerPage'));
 const StoryMakerPage = lazy(() => import('./story-maker/StoryMakerPage'));
 const CharacterMakerPage = lazy(() => import('./character-maker/CharacterMakerPage'));
 const StoryboardMakerPage = lazy(() => import('./storyboard-maker/StoryboardMakerPage'));
@@ -160,6 +161,7 @@ const isKnownAppPath = (pathname: string) => (
   pathname === '/chat' ||
   /^\/c\/[^/]+$/.test(pathname) ||
   pathname === '/studio' ||
+  pathname === '/studio/animation' ||
   pathname === '/studio/story' ||
   /^\/studio\/story\/[^/]+$/.test(pathname) ||
   pathname === '/studio/characters' ||
@@ -179,6 +181,7 @@ const isKnownAppPath = (pathname: string) => (
 const getAppViewFromPath = (pathname: string): AppView => {
   if (pathname === '/' || pathname === '/chat' || /^\/c\/[^/]+$/.test(pathname)) return 'chat';
   if (pathname === '/studio') return 'studio';
+  if (pathname === '/studio/animation') return 'animation';
   if (pathname === '/studio/story' || /^\/studio\/story\/[^/]+$/.test(pathname)) return 'story';
   if (pathname === '/studio/characters') return 'characters';
   if (pathname === '/studio/storyboard') return 'storyboard';
@@ -1004,6 +1007,8 @@ function ChatApp() {
   const navigateToView = (view: AppView, mode: 'push' | 'replace' = 'push') => {
     const nextPath = view === 'studio'
         ? '/studio'
+        : view === 'animation'
+          ? '/studio/animation'
         : view === 'story'
           ? '/studio/story'
         : view === 'characters'
@@ -1114,6 +1119,14 @@ function ChatApp() {
     });
   };
 
+  const openAnimationMaker = () => {
+    window.history.pushState({}, '', '/studio/animation');
+    startTransition(() => {
+      setCurrentView('animation');
+      setSidebarOpen(false);
+    });
+  };
+
   const openStoryMaker = () => {
     window.history.pushState({}, '', '/studio/story');
     startTransition(() => {
@@ -1138,8 +1151,8 @@ function ChatApp() {
     });
   };
 
-  const openCharacterMakerFromStory = (scenario: string, title?: string) => {
-    saveCharacterScenarioHandoff(scenario, title);
+  const openCharacterMakerFromStory = (scenario: string, title?: string, animation?: { animationProjectId?: string; storyWorkspaceId?: string; scenarioVersion?: string; durationSeconds?: number }) => {
+    saveCharacterScenarioHandoff(scenario, title, animation);
     openCharacterMaker();
   };
   const openStoryWorkspace = (workspaceId: string, mode: 'push' | 'replace' = 'push') => {
@@ -3615,10 +3628,11 @@ notify.error(message);
         ) : null}
         <Suspense fallback={<StudioRouteFallback />}>
           {currentView === 'support' ? <SupportCenter onBackToChat={() => navigateToView('chat')} /> : null}
-          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenStory={openStoryMaker} onOpenCharacters={openCharacterMaker} onOpenStoryboard={openStoryboardMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} onOpenDirectVideo={openDirectSceneVideo} /> : null}
+          {currentView === 'studio' ? <StudioPage onBackToHome={() => navigateToView('chat')} onOpenAnimation={openAnimationMaker} onOpenStory={openStoryMaker} onOpenCharacters={openCharacterMaker} onOpenStoryboard={openStoryboardMaker} onOpenImage={openImageStudioFromStudio} onOpenVideo={openVideoStudio} onOpenDirectVideo={openDirectSceneVideo} /> : null}
+          {currentView === 'animation' ? <AnimationMakerPage onBack={returnToStudio} onOpenCharacterMaker={openCharacterMakerFromStory} /> : null}
           {currentView === 'story' ? <StoryMakerPage onBack={returnToStudio} workspaceId={getStoryWorkspaceIdFromPath(currentPathname)} onOpenWorkspace={openStoryWorkspace} onOpenCharacterMaker={openCharacterMakerFromStory} /> : null}
           {currentView === 'characters' ? <CharacterMakerPage onBack={returnToStudio} onOpenStoryboard={openStoryboardMaker} /> : null}
-          {currentView === 'storyboard' ? <StoryboardMakerPage onBack={returnToStudio} /> : null}
+          {currentView === 'storyboard' ? <StoryboardMakerPage onBack={returnToStudio} onOpenDirectVideo={openDirectSceneVideo} /> : null}
           {currentView === 'images' ? <ImageStudio onBack={currentPathname === '/studio/image' ? returnToStudio : returnToChatFromStudio} backLabel={currentPathname === '/studio/image' ? 'بازگشت به استودیو' : 'بازگشت به چت'} onInsufficientBalance={setInsufficientBalance} /> : null}
           {currentView === 'video' ? <VideoGenerationPage onBack={returnToStudio} onInsufficientBalance={setInsufficientBalance} /> : null}
           {currentView === 'direct-video' ? <DirectSceneVideoPage onBack={returnToStudio} /> : null}

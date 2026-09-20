@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { findWorkspaceAsset, getAssetReference, normalizeAnalysis, normalizeWorkspace } = require('./character-maker.routes');
+const { findWorkspaceAsset, getAssetReference, normalizeAnalysis, normalizeWorkspace, parseCharacterAnalysisReply } = require('./character-maker.routes');
 
 test('character analysis keeps only bounded, prompt-ready characters', () => {
   const analysis = normalizeAnalysis({
@@ -23,6 +23,13 @@ test('character analysis keeps only bounded, prompt-ready characters', () => {
   assert.equal(analysis.setting.name, 'کتابخانه');
   assert.match(analysis.setting.assetId, /^setting-/);
   assert.match(analysis.stylePrompt, /stylized 3D animated/i);
+});
+
+test('recovers a character analysis JSON object when a provider adds prose', () => {
+  const analysis = parseCharacterAnalysisReply('نتیجه:\n```json\n{"title":"ماجرای آوا","characters":[{"id":"C01","name":"آوا","imagePrompt":"Warm animated full-body character."}],"setting":{"name":"جنگل","imagePrompt":"Warm animated forest."}}\n```', 'آوا وارد جنگل می‌شود.');
+  assert.equal(analysis.title, 'ماجرای آوا');
+  assert.equal(analysis.characters.length, 1);
+  assert.equal(analysis.characters[0].name, 'آوا');
 });
 
 test('character workspace is isolated and bounds scenario input', () => {
