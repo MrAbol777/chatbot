@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Dialog, useNotification } from '../design-system/components';
-import Icon from '../components/Icon';
+import { Dialog, useNotification } from '../design-system/components';
+import Icon, { type IconName } from '../components/Icon';
 import ImageViewer from '../ImageViewer';
 import { fetchProtectedImageBlobUrl, type GalleryImage, getImageGenerationStatus, startImageEdit, startImageGeneration } from '../services/imageGeneration';
 import { analyzeCharacters, createCharacterWorkspace, getCharacterWorkspace, listCharacterWorkspaces, updateCharacterWorkspace } from './characterMaker.api';
@@ -17,46 +17,78 @@ type ImagePreviewTarget = { id: string; name: string; imageUrl: string; ratio: '
 
 const makeId = (prefix: string) => `${prefix}-${crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 const imageState = (taskId: string, options: Partial<CharacterImageState> = {}): CharacterImageState => ({ taskId, status: 'QUEUE', imageUrl: null, error: null, ...options });
-const statusText = (status?: CharacterImageState['status']) => status === 'COMPLETED' ? 'تصویر آماده است' : status === 'ERROR' ? 'ساخت ناموفق بود' : status && status !== 'idle' ? 'در حال ساخت تصویر' : 'آماده‌ی ساخت تصویر';
+
+const statusText = (status?: CharacterImageState['status']) => {
+  switch (status) {
+    case 'COMPLETED':
+      return 'تصویر آماده است';
+    case 'ERROR':
+      return 'ساخت ناموفق بود';
+    case 'RUNNING':
+    case 'QUEUE':
+      return 'در حال ساخت تصویر…';
+    default:
+      return 'آماده برای ساخت';
+  }
+};
+
 const isImagePending = (image?: CharacterImageState | null) => Boolean(image?.taskId && image.status !== 'COMPLETED' && image.status !== 'ERROR');
+
 const buildStyleLockedPrompt = (stylePrompt: string, assetPrompt: string) => `PROJECT STYLE LOCK — mandatory for every image in this story:
-${stylePrompt || 'High-quality stylized 3D animated family-film visual language, cohesive non-photoreal rendering, warm cinematic lighting, never live action or photography.'}
+${stylePrompt || 'High-quality stylized 3D animated family-film visual language, cohesive non-photoreal rendering, warm cinematic lighting, cute friendly appeal, never live action or photography.'}
 
 Generate this asset in exactly that one visual world. All characters and environments must look like they belong to the same animated production. Never switch medium, rendering level, or realism. Never generate a photograph, live action, a real person, or photorealistic skin. If the asset brief conflicts with the project style lock, preserve the character or scene information but ignore the conflicting stylistic instruction.
 
 ASSET BRIEF:
 ${assetPrompt}`;
+
 const buildCharacterSheetPrompt = (stylePrompt: string, character: CharacterProfile) => `ANIMATION CHARACTER MODEL SHEET — use the supplied reference image as the sole canonical identity for ${character.name}.
 
-${buildStyleLockedPrompt(stylePrompt, `Create one polished 16:9 professional animation character sheet for ${character.name}. The sheet must show the exact same character only, in a clean and spacious grid on a plain neutral background: full-body front view, three-quarter view, side profile, rear view, high-angle view, low-angle view, a row of expressive head studies (neutral, happy, worried or sad, surprised), and one full-body natural action pose. Preserve these immutable identity traits: ${character.identityLock || character.appearance || character.name}. Preserve wardrobe: ${character.wardrobe || 'the supplied reference wardrobe'}. Keep the design, proportions, face, hair, colors and accessories identical in every view. No other characters, no scene background, no typography, captions, logos, arrows, duplicate identities, cropped body parts or collaged photo elements. The grid must be easy for an animation or video model to read.`)}`;
+${buildStyleLockedPrompt(stylePrompt, `Create one polished 16:9 professional animation character sheet for ${character.name}. The sheet must show the exact same character only, in a clean and spacious grid on a plain neutral background: full-body front view, three-quarter view, side profile, rear view, high-angle view, low-angle view, a row of expressive head studies (neutral, happy, surprised, laughing), and one full-body natural action pose. Preserve these immutable identity traits: ${character.identityLock || character.appearance || character.name}. Preserve wardrobe: ${character.wardrobe || 'the supplied reference wardrobe'}. Keep the design, proportions, face, hair, colors and accessories identical in every view. No other characters, no scene background, no typography, captions, logos, arrows, duplicate identities, cropped body parts or collaged photo elements.`)}`;
+
 const buildSettingSheetPrompt = (stylePrompt: string, name: string, description: string) => `ANIMATION ENVIRONMENT MODEL SHEET — use the supplied reference image as the sole canonical identity for the story location: ${name}.
 
-${buildStyleLockedPrompt(stylePrompt, `Create one polished 16:9 environment sheet for ${name}. Show this exact same location only, arranged as a clear professional reference board: a wide establishing view, a medium eye-level view, an entrance or reverse angle, a side angle, a high-angle view, a low-angle view, and three close-up detail studies of defining props or materials. Preserve the exact layout, architecture, prop placement, color palette, lighting mood, scale and all recognizable details from the reference. Location description: ${description || name}. No characters, people, animals, new rooms, alternate locations, text, captions, logos, arrows, collaged images or unrelated objects. Every frame must feel like the same production-ready set viewed from a different camera position.`)}`;
+${buildStyleLockedPrompt(stylePrompt, `Create one polished 16:9 environment sheet for ${name}. Show this exact same location only, arranged as a clear professional reference board: a wide establishing view, a medium eye-level view, an entrance or reverse angle, a side angle, a high-angle view, a low-angle view, and three close-up detail studies of defining props or materials. Preserve the exact layout, architecture, prop placement, color palette, lighting mood, scale and all recognizable details from the reference. Location description: ${description || name}. No characters, people, animals, new rooms, alternate locations, text, captions, logos, arrows, collaged images or unrelated objects.`)}`;
+
+const STORY_STARTERS: Array<{ icon: IconName; title: string; prompt: string }> = [
+  { icon: 'rocket', title: 'سفر به فضا', prompt: 'آرین و دوستش ربات کوچولوی پرنده با سفینه فضایی به یه سیاره پر از کوه‌های بستنی و رودخونه شکلاتی سفر می‌کنند…' },
+  { icon: 'sparkles', title: 'قصر جادویی ابرها', prompt: 'در بالای ابرها یک قصر طلایی وجود دارد که پرنده‌های بالدار مهربان در آن زندگی می‌کنند و ستاره‌ها رو جارو می‌زنند…' },
+  { icon: 'star', title: 'بچه دایناسور مهربان', prompt: 'پسری کنجکاو در یک جنگل رنگین‌کمانی با یک بچه دایناسور سبز و بامزه دوست می‌شود که عاشق نقاشی کردن است…' },
+  { icon: 'story', title: 'شهر زیر آب و دلفین', prompt: 'سارا با کمک یک دلفین مهربان با عینک غواصی به شهر مرواریدهای درخشان در کف اقیانوس سفر می‌کند…' }
+];
+
+const EDIT_SUGGESTIONS = [
+  'یک کلاه بامزه به سرش اضافه کن',
+  'لباسش را به یک لباس فضانوردی رنگی تبدیل کن',
+  'یک عینک گرد فانتزی به چشمش بزن',
+  'یک تاج طلایی کوچک روی سرش بگذار',
+  'یک کوله‌پشتی ماجراجویی با رنگ شاد به او بده'
+];
 
 function SecureImage({ src, alt }: { src?: string | null; alt: string }) {
   const [blobUrl, setBlobUrl] = useState('');
   useEffect(() => {
-    let current = true; let objectUrl = '';
+    let current = true;
+    let objectUrl = '';
     if (!src) { setBlobUrl(''); return; }
-    void fetchProtectedImageBlobUrl(src).then((url) => { objectUrl = url; if (current) setBlobUrl(url); }).catch(() => { if (current) setBlobUrl(''); });
-    return () => { current = false; if (objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl); };
+    void fetchProtectedImageBlobUrl(src).then((url) => {
+      objectUrl = url;
+      if (current) setBlobUrl(url);
+    }).catch(() => {
+      if (current) setBlobUrl('');
+    });
+    return () => {
+      current = false;
+      if (objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl);
+    };
   }, [src]);
-  return blobUrl ? <img src={blobUrl} alt={alt} /> : <span className="character-maker__image-placeholder"><Icon name="sparkle" size={24} aria-hidden="true" /></span>;
-}
-
-function ImageGenerationNotice({ name, image }: { name: string; image?: CharacterImageState | null }) {
-  if (!isImagePending(image)) return null;
-  return <div className="character-maker__generation-notice" role="status" aria-label={`در حال ساخت تصویر ${name}`}>
-    <span><Icon name="spinner" size={24} aria-hidden="true" /></span>
-    <strong>داریم تصویر {name} را می‌سازیم</strong>
-    <small>چند لحظه دیگر آماده می‌شود.</small>
-  </div>;
-}
-
-function ImagePreviewButton({ image, alt, onOpen }: { image?: CharacterImageState; alt: string; onOpen: () => void }) {
-  const src = image?.imageUrl || image?.previousImageUrl;
-  if (!src) return <SecureImage src={src} alt={alt} />;
-  return <button type="button" className="character-maker__image-button" onClick={onOpen} aria-label={`نمایش بزرگ ${alt}`} title="نمایش بزرگ تصویر"><SecureImage src={src} alt={alt} /><span><Icon name="zoom-in" size={17} aria-hidden="true" />نمایش</span></button>;
+  return blobUrl ? (
+    <img src={blobUrl} alt={alt} />
+  ) : (
+    <span className="character-maker__image-placeholder">
+      <Icon name="sparkle" size={32} />
+    </span>
+  );
 }
 
 export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) {
@@ -77,16 +109,37 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
   const [creatingSheetFor, setCreatingSheetFor] = useState<string | null>(null);
   const [isCreatingSettingSheet, setIsCreatingSettingSheet] = useState(false);
   const [imagePreview, setImagePreview] = useState<ImagePreviewTarget | null>(null);
+
+  // In-card view state: switch between single portrait and multi-angle sheet seamlessly
+  const [cardViews, setCardViews] = useState<Record<string, 'portrait' | 'sheet'>>({});
+  const [settingView, setSettingView] = useState<'image' | 'sheet'>('image');
+
   const saveTimer = useRef<number | null>(null);
   const resultsRef = useRef<HTMLElement | null>(null);
   const shouldAutoScrollResults = useRef(false);
   const { notify } = useNotification();
   const analysis = workspace?.analysis || null;
-  const activeItems = useMemo(() => analysis ? [...analysis.characters.map((character) => ({ id: character.id, prompt: buildStyleLockedPrompt(analysis.stylePrompt, character.imagePrompt), ratio: '1:1' as const, kind: 'character' as const })), { id: 'setting', prompt: buildStyleLockedPrompt(analysis.stylePrompt, analysis.setting.imagePrompt), ratio: '16:9' as const, kind: 'setting' as const }] : [], [analysis]);
+
+  const activeItems = useMemo(() => analysis ? [
+    ...analysis.characters.map((character) => ({
+      id: character.id,
+      prompt: buildStyleLockedPrompt(analysis.stylePrompt, character.imagePrompt),
+      ratio: '1:1' as const,
+      kind: 'character' as const
+    })),
+    {
+      id: 'setting',
+      prompt: buildStyleLockedPrompt(analysis.stylePrompt, analysis.setting.imagePrompt),
+      ratio: '16:9' as const,
+      kind: 'setting' as const
+    }
+  ] : [], [analysis]);
+
   const completedCount = activeItems.filter((item) => (item.kind === 'setting' ? analysis?.setting.image : analysis?.characters.find((character) => character.id === item.id)?.image)?.status === 'COMPLETED').length;
   const pendingImageCount = activeItems.filter((item) => isImagePending(item.kind === 'setting' ? analysis?.setting.image : analysis?.characters.find((character) => character.id === item.id)?.image)).length;
   const completedSheetCount = analysis?.characters.filter((character) => character.characterSheet?.status === 'COMPLETED').length || 0;
   const allCharacterSheetsReady = Boolean(analysis?.characters.length) && completedSheetCount === analysis?.characters.length;
+
   const imageEditSource = imageEditTarget
     ? imageEditTarget.asset === 'setting'
       ? analysis?.setting.image
@@ -96,6 +149,7 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
         ? analysis?.characters.find((character) => character.id === imageEditTarget.id)?.characterSheet
         : analysis?.characters.find((character) => character.id === imageEditTarget.id)?.image
     : null;
+
   const imagePreviewItem: GalleryImage | null = imagePreview ? {
     id: imagePreview.id, taskId: imagePreview.id, originalPrompt: imagePreview.name, refinedPrompt: imagePreview.name,
     aspectRatio: imagePreview.ratio, operation: 'generate', status: 'COMPLETED', imageUrl: imagePreview.imageUrl,
@@ -104,7 +158,7 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
 
   const refreshLibrary = async () => {
     setLoadingLibrary(true);
-    try { setLibrary(await listCharacterWorkspaces()); } catch { /* Empty state is still useful offline. */ } finally { setLoadingLibrary(false); }
+    try { setLibrary(await listCharacterWorkspaces()); } catch { /* Offline fallback */ } finally { setLoadingLibrary(false); }
   };
   useEffect(() => { void refreshLibrary(); }, []);
 
@@ -123,33 +177,50 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
     return () => window.cancelAnimationFrame(animationFrame);
   }, [analysis]);
 
-  const workspacePayload = (next: CharacterWorkspace, status: CharacterWorkspaceStatus = next.status) => ({ title: next.title, scenario: next.scenario, status, analysis: next.analysis });
+  const workspacePayload = (next: CharacterWorkspace, status: CharacterWorkspaceStatus = next.status) => ({
+    title: next.title, scenario: next.scenario, status, analysis: next.analysis
+  });
+
   const persist = async (next: CharacterWorkspace, status?: CharacterWorkspaceStatus) => {
     const saved = await updateCharacterWorkspace(next.id, workspacePayload(next, status));
-    setWorkspace(saved); setLibrary((items) => [saved, ...items.filter((item) => item.id !== saved.id)]);
+    setWorkspace(saved);
+    setLibrary((items) => [saved, ...items.filter((item) => item.id !== saved.id)]);
     return saved;
   };
+
   useEffect(() => () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); }, []);
 
   const handleAnalyze = async () => {
     const text = scenario.trim();
-    if (!text) { setError('سناریو را وارد کن تا شخصیت‌ها را پیدا کنیم.'); return; }
+    if (!text) { setError('لطفاً داستان خود را بنویسید یا یکی از ایده‌های آماده را انتخاب کنید.'); return; }
     const animation = scenarioHandoff;
-    setError(''); setIsAnalyzing(true);
+    setError('');
+    setIsAnalyzing(true);
     try {
-      if (animation?.animationProjectId) await transitionAnimationProject(animation.animationProjectId, 'characters_generating', { storyWorkspaceId: animation.storyWorkspaceId, scenarioVersion: animation.scenarioVersion });
+      if (animation?.animationProjectId) {
+        await transitionAnimationProject(animation.animationProjectId, 'characters_generating', {
+          storyWorkspaceId: animation.storyWorkspaceId, scenarioVersion: animation.scenarioVersion
+        });
+      }
       const nextAnalysis = await analyzeCharacters(text);
       const saved = await createCharacterWorkspace({ title: nextAnalysis.title, scenario: text, status: 'review', analysis: nextAnalysis });
-      if (animation?.animationProjectId) await transitionAnimationProject(animation.animationProjectId, 'characters_review', { characterWorkspaceId: saved.id });
+      if (animation?.animationProjectId) {
+        await transitionAnimationProject(animation.animationProjectId, 'characters_review', { characterWorkspaceId: saved.id });
+      }
       shouldAutoScrollResults.current = true;
-      setWorkspace(saved); setScenario(text); setTab('create');
+      setWorkspace(saved);
+      setScenario(text);
+      setTab('create');
       setIsImageGenerationConfirmOpen(true);
       clearCharacterScenarioHandoff();
       setScenarioHandoff(null);
       void refreshLibrary();
-      notify.success(`${nextAnalysis.characters.length} کاراکتر و فضای داستان آماده شد.`);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'تحلیل انجام نشد.'); }
-    finally { setIsAnalyzing(false); }
+      notify.success(`قهرمان‌های داستان با موفقیت مشخص شدند.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تشخیص قهرمان‌ها انجام نشد.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const updateImageState = (source: CharacterWorkspace, targetId: string, nextImage: CharacterImageState): CharacterWorkspace => {
@@ -171,12 +242,20 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
 
   const openImageEditor = (target: ImageEditTarget) => {
     const character = analysis?.characters.find((item) => item.id === target.id);
-    const image = target.asset === 'setting' ? analysis?.setting.image : target.asset === 'setting-sheet' ? analysis?.setting.settingSheet : target.asset === 'sheet' ? character?.characterSheet : character?.image;
+    const image = target.asset === 'setting'
+      ? analysis?.setting.image
+      : target.asset === 'setting-sheet'
+        ? analysis?.setting.settingSheet
+        : target.asset === 'sheet'
+          ? character?.characterSheet
+          : character?.image;
     if (!image?.taskId || image.status !== 'COMPLETED') {
-      notify.error('اول صبر کن تصویر این بخش کامل شود.');
+      notify.error('لطفاً تا پایان ساخت تصویر منتظر بمانید.');
       return;
     }
-    setImageEditTarget(target); setImageEditRequest(''); setImageEditError('');
+    setImageEditTarget(target);
+    setImageEditRequest('');
+    setImageEditError('');
   };
 
   const downloadPreview = async (item: GalleryImage) => {
@@ -184,23 +263,33 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
     try {
       const url = await fetchProtectedImageBlobUrl(item.imageUrl);
       const link = document.createElement('a');
-      link.href = url; link.download = `${item.originalPrompt || 'character-image'}.jpg`; link.click();
+      link.href = url;
+      link.download = `${item.originalPrompt || 'character-image'}.jpg`;
+      link.click();
       if (url.startsWith('blob:')) window.setTimeout(() => URL.revokeObjectURL(url), 0);
-    } catch { notify.error('دانلود تصویر انجام نشد.'); }
+    } catch {
+      notify.error('دانلود تصویر انجام نشد.');
+    }
   };
 
   const submitImageEdit = async () => {
     if (!workspace?.analysis || !imageEditTarget || isEditingImage) return;
     const request = imageEditRequest.trim();
-    if (request.length < 8) { setImageEditError('کمی دقیق‌تر بگو چه چیزی باید تغییر کند.'); return; }
+    if (request.length < 5) { setImageEditError('لطفاً تغییر مورد نظر خود را بنویسید.'); return; }
     const character = workspace.analysis.characters.find((item) => item.id === imageEditTarget.id);
     const currentImage = imageEditTarget.asset === 'setting'
       ? workspace.analysis.setting.image
       : imageEditTarget.asset === 'setting-sheet'
         ? workspace.analysis.setting.settingSheet
       : imageEditTarget.asset === 'sheet' ? character?.characterSheet : character?.image;
-    if (!currentImage?.taskId || currentImage.status !== 'COMPLETED') { setImageEditError('تصویر مرجع دیگر آماده نیست؛ یک‌بار صفحه را تازه کن.'); return; }
-    setIsEditingImage(true); setImageEditError(''); setError('');
+
+    if (!currentImage?.taskId || currentImage.status !== 'COMPLETED') {
+      setImageEditError('تصویر آماده نیست؛ لطفاً یک‌بار صفحه را تازه کنید.');
+      return;
+    }
+    setIsEditingImage(true);
+    setImageEditError('');
+    setError('');
     try {
       const result = await startImageEdit(currentImage.taskId, request, imageEditTarget.ratio, makeId(`character-edit-${imageEditTarget.id}`));
       const nextImage = imageState(result.taskId, {
@@ -213,63 +302,89 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
         : imageEditTarget.asset === 'image'
           ? { ...workspace, analysis: { ...workspace.analysis, characters: workspace.analysis.characters.map((item) => item.id === imageEditTarget.id ? { ...item, image: nextImage, characterSheet: undefined } : item) } }
           : updateImageState(workspace, imageEditTarget.id, nextImage);
+
       await persist(next, 'generating');
-      if (scenarioHandoff?.animationProjectId) await transitionAnimationProject(scenarioHandoff.animationProjectId, 'characters_review', { characterWorkspaceId: next.id, revisionRequest: `${imageEditTarget.name}: ${request}` });
-      setImageEditTarget(null); setImageEditRequest('');
-      notify.success(`ویرایش ${imageEditTarget.asset === 'sheet' ? 'کاراکترشیت' : imageEditTarget.asset === 'setting-sheet' ? 'لوکیشن‌شیت' : 'تصویر'} ${imageEditTarget.name} شروع شد؛ هویت اصلی حفظ می‌شود.`);
-    } catch (cause) { setImageEditError(cause instanceof Error ? cause.message : 'ویرایش تصویر شروع نشد.'); }
-    finally { setIsEditingImage(false); }
+      if (scenarioHandoff?.animationProjectId) {
+        await transitionAnimationProject(scenarioHandoff.animationProjectId, 'characters_review', {
+          characterWorkspaceId: next.id, revisionRequest: `${imageEditTarget.name}: ${request}`
+        });
+      }
+      setImageEditTarget(null);
+      setImageEditRequest('');
+      notify.success(`ویرایش تصویر ${imageEditTarget.name} شروع شد.`);
+    } catch (cause) {
+      setImageEditError(cause instanceof Error ? cause.message : 'تغییر تصویر شروع نشد.');
+    } finally {
+      setIsEditingImage(false);
+    }
   };
 
   const createCharacterSheet = async (character: CharacterProfile) => {
     if (!workspace?.analysis || creatingSheetFor) return;
     const sourceImage = character.image;
     if (!sourceImage?.taskId || sourceImage.status !== 'COMPLETED') {
-      notify.error('اول تصویر اصلی کاراکتر باید آماده شود.');
+      notify.error('ابتدا تصویر چهره اصلی باید آماده شود.');
       return;
     }
     if (character.characterSheet?.taskId && character.characterSheet.status !== 'ERROR') {
-      notify.info('کاراکترشیت این شخصیت از قبل در حال ساخت یا آماده است.');
+      setCardViews((prev) => ({ ...prev, [character.id]: 'sheet' }));
       return;
     }
-    setCreatingSheetFor(character.id); setError('');
+    setCreatingSheetFor(character.id);
+    setError('');
+    setCardViews((prev) => ({ ...prev, [character.id]: 'sheet' }));
     try {
       const result = await startImageEdit(sourceImage.taskId, buildCharacterSheetPrompt(workspace.analysis.stylePrompt, character), '16:9', makeId(`character-sheet-${character.id}`));
       const next = updateCharacterSheet(workspace, character.id, imageState(result.taskId, { operation: 'sheet' }));
       setWorkspace(next);
       await persist(next, 'generating');
-      if (scenarioHandoff?.animationProjectId) await transitionAnimationProject(scenarioHandoff.animationProjectId, 'characters_review', { characterWorkspaceId: next.id, revisionRequest: `بازتولید کاراکترشیت ${character.name}` });
-      notify.success(`ساخت کاراکترشیت ${character.name} شروع شد.`);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'ساخت کاراکترشیت شروع نشد.'); }
-    finally { setCreatingSheetFor(null); }
+      if (scenarioHandoff?.animationProjectId) {
+        await transitionAnimationProject(scenarioHandoff.animationProjectId, 'characters_review', {
+          characterWorkspaceId: next.id, revisionRequest: `بازتولید نماهای ${character.name}`
+        });
+      }
+      notify.success(`ساخت نماهای مختلف ${character.name} شروع شد.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'ساخت نماهای مختلف شروع نشد.');
+    } finally {
+      setCreatingSheetFor(null);
+    }
   };
 
   const createSettingSheet = async () => {
     if (!workspace?.analysis || isCreatingSettingSheet) return;
     const setting = workspace.analysis.setting;
     if (!setting.image?.taskId || setting.image.status !== 'COMPLETED') {
-      notify.error('اول تصویر اصلی فضای داستان باید آماده شود.');
+      notify.error('ابتدا تصویر محیط داستان باید آماده شود.');
       return;
     }
     if (setting.settingSheet?.taskId && setting.settingSheet.status !== 'ERROR') {
-      notify.info('لوکیشن‌شیت این فضا از قبل در حال ساخت یا آماده است.');
+      setSettingView('sheet');
       return;
     }
-    setIsCreatingSettingSheet(true); setError('');
+    setIsCreatingSettingSheet(true);
+    setSettingView('sheet');
+    setError('');
     try {
       const result = await startImageEdit(setting.image.taskId, buildSettingSheetPrompt(workspace.analysis.stylePrompt, setting.name, setting.description), '16:9', makeId('setting-sheet'));
       const next = updateSettingSheet(workspace, imageState(result.taskId, { operation: 'setting-sheet' }));
       setWorkspace(next);
       await persist(next, 'generating');
-      notify.success(`ساخت نماهای مرجع ${setting.name} شروع شد.`);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'ساخت نماهای لوکیشن شروع نشد.'); }
-    finally { setIsCreatingSettingSheet(false); }
+      notify.success(`ساخت نماهای مختلف ${setting.name} شروع شد.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'ساخت نماهای محیط شروع نشد.');
+    } finally {
+      setIsCreatingSettingSheet(false);
+    }
   };
 
   const approveCharactersAndOpenStoryboard = async () => {
     if (!workspace?.analysis) return;
     const sheetsReady = workspace.analysis.characters.every((character) => character.characterSheet?.status === 'COMPLETED');
-    if (!sheetsReady) { setError('اول کاراکترشیت همهٔ شخصیت‌ها را کامل کن تا ظاهرشان در قاب‌ها ثابت بماند.'); return; }
+    if (!sheetsReady) {
+      notify.error('ابتدا نماهای مختلف همهٔ شخصیت‌ها را کامل کنید تا در فیلم یکپارچه بمانند.');
+      return;
+    }
     try {
       if (scenarioHandoff?.animationProjectId) {
         await transitionAnimationProject(scenarioHandoff.animationProjectId, 'characters_approved', { characterWorkspaceId: workspace.id });
@@ -282,30 +397,35 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
         durationSeconds: scenarioHandoff?.durationSeconds
       });
       onOpenStoryboard();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'تأیید کاراکترها ذخیره نشد.'); }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تأیید شخصیت‌ها انجام نشد.');
+    }
   };
 
   const generateImages = async () => {
     if (!workspace?.analysis || isGenerating) return;
-    setIsGenerating(true); setError('');
+    setIsGenerating(true);
+    setError('');
     let next = workspace;
     try {
       for (const item of activeItems) {
-        const existing = item.kind === 'setting' ? next.analysis?.setting.image : next.analysis?.characters.find((character) => character.id === item.id)?.image;
+        const existing = item.kind === 'setting'
+          ? next.analysis?.setting.image
+          : next.analysis?.characters.find((character) => character.id === item.id)?.image;
         if (existing?.taskId && existing.status !== 'ERROR') continue;
-        const result = await startImageGeneration(item.prompt, { aspectRatio: item.ratio, idempotencyKey: makeId(`character-${item.id}`) });
+        const result = await startImageGeneration(item.prompt, {
+          aspectRatio: item.ratio, idempotencyKey: makeId(`character-${item.id}`)
+        });
         next = updateImageState(next, item.id, imageState(result.taskId));
         setWorkspace(next);
       }
       await persist(next, 'generating');
       notify.success('ساخت تصاویر شروع شد؛ کارت‌ها خودکار به‌روزرسانی می‌شوند.');
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'ارسال ساخت تصویر انجام نشد.'); }
-    finally { setIsGenerating(false); }
-  };
-
-  const requestImageGeneration = () => {
-    if (!workspace?.analysis || isGenerating) return;
-    setIsImageGenerationConfirmOpen(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'ارسال ساخت تصاویر انجام نشد.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const confirmImageGeneration = () => {
@@ -313,9 +433,11 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
     void generateImages();
   };
 
+  // Polling for generation status
   useEffect(() => {
     const isPending = (image?: CharacterImageState) => Boolean(image?.taskId && image.status !== 'COMPLETED' && image.status !== 'ERROR');
     if (!workspace?.analysis || (!activeItems.some((item) => isPending(item.kind === 'setting' ? workspace.analysis?.setting.image : workspace.analysis?.characters.find((character) => character.id === item.id)?.image)) && !workspace.analysis.characters.some((character) => isPending(character.characterSheet)) && !isPending(workspace.analysis.setting.settingSheet))) return;
+
     const poll = async () => {
       let next = workspace;
       let changed = false;
@@ -325,9 +447,10 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
         try {
           const status = await getImageGenerationStatus(previous.taskId);
           if (status.status !== previous.status || status.imageUrl !== previous.imageUrl || status.error !== previous.error) {
-            next = updateImageState(next, item.id, { ...previous, status: status.status, imageUrl: status.imageUrl, error: status.error }); changed = true;
+            next = updateImageState(next, item.id, { ...previous, status: status.status, imageUrl: status.imageUrl, error: status.error });
+            changed = true;
           }
-        } catch { /* A later poll will retry. */ }
+        } catch { /* Retry later */ }
       }
       for (const character of next.analysis?.characters || []) {
         const previous = character.characterSheet;
@@ -335,18 +458,20 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
         try {
           const status = await getImageGenerationStatus(previous.taskId);
           if (status.status !== previous.status || status.imageUrl !== previous.imageUrl || status.error !== previous.error) {
-            next = updateCharacterSheet(next, character.id, { ...previous, status: status.status, imageUrl: status.imageUrl, error: status.error }); changed = true;
+            next = updateCharacterSheet(next, character.id, { ...previous, status: status.status, imageUrl: status.imageUrl, error: status.error });
+            changed = true;
           }
-        } catch { /* A later poll will retry. */ }
+        } catch { /* Retry later */ }
       }
       const settingSheet = next.analysis?.setting.settingSheet;
       if (settingSheet?.taskId && settingSheet.status !== 'COMPLETED' && settingSheet.status !== 'ERROR') {
         try {
           const status = await getImageGenerationStatus(settingSheet.taskId);
           if (status.status !== settingSheet.status || status.imageUrl !== settingSheet.imageUrl || status.error !== settingSheet.error) {
-            next = updateSettingSheet(next, { ...settingSheet, status: status.status, imageUrl: status.imageUrl, error: status.error }); changed = true;
+            next = updateSettingSheet(next, { ...settingSheet, status: status.status, imageUrl: status.imageUrl, error: status.error });
+            changed = true;
           }
-        } catch { /* A later poll will retry. */ }
+        } catch { /* Retry later */ }
       }
       if (changed) {
         const allDone = activeItems.every((item) => {
@@ -358,56 +483,547 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
       }
     };
     void poll();
-    const timer = window.setInterval(() => void poll(), 3500);
+    const timer = window.setInterval(() => void poll(), 3200);
     return () => window.clearInterval(timer);
   }, [workspace?.id, workspace?.analysis, activeItems]);
 
   const openLibraryItem = async (id: string) => {
-    try { const next = await getCharacterWorkspace(id); setWorkspace(next); setScenario(next.scenario); setTab('create'); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'پروژه باز نشد.'); }
+    try {
+      const next = await getCharacterWorkspace(id);
+      setWorkspace(next);
+      setScenario(next.scenario);
+      setTab('create');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'پروژه باز نشد.');
+    }
   };
 
-  const workspaceState = isAnalyzing
-    ? 'در حال تحلیل'
-    : workspace?.status === 'generating'
-      ? 'در حال ساخت'
-      : workspace?.status === 'completed'
-        ? 'تکمیل‌شده'
-        : workspace
-          ? 'ذخیره‌شده'
-          : 'پروژه تازه';
+  return (
+    <main className="character-maker" dir="rtl" id="main-content">
+      {/* Header */}
+      <header className="character-maker__header">
+        <button
+          type="button"
+          className="character-maker__back"
+          onClick={onBack}
+          aria-label="بازگشت به استودیو"
+          title="بازگشت به استودیو"
+        >
+          <Icon name="chevron-right" size={20} />
+        </button>
 
-  return <main className="character-maker" dir="rtl" id="main-content">
-    <header className="character-maker__header">
-      <Button type="button" variant="ghost" iconOnly className="character-maker__back" onClick={onBack} aria-label="بازگشت به استودیو" title="بازگشت به استودیو" startIcon={<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg>} />
-      <div className="character-maker__brand"><span className="character-maker__brand-mark"><Icon name="family" size={20} aria-hidden="true" /></span><span className="character-maker__brand-copy"><strong>ساخت کاراکتر</strong><small>هویت تصویری ثابت برای داستان‌های تو</small></span></div>
-      <span className="character-maker__workspace-state" aria-live="polite">{workspaceState}</span>
-    </header>
-    <nav className="character-maker__tabs" role="tablist" aria-label="بخش‌های ساخت کاراکتر"><button id="character-create-tab" type="button" role="tab" aria-selected={tab === 'create'} aria-controls="character-create-panel" tabIndex={tab === 'create' ? 0 : -1} onClick={() => setTab('create')}>کارگاه ساخت</button><button id="character-library-tab" type="button" role="tab" aria-selected={tab === 'library'} aria-controls="character-library-panel" tabIndex={tab === 'library' ? 0 : -1} onClick={() => setTab('library')}>کتابخانه <i>{library.length}</i></button></nav>
+        <div className="character-maker__brand">
+          <span className="character-maker__brand-mark">
+            <Icon name="family" size={22} />
+          </span>
+          <div className="character-maker__brand-copy">
+            <strong>ساخت کاراکتر</strong>
+            <small>هویت تصویری برای داستان‌های تو</small>
+          </div>
+        </div>
 
-    {tab === 'library' ? <section id="character-library-panel" role="tabpanel" aria-labelledby="character-library-tab" className="character-maker__library" aria-label="کتابخانهٔ کاراکترها"><div className="character-maker__section-heading"><span>کتابخانه‌ی شخصیت‌ها</span><h1 id="character-library-title">قهرمان‌هایت اینجا ماندگار می‌شوند</h1><p>هر پروژه، هویت ثابت، پرامپت‌های حرفه‌ای و تصویر مرجع خودش را نگه می‌دارد.</p></div>{loadingLibrary ? <div className="character-maker__loading"><Icon name="spinner" size={28} aria-hidden="true" />در حال خواندن کتابخانه…</div> : library.length ? <div className="character-maker__library-grid">{library.map((item) => <button key={item.id} type="button" className="character-maker__library-card" onClick={() => void openLibraryItem(item.id)}><span className="character-maker__library-card-icon"><Icon name="family" size={24} aria-hidden="true" /></span><strong>{item.title}</strong><small>{new Intl.DateTimeFormat('fa-IR', { day: 'numeric', month: 'long' }).format(new Date(item.updatedAt))}</small><i>{item.status === 'completed' ? 'تکمیل‌شده' : item.status === 'generating' ? 'در حال ساخت' : 'آماده‌ی بررسی'}</i><Icon name="chevron-left" size={18} aria-hidden="true" /></button>)}</div> : <div className="character-maker__empty"><Icon name="family" size={30} aria-hidden="true" /><h2>هنوز کاراکتری ذخیره نشده</h2><p>سناریوی اولت را تحلیل کن تا کتابخانه‌ات ساخته شود.</p><Button onClick={() => setTab('create')}>شروع ساخت</Button></div>}</section> : <section id="character-create-panel" role="tabpanel" aria-labelledby="character-create-tab" className="character-maker__create-panel">
-      <section className="character-maker__hero"><div className="character-maker__hero-copy"><span className="character-maker__eyebrow"><Icon name="sparkle" size={15} aria-hidden="true" /> قدم ۲ از مسیر داستان</span><h1>قهرمان‌های داستانت را بساز</h1><p>داستانت را می‌خوانیم و ظاهر ثابت هر شخصیت را آماده می‌کنیم.</p></div></section>
-      <section className="character-maker__scenario-panel" aria-labelledby="character-scenario-title">
-        <div className="character-maker__scenario-intro"><span className="character-maker__step">۱</span><div><h2 id="character-scenario-title">سناریو را وارد کن</h2><p>اسم‌ها، رفتارها، موقعیت‌ها و رابطه‌ها را پیدا می‌کنیم؛ لازم نیست فرم طولانی پر کنی.</p></div></div>
-        {scenarioHandoff ? <aside className="character-maker__story-handoff" role="status"><span><Icon name="story" size={18} aria-hidden="true" /></span><div><strong>{scenarioHandoff.title ? `سناریوی «${scenarioHandoff.title}» آماده است` : 'سناریوی ساخته‌شده آماده است'}</strong><p>متن از سناریونویسی وارد شده؛ وقتی آماده‌ای، کاراکترها را تشخیص بده.</p></div></aside> : null}
-        <label className="character-maker__scenario-input"><span className="character-maker__scenario-label">سناریوی داستان</span><textarea aria-label="سناریوی داستان" value={scenario} onChange={(event) => setScenario(event.target.value.slice(0, 8000))} placeholder="سناریوی داستانت را اینجا بنویس یا پیست کن… مثلاً: آرین، پسری کنجکاو، همراه دوست رباتش نیکا وارد کتابخانه‌ی شناور شهر می‌شود…" maxLength={8000} disabled={isAnalyzing} /></label>
-        <div className="character-maker__scenario-footer"><small>{new Intl.NumberFormat('fa-IR').format(scenario.length)} / ۸٬۰۰۰</small><Button type="button" className={scenarioHandoff ? 'character-maker__analyze-button is-story-handoff' : 'character-maker__analyze-button'} onClick={() => void handleAnalyze()} disabled={isAnalyzing || !scenario.trim()} startIcon={<Icon name={isAnalyzing ? 'spinner' : 'sparkle'} size={18} aria-hidden="true" />}>{isAnalyzing ? 'داریم سناریو را می‌خوانیم…' : 'تشخیص کاراکترها'}</Button></div>
-      </section>
-      {analysis ? <div className="character-maker__storyboard-next"><span>قدم بعدی · {completedSheetCount.toLocaleString('fa-IR')} از {analysis.characters.length.toLocaleString('fa-IR')} کاراکترشیت آماده</span><p>{allCharacterSheetsReady ? 'کاراکترشیت‌ها خودکار همراه سناریو به استوری‌برد می‌روند و مرجع ثابت ساخت قاب‌های هر سکانس می‌شوند.' : 'ابتدا کاراکترشیت همهٔ شخصیت‌ها را کامل کن؛ سپس آن‌ها خودکار وارد استوری‌برد خواهند شد.'}</p><Button type="button" variant="secondary" onClick={() => void approveCharactersAndOpenStoryboard()} disabled={!allCharacterSheetsReady} startIcon={<Icon name="story" size={18} aria-hidden="true" />}>{allCharacterSheetsReady ? 'تأیید و رفتن به استوری‌برد' : 'در انتظار تکمیل کاراکترشیت‌ها'}</Button></div> : null}
-      {error ? <p className="character-maker__error" role="alert"><Icon name="alert-triangle" size={18} aria-hidden="true" />{error}</p> : null}
-      {analysis ? <section ref={resultsRef} className="character-maker__results" aria-live="polite" tabIndex={-1}><div className="character-maker__result-heading"><div><span className="character-maker__step">۲</span><h2>{analysis.title}</h2><p>{analysis.summary}</p></div><div className="character-maker__result-actions"><span>{completedCount} از {activeItems.length} تصویر آماده</span><Button type="button" onClick={requestImageGeneration} disabled={isGenerating || pendingImageCount > 0} startIcon={<Icon name={isGenerating || pendingImageCount > 0 ? 'spinner' : 'studio-image'} size={18} aria-hidden="true" />}>{isGenerating ? 'در حال ارسال…' : pendingImageCount ? 'تصاویر در حال ساخت‌اند' : completedCount ? 'تکمیل تصاویر' : 'ساخت همه‌ی تصاویر'}</Button></div></div>{pendingImageCount ? <div className="character-maker__generation-progress" role="status"><Icon name="spinner" size={20} aria-hidden="true" /><div><strong>{new Intl.NumberFormat('fa-IR').format(pendingImageCount)} تصویر در حال ساخت است</strong><span>تصاویر خودکار به‌روز می‌شوند؛ لازم نیست دوباره دکمه‌ای بزنی.</span></div></div> : null}<div className="character-maker__style-bar"><Icon name="sparkles" size={18} aria-hidden="true" /><span>سبک تصویر:</span><strong>{analysis.visualStyle}</strong></div><div className="character-maker__character-grid">{analysis.characters.map((character, index) => <article key={character.id} className="character-maker__character-card" aria-busy={isImagePending(character.image)}><div className="character-maker__image"><ImagePreviewButton image={character.image} alt={`تصویر ${character.name}`} onOpen={() => { const imageUrl = character.image?.imageUrl || character.image?.previousImageUrl; if (imageUrl) setImagePreview({ id: character.image?.taskId || character.id, name: character.name, imageUrl, ratio: '1:1' }); }} /><ImageGenerationNotice name={character.name} image={character.image} /><span className={`character-maker__image-status is-${character.image?.status || 'idle'}`}>{character.image?.status === 'RUNNING' || character.image?.status === 'QUEUE' ? <Icon name="spinner" size={14} aria-hidden="true" /> : <Icon name={character.image?.status === 'COMPLETED' ? 'check' : character.image?.status === 'ERROR' ? 'alert-triangle' : 'sparkle'} size={14} aria-hidden="true" />}{statusText(character.image?.status)}</span></div><div className="character-maker__character-main"><span className="character-maker__character-number">کاراکتر {index + 1}</span><h3>{character.name}</h3><p>{character.role || 'نقش داستانی'}</p></div><dl><div><dt>شخصیت</dt><dd>{character.personality || 'در حال تکمیل'}</dd></div><div><dt>رابطه</dt><dd>{character.relationshipNote || 'براساس سناریو'}</dd></div></dl><div className="character-maker__image-edit-action"><Button type="button" variant="secondary" onClick={() => openImageEditor({ id: character.id, name: character.name, ratio: '1:1', asset: 'image' })} disabled={character.image?.status !== 'COMPLETED'} startIcon={<Icon name="edit" size={16} aria-hidden="true" />}>ویرایش تصویر</Button><Button type="button" onClick={() => void createCharacterSheet(character)} loading={creatingSheetFor === character.id} disabled={character.image?.status !== 'COMPLETED' || Boolean(creatingSheetFor) || (Boolean(character.characterSheet?.taskId) && character.characterSheet?.status !== 'ERROR')} startIcon={<Icon name={creatingSheetFor === character.id ? 'spinner' : 'sparkles'} size={16} aria-hidden="true" />}>{character.characterSheet?.status === 'ERROR' ? 'ساخت دوبارهٔ کاراکترشیت' : 'ساخت کاراکترشیت'}</Button></div>{character.characterSheet ? <section className="character-maker__sheet-card" aria-label={`کاراکترشیت ${character.name}`}><div className="character-maker__sheet-image"><ImagePreviewButton image={character.characterSheet} alt={`کاراکترشیت ${character.name}`} onOpen={() => { const imageUrl = character.characterSheet?.imageUrl || character.characterSheet?.previousImageUrl; if (imageUrl) setImagePreview({ id: character.characterSheet?.taskId || `${character.id}-sheet`, name: `کاراکترشیت ${character.name}`, imageUrl, ratio: '16:9' }); }} /><span className={`character-maker__image-status is-${character.characterSheet.status || 'idle'}`}>{character.characterSheet.status === 'RUNNING' || character.characterSheet.status === 'QUEUE' ? <Icon name="spinner" size={14} aria-hidden="true" /> : <Icon name={character.characterSheet.status === 'COMPLETED' ? 'check' : character.characterSheet.status === 'ERROR' ? 'alert-triangle' : 'sparkle'} size={14} aria-hidden="true" />}{character.characterSheet.status === 'COMPLETED' ? 'کاراکترشیت آماده است' : character.characterSheet.status === 'ERROR' ? 'ساخت ناموفق بود' : 'در حال ساخت کاراکترشیت'}</span></div><div className="character-maker__sheet-copy"><div><span>کاراکترشیت</span><h4>{character.name}</h4></div><Button type="button" variant="secondary" onClick={() => openImageEditor({ id: character.id, name: character.name, ratio: '16:9', asset: 'sheet' })} disabled={character.characterSheet.status !== 'COMPLETED'} startIcon={<Icon name="edit" size={15} aria-hidden="true" />}>ویرایش</Button></div></section> : null}</article>)}</div><article className="character-maker__setting-card"><div className="character-maker__setting-image"><ImagePreviewButton image={analysis.setting.image} alt={`فضای ${analysis.setting.name}`} onOpen={() => { const imageUrl = analysis.setting.image?.imageUrl || analysis.setting.image?.previousImageUrl; if (imageUrl) setImagePreview({ id: analysis.setting.image?.taskId || 'setting', name: analysis.setting.name, imageUrl, ratio: '16:9' }); }} /><ImageGenerationNotice name={analysis.setting.name} image={analysis.setting.image} /></div><div><span className="character-maker__character-number">فضای داستان</span><h3>{analysis.setting.name}</h3><p>{analysis.setting.description}</p><div className="character-maker__setting-actions"><Button type="button" variant="secondary" className="character-maker__setting-edit" onClick={() => openImageEditor({ id: 'setting', name: analysis.setting.name, ratio: '16:9', asset: 'setting' })} disabled={analysis.setting.image?.status !== 'COMPLETED'} startIcon={<Icon name="edit" size={16} aria-hidden="true" />}>ویرایش تصویر</Button></div></div></article></section> : null}
-    </section>}
-    {tab === 'create' && analysis?.setting ? <section className="character-maker__setting-sheet-card" aria-label={`نماهای مرجع ${analysis.setting.name}`}>
-      <div className="character-maker__setting-sheet-image"><ImagePreviewButton image={analysis.setting.settingSheet} alt={`نماهای مرجع ${analysis.setting.name}`} onOpen={() => { const imageUrl = analysis.setting.settingSheet?.imageUrl || analysis.setting.settingSheet?.previousImageUrl; if (imageUrl) setImagePreview({ id: analysis.setting.settingSheet?.taskId || 'setting-sheet', name: `نماهای مرجع ${analysis.setting.name}`, imageUrl, ratio: '16:9' }); }} /><span className={`character-maker__image-status is-${analysis.setting.settingSheet?.status || 'idle'}`}>{analysis.setting.settingSheet?.status === 'RUNNING' || analysis.setting.settingSheet?.status === 'QUEUE' ? <Icon name="spinner" size={14} aria-hidden="true" /> : <Icon name={analysis.setting.settingSheet?.status === 'COMPLETED' ? 'check' : analysis.setting.settingSheet?.status === 'ERROR' ? 'alert-triangle' : 'sparkle'} size={14} aria-hidden="true" />}{analysis.setting.settingSheet?.status === 'COMPLETED' ? 'نماهای لوکیشن آماده است' : analysis.setting.settingSheet?.status === 'ERROR' ? 'ساخت ناموفق بود' : 'آماده‌ی ساخت نماها'}</span></div>
-      <div className="character-maker__setting-sheet-copy"><span>لوکیشن‌شیت</span><h2>نماهای مرجع {analysis.setting.name}</h2><p>نمای باز، زاویه‌های اصلی و جزئیات محیط را با همان سبک و چیدمان ثابت می‌سازیم.</p><div><Button type="button" onClick={() => void createSettingSheet()} loading={isCreatingSettingSheet} disabled={analysis.setting.image?.status !== 'COMPLETED' || isCreatingSettingSheet || (Boolean(analysis.setting.settingSheet?.taskId) && analysis.setting.settingSheet?.status !== 'ERROR')} startIcon={<Icon name={isCreatingSettingSheet ? 'spinner' : 'sparkles'} size={16} aria-hidden="true" />}>{analysis.setting.settingSheet?.status === 'ERROR' ? 'ساخت دوبارهٔ نماهای لوکیشن' : 'ساخت نماهای لوکیشن'}</Button>{analysis.setting.settingSheet ? <Button type="button" variant="secondary" onClick={() => openImageEditor({ id: 'setting', name: analysis.setting.name, ratio: '16:9', asset: 'setting-sheet' })} disabled={analysis.setting.settingSheet.status !== 'COMPLETED'} startIcon={<Icon name="edit" size={16} aria-hidden="true" />}>ویرایش</Button> : null}</div></div>
-    </section> : null}
-    {tab === 'create' && analysis?.setting ? <section className="character-maker__setting-sheet-inline" aria-label={`نماهای مختلف ${analysis.setting.name}`}><Button type="button" onClick={() => void createSettingSheet()} loading={isCreatingSettingSheet} disabled={analysis.setting.image?.status !== 'COMPLETED' || isCreatingSettingSheet || (Boolean(analysis.setting.settingSheet?.taskId) && analysis.setting.settingSheet?.status !== 'ERROR')} startIcon={<Icon name={isCreatingSettingSheet ? 'spinner' : 'sparkles'} size={16} aria-hidden="true" />}>{analysis.setting.settingSheet?.status === 'ERROR' ? 'ساخت دوبارهٔ نماهای مختلف' : 'ساخت نماهای مختلف'}</Button>{analysis.setting.settingSheet ? <section className="character-maker__sheet-card character-maker__setting-sheet-result" aria-label={`نماهای مختلف ${analysis.setting.name}`}><div className="character-maker__sheet-image"><ImagePreviewButton image={analysis.setting.settingSheet} alt={`نماهای مختلف ${analysis.setting.name}`} onOpen={() => { const imageUrl = analysis.setting.settingSheet?.imageUrl || analysis.setting.settingSheet?.previousImageUrl; if (imageUrl) setImagePreview({ id: analysis.setting.settingSheet?.taskId || 'setting-sheet', name: `نماهای مختلف ${analysis.setting.name}`, imageUrl, ratio: '16:9' }); }} /><span className={`character-maker__image-status is-${analysis.setting.settingSheet.status || 'idle'}`}>{analysis.setting.settingSheet.status === 'RUNNING' || analysis.setting.settingSheet.status === 'QUEUE' ? <Icon name="spinner" size={14} aria-hidden="true" /> : <Icon name={analysis.setting.settingSheet.status === 'COMPLETED' ? 'check' : analysis.setting.settingSheet.status === 'ERROR' ? 'alert-triangle' : 'sparkle'} size={14} aria-hidden="true" />}{analysis.setting.settingSheet.status === 'COMPLETED' ? 'نماهای مختلف آماده است' : analysis.setting.settingSheet.status === 'ERROR' ? 'ساخت ناموفق بود' : 'در حال ساخت نماها'}</span></div><div className="character-maker__sheet-copy"><div><span>نماهای مختلف فضای داستان</span><h4>{analysis.setting.name}</h4></div><Button type="button" variant="secondary" onClick={() => openImageEditor({ id: 'setting', name: analysis.setting.name, ratio: '16:9', asset: 'setting-sheet' })} disabled={analysis.setting.settingSheet.status !== 'COMPLETED'} startIcon={<Icon name="edit" size={15} aria-hidden="true" />}>ویرایش</Button></div></section> : null}</section> : null}
-    <Dialog open={Boolean(imageEditTarget)} title={imageEditTarget ? `ویرایش تصویر ${imageEditTarget.name}` : 'ویرایش تصویر'} onClose={() => { if (!isEditingImage) setImageEditTarget(null); }} dismissible={!isEditingImage} showFooter={false} panelClassName="character-maker__edit-dialog">
-      {imageEditTarget ? <div className="character-maker__edit-dialog-content" dir="rtl"><div className="character-maker__edit-source"><SecureImage src={imageEditSource?.imageUrl || imageEditSource?.previousImageUrl} alt={`تصویر فعلی ${imageEditTarget.name}`} /><span>تصویر مرجع</span></div><div className="character-maker__edit-dialog-intro"><span><Icon name="shield" size={19} aria-hidden="true" /></span><div><strong>فقط همان تغییر را اعمال می‌کنیم</strong><p>تصویر فعلی مرجع است؛ هویت، چهره و سبک حفظ می‌شود مگر خودت خلافش را بخواهی.</p></div></div><label htmlFor="character-image-edit-request">چه چیزی را تغییر بدهیم؟<textarea id="character-image-edit-request" value={imageEditRequest} onChange={(event) => { setImageEditRequest(event.target.value.slice(0, 900)); setImageEditError(''); }} placeholder="مثلاً لباس علی را به یک هودی سبز تبدیل کن، بقیهٔ تصویر بدون تغییر بماند." maxLength={900} disabled={isEditingImage} /></label>{imageEditError ? <p className="character-maker__edit-error" role="alert">{imageEditError}</p> : null}<div className="character-maker__edit-actions"><Button type="button" variant="secondary" onClick={() => setImageEditTarget(null)} disabled={isEditingImage}>انصراف</Button><Button type="button" onClick={() => void submitImageEdit()} loading={isEditingImage} disabled={isEditingImage || imageEditRequest.trim().length < 8} startIcon={<Icon name="sparkle" size={17} aria-hidden="true" />}>اعمال تغییر</Button></div></div> : null}
-    </Dialog>
-    <Dialog open={isImageGenerationConfirmOpen} title="تصاویر را بسازیم؟" onClose={() => setIsImageGenerationConfirmOpen(false)} onConfirm={confirmImageGeneration} confirmText="تأیید و ساخت تصاویر" cancelText="انصراف" panelClassName="character-maker__generation-confirm">
-      <div className="character-maker__generation-confirm-copy"><span><Icon name="sparkles" size={22} aria-hidden="true" /></span><p>{analysis ? `${new Intl.NumberFormat('fa-IR').format(analysis.characters.length)} کاراکتر و فضای داستان آماده‌اند. با تأیید تو، ساخت تصویرها شروع می‌شود.` : 'با تأیید تو، ساخت تصویرها شروع می‌شود.'}</p></div>
-    </Dialog>
-    {imagePreviewItem ? <ImageViewer item={imagePreviewItem} onClose={() => setImagePreview(null)} onDownload={(item) => void downloadPreview(item)} /> : null}
-  </main>;
+        <span className="character-maker__header-spacer" aria-hidden="true" />
+      </header>
+
+      {/* Navigation Tabs */}
+      <nav className="character-maker__tabs" role="tablist" aria-label="بخش‌های ساخت کاراکتر">
+        <button
+          id="character-create-tab"
+          type="button"
+          role="tab"
+          aria-selected={tab === 'create'}
+          tabIndex={tab === 'create' ? 0 : -1}
+          onClick={() => setTab('create')}
+        >
+          <Icon name="sparkles" size={16} />
+          <span>کارگاه ساخت</span>
+        </button>
+        <button
+          id="character-library-tab"
+          type="button"
+          role="tab"
+          aria-selected={tab === 'library'}
+          tabIndex={tab === 'library' ? 0 : -1}
+          onClick={() => setTab('library')}
+        >
+          <Icon name="book" size={16} />
+          <span>قهرمان‌های من</span>
+          <i>{library.length}</i>
+        </button>
+      </nav>
+
+      {/* Library Panel */}
+      {tab === 'library' ? (
+        <section aria-label="کتابخانه کاراکترها">
+          <div className="character-maker__results-head">
+            <div className="character-maker__results-title">
+              <Icon name="book" size={24} />
+              <div>
+                <h2>کتابخانهٔ کاراکترها</h2>
+                <p>قهرمان‌هایی که تا امروز ساخته‌ای اینجا ذخیره شده‌اند.</p>
+              </div>
+            </div>
+            <button type="button" className="danoa-btn danoa-btn--primary" onClick={() => setTab('create')}>
+              <Icon name="plus" size={16} />
+              <span>ساخت کاراکتر جدید</span>
+            </button>
+          </div>
+
+          {loadingLibrary ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--color-muted)' }}>
+              <Icon name="spinner" size={32} />
+              <p style={{ marginTop: 12, fontWeight: 700 }}>در حال بارگذاری کتابخانه…</p>
+            </div>
+          ) : library.length ? (
+            <div className="character-maker__library-grid">
+              {library.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="character-maker__storybook-card"
+                  onClick={() => void openLibraryItem(item.id)}
+                >
+                  <div className="character-maker__storybook-icon">
+                    <Icon name="story" size={24} />
+                  </div>
+                  <div className="character-maker__storybook-info">
+                    <strong>{item.title || 'داستان بدون عنوان'}</strong>
+                    <small>
+                      {item.status === 'completed' ? 'تکمیل‌شده' : item.status === 'generating' ? 'در حال ساخت' : 'آماده بررسی'}
+                    </small>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--color-surface-2)', borderRadius: 22, border: '1px solid var(--color-border)' }}>
+              <Icon name="family" size={40} style={{ color: 'var(--color-muted)', marginBottom: 12 }} />
+              <h3 style={{ fontWeight: 800, fontSize: '1.15rem' }}>هنوز کاراکتری ذخیره نشده است</h3>
+              <p style={{ color: 'var(--color-muted)', margin: '6px 0 20px' }}>داستان اولت را وارد کن تا قهرمان‌هایت ساخته شوند.</p>
+              <button type="button" className="danoa-btn danoa-btn--primary" onClick={() => setTab('create')}>
+                <Icon name="sparkles" size={16} />
+                <span>شروع ساخت</span>
+              </button>
+            </div>
+          )}
+        </section>
+      ) : (
+        /* Create Panel */
+        <section>
+          {/* Hero Section */}
+          <section className="character-maker__hero">
+            <div className="character-maker__hero-copy">
+              <span className="character-maker__eyebrow">
+                <Icon name="sparkle" size={14} />
+                قدم ۲: خلق قهرمان‌های داستان
+              </span>
+              <h1>قهرمان‌های داستانت را بساز</h1>
+              <p>داستانت را بگو تا هویت تصویری، لباس‌ها و دنیای قشنگشان را برایت آماده کنیم.</p>
+            </div>
+          </section>
+
+          {/* Scenario Input: Direct Canvas Surface (Zero Nested Boxes) */}
+          <section className="character-maker__story-panel">
+            <div className="character-maker__story-intro">
+              <span className="character-maker__step">۱</span>
+              <div>
+                <h2>داستانت را برامون بگو</h2>
+                <p>می‌توانی چند خط داستانت را بنویسی، یا یکی از ایده‌های آمادهٔ زیر را انتخاب کنی:</p>
+              </div>
+            </div>
+
+            {/* Story Starters */}
+            <div className="character-maker__starters">
+              <span className="character-maker__starters-label">
+                <Icon name="sparkle" size={14} />
+                <span>ایده‌های داستانی:</span>
+              </span>
+              {STORY_STARTERS.map((s, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className="character-maker__starter-chip"
+                  onClick={() => setScenario(s.prompt)}
+                >
+                  <Icon name={s.icon} size={15} />
+                  <span>{s.title}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* The single writing surface */}
+            <textarea
+              className="character-maker__textarea"
+              value={scenario}
+              onChange={(e) => setScenario(e.target.value.slice(0, 8000))}
+              placeholder="مثلاً: یه بچه خرس کوچولو به اسم فندقی با کلاه زرد و عینک گرد، با دوستش یه پرنده آبی پرواز می‌کنند به شهر ابرها…"
+              rows={4}
+              disabled={isAnalyzing}
+            />
+
+            <div className="character-maker__story-footer">
+              <span className="character-maker__char-count">
+                {new Intl.NumberFormat('fa-IR').format(scenario.length)} / ۸٬۰۰۰ کاراکتر
+              </span>
+
+              <button
+                type="button"
+                className="danoa-btn danoa-btn--primary"
+                onClick={() => void handleAnalyze()}
+                disabled={isAnalyzing || !scenario.trim()}
+              >
+                <Icon name={isAnalyzing ? 'spinner' : 'sparkles'} size={18} />
+                <span>{isAnalyzing ? 'در حال ساخت شخصیت‌ها…' : 'ساخت شخصیت‌ها'}</span>
+              </button>
+            </div>
+          </section>
+
+          {error && (
+            <div style={{
+              maxWidth: 1120, margin: '0 auto 20px', background: 'color-mix(in srgb, var(--color-danger) 8%, var(--color-surface-2))',
+              border: '1px solid color-mix(in srgb, var(--color-danger) 30%, var(--color-border))', borderRadius: 14,
+              padding: '12px 16px', color: 'var(--color-danger)', fontWeight: 750, display: 'flex', alignItems: 'center', gap: 10
+            }}>
+              <Icon name="alert-triangle" size={18} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Results Stage: Direct Canvas Flow (NO NESTED BOXES) */}
+          {analysis && (
+            <section ref={resultsRef}>
+              <div className="character-maker__results-head">
+                <div className="character-maker__results-title">
+                  <span className="character-maker__step">۲</span>
+                  <div>
+                    <h2>{analysis.title}</h2>
+                    <p>{analysis.summary}</p>
+                  </div>
+                </div>
+
+                <div className="character-maker__results-actions">
+                  <span className="character-maker__count-badge">
+                    <Icon name="check" size={14} />
+                    <span>{completedCount} از {activeItems.length} تصویر آماده</span>
+                  </span>
+
+                  <button
+                    type="button"
+                    className="danoa-btn danoa-btn--primary"
+                    onClick={() => setIsImageGenerationConfirmOpen(true)}
+                    disabled={isGenerating || pendingImageCount > 0}
+                  >
+                    <Icon name={isGenerating || pendingImageCount > 0 ? 'spinner' : 'studio-image'} size={18} />
+                    <span>
+                      {isGenerating ? 'در حال ارسال…' : pendingImageCount ? 'تصاویر در حال ساختند' : completedCount ? 'تکمیل تصاویر' : 'ساخت همهٔ تصاویر'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Characters Grid: Single Edge-to-Edge Cards */}
+              <div className="character-maker__grid">
+                {analysis.characters.map((character, index) => {
+                  const showingSheet = cardViews[character.id] === 'sheet' && character.characterSheet;
+                  const activeImg = showingSheet ? character.characterSheet : character.image;
+                  const activeRatio = showingSheet ? '16:9' : '1:1';
+                  const activeName = showingSheet ? `همهٔ زاویه‌های ${character.name}` : character.name;
+
+                  return (
+                    <article key={character.id} className="character-maker__card">
+                      {/* Full-bleed Edge-to-Edge Image (No Inset Box) */}
+                      <div className={`character-maker__display ${showingSheet ? 'is-sheet' : ''}`}>
+                        <SecureImage src={activeImg?.imageUrl || activeImg?.previousImageUrl} alt={activeName} />
+
+                        {activeImg?.imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const url = activeImg.imageUrl || activeImg.previousImageUrl;
+                              if (url) setImagePreview({ id: activeImg.taskId || character.id, name: activeName, imageUrl: url, ratio: activeRatio });
+                            }}
+                            style={{
+                              position: 'absolute', inset: 0, border: 0, background: 'transparent',
+                              cursor: 'zoom-in', width: '100%', height: '100%'
+                            }}
+                            title="نمایش بزرگ تصویر"
+                            aria-label={`نمایش بزرگ ${activeName}`}
+                          />
+                        )}
+
+                        {/* Floating View Switcher Over Image (No row inside card) */}
+                        <div className="character-maker__floating-switcher">
+                          <button
+                            type="button"
+                            className={!showingSheet ? 'is-active' : ''}
+                            onClick={() => setCardViews((prev) => ({ ...prev, [character.id]: 'portrait' }))}
+                          >
+                            <Icon name="user" size={13} />
+                            <span>چهره</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={showingSheet ? 'is-active' : ''}
+                            onClick={() => {
+                              if (!character.characterSheet) {
+                                void createCharacterSheet(character);
+                              } else {
+                                setCardViews((prev) => ({ ...prev, [character.id]: 'sheet' }));
+                              }
+                            }}
+                          >
+                            <Icon name="grid" size={13} />
+                            <span>{character.characterSheet ? 'نماها' : 'ساخت نماها'}</span>
+                          </button>
+                        </div>
+
+                        {/* Floating Status Pill */}
+                        <span className={`character-maker__status-pill is-${activeImg?.status || 'idle'}`}>
+                          {activeImg?.status === 'RUNNING' || activeImg?.status === 'QUEUE' ? (
+                            <Icon name="spinner" size={14} />
+                          ) : (
+                            <Icon name={activeImg?.status === 'COMPLETED' ? 'check' : activeImg?.status === 'ERROR' ? 'alert-triangle' : 'sparkle'} size={14} />
+                          )}
+                          <span>{statusText(activeImg?.status)}</span>
+                        </span>
+                      </div>
+
+                      {/* Card Body: Clean Typography (ZERO nested colored boxes) */}
+                      <div className="character-maker__card-body">
+                        <div className="character-maker__card-title-row">
+                          <h3>{character.name}</h3>
+                          <span className="character-maker__card-num">قهرمان {index + 1}</span>
+                        </div>
+
+                        <div className="character-maker__card-desc">
+                          <div className="character-maker__card-info-item">
+                            <Icon name="sparkle" size={14} />
+                            <span>نقش: <strong>{character.role || 'قهرمان داستانی'}</strong></span>
+                          </div>
+                          <div className="character-maker__card-info-item">
+                            <Icon name="heart" size={14} />
+                            <span>شخصیت: <strong>{character.personality || 'شجاع و کنجکاو'}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Actions */}
+                      <div className="character-maker__card-actions">
+                        <button
+                          type="button"
+                          className="danoa-btn danoa-btn--secondary danoa-btn--sm"
+                          onClick={() => openImageEditor({
+                            id: character.id,
+                            name: activeName,
+                            ratio: activeRatio,
+                            asset: showingSheet ? 'sheet' : 'image'
+                          })}
+                          disabled={activeImg?.status !== 'COMPLETED'}
+                        >
+                          <Icon name="edit" size={15} />
+                          <span>ویرایش تصویر</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="danoa-btn danoa-btn--primary danoa-btn--sm"
+                          onClick={() => void createCharacterSheet(character)}
+                          disabled={character.image?.status !== 'COMPLETED' || Boolean(creatingSheetFor) || (Boolean(character.characterSheet?.taskId) && character.characterSheet?.status !== 'ERROR')}
+                        >
+                          <Icon name={creatingSheetFor === character.id ? 'spinner' : 'sparkles'} size={15} />
+                          <span>{character.characterSheet?.status === 'COMPLETED' ? 'زاویه‌ها آماده است' : 'ساخت زاویه‌ها'}</span>
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* Setting Card: Edge-to-Edge Single Card (NO NESTED BOXES) */}
+              <div className="character-maker__setting-card">
+                <div className="character-maker__setting-display">
+                  <SecureImage
+                    src={settingView === 'sheet' && analysis.setting.settingSheet
+                      ? (analysis.setting.settingSheet.imageUrl || analysis.setting.settingSheet.previousImageUrl)
+                      : (analysis.setting.image?.imageUrl || analysis.setting.image?.previousImageUrl)}
+                    alt={`محیط داستان: ${analysis.setting.name}`}
+                  />
+                  <span className={`character-maker__status-pill is-${(settingView === 'sheet' ? analysis.setting.settingSheet : analysis.setting.image)?.status || 'idle'}`}>
+                    <Icon name={(settingView === 'sheet' ? analysis.setting.settingSheet : analysis.setting.image)?.status === 'COMPLETED' ? 'check' : 'sparkle'} size={14} />
+                    <span>{statusText((settingView === 'sheet' ? analysis.setting.settingSheet : analysis.setting.image)?.status)}</span>
+                  </span>
+                </div>
+
+                <div className="character-maker__setting-info">
+                  <span className="character-maker__setting-badge">
+                    <Icon name="story" size={14} />
+                    <span>دنیای داستان</span>
+                  </span>
+                  <h3>{analysis.setting.name}</h3>
+                  <p>{analysis.setting.description}</p>
+
+                  <div className="character-maker__setting-actions">
+                    <button
+                      type="button"
+                      className="danoa-btn danoa-btn--secondary danoa-btn--sm"
+                      onClick={() => openImageEditor({
+                        id: 'setting',
+                        name: analysis.setting.name,
+                        ratio: '16:9',
+                        asset: settingView === 'sheet' ? 'setting-sheet' : 'setting'
+                      })}
+                      disabled={(settingView === 'sheet' ? analysis.setting.settingSheet : analysis.setting.image)?.status !== 'COMPLETED'}
+                    >
+                      <Icon name="edit" size={15} />
+                      <span>ویرایش تصویر</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="danoa-btn danoa-btn--primary danoa-btn--sm"
+                      onClick={() => void createSettingSheet()}
+                      disabled={analysis.setting.image?.status !== 'COMPLETED' || isCreatingSettingSheet}
+                    >
+                      <Icon name={isCreatingSettingSheet ? 'spinner' : 'sparkles'} size={15} />
+                      <span>{analysis.setting.settingSheet?.status === 'COMPLETED' ? 'نماهای محیط آماده است' : 'ساخت نماهای محیط'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Storyboard Handoff Banner */}
+              <div className="character-maker__handoff-banner">
+                <div className="character-maker__handoff-copy">
+                  <div className="character-maker__handoff-icon">
+                    <Icon name="rocket" size={24} />
+                  </div>
+                  <div>
+                    <strong>قهرمان‌ها آماده هستند!</strong>
+                    <p>
+                      {allCharacterSheetsReady
+                        ? 'همهٔ نماهای شخصیت‌ها آماده شده‌اند؛ اکنون می‌توانید وارد ساخت کارتون و استوری‌برد شوید.'
+                        : 'برای ساخت کارتون، نماهای مختلف همهٔ قهرمان‌ها را آماده کنید تا در فیلم یکپارچه بمانند.'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="danoa-btn character-maker__handoff-btn"
+                  onClick={() => void approveCharactersAndOpenStoryboard()}
+                  disabled={!allCharacterSheetsReady}
+                >
+                  <Icon name="rocket" size={18} />
+                  <span>تأیید و رفتن به استوری‌برد</span>
+                </button>
+              </div>
+            </section>
+          )}
+        </section>
+      )}
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={Boolean(imageEditTarget)}
+        title={imageEditTarget ? `ویرایش تصویر ${imageEditTarget.name}` : 'ویرایش تصویر'}
+        onClose={() => { if (!isEditingImage) setImageEditTarget(null); }}
+        dismissible={!isEditingImage}
+        showFooter={false}
+      >
+        {imageEditTarget && (
+          <div dir="rtl" style={{ display: 'grid', gap: 16 }}>
+            <div style={{
+              width: 140, height: 140, margin: '0 auto', borderRadius: 16,
+              overflow: 'hidden', border: '1px solid var(--color-border)', background: 'var(--color-surface-container-lowest)'
+            }}>
+              <SecureImage src={imageEditSource?.imageUrl || imageEditSource?.previousImageUrl} alt="تصویر فعلی" />
+            </div>
+
+            <div style={{ display: 'grid', gap: 8 }}>
+              <label htmlFor="edit-req-input" style={{ fontWeight: 800, fontSize: '0.9rem' }}>
+                چه تغییری در قیافه یا لباس این شخصیت اعمال شود؟
+              </label>
+              <textarea
+                id="edit-req-input"
+                className="character-maker__textarea"
+                style={{ minHeight: 90 }}
+                value={imageEditRequest}
+                onChange={(e) => { setImageEditRequest(e.target.value.slice(0, 900)); setImageEditError(''); }}
+                placeholder="مثلاً: کلاه قرمزی بر سرش بگذار، یا رنگ لباسش را به آبی تغییر بده…"
+                rows={3}
+                disabled={isEditingImage}
+              />
+
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                {EDIT_SUGGESTIONS.map((sug, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="character-maker__starter-chip"
+                    onClick={() => setImageEditRequest((prev) => prev ? `${prev} و ${sug}` : sug)}
+                  >
+                    <span>{sug}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {imageEditError && (
+              <p style={{ color: 'var(--color-danger)', fontWeight: 700, fontSize: '0.82rem', margin: 0 }}>
+                {imageEditError}
+              </p>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+              <button
+                type="button"
+                className="danoa-btn danoa-btn--secondary danoa-btn--sm"
+                onClick={() => setImageEditTarget(null)}
+                disabled={isEditingImage}
+              >
+                انصراف
+              </button>
+              <button
+                type="button"
+                className="danoa-btn danoa-btn--primary danoa-btn--sm"
+                onClick={() => void submitImageEdit()}
+                disabled={isEditingImage || imageEditRequest.trim().length < 5}
+              >
+                <Icon name={isEditingImage ? 'spinner' : 'sparkles'} size={16} />
+                <span>{isEditingImage ? 'در حال اعمال تغییر…' : 'اعمال تغییر'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </Dialog>
+
+      {/* Confirmation Dialog for Image Generation */}
+      <Dialog
+        open={isImageGenerationConfirmOpen}
+        title="تصاویر قهرمان‌ها ساخته شوند؟"
+        onClose={() => setIsImageGenerationConfirmOpen(false)}
+        onConfirm={confirmImageGeneration}
+        confirmText="تأیید و ساخت تصاویر"
+        cancelText="انصراف"
+      >
+        <div style={{ padding: '10px 0', textAlign: 'center' }}>
+          <Icon name="sparkles" size={40} style={{ color: 'var(--color-primary)', marginBottom: 8 }} />
+          <p style={{ fontSize: '1rem', fontWeight: 750, color: 'var(--color-text)' }}>
+            {analysis
+              ? `${new Intl.NumberFormat('fa-IR').format(analysis.characters.length)} کاراکتر و فضای داستان آماده هستند. با تأیید شما ساخت تصاویر شروع می‌شود.`
+              : 'با تأیید شما ساخت تصاویر شروع می‌شود.'}
+          </p>
+        </div>
+      </Dialog>
+
+      {/* Full-screen Image Viewer */}
+      {imagePreviewItem && (
+        <ImageViewer
+          item={imagePreviewItem}
+          onClose={() => setImagePreview(null)}
+          onDownload={(item) => void downloadPreview(item)}
+        />
+      )}
+    </main>
+  );
 }
