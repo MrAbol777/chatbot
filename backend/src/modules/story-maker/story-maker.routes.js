@@ -171,8 +171,10 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
     let structuredScenario = normalizeScenario(parseJsonObject(rawScenario), draft.scenes);
     let quality = validateScenario(structuredScenario, draft.scenes);
     let repaired = false;
+    let completed = false;
     if (!quality.valid) {
       repaired = true;
+      logger.warn?.('STORY_MAKER', 'scenario_quality_repairing', { requestId, errorCount: quality.errors.length, errors: quality.errors.slice(0, 20) });
       result = await requestScenarioCompletion([
         { role: 'system', content: `${baseSystemPrompt}\n\nتو ویراستار فنی سناریوی کودک هستی. فقط خروجی JSON معتبر و کامل بده.` },
         { role: 'user', content: buildRepairPrompt(prompt, rawScenario, quality.errors) }
@@ -181,8 +183,22 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
       structuredScenario = normalizeScenario(parseJsonObject(rawScenario), draft.scenes);
       quality = validateScenario(structuredScenario, draft.scenes);
     }
-    if (!quality.valid) throw Object.assign(new Error('STORY_QUALITY_FAILED'), { code: 'STORY_QUALITY_FAILED' });
-    return { story: structuredScenario, scenario: buildScenarioMarkdown(structuredScenario), model: result.model, quality: { status: 'passed', repaired } };
+    if (!quality.valid) {
+      logger.warn?.('STORY_MAKER', 'scenario_quality_finalizing', { requestId, errorCount: quality.errors.length, errors: quality.errors.slice(0, 20) });
+      result = await requestScenarioCompletion([
+        { role: 'system', content: `${baseSystemPrompt}\n\nتو ویراستار نهاییِ سناریوی کودک هستی. با خلاقیت خودت، فقط جزئیات ناقص را کامل کن؛ انتخاب‌ها و موضوع کودک را حفظ کن. کل JSON معتبر، کامل و آماده‌ی تولید را بدون هیچ توضیح اضافه برگردان.` },
+        { role: 'user', content: buildRepairPrompt(prompt, rawScenario, quality.errors) }
+      ], requestId, { retryOnTimeout: false });
+      rawScenario = String(result?.reply || '').trim();
+      structuredScenario = normalizeScenario(parseJsonObject(rawScenario), draft.scenes);
+      quality = validateScenario(structuredScenario, draft.scenes);
+      completed = true;
+    }
+    if (!quality.valid) {
+      logger.error?.('STORY_MAKER', 'scenario_quality_failed', { requestId, errorCount: quality.errors.length, errors: quality.errors.slice(0, 20) });
+      throw Object.assign(new Error('STORY_QUALITY_FAILED'), { code: 'STORY_QUALITY_FAILED' });
+    }
+    return { story: structuredScenario, scenario: buildScenarioMarkdown(structuredScenario), model: result.model, quality: { status: 'passed', repaired, completed } };
   };
 
   router.post('/api/story-scenarios/brief', requirePrincipal, briefLimiter, async (req, res) => {
