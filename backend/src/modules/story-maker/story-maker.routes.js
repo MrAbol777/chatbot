@@ -3,7 +3,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { createRequirePrincipal } = require('../auth/principal');
-const { buildClarificationPrompt, buildFollowUpClarificationPrompt, buildScenarioPrompt, buildStoryPreviewPrompt, normalizeStoryContext, normalizeStoryDraft } = require('./story-maker.prompt');
+const { buildClarificationPrompt, buildFollowUpClarificationPrompt, buildScenarioPrompt, buildStoryPreviewPrompt, detectExplicitStoryDetails, normalizeStoryContext, normalizeStoryDraft } = require('./story-maker.prompt');
 const { buildKidFriendlyScenarioMarkdown, buildRepairPrompt, buildRevisionPrompt, buildScenarioMarkdown, normalizeScenario, parseJsonObject, validateScenario } = require('./story-maker.scenario');
 
 function publicError(error) {
@@ -15,20 +15,8 @@ function publicError(error) {
   return { status: 502, error: 'STORY_GENERATION_FAILED', message: 'داستان ساخته نشد. لطفاً دوباره امتحان کن.' };
 }
 
-function fallbackBrief(draft) {
-  return {
-    status: 'needs_clarification',
-    summary: draft.idea,
-    resolvedDetails: [],
-    assumptions: [],
-    questions: [
-      { id: 'age', question: 'این قصه برای چه گروه سنی‌ای ساخته شود؟', hint: 'تا زبان و حال‌وهوای داستان دقیق‌تر شود.', options: ['۰ تا ۳ سال', '۴ تا ۷ سال', '۸ تا ۱۲ سال', '۱۳ تا ۱۷ سال', '۱۸ تا ۲۵ سال'] },
-      { id: 'format', question: 'دوست داری قصه‌ات را چطور ببینیم؟', hint: 'سبک تصویر و روایت را با این انتخاب هماهنگ می‌کنیم.', options: ['انیمیشن', 'فیلم سینمایی'] },
-      { id: 'duration', question: 'داستانت چند ثانیه باشد؟', hint: 'عدد را بکش یا خودت تایپ کن؛ از ۲ تا ۶۰ ثانیه.', options: [] },
-      { id: 'location', question: 'ماجرا کجا اتفاق بیفتد؟', hint: 'یک دنیا برای شروع قصه انتخاب کن.', options: ['همان دنیای ایده', 'یک جای خیالی شگفت‌انگیز', 'یک مکان واقعی و آشنا'] },
-      { id: 'mood', question: 'حال‌وهوای داستان چطور باشد؟', hint: 'لحن قصه را انتخاب کن.', options: ['شاد و بامزه', 'هیجان‌انگیز و ماجراجویانه', 'آرام و احساسی'] }
-    ]
-  };
+function fallbackBrief(draft, knownDetails = {}) {
+  return normalizeBrief({}, draft, knownDetails);
 }
 
 function normalizeExpectedScenes(value) {
@@ -58,7 +46,7 @@ function normalizeStoryImprovement(value) {
   return feedback;
 }
 
-function normalizeBrief(value, draft) {
+function normalizeBrief(value, draft, knownDetails = {}) {
   const source = value && typeof value === 'object' ? value : {};
   const cleanText = (item, max) => typeof item === 'string' ? item.trim().replace(/\s+/g, ' ').slice(0, max) : '';
   const cleanPairs = (items, maxItems) => (Array.isArray(items) ? items : []).slice(0, maxItems).map((item) => ({ label: cleanText(item?.label, 70), value: cleanText(item?.value, 150) })).filter((item) => item.label && item.value);
@@ -71,21 +59,22 @@ function normalizeBrief(value, draft) {
   const fixedChoices = {
     age: { question: 'این قصه برای چه گروه سنی‌ای ساخته شود؟', hint: 'تا زبان و حال‌وهوای داستان دقیق‌تر شود.', options: ['۰ تا ۳ سال', '۴ تا ۷ سال', '۸ تا ۱۲ سال', '۱۳ تا ۱۷ سال', '۱۸ تا ۲۵ سال'] },
     format: { question: 'دوست داری قصه‌ات را چطور ببینیم؟', hint: 'فقط قالب دلخواهت را انتخاب کن.', options: ['انیمیشن', 'فیلم سینمایی'] },
-    duration: { question: 'داستانت چند ثانیه باشد؟', hint: 'عدد را بکش یا خودت تایپ کن؛ از ۲ تا ۶۰ ثانیه.', options: [] }
+    duration: { question: 'داستانت چند ثانیه باشد؟', hint: 'عدد را بکش یا خودت تایپ کن؛ از ۲ تا ۶۰ ثانیه.', options: [] },
+    location: { question: 'ماجرا کجا اتفاق بیفتد؟', hint: 'یک دنیا برای شروع قصه انتخاب کن.', options: ['همان دنیای ایده', 'یک جای خیالی شگفت‌انگیز', 'یک مکان واقعی و آشنا'] },
+    mood: { question: 'حال‌وهوای داستان چطور باشد؟', hint: 'لحن قصه را انتخاب کن.', options: ['شاد و بامزه', 'هیجان‌انگیز و ماجراجویانه', 'آرام و احساسی'] }
   };
-  for (const [id, fixed] of Object.entries(fixedChoices)) {
-    const index = questions.findIndex((question) => question.id === id);
-    if (index >= 0) questions[index] = { ...questions[index], ...fixed };
-  }
+  const questionById = new Map(questions.map((question) => [question.id, question]));
   const requiredQuestionIds = ['age', 'format', 'duration', 'location', 'mood'];
-  const orderedQuestions = requiredQuestionIds.map((id) => questions.find((question) => question.id === id)).filter(Boolean);
-  const status = orderedQuestions.length === requiredQuestionIds.length ? 'needs_clarification' : 'ready';
+  const orderedQuestions = requiredQuestionIds.filter((id) => !knownDetails[id]).map((id) => ({ ...fixedChoices[id], ...(questionById.get(id) || {}), id }));
+  const knownPairs = Object.entries(knownDetails).filter(([id, value]) => requiredQuestionIds.includes(id) && value).map(([id, value]) => ({ label: ({ age: 'گروه سنی', format: 'قالب داستان', duration: 'مدت داستان', location: 'محل رخداد', mood: 'حال‌وهوای داستان' })[id], value: cleanText(value, 150) }));
+  const generatedPairs = cleanPairs(source.resolvedDetails, 8).filter((item) => !knownPairs.some((known) => known.label === item.label));
+  const status = orderedQuestions.length ? 'needs_clarification' : 'ready';
   return {
     status,
     summary: cleanText(source.summary, 280) || draft.idea,
-    resolvedDetails: cleanPairs(source.resolvedDetails, 8),
+    resolvedDetails: [...knownPairs, ...generatedPairs].slice(0, 8),
     assumptions: cleanPairs(source.assumptions, 5),
-    questions: status === 'needs_clarification' ? orderedQuestions : []
+    questions: orderedQuestions
   };
 }
 
@@ -222,14 +211,19 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
   router.post('/api/story-scenarios/brief', requirePrincipal, briefLimiter, async (req, res) => {
     try {
       const draft = normalizeStoryDraft(req.body?.draft);
+      const detected = detectExplicitStoryDetails(draft.idea);
+      if (!detected.missingIds.length) {
+        const brief = fallbackBrief(draft, detected.details);
+        logger.log?.('STORY_MAKER', 'brief_fast_path', { requestId: res.locals.requestId, userId: req.user?.id, status: brief.status, questionCount: brief.questions.length, detected: detected.details });
+        return res.json({ brief, model: 'local-fast-path' });
+      }
       const baseSystemPrompt = await promptService.getSystemPrompt();
       const result = await requestStructuredCompletion([
         { role: 'system', content: `${baseSystemPrompt}\n\nتو در این درخواست فقط کمک‌کار قصه هستی. فقط JSON معتبر برگردان و هرگز سناریو ننویس.` },
-        { role: 'user', content: buildClarificationPrompt(draft) }
-      ], res.locals.requestId, { maxOutputTokens: 4096 });
-      const candidateBrief = normalizeBrief(parseJsonObject(result?.reply), draft);
-      const brief = candidateBrief.questions.length === 5 ? candidateBrief : fallbackBrief(draft);
-      logger.log?.('STORY_MAKER', 'brief_prepared', { requestId: res.locals.requestId, userId: req.user?.id, status: brief.status, questionCount: brief.questions.length, model: result.model });
+        { role: 'user', content: buildClarificationPrompt(draft, detected.details) }
+      ], res.locals.requestId, { maxOutputTokens: Math.max(1024, Math.min(4096, 760 + detected.missingIds.length * 260)) });
+      const brief = normalizeBrief(parseJsonObject(result?.reply), draft, detected.details);
+      logger.log?.('STORY_MAKER', 'brief_prepared', { requestId: res.locals.requestId, userId: req.user?.id, status: brief.status, questionCount: brief.questions.length, detected: detected.details, model: result.model });
       return res.json({ brief, model: result.model });
     } catch (error) {
       const payload = publicError(error);

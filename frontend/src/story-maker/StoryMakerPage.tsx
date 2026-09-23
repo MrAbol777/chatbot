@@ -19,6 +19,7 @@ type CharacterEditorItem = StoryAddedCharacter & { isNew: boolean };
 const STORY_HISTORY_STORAGE_KEY = 'danoa-story-history-v1';
 const STORY_PENDING_STORAGE_KEY = 'danoa-story-pending-v1';
 const initialDraft: StoryDraft = { idea: '', heroName: '', companionName: '', mood: 'adventure', place: 'forest', customPlace: '', length: 'medium', customSceneCount: '', ending: 'happy', customEnding: '' };
+const storyDetailLabels: Record<string, string> = { age: 'گروه سنی', format: 'قالب داستان', duration: 'مدت داستان', location: 'محل رخداد', mood: 'حال‌وهوای داستان' };
 
 function discardLegacyFollowUpQuestions(source: StoryBrief | null | undefined): StoryBrief | null {
   if (!source) return null;
@@ -29,6 +30,35 @@ function discardLegacyFollowUpQuestions(source: StoryBrief | null | undefined): 
 
 function OptionCheck() {
   return <span className="story-maker__option-check" aria-hidden="true"><Icon name="check" size={14} /></span>;
+}
+
+type StoryProcessingStage = 0 | 1 | 2;
+
+const storyProcessingSteps = ['ایده', 'جزئیات', 'داستان'] as const;
+
+function StoryProcessingCard({ stage, headline, support, onCancel }: { stage: StoryProcessingStage; headline: string; support: string; onCancel: () => void }) {
+  return (
+    <div className="story-maker__processing-card" role="status" aria-live="polite" aria-busy="true">
+      <div className="story-maker__processing-orbit" aria-hidden="true">
+        <span><Icon name="sparkle" size={25} /></span>
+        <i />
+        <b />
+      </div>
+      <ol className="story-maker__processing-steps" aria-label="مراحل آماده‌سازی داستان">
+        {storyProcessingSteps.map((label, index) => (
+          <li key={label} className={index === stage ? 'is-current' : index < stage ? 'is-complete' : ''} aria-current={index === stage ? 'step' : undefined}>
+            <span aria-hidden="true">{index < stage ? <Icon name="check" size={13} /> : index + 1}</span>
+            <small>{label}</small>
+          </li>
+        ))}
+      </ol>
+      <div className="story-maker__processing-copy">
+        <strong>{headline}</strong>
+        <p>{support}</p>
+      </div>
+      <Button type="button" variant="secondary" className="story-maker__processing-cancel" onClick={onCancel}>برگشت</Button>
+    </div>
+  );
 }
 
 function getStoryTitle(scenario: string, heroName: string) {
@@ -90,6 +120,7 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   const [briefDialogOpen, setBriefDialogOpen] = useState(false);
   const [waitingDialogOpen, setWaitingDialogOpen] = useState(false);
   const [waitingMode, setWaitingMode] = useState<WaitingMode>('preview');
+  const briefRequestRef = useRef<AbortController | null>(null);
   const waitingRequestRef = useRef<AbortController | null>(null);
   const optimizationRequestRef = useRef<AbortController | null>(null);
   const optimizationCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -228,7 +259,7 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
       summary: sourceBrief.summary,
       resolvedDetails: sourceBrief.resolvedDetails,
       assumptions: sourceBrief.assumptions,
-      answers: Object.fromEntries(sourceBrief.questions.map((question) => [question.question, answers[question.id] || 'به انتخاب دانوآ'])),
+      answers: Object.fromEntries(sourceBrief.questions.map((question) => [storyDetailLabels[question.id] || question.question, answers[question.id] || 'به انتخاب دانوآ'])),
       characterNames: names,
       characterDetails: details
     };
@@ -445,7 +476,19 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
     setScenarioDialogOpen(false);
   };
 
+  const cancelBrief = () => {
+    briefRequestRef.current?.abort();
+    briefRequestRef.current = null;
+    setIsPreparingBrief(false);
+    setBriefDialogOpen(false);
+    setBriefError('');
+    setBriefValidationError('');
+  };
+
   const startBrief = async () => {
+    briefRequestRef.current?.abort();
+    const controller = new AbortController();
+    briefRequestRef.current = controller;
     setBriefDialogOpen(true);
     setBriefError('');
     setBriefValidationError('');
@@ -457,14 +500,27 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
     setCustomAnswer('');
     setIsPreparingBrief(true);
     try { await persistWorkspace('briefing', { draft: { ...draft, idea: draft.idea.trim() }, brief: null, briefAnswers: {}, plan: null }); } catch { /* The guided flow can still continue while the connection recovers. */ }
+    if (controller.signal.aborted) return;
     try {
-      const nextBrief = await prepareStoryBrief({ ...draft, idea: draft.idea.trim() });
-      if (nextBrief.questions.length !== 5) throw new Error('سؤال‌های لازم کامل آماده نشدند. لطفاً دوباره امتحان کن.');
+      const nextBrief = await prepareStoryBrief({ ...draft, idea: draft.idea.trim() }, controller.signal);
+      if (controller.signal.aborted) return;
       setBrief(nextBrief);
       void persistWorkspace('briefing', { brief: nextBrief, briefAnswers: {}, plan: null });
+      if (nextBrief.status === 'ready' || nextBrief.questions.length === 0) {
+        setBriefDialogOpen(false);
+        void preparePlan({}, characterNames, characterDetails, nextBrief);
+      } else {
+        setBriefDialogOpen(true);
+      }
     } catch (error) {
+      if (controller.signal.aborted) return;
       setBriefError(error instanceof Error ? error.message : 'نتوانستم ایده را بررسی کنم.');
-    } finally { setIsPreparingBrief(false); }
+    } finally {
+      if (briefRequestRef.current === controller) {
+        briefRequestRef.current = null;
+        setIsPreparingBrief(false);
+      }
+    }
   };
 
   const applyAnswer = (answer: string) => {
@@ -647,7 +703,7 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
               <article className="story-maker__plan-card"><span>شخصیت‌ها</span><div className="story-maker__character-list">{plan.characters.map((character) => <div key={`${character.name}-${character.role}`}><strong>{character.name}</strong><small>{character.role}</small><p>{character.description}</p></div>)}</div></article>
               <article className="story-maker__plan-card"><span>مسیر کلی قصه</span><dl><div><dt>شروع</dt><dd>{plan.storyPath.beginning}</dd></div><div><dt>چالش</dt><dd>{plan.storyPath.challenge}</dd></div><div><dt>اوج</dt><dd>{plan.storyPath.climax}</dd></div><div><dt>فرجام</dt><dd>{plan.storyPath.resolution}</dd></div></dl></article>
             </div>
-            <p className="story-maker__plan-note"><Icon name="lightbulb" size={18} aria-hidden="true" /> این پنج انتخاب، مبنای ساخت سناریوی نهایی هستند؛ فعلاً فقط نقشه‌ی راه را می‌بینی و صحنه‌ها و دیالوگ‌ها هنوز ساخته نشده‌اند.</p>
+            <p className="story-maker__plan-note"><Icon name="lightbulb" size={18} aria-hidden="true" /> این انتخاب‌ها، مبنای ساخت سناریوی نهایی هستند؛ فعلاً فقط نقشه‌ی راه را می‌بینی و صحنه‌ها و دیالوگ‌ها هنوز ساخته نشده‌اند.</p>
             <section className="story-maker__choices-section" aria-labelledby="story-choices-title">
               <button id="story-choices-title" type="button" className={`story-maker__choices-toggle${isChoiceSummaryOpen ? ' is-open' : ''}`} onClick={toggleChoiceSummary} aria-expanded={isChoiceSummaryOpen} aria-controls="story-choices-summary">
                 <span>انتخاب‌های تو</span>
@@ -678,8 +734,8 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
         </form>
       </Dialog>
 
-      <Dialog open={briefDialogOpen} title={isPreparingBrief ? 'داریم جزئیات لازم قصه را بررسی می‌کنیم…' : briefError ? 'یک مشکل کوچولو پیش آمد' : editingQuestionId ? 'ویرایش یک انتخاب' : isOptimizingIdea ? 'حداکثر دو سؤال کوتاه برای بهتر شدن داستان' : 'انتخاب‌های مهم قصه'} onClose={() => setBriefDialogOpen(false)} showFooter={false} panelClassName="story-maker__brief-dialog">
-        {isPreparingBrief ? <div className="story-maker__dialog-loading" role="status" aria-live="polite"><Icon name="spinner" size={30} aria-hidden="true" /><strong>داریم بررسی می‌کنیم آیا جزئیات مهم دیگری لازم است یا نه…</strong><span>فقط اگر برای سناریوی دقیق لازم باشد، سؤال بعدی می‌پرسیم.</span></div> : null}
+      <Dialog open={briefDialogOpen} title={isPreparingBrief ? 'در حال آماده‌سازی ایده' : briefError ? 'یک مشکل کوچولو پیش آمد' : editingQuestionId ? 'ویرایش یک انتخاب' : isOptimizingIdea ? 'حداکثر دو سؤال کوتاه برای بهتر شدن داستان' : 'انتخاب‌های مهم قصه'} onClose={isPreparingBrief ? cancelBrief : () => setBriefDialogOpen(false)} showFooter={false} panelClassName={`story-maker__brief-dialog${isPreparingBrief ? ' story-maker__processing-dialog' : ''}`}>
+        {isPreparingBrief ? <StoryProcessingCard stage={0} headline="داستانت داره آماده می‌شه" support="یک لحظه کوچولو…" onCancel={cancelBrief} /> : null}
         {briefError ? <div className="story-maker__dialog-error" role="alert"><Icon name="alert-triangle" size={22} aria-hidden="true" /><p>{briefError}</p><div className="story-maker__brief-actions"><Button type="button" variant="secondary" onClick={() => setBriefDialogOpen(false)}>بستن</Button><Button type="button" onClick={() => void startBrief()}>دوباره تلاش کن</Button></div></div> : null}
         {brief && activeBriefQuestion && !briefError ? (
           <div className="story-maker__brief-content">
@@ -711,12 +767,13 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
         ) : null}
       </Dialog>
 
-      <Dialog open={waitingDialogOpen} title="در حال آماده‌سازی" onClose={cancelWaiting} closeLabel="انصراف از آماده‌سازی" showFooter={false} panelClassName="story-maker__wait-dialog">
-        <div className="story-maker__wait-content" role="status" aria-live="polite">
-          <span className="story-maker__wait-spinner" aria-hidden="true"><Icon name="spinner" size={25} /></span>
-          <div className="story-maker__wait-copy"><strong>{waitingMode === 'preview' ? 'خلاصه‌ی داستان آماده می‌شود…' : 'داستانت در حال بررسی است…'}</strong></div>
-          <div className="story-maker__wait-progress" aria-hidden="true"><i /></div>
-        </div>
+      <Dialog open={waitingDialogOpen} title="در حال آماده‌سازی" onClose={cancelWaiting} closeLabel="برگشت" showFooter={false} panelClassName="story-maker__wait-dialog story-maker__processing-dialog">
+        <StoryProcessingCard
+          stage={waitingMode === 'preview' ? 1 : 2}
+          headline={waitingMode === 'preview' ? 'داستانت داره شکل می‌گیره' : 'تقریباً آماده‌ست!'}
+          support={waitingMode === 'preview' ? 'داریم جزئیاتش رو کنار هم می‌چینیم…' : 'تغییرها رو با قصه‌ات هماهنگ می‌کنیم…'}
+          onCancel={cancelWaiting}
+        />
       </Dialog>
 
       <Dialog open={optimizationDialogOpen} title={optimizationPhase === 'complete' ? 'داستانت بهتر شد' : optimizationPhase === 'updating' ? 'داریم تغییرها را اعمال می‌کنیم' : 'داریم داستانت را بررسی می‌کنیم'} onClose={closeOptimizationDialog} closeLabel="انصراف از بهینه‌سازی" showFooter={false} panelClassName="story-maker__wait-dialog story-maker__optimization-dialog">

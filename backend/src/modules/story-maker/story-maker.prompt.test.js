@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildClarificationPrompt, buildFollowUpClarificationPrompt, buildScenarioPrompt, buildStoryPreviewPrompt, normalizeStoryContext, normalizeStoryDraft } = require('./story-maker.prompt');
+const { buildClarificationPrompt, buildFollowUpClarificationPrompt, buildScenarioPrompt, buildStoryPreviewPrompt, detectExplicitStoryDetails, normalizeStoryContext, normalizeStoryDraft } = require('./story-maker.prompt');
 
 test('custom story details are normalized and included in the final scenario prompt', () => {
   const draft = normalizeStoryDraft({ idea: 'خرگوشی دنبال هویج جادویی است', mood: 'funny', place: 'custom', customPlace: 'مزرعه‌ی رنگی', length: 'custom', customSceneCount: '7', ending: 'custom', customEnding: 'دوستش را پیدا کند' });
@@ -27,10 +27,10 @@ test('story context is safely included in the final prompt after clarification',
   assert.match(prompt, /یک تله‌ی بامزه/);
 });
 
-test('clarification prompt always asks for the five guided choices', () => {
+test('clarification prompt asks only for unresolved guided choices', () => {
   const draft = normalizeStoryDraft({ idea: 'یه خرگوش دزده', mood: 'funny', place: 'forest', length: 'short', ending: 'happy' });
   const prompt = buildClarificationPrompt(draft);
-  assert.match(prompt, /دقیقاً پنج سؤال/);
+  assert.match(prompt, /فقط برای همین موارد سؤال بساز/);
   assert.match(prompt, /age/);
   assert.match(prompt, /format/);
   assert.match(prompt, /duration/);
@@ -42,6 +42,26 @@ test('clarification prompt always asks for the five guided choices', () => {
   assert.match(prompt, /۱۸ تا ۲۵ سال/);
   assert.match(prompt, /فقط JSON معتبر/);
   assert.match(prompt, /یه خرگوش دزده/);
+});
+
+test('explicit story details are detected conservatively and normalized', () => {
+  const detected = detectExplicitStoryDetails('یک انیمیشن برای بچه‌های ۴ تا ۷ سال، در جنگل، با حال‌وهوای شاد و مدت ۱۲ ثانیه');
+  assert.deepEqual(detected.details, {
+    age: '۴ تا ۷ سال',
+    format: 'انیمیشن',
+    duration: '۱۲ ثانیه',
+    location: 'جنگل',
+    mood: 'شاد و بامزه'
+  });
+  assert.deepEqual(detected.missingIds, []);
+});
+
+test('known details are not asked again in the clarification prompt', () => {
+  const draft = normalizeStoryDraft({ idea: 'یک انیمیشن برای بچه‌های ۴ تا ۷ سال در جنگل', mood: 'funny', place: 'forest', length: 'short', ending: 'happy' });
+  const prompt = buildClarificationPrompt(draft, { age: '۴ تا ۷ سال', format: 'انیمیشن', location: 'جنگل' });
+  assert.match(prompt, /فقط برای همین موارد سؤال بساز: duration .* mood/);
+  assert.doesNotMatch(prompt, /فقط برای همین موارد سؤال بساز:.*age/);
+  assert.match(prompt, /گروه سنی: ۴ تا ۷ سال/);
 });
 
 test('scenario prompt requires causal scene handoffs, visible reactions, and Persian pronunciation guidance', () => {
