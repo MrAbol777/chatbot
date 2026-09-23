@@ -79,10 +79,10 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   const [storyHistory, setStoryHistory] = useState<StoryHistoryItem[]>(readStoryHistory);
   const [pendingStories, setPendingStories] = useState<StoryPendingItem[]>(readPendingStories);
   const [activePendingId, setActivePendingId] = useState<string | null>(null);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState(routeWorkspaceId || null);
+  const [, setActiveWorkspaceId] = useState(routeWorkspaceId || null);
   const activeWorkspaceIdRef = useRef<string | null>(routeWorkspaceId || null);
   const [remoteWorkspaces, setRemoteWorkspaces] = useState<StoryWorkspace[]>([]);
-  const [workspaceLoading, setWorkspaceLoading] = useState(Boolean(routeWorkspaceId));
+  const [, setWorkspaceLoading] = useState(Boolean(routeWorkspaceId));
   const [ideaTouched, setIdeaTouched] = useState(false);
   const [brief, setBrief] = useState<StoryBrief | null>(null);
   const [briefAnswers, setBriefAnswers] = useState<Record<string, string>>({});
@@ -130,6 +130,7 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   const [scenarioDialogOpen, setScenarioDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const scenarioRequestRef = useRef<AbortController | null>(null);
+  const ideaInputRef = useRef<HTMLTextAreaElement>(null);
   const { notify } = useNotification();
   const ideaError = ideaTouched && !draft.idea.trim() ? 'اول ایده‌ی داستان را بنویس.' : '';
   const activeBriefQuestion = brief?.questions[briefQuestionIndex] || null;
@@ -138,6 +139,12 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   const isImprovementQuestion = isOptimizingIdea && Boolean(activeBriefQuestion) && briefQuestionIndex >= 5;
   const improvementQuestionCount = isOptimizingIdea ? Math.max(0, (brief?.questions.length || 0) - 5) : 0;
   const improvementQuestionNumber = isImprovementQuestion ? briefQuestionIndex - 4 : 0;
+
+  useEffect(() => {
+    if (routeWorkspaceId || activeTab !== 'create' || flow !== 'idea') return;
+    const frame = window.requestAnimationFrame(() => ideaInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTab, flow, routeWorkspaceId]);
 
   useEffect(() => {
     try { window.localStorage.setItem(STORY_HISTORY_STORAGE_KEY, JSON.stringify(storyHistory.slice(0, 24))); } catch { /* Generation works without storage. */ }
@@ -609,24 +616,22 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
       <header className="story-maker__header">
         <button type="button" className="story-maker__back" onClick={onBack} aria-label="بازگشت به استودیو" title="بازگشت به استودیو"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg></button>
         <div className="story-maker__brand"><span className="story-maker__brand-mark" aria-hidden="true"><Icon name="story" size={22} /></span><span><strong>سناریو نویسی ( داستان من )</strong><small>ایده‌ات را به یک سناریوی حرفه‌ای تبدیل کن</small></span></div>
-        <span className="story-maker__workspace-state" aria-live="polite">{workspaceLoading ? 'در حال باز کردن داستان…' : activeWorkspaceId ? 'ذخیره‌شده' : 'داستان تازه'}</span>
+        <span className="story-maker__header-spacer" aria-hidden="true" />
       </header>
 
       <nav className="story-maker__tabs" role="tablist" aria-label="بخش‌های داستان‌نویسی">
-        <button id="story-create-tab" type="button" role="tab" aria-selected={activeTab === 'create'} aria-controls="story-create-panel" tabIndex={activeTab === 'create' ? 0 : -1} className={activeTab === 'create' ? 'is-active' : ''} onClick={() => setActiveTab('create')} onKeyDown={handleTabKey}><Icon name="story" size={18} aria-hidden="true" /> ساخت سناریو</button>
+        <button id="story-create-tab" type="button" role="tab" aria-selected={activeTab === 'create'} aria-controls="story-create-panel" tabIndex={activeTab === 'create' ? 0 : -1} className={activeTab === 'create' ? 'is-active' : ''} onClick={() => setActiveTab('create')} onKeyDown={handleTabKey}><Icon name="story" size={18} aria-hidden="true" /> ساخت داستان</button>
         <button id="story-history-tab" type="button" role="tab" aria-selected={activeTab === 'history'} aria-controls="story-history-panel" tabIndex={activeTab === 'history' ? 0 : -1} className={activeTab === 'history' ? 'is-active' : ''} onClick={() => setActiveTab('history')} onKeyDown={handleTabKey}><Icon name="book" size={18} aria-hidden="true" /> داستان‌های من {savedStoryCount ? <span>{savedStoryCount}</span> : null}</button>
       </nav>
 
       {activeTab === 'create' ? <div className="story-maker__shell" id="story-create-panel" role="tabpanel" aria-labelledby="story-create-tab">
         {flow === 'idea' ? <section className="story-maker__idea-stage" aria-labelledby="story-maker-title">
           <div className="story-maker__idea-overview">
-            <span className="story-maker__eyebrow"><Icon name="sparkle" size={15} aria-hidden="true" /> شروعِ قصه</span>
             <h1 id="story-maker-title">داستانت دربارهٔ چیست؟</h1>
-            <p>فقط چیزی که توی ذهنت هست رو بنویس</p>
           </div>
           <form className="story-maker__idea-form" onSubmit={prepareScenario} noValidate>
-            <div className="story-maker__idea-form-heading"><span className="story-maker__idea-form-icon"><Icon name="edit" size={19} aria-hidden="true" /></span><div><strong>ایدهٔ داستانت را بنویس</strong><small>یک جمله هم کافی است.</small></div></div>
-            <label className="story-maker__field" htmlFor="story-idea"><span>داستان من درباره‌ی…</span><textarea id="story-idea" value={draft.idea} onChange={(event) => setDraft((current) => ({ ...current, idea: event.target.value.slice(0, 240) }))} onBlur={() => setIdeaTouched(true)} aria-invalid={Boolean(ideaError)} aria-describedby={ideaError ? 'story-idea-error' : undefined} placeholder="مثلاً یک گربه‌ی فضایی که دنبال سیاره‌ی بستنی‌ها می‌گردد" maxLength={240} /></label>
+            <div className="story-maker__idea-form-heading"><span className="story-maker__idea-form-icon"><Icon name="edit" size={19} aria-hidden="true" /></span><div><strong>ایدهٔ داستانت را بنویس</strong><small>فقط چیزی که توی ذهنت هست رو بنویس</small></div></div>
+            <label className="story-maker__field" htmlFor="story-idea"><span>داستان من درباره‌ی…</span><textarea ref={ideaInputRef} id="story-idea" dir="rtl" autoFocus={!routeWorkspaceId} value={draft.idea} onChange={(event) => setDraft((current) => ({ ...current, idea: event.target.value.slice(0, 240) }))} onKeyDown={(event) => { if (event.ctrlKey && event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} onBlur={() => setIdeaTouched(true)} aria-keyshortcuts="Control+Enter" aria-invalid={Boolean(ideaError)} aria-describedby={ideaError ? 'story-idea-error' : undefined} placeholder="مثلاً یک گربه‌ی فضایی که دنبال سیاره‌ی بستنی‌ها می‌گردد" maxLength={240} /></label>
             <div className="story-maker__field-meta"><span>{draft.idea.length}/۲۴۰</span></div>
             {ideaError ? <p id="story-idea-error" className="story-maker__error" role="alert">{ideaError}</p> : null}
             <div className="story-maker__submit"><Button type="submit" size="lg" loading={isPreparingBrief} className="story-maker__submit-button" endIcon={<Icon name="sparkle" size={19} />}>{isPreparingBrief ? 'داریم پیشنهادهای مناسب را آماده می‌کنیم…' : 'ثبت ایده و ادامه'}</Button></div>

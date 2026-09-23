@@ -11,7 +11,7 @@ type Props = {
   expectedScenes: number;
   versions: StoryVersion[];
   onClose: () => void;
-  onSaved: (result: { story: StoryScenario; scenario: string; label: string }) => void;
+  onSaved: (result: { story: StoryScenario; scenario: string; displayScenario?: string; label: string }) => void;
   onRestore: (version: StoryVersion) => void;
 };
 
@@ -63,7 +63,7 @@ export default function StoryEditorDialog({ open, story, expectedScenes, version
     try {
       const result = await reviseStoryScenario(editableStory, expectedScenes, request.trim(), targetScene || undefined);
       setEditableStory(result.story);
-      onSaved({ story: result.story, scenario: result.scenario, label: targetScene ? `ویرایش صحنه ${targetScene} با دانوآ` : 'ویرایش داستان با دانوآ' });
+      onSaved({ story: result.story, scenario: result.scenario, displayScenario: result.displayScenario, label: targetScene ? `ویرایش صحنه ${targetScene} با دانوآ` : 'ویرایش داستان با دانوآ' });
       setRequest('');
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'ویرایش انجام نشد.'); } finally { setBusy(false); }
   };
@@ -74,7 +74,7 @@ export default function StoryEditorDialog({ open, story, expectedScenes, version
     try {
       const result = await validateStoryScenario(editableStory, expectedScenes);
       setEditableStory(result.story);
-      onSaved({ story: result.story, scenario: result.scenario, label: 'ویرایش دستی' });
+      onSaved({ story: result.story, scenario: result.scenario, displayScenario: result.displayScenario, label: 'ویرایش دستی' });
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'بعضی بخش‌های ضروری کامل نیستند.'); } finally { setBusy(false); }
   };
 

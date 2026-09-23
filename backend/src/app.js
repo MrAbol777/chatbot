@@ -75,6 +75,9 @@ function createApp({ repositories, runtimeConfig }) {
     geminiImageModel,
     geminiBaseUrl,
     ai,
+    adminConfigPath,
+    systemPromptPath,
+    defaultTimeoutMs,
     adminApiKey,
     adminJwtSecret,
     authJwtSecret,
@@ -280,14 +283,16 @@ function createApp({ repositories, runtimeConfig }) {
   }
 
   const promptService = createPromptService({
-    fs,
-    defaultConfig: { systemPrompt: 'You are Hemraz, a helpful Persian AI assistant.' },
-    configFilePath: path.join(__dirname, '../data/config.json'),
-    systemPromptFilePath: path.join(__dirname, '../data/system_prompt.txt')
+    fileStore: fs,
+    configPath: adminConfigPath || path.join(__dirname, '../config.json'),
+    systemPromptPath: systemPromptPath || path.join(__dirname, '../system-prompt.txt'),
+    defaultModel,
+    defaultTimeoutMs,
+    fallbackSystemPrompt: 'تو دانوآ هستی؛ یک دستیار هوش مصنوعی فارسی، مهربان، امن و کودک‌پسند. پاسخ را فارسی، روشن و مفید بده.'
   });
 
   const invalidateSystemPromptCache = () => {
-    promptService.invalidateCache();
+    promptService.invalidateSystemPromptCache();
   };
 
   const appSmsService = createSmsService({

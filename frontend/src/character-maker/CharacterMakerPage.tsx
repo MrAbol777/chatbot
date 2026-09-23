@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog, useNotification } from '../design-system/components';
-import Icon, { type IconName } from '../components/Icon';
+import Icon from '../components/Icon';
 import ImageViewer from '../ImageViewer';
 import { fetchProtectedImageBlobUrl, type GalleryImage, getImageGenerationStatus, startImageEdit, startImageGeneration } from '../services/imageGeneration';
 import { analyzeCharacters, createCharacterWorkspace, getCharacterWorkspace, listCharacterWorkspaces, updateCharacterWorkspace } from './characterMaker.api';
@@ -49,13 +49,6 @@ ${buildStyleLockedPrompt(stylePrompt, `Create one polished 16:9 professional ani
 const buildSettingSheetPrompt = (stylePrompt: string, name: string, description: string) => `ANIMATION ENVIRONMENT MODEL SHEET — use the supplied reference image as the sole canonical identity for the story location: ${name}.
 
 ${buildStyleLockedPrompt(stylePrompt, `Create one polished 16:9 environment sheet for ${name}. Show this exact same location only, arranged as a clear professional reference board: a wide establishing view, a medium eye-level view, an entrance or reverse angle, a side angle, a high-angle view, a low-angle view, and three close-up detail studies of defining props or materials. Preserve the exact layout, architecture, prop placement, color palette, lighting mood, scale and all recognizable details from the reference. Location description: ${description || name}. No characters, people, animals, new rooms, alternate locations, text, captions, logos, arrows, collaged images or unrelated objects.`)}`;
-
-const STORY_STARTERS: Array<{ icon: IconName; title: string; prompt: string }> = [
-  { icon: 'rocket', title: 'سفر به فضا', prompt: 'آرین و دوستش ربات کوچولوی پرنده با سفینه فضایی به یه سیاره پر از کوه‌های بستنی و رودخونه شکلاتی سفر می‌کنند…' },
-  { icon: 'sparkles', title: 'قصر جادویی ابرها', prompt: 'در بالای ابرها یک قصر طلایی وجود دارد که پرنده‌های بالدار مهربان در آن زندگی می‌کنند و ستاره‌ها رو جارو می‌زنند…' },
-  { icon: 'star', title: 'بچه دایناسور مهربان', prompt: 'پسری کنجکاو در یک جنگل رنگین‌کمانی با یک بچه دایناسور سبز و بامزه دوست می‌شود که عاشق نقاشی کردن است…' },
-  { icon: 'story', title: 'شهر زیر آب و دلفین', prompt: 'سارا با کمک یک دلفین مهربان با عینک غواصی به شهر مرواریدهای درخشان در کف اقیانوس سفر می‌کند…' }
-];
 
 const EDIT_SUGGESTIONS = [
   'یک کلاه بامزه به سرش اضافه کن',
@@ -192,7 +185,7 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
 
   const handleAnalyze = async () => {
     const text = scenario.trim();
-    if (!text) { setError('لطفاً داستان خود را بنویسید یا یکی از ایده‌های آماده را انتخاب کنید.'); return; }
+    if (!text) { setError('لطفاً داستان خود را بنویسید.'); return; }
     const animation = scenarioHandoff;
     setError('');
     setIsAnalyzing(true);
@@ -628,27 +621,8 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
               <span className="character-maker__step">۱</span>
               <div>
                 <h2>داستانت را برامون بگو</h2>
-                <p>می‌توانی چند خط داستانت را بنویسی، یا یکی از ایده‌های آمادهٔ زیر را انتخاب کنی:</p>
+                <p>می‌توانی چند خط داستانت را بنویسی:</p>
               </div>
-            </div>
-
-            {/* Story Starters */}
-            <div className="character-maker__starters">
-              <span className="character-maker__starters-label">
-                <Icon name="sparkle" size={14} />
-                <span>ایده‌های داستانی:</span>
-              </span>
-              {STORY_STARTERS.map((s, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  className="character-maker__starter-chip"
-                  onClick={() => setScenario(s.prompt)}
-                >
-                  <Icon name={s.icon} size={15} />
-                  <span>{s.title}</span>
-                </button>
-              ))}
             </div>
 
             {/* The single writing surface */}
@@ -728,12 +702,24 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
                   const activeImg = showingSheet ? character.characterSheet : character.image;
                   const activeRatio = showingSheet ? '16:9' : '1:1';
                   const activeName = showingSheet ? `همهٔ زاویه‌های ${character.name}` : character.name;
+                  const isImageProcessing = activeImg?.status === 'RUNNING' || activeImg?.status === 'QUEUE';
 
                   return (
                     <article key={character.id} className="character-maker__card">
                       {/* Full-bleed Edge-to-Edge Image (No Inset Box) */}
-                      <div className={`character-maker__display ${showingSheet ? 'is-sheet' : ''}`}>
+                      <div
+                        className={`character-maker__display ${showingSheet ? 'is-sheet' : ''}`}
+                        aria-busy={isImageProcessing}
+                      >
                         <SecureImage src={activeImg?.imageUrl || activeImg?.previousImageUrl} alt={activeName} />
+
+                        {isImageProcessing && (
+                          <div className="character-maker__image-loading" role="status" aria-label="تصویر در حال ساخت است">
+                            <span className="character-maker__image-loading-orb" aria-hidden="true">
+                              <Icon name="spinner" size={30} />
+                            </span>
+                          </div>
+                        )}
 
                         {activeImg?.imageUrl && (
                           <button
@@ -778,14 +764,12 @@ export default function CharacterMakerPage({ onBack, onOpenStoryboard }: Props) 
                         </div>
 
                         {/* Floating Status Pill */}
-                        <span className={`character-maker__status-pill is-${activeImg?.status || 'idle'}`}>
-                          {activeImg?.status === 'RUNNING' || activeImg?.status === 'QUEUE' ? (
-                            <Icon name="spinner" size={14} />
-                          ) : (
+                        {!isImageProcessing && (
+                          <span className={`character-maker__status-pill is-${activeImg?.status || 'idle'}`}>
                             <Icon name={activeImg?.status === 'COMPLETED' ? 'check' : activeImg?.status === 'ERROR' ? 'alert-triangle' : 'sparkle'} size={14} />
-                          )}
-                          <span>{statusText(activeImg?.status)}</span>
-                        </span>
+                            <span>{statusText(activeImg?.status)}</span>
+                          </span>
+                        )}
                       </div>
 
                       {/* Card Body: Clean Typography (ZERO nested colored boxes) */}

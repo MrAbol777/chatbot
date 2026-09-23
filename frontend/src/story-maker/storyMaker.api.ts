@@ -2,7 +2,7 @@ import { createChatRequestError, safeFetch } from '../services/chatStream';
 import { buildScenarioPromptPayload } from './storyMaker.service';
 import type { StoryBrief, StoryContext, StoryDraft, StoryPlanPreview, StoryScenario, StoryWorkspace } from './storyMaker.types';
 
-type ScenarioResponse = { scenario?: string; story?: StoryScenario; model?: string; scenes?: number; quality?: { status: string; repaired: boolean }; error?: string; message?: string };
+type ScenarioResponse = { scenario?: string; displayScenario?: string; story?: StoryScenario; model?: string; scenes?: number; quality?: { status: string; repaired: boolean }; error?: string; message?: string };
 type BriefResponse = { brief?: StoryBrief; model?: string; error?: string; message?: string };
 type PreviewResponse = { preview?: StoryPlanPreview; model?: string; error?: string; message?: string };
 type WorkspaceResponse = { workspace?: StoryWorkspace; workspaces?: StoryWorkspace[]; error?: string; message?: string };
@@ -68,7 +68,8 @@ function readScenarioResponse(data: ScenarioResponse, response: Response, fallba
   if (!response.ok || !data.scenario?.trim() || !data.story) {
     throw createChatRequestError(data.message || 'سناریو ساخته نشد. لطفاً دوباره امتحان کن.', response.status, data);
   }
-  return { scenario: data.scenario.trim(), story: data.story, model: data.model || '', scenes: data.scenes || fallbackScenes, quality: data.quality };
+  const scenario = data.scenario.trim();
+  return { scenario, displayScenario: data.displayScenario?.trim() || scenario, story: data.story, model: data.model || '', scenes: data.scenes || fallbackScenes, quality: data.quality };
 }
 
 export async function generateStoryScenario(draft: StoryDraft, context?: StoryContext, signal?: AbortSignal) {

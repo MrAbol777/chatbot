@@ -4,7 +4,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { createRequirePrincipal } = require('../auth/principal');
 const { buildClarificationPrompt, buildFollowUpClarificationPrompt, buildScenarioPrompt, buildStoryPreviewPrompt, normalizeStoryContext, normalizeStoryDraft } = require('./story-maker.prompt');
-const { buildRepairPrompt, buildRevisionPrompt, buildScenarioMarkdown, normalizeScenario, parseJsonObject, validateScenario } = require('./story-maker.scenario');
+const { buildKidFriendlyScenarioMarkdown, buildRepairPrompt, buildRevisionPrompt, buildScenarioMarkdown, normalizeScenario, parseJsonObject, validateScenario } = require('./story-maker.scenario');
 
 function publicError(error) {
   if (error?.message === 'STORY_IDEA_REQUIRED') return { status: 400, error: 'STORY_IDEA_REQUIRED', message: 'اول ایده‌ی داستان را بنویس.' };
@@ -149,16 +149,28 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
     try { const workspace = await storyWorkspaceRepository.update(req.user.id, req.params.workspaceId, normalizeWorkspace(req.body?.workspace)); return workspace ? res.json({ workspace }) : res.status(404).json({ error: 'STORY_WORKSPACE_NOT_FOUND', message: 'این داستان پیدا نشد.' }); } catch (error) { return res.status(500).json(publicError(error)); }
   });
 
-  const requestScenarioCompletion = async (messages, requestId, { retryOnTimeout = true } = {}) => {
-    const options = { requestId, timeoutMs: scenarioTimeoutMs, maxOutputTokens: scenarioMaxOutputTokens, responseMimeType: 'application/json' };
+  const requestStructuredCompletion = async (messages, requestId, {
+    retryOnTimeout = true,
+    timeoutMs = scenarioTimeoutMs,
+    maxOutputTokens = scenarioMaxOutputTokens
+  } = {}) => {
+    const options = {
+      requestId,
+      timeoutMs,
+      maxOutputTokens,
+      responseMimeType: 'application/json',
+      responseFormat: 'json_object'
+    };
     try {
       return await aiService.callOpenAI(messages, options);
     } catch (error) {
       if (error?.code !== 'UPSTREAM_TIMEOUT' || !retryOnTimeout) throw error;
-      logger.warn?.('STORY_MAKER', 'scenario_timeout_retrying', { requestId, timeoutMs: scenarioTimeoutMs });
+      logger.warn?.('STORY_MAKER', 'structured_timeout_retrying', { requestId, timeoutMs });
       return aiService.callOpenAI(messages, options);
     }
   };
+
+  const requestScenarioCompletion = requestStructuredCompletion;
 
   const finalizeStructuredScenario = async ({ draft, context, requestId }) => {
     const baseSystemPrompt = await promptService.getSystemPrompt();
@@ -198,17 +210,23 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
       logger.error?.('STORY_MAKER', 'scenario_quality_failed', { requestId, errorCount: quality.errors.length, errors: quality.errors.slice(0, 20) });
       throw Object.assign(new Error('STORY_QUALITY_FAILED'), { code: 'STORY_QUALITY_FAILED' });
     }
-    return { story: structuredScenario, scenario: buildScenarioMarkdown(structuredScenario), model: result.model, quality: { status: 'passed', repaired, completed } };
+    return {
+      story: structuredScenario,
+      scenario: buildScenarioMarkdown(structuredScenario),
+      displayScenario: buildKidFriendlyScenarioMarkdown(structuredScenario),
+      model: result.model,
+      quality: { status: 'passed', repaired, completed }
+    };
   };
 
   router.post('/api/story-scenarios/brief', requirePrincipal, briefLimiter, async (req, res) => {
     try {
       const draft = normalizeStoryDraft(req.body?.draft);
       const baseSystemPrompt = await promptService.getSystemPrompt();
-      const result = await aiService.callOpenAI([
+      const result = await requestStructuredCompletion([
         { role: 'system', content: `${baseSystemPrompt}\n\nتو در این درخواست فقط کمک‌کار قصه هستی. فقط JSON معتبر برگردان و هرگز سناریو ننویس.` },
         { role: 'user', content: buildClarificationPrompt(draft) }
-      ], { requestId: res.locals.requestId });
+      ], res.locals.requestId, { maxOutputTokens: 4096 });
       const candidateBrief = normalizeBrief(parseJsonObject(result?.reply), draft);
       const brief = candidateBrief.questions.length === 5 ? candidateBrief : fallbackBrief(draft);
       logger.log?.('STORY_MAKER', 'brief_prepared', { requestId: res.locals.requestId, userId: req.user?.id, status: brief.status, questionCount: brief.questions.length, model: result.model });
@@ -225,10 +243,10 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
       const context = normalizeStoryContext(req.body?.context);
       const feedback = normalizeStoryImprovement(req.body?.feedback);
       const baseSystemPrompt = await promptService.getSystemPrompt();
-      const result = await aiService.callOpenAI([
+      const result = await requestStructuredCompletion([
         { role: 'system', content: `${baseSystemPrompt}\n\nتو در این درخواست فقط سردبیرِ شفاف‌سازی ایده‌ی داستان هستی. فقط JSON معتبر برگردان و هرگز سناریو ننویس.` },
         { role: 'user', content: buildFollowUpClarificationPrompt(draft, context, feedback) }
-      ], { requestId: res.locals.requestId });
+      ], res.locals.requestId, { maxOutputTokens: 4096 });
       const brief = normalizeFollowUpBrief(parseJsonObject(result?.reply), draft);
       logger.log?.('STORY_MAKER', 'follow_up_prepared', { requestId: res.locals.requestId, userId: req.user?.id, status: brief.status, questionCount: brief.questions.length, model: result.model });
       return res.json({ brief, model: result.model });
@@ -243,10 +261,10 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
       const draft = normalizeStoryDraft(req.body?.draft);
       const context = normalizeStoryContext(req.body?.context);
       const baseSystemPrompt = await promptService.getSystemPrompt();
-      const result = await aiService.callOpenAI([
+      const result = await requestStructuredCompletion([
         { role: 'system', content: `${baseSystemPrompt}\n\nتو در این درخواست فقط طراح طرح اولیه‌ی داستان هستی. فقط JSON معتبر برگردان و هرگز سناریو ننویس.` },
         { role: 'user', content: buildStoryPreviewPrompt(draft, context) }
-      ], { requestId: res.locals.requestId });
+      ], res.locals.requestId, { maxOutputTokens: 4096 });
       const preview = normalizePreview(parseJsonObject(result?.reply), draft);
       logger.log?.('STORY_MAKER', 'preview_prepared', { requestId: res.locals.requestId, userId: req.user?.id, characterCount: preview.characters.length, model: result.model });
       return res.json({ preview, model: result.model });
@@ -275,7 +293,7 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
       const story = normalizeScenario(req.body?.story, expectedScenes);
       const quality = validateScenario(story, expectedScenes);
       if (!quality.valid) throw Object.assign(new Error('STORY_QUALITY_FAILED'), { code: 'STORY_QUALITY_FAILED' });
-      return res.json({ story, scenario: buildScenarioMarkdown(story), scenes: expectedScenes, quality: { status: 'passed', repaired: false } });
+      return res.json({ story, scenario: buildScenarioMarkdown(story), displayScenario: buildKidFriendlyScenarioMarkdown(story), scenes: expectedScenes, quality: { status: 'passed', repaired: false } });
     } catch (error) {
       const payload = publicError(error);
       return res.status(payload.status).json(payload);
@@ -312,8 +330,9 @@ function createStoryMakerRouter({ aiService, promptService, principalResolver, s
       }
       if (!quality.valid) throw Object.assign(new Error('STORY_QUALITY_FAILED'), { code: 'STORY_QUALITY_FAILED' });
       const scenario = buildScenarioMarkdown(story);
+      const displayScenario = buildKidFriendlyScenarioMarkdown(story);
       logger.log?.('STORY_MAKER', 'scenario_revised', { requestId: res.locals.requestId, userId: req.user?.id, sceneCount: expectedScenes, targetScene: revision.targetScene, repaired });
-      return res.json({ story, scenario, model: result.model, scenes: expectedScenes, quality: { status: 'passed', repaired } });
+      return res.json({ story, scenario, displayScenario, model: result.model, scenes: expectedScenes, quality: { status: 'passed', repaired } });
     } catch (error) {
       const payload = publicError(error);
       return res.status(payload.status).json(payload);

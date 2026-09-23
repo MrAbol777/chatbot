@@ -435,11 +435,13 @@ function createAiService({
     const maxOutputTokens = Number.isFinite(requestedMaxOutputTokens)
       ? Math.max(256, Math.min(8192, Math.round(requestedMaxOutputTokens)))
       : undefined;
+    const wantsJsonObject = context.responseFormat === 'json_object' || context.responseMimeType === 'application/json';
     const payload = {
       model: runtimeConfig.model,
       messages: buildChatMessages(messages),
       temperature: runtimeConfig.temperature,
-      ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {})
+      ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
+      ...(wantsJsonObject ? { response_format: { type: 'json_object' } } : {})
     };
     const sdkTimeoutMs = Math.min(8000, totalTimeoutMs);
     const fallbackTimeoutMs = Math.max(5000, totalTimeoutMs - sdkTimeoutMs);
@@ -451,7 +453,7 @@ function createAiService({
       return callGemini(messages, totalTimeoutMs, requestId, {
         temperature: runtimeConfig.temperature,
         maxOutputTokens,
-        responseMimeType: context.responseMimeType
+        responseMimeType: context.responseMimeType || (wantsJsonObject ? 'application/json' : undefined)
       });
     }
 

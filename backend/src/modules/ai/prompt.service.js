@@ -1,5 +1,8 @@
-function createPromptService({ fileStore, configPath, systemPromptPath, defaultModel, defaultTimeoutMs }) {
+function createPromptService({ fileStore, configPath, systemPromptPath, defaultModel, defaultTimeoutMs, fallbackSystemPrompt }) {
   let systemPromptCache = null;
+  const safeFallbackSystemPrompt = typeof fallbackSystemPrompt === 'string' && fallbackSystemPrompt.trim()
+    ? fallbackSystemPrompt.trim()
+    : 'تو یک دستیار هوش مصنوعی فارسی، مفید، امن و کودک‌پسند هستی. پاسخ را روشن و دقیق بده.';
 
   const getRuntimeConfig = async () => {
     try {
@@ -22,10 +25,11 @@ function createPromptService({ fileStore, configPath, systemPromptPath, defaultM
     }
 
     try {
-      systemPromptCache = (await fileStore.readFile(systemPromptPath, 'utf8')).trim();
+      const loadedPrompt = (await fileStore.readFile(systemPromptPath, 'utf8')).trim();
+      systemPromptCache = loadedPrompt || safeFallbackSystemPrompt;
       return systemPromptCache;
     } catch (_error) {
-      systemPromptCache = '';
+      systemPromptCache = safeFallbackSystemPrompt;
       return systemPromptCache;
     }
   };

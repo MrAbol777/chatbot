@@ -124,7 +124,7 @@ function validateScenario(scenario, expectedScenes) {
     if (!scenario.storyBeats[field]) errors.push(`missing_beat_${field}`);
   });
   if (scenario.scenes.length !== expectedScenes) errors.push(`scene_count_${scenario.scenes.length}_expected_${expectedScenes}`);
-  const requiredSceneFields = ['title', 'duration', 'presentCharacters', 'emotion', 'goal', 'setting', 'visual', 'camera', 'action', 'dialogue', 'reaction', 'sound', 'continuity', 'outcome', 'transition', 'imagePrompt'];
+  const requiredSceneFields = ['title', 'duration', 'presentCharacters', 'emotion', 'goal', 'setting', 'visual', 'camera', 'action', 'reaction', 'sound', 'continuity', 'outcome', 'transition', 'imagePrompt'];
   scenario.scenes.forEach((scene, index) => requiredSceneFields.forEach((field) => {
     if (!scene[field]) errors.push(`scene_${index + 1}_missing_${field}`);
   }));
@@ -197,6 +197,96 @@ function buildScenarioMarkdown(scenario) {
   return lines.join('\n');
 }
 
+const friendlyCharacterIcons = ['🐻', '🦊', '🐰', '🐱', '🐼', '🦄', '🐿️', '🐸'];
+
+const friendlyClean = (value, max = 500) => clean(value, max)
+  .replace(/\b(?:C|L|P|SC)\d{2}\b/gi, '')
+  .replace(/هدف دیداری|قانون‌های ثابت‌ماندن(?: ظاهر)?|وضعیت(?: در)?(?: آغاز| پایان)/g, '')
+  .replace(/\s{2,}/g, ' ')
+  .trim();
+
+function buildKidFriendlyScenarioMarkdown(scenario) {
+  const lines = [
+    `# ${friendlyClean(scenario.title, 100) || 'داستان تازه‌ی ما'}`,
+    '',
+    '## قصه درباره‌ی چیست؟',
+    `**برای:** ${friendlyClean(scenario.audience, 120)}`,
+    `**مدت قصه:** ${friendlyClean(scenario.duration, 80)}`,
+    `**اتفاق هیجان‌انگیز شروع:** ${friendlyClean(scenario.openingHook, 180)}`,
+    `**خلاصه‌ی قصه:** ${friendlyClean(scenario.logline, 260)}`,
+    `**حرف قشنگ قصه:** ${friendlyClean(scenario.message, 180)}`,
+    `**دنیای قصه:** ${friendlyClean(scenario.world, 240)}`,
+    `**حال‌وهوای تصویرها:** ${friendlyClean(scenario.visualStyle, 160)}`,
+    '',
+    '## آدم‌ها و دوست‌های قصه'
+  ];
+
+  scenario.characters.forEach((character, index) => {
+    const role = friendlyClean(character.role || character.relationship, 100);
+    const descriptor = /رقیب|حریف|مخالف/.test(role)
+      ? 'رقیب بامزه‌ی داستان'
+      : index === 0
+        ? 'قهرمان کوچک داستان'
+        : role || 'دوست قصه';
+    const appearance = [
+      friendlyClean(character.description, 180),
+      friendlyClean(character.clothing, 180),
+      friendlyClean(character.accessories, 140),
+      friendlyClean(character.colors, 140),
+      friendlyClean(character.uniqueVisualTraits, 180)
+    ].filter(Boolean).join('؛ ');
+    lines.push(
+      `### ${friendlyCharacterIcons[index % friendlyCharacterIcons.length]} ${friendlyClean(character.name, 60) || 'شخصیت قصه'}، ${descriptor}`,
+      `**ظاهرش:** ${appearance || friendlyClean(character.visualSignature, 140)}`,
+      `**رفتار و توانایی‌اش:** ${friendlyClean(character.personality, 160)}${character.specialAbility ? `؛ ${friendlyClean(character.specialAbility, 160)}` : ''}`,
+      `**چیزی که می‌خواهد:** ${friendlyClean(character.goal, 140)}`,
+      `**صدای او:** ${friendlyClean(character.voiceStyle, 100)}`,
+      ''
+    );
+  });
+
+  if (scenario.schemaVersion === 2 && scenario.locations.length) {
+    lines.push('## جاهای مهم قصه');
+    scenario.locations.forEach((location) => lines.push(
+      `### ${friendlyClean(location.name, 100)}`,
+      friendlyClean(location.description, 240),
+      `هوای قصه: ${friendlyClean(location.timeWeather, 140)}؛ نور: ${friendlyClean(location.lighting, 160)}`,
+      ''
+    ));
+  }
+
+  lines.push(
+    '## مسیر ماجرا',
+    `**اول ماجرا:** ${friendlyClean(scenario.storyBeats.setup, 240)}`,
+    `**قهرمان چه می‌خواهد؟** ${friendlyClean(scenario.storyBeats.goal, 180)}`,
+    `**چه دردسری پیش می‌آید؟** ${friendlyClean(scenario.storyBeats.obstacle, 200)}`,
+    `**هیجان‌انگیزترین لحظه:** ${friendlyClean(scenario.storyBeats.climax, 220)}`,
+    `**پایان شیرین:** ${friendlyClean(scenario.storyBeats.resolution, 220)}`,
+    '',
+    '## قصه، قدم‌به‌قدم'
+  );
+
+  scenario.scenes.forEach((scene, index) => {
+    lines.push(
+      `### بخش ${index + 1}: ${friendlyClean(scene.title, 100) || 'ادامه‌ی ماجرا'}`,
+      `**زمان:** ${friendlyClean(scene.duration, 80)}`,
+      `**کجا هستیم؟** ${friendlyClean(scene.setting, 420)}`,
+      `**چه می‌بینیم؟** ${friendlyClean(scene.visual, 420)}`,
+      `**چه اتفاقی می‌افتد؟** ${friendlyClean(scene.action, 420)}`,
+      ...(scene.dialogue ? [`**حرف شخصیت‌ها:** ${friendlyClean(scene.dialogue, 420)}`] : []),
+      ...(scene.narration ? [`**صدای قصه‌گو:** ${friendlyClean(scene.narration, 420)}`] : []),
+      `**واکنش‌ها:** ${friendlyClean(scene.reaction, 420)}`,
+      `**صداهای بامزه:** ${friendlyClean(scene.sound, 420)}`,
+      `**نتیجه‌ی این بخش:** ${friendlyClean(scene.outcome, 420)}`,
+      ...(scene.transition ? [`**بعدش:** ${friendlyClean(scene.transition, 420)}`] : []),
+      ''
+    );
+  });
+
+  lines.push('## پایان قصه', friendlyClean(scenario.ending, 320));
+  return lines.join('\n');
+}
+
 function buildRepairPrompt(originalPrompt, invalidReply, errors) {
   return [
     'خروجی سناریو از کنترل کیفیت عبور نکرده است. فقط JSON معتبر با همان قرارداد قبلی برگردان؛ هیچ توضیح اضافه نده.',
@@ -211,6 +301,10 @@ function buildRevisionPrompt(scenario, { request, targetScene }) {
   return [
     'تو ویراستار حرفه‌ای سناریوی کودک هستی. فقط JSON معتبر و کامل با همان ساختار سناریوی ورودی برگردان؛ Markdown یا توضیح اضافه ننویس.',
     'تمام فیلدهای سناریو باید کامل بمانند، از جمله راهنمای یکپارچه‌ی ساخت، شناسه‌های ثابت، شناسنامه‌ی کامل شخصیت، مکان‌ها و وسایل مهم، و برای هر بخش زمان، شخصیت‌ها، مکان، حس، هدف دیداری، وضعیت آغاز و پایان، پیوستگی و نتیجه.',
+    'اگر داستان به مانع زنده یا رقیب نیاز دارد، به‌جای موجودات کلی مانند «زنبورها» یک رقیب بامزه و مشخص با نام، انگیزه، ظاهر قابل‌تشخیص و عادت خنده‌دار بساز و نقش واقعی او را حفظ کن.',
+    'تلاش ناموفق را با کمدی فیزیکی و اسلپ‌استیک امن اصلاح کن؛ لیزخوردن بی‌خطر روی برگ خیس، گیرکردن کلاه یا وارونه آویزان‌شدن بامزه مجاز است، اما آسیب، ترساندن و تحقیر ممنوع است.',
+    'پیروزی نباید با فریب، زورگویی، دزدی یا برداشتن بدون اجازه رخ دهد. گره‌گشایی را بر همکاری، کمک متقابل، هوش، جبران یا اجازه گرفتن بنا کن و راه اخلاقی را در outcome و ending قابل‌دیدن نشان بده.',
+    'دیالوگ‌ها را کوتاه، عامیانه، پرانرژی و متناسب با سن نگه دار؛ عبارت‌های کتابی مانند «آه! به‌به!» و جمله‌های رسمی ممنوع‌اند. افکت‌های کارتونی مشخص مانند «پِلَخ»، «وُوووش» و «تاپ‌تاپ» را در sound بگذار، نه در دیالوگ، و از تکرار بی‌دلیل «یامی» یا «هوووررا» پرهیز کن.',
     'برای هر شخصیت، رفتار و اخلاق، تواناییِ ویژه، رابطه با قهرمان و نشانه‌ی ظاهریِ ثابت را نگه دار یا بهتر کن. دوست‌های قهرمان باید نقشِ واقعی و تواناییِ متفاوت داشته باشند؛ شخصیتِ تزئینی نساز.',
     'شناسه‌های C، L، P و SC را تغییر نده و هر ارجاع را معتبر نگه دار. راهنمای یکپارچه‌ی ساخت، نام، ظاهر، هدف و لحن شخصیت‌ها را حفظ کن. هر صحنه باید از نتیجه‌ی صحنه‌ی قبل آغاز شود و outcome آن، علت روشنِ صحنه‌ی بعد باشد. واکنش شخصیت‌ها را قابل‌دیدن و اثرگذار نگه دار.',
     'همه‌ی متن‌ها فارسیِ معیار باشند. در دیالوگ و نریشن، برای تلفظ بی‌ابهام از کسره‌ی اضافه، همزه و حرکت‌های لازمِ فارسی/عربی استفاده کن؛ فقط اعراب‌گذاریِ درست و ضروری مجاز است.',
@@ -222,4 +316,4 @@ function buildRevisionPrompt(scenario, { request, targetScene }) {
   ].join('\n\n');
 }
 
-module.exports = { buildRepairPrompt, buildRevisionPrompt, buildScenarioMarkdown, normalizeScenario, parseJsonObject, validateScenario };
+module.exports = { buildKidFriendlyScenarioMarkdown, buildRepairPrompt, buildRevisionPrompt, buildScenarioMarkdown, normalizeScenario, parseJsonObject, validateScenario };

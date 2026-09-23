@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildScenarioMarkdown, normalizeScenario, validateScenario } = require('./story-maker.scenario');
+const { buildKidFriendlyScenarioMarkdown, buildScenarioMarkdown, normalizeScenario, validateScenario } = require('./story-maker.scenario');
 
 const completeScenario = {
   title: 'خرگوش و هویج گمشده', audience: 'کودکان ۸ تا ۱۲ سال', duration: '۳۰ ثانیه', openingHook: 'سبد هویج پوفی ناگهان از روی سنگ می‌افتد و ردّی درخشان می‌سازد.', logline: 'خرگوشی گرسنه راه درست پیدا کردن هویج را یاد می‌گیرد.', message: 'کمک خواستن از دیگران کار خوبی است.', visualStyle: 'انیمیشن رنگی و گرم', world: 'مزرعه‌ای کنار جنگل',
@@ -39,6 +39,21 @@ test('complete structured scenario passes the quality gate and renders productio
   assert.match(markdown, /\*\*واکنش شخصیت‌ها:\*\*/);
   assert.match(markdown, /\*\*نتیجه‌ی این بخش:\*\*/);
   assert.match(markdown, /\*\*متنِ ساخت تصویر یا ویدیو:\*\*/);
+});
+
+test('kid-friendly markdown hides pipeline ids and technical production labels', () => {
+  const scenario = normalizeScenario(productionScenario, 3);
+  const markdown = buildKidFriendlyScenarioMarkdown(scenario);
+  assert.match(markdown, /🐻 پوفی، قهرمان کوچک داستان/);
+  assert.doesNotMatch(markdown, /C01|L01|SC01|P01/);
+  assert.doesNotMatch(markdown, /هدف دیداری|قانون‌های ثابت‌ماندن|وضعیت در آغاز|وضعیت در پایان/);
+  assert.match(markdown, /حرف قشنگ قصه/);
+  assert.match(markdown, /صداهای بامزه/);
+});
+
+test('purely physical scenes may keep dialogue empty when action and sound are present', () => {
+  const scenario = normalizeScenario({ ...productionScenario, scenes: productionScenario.scenes.map((scene) => ({ ...scene, dialogue: '' })) }, 3);
+  assert.deepEqual(validateScenario(scenario, 3), { valid: true, errors: [] });
 });
 
 test('quality gate rejects scenes that omit production-critical details', () => {
