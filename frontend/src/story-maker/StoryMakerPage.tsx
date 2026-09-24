@@ -141,13 +141,6 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   const [answerPickerOpen, setAnswerPickerOpen] = useState(false);
   const [plan, setPlan] = useState<StoryPlanPreview | null>(null);
   const [planUpdateMessage, setPlanUpdateMessage] = useState('');
-  const [isChoiceSummaryOpen, setIsChoiceSummaryOpen] = useState(false);
-  const [isChoiceSummaryMounted, setIsChoiceSummaryMounted] = useState(false);
-  const choiceSummaryTimerRef = useRef<number | null>(null);
-
-  useEffect(() => () => {
-    if (choiceSummaryTimerRef.current !== null) window.clearTimeout(choiceSummaryTimerRef.current);
-  }, []);
   const [isPreparingPlan, setIsPreparingPlan] = useState(false);
   const [characterNames, setCharacterNames] = useState<string[]>([]);
   const [characterDetails, setCharacterDetails] = useState<StoryAddedCharacter[]>([]);
@@ -666,21 +659,6 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   };
 
   const activeVersions = storyHistory.find((item) => item.id === activeStoryId)?.versions || [];
-  const toggleChoiceSummary = () => {
-    if (choiceSummaryTimerRef.current !== null) window.clearTimeout(choiceSummaryTimerRef.current);
-
-    if (isChoiceSummaryOpen) {
-      setIsChoiceSummaryOpen(false);
-      choiceSummaryTimerRef.current = window.setTimeout(() => {
-        setIsChoiceSummaryMounted(false);
-        choiceSummaryTimerRef.current = null;
-      }, 180);
-      return;
-    }
-
-    setIsChoiceSummaryMounted(true);
-    window.requestAnimationFrame(() => setIsChoiceSummaryOpen(true));
-  };
   const remotePendingWorkspaces = remoteWorkspaces.filter((item) => item.status !== 'completed');
   const remoteCompletedWorkspaces = remoteWorkspaces.filter((item) => item.status === 'completed');
   const remoteCompletedIds = new Set(remoteCompletedWorkspaces.map((item) => item.id));
@@ -715,25 +693,124 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
         </section> : <section className="story-maker__plan-stage" aria-labelledby="story-plan-title">
           {isPreparingPlan ? <div className="story-maker__dialog-loading story-maker__plan-loading" role="status" aria-live="polite"><Icon name="spinner" size={32} aria-hidden="true" /><strong>داریم طرح اولیه‌ی قصه را می‌چینیم…</strong><span>شخصیت‌ها، دنیای داستان و مسیر کلی را با انتخاب‌هایت هماهنگ می‌کنیم.</span><div className="story-maker__plan-progress" role="progressbar" aria-label="در حال آماده‌سازی طرح اولیه" aria-valuetext="در حال آماده‌سازی طرح اولیه"><i /></div><small>سناریوی نهایی هنوز ساخته نمی‌شود.</small></div> : plan ? <>
             {planUpdateMessage ? <div className="story-maker__plan-update" role="status" aria-live="polite"><span aria-hidden="true"><Icon name="check" size={18} /></span><div><strong>داستانت به‌روزرسانی شد</strong><p>{planUpdateMessage}</p></div><button type="button" onClick={() => setPlanUpdateMessage('')} aria-label="بستن پیام به‌روزرسانی">×</button></div> : null}
-            <article className="story-maker__story-overview-card" aria-labelledby="story-plan-title">
-              <div className="story-maker__plan-heading"><span className="story-maker__eyebrow"><Icon name="sparkle" size={15} aria-hidden="true" /> داستان کلی</span><h1 id="story-plan-title">{plan.title}</h1><p>{plan.overview}</p></div>
-              <section className="story-maker__world-section" aria-labelledby="story-world-title"><h2 id="story-world-title">دنیای داستان</h2><div className="story-maker__world-card"><p>{plan.world}</p><span>{plan.format} <i>·</i> {plan.duration} <i>·</i> {plan.tone}</span></div></section>
+                        <aside className="story-maker__plan-banner" role="note" aria-label="راهنمای طرح اولیه">
+              <span className="story-maker__plan-banner-icon" aria-hidden="true">
+                <Icon name="lightbulb" size={19} />
+              </span>
+              <p>این انتخاب‌ها، مبنای ساخت سناریوی نهایی هستند؛ فعلاً فقط نقشه‌ی راه را می‌بینی و صحنه‌ها و دیالوگ‌ها هنوز ساخته نشده‌اند.</p>
+            </aside>
+            <article className="story-maker__plan-unified-card" aria-labelledby="story-plan-title">
+              {/* بخش ۱: خلاصه داستان */}
+              <div className="story-maker__plan-section story-maker__plan-section--summary">
+                <span className="story-maker__eyebrow"><Icon name="sparkle" size={15} aria-hidden="true" /> خلاصه داستان</span>
+                <h1 id="story-plan-title" className="story-maker__plan-title">{plan.title}</h1>
+                <p className="story-maker__plan-overview">{plan.overview}</p>
+              </div>
+
+              <div className="story-maker__plan-divider" role="separator" aria-hidden="true" />
+
+              {/* بخش ۲: مسیر کلی قصه (ضرب‌آهنگ روایی) */}
+              <section className="story-maker__plan-section story-maker__plan-section--path" aria-labelledby="story-path-title">
+                <div className="story-maker__plan-section-head">
+                  <span className="story-maker__plan-section-icon" aria-hidden="true"><Icon name="story" size={18} /></span>
+                  <h2 id="story-path-title">مسیر کلی قصه</h2>
+                </div>
+                <div className="story-maker__path-timeline">
+                  <div className="story-maker__path-step story-maker__path-step--start">
+                    <span className="story-maker__path-step-badge">شروع</span>
+                    <p>{plan.storyPath.beginning}</p>
+                  </div>
+                  <div className="story-maker__path-step story-maker__path-step--challenge">
+                    <span className="story-maker__path-step-badge">چالش</span>
+                    <p>{plan.storyPath.challenge}</p>
+                  </div>
+                  <div className="story-maker__path-step story-maker__path-step--climax">
+                    <span className="story-maker__path-step-badge">اوج</span>
+                    <p>{plan.storyPath.climax}</p>
+                  </div>
+                  <div className="story-maker__path-step story-maker__path-step--resolution">
+                    <span className="story-maker__path-step-badge">فرجام</span>
+                    <p>{plan.storyPath.resolution}</p>
+                  </div>
+                </div>
+              </section>
+
+              <div className="story-maker__plan-divider" role="separator" aria-hidden="true" />
+
+              {/* بخش ۳: شخصیت‌ها */}
+              <section className="story-maker__plan-section story-maker__plan-section--characters" aria-labelledby="story-characters-title">
+                <div className="story-maker__plan-section-head">
+                  <span className="story-maker__plan-section-icon" aria-hidden="true"><Icon name="companion" size={18} /></span>
+                  <h2 id="story-characters-title">شخصیت‌ها</h2>
+                </div>
+                <div className="story-maker__characters-grid">
+                  {plan.characters.map((character) => (
+                    <div key={`${character.name}-${character.role}`} className="story-maker__character-item">
+                      <div className="story-maker__character-head">
+                        <strong>{character.name}</strong>
+                        <span className="story-maker__character-role">{character.role}</span>
+                      </div>
+                      <p>{character.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <div className="story-maker__plan-divider" role="separator" aria-hidden="true" />
+
+              {/* بخش ۴: دنیای داستان و مشخصات */}
+              <section className="story-maker__plan-section story-maker__plan-section--world" aria-labelledby="story-world-title">
+                <div className="story-maker__plan-section-head">
+                  <span className="story-maker__plan-section-icon" aria-hidden="true"><Icon name="star" size={18} /></span>
+                  <h2 id="story-world-title">دنیای داستان و مشخصات</h2>
+                </div>
+                <div className="story-maker__world-body">
+                  <div className="story-maker__world-place">
+                    <small>محل و فضای داستان</small>
+                    <p>{plan.world}</p>
+                  </div>
+                  <div className="story-maker__world-tags">
+                    <span className="story-maker__world-tag">
+                      <small>قالب</small>
+                      <strong>{plan.format}</strong>
+                    </span>
+                    <span className="story-maker__world-tag">
+                      <small>مدت</small>
+                      <strong>{plan.duration}</strong>
+                    </span>
+                    <span className="story-maker__world-tag">
+                      <small>لحن</small>
+                      <strong>{plan.tone}</strong>
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+                            {/* نوار عملیات نهایی درون فوتر کارت */}
+              <footer className="story-maker__plan-footer">
+                <div className="story-maker__plan-edits">
+                  <Button type="button" variant="secondary" onClick={openCharacterEditor} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>
+                    ویرایش نام شخصیت‌ها
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => setAnswerPickerOpen(true)} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>
+                    ویرایش جزئیات
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => { setImprovementError(''); setImprovementDialogOpen(true); }} startIcon={<Icon name="sparkle" size={17} aria-hidden="true" />}>
+                    داستان را بهترش کن
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  size="lg"
+                  loading={isGenerating}
+                  onClick={() => void runScenarioGeneration()}
+                  endIcon={<Icon name="sparkle" size={19} aria-hidden="true" />}
+                  className="story-maker__generate-btn"
+                >
+                  اوکیه، سناریو رو بساز
+                </Button>
+              </footer>
             </article>
-            <div className="story-maker__plan-grid">
-              <article className="story-maker__plan-card"><span>شخصیت‌ها</span><div className="story-maker__character-list">{plan.characters.map((character) => <div key={`${character.name}-${character.role}`}><strong>{character.name}</strong><small>{character.role}</small><p>{character.description}</p></div>)}</div></article>
-              <article className="story-maker__plan-card"><span>مسیر کلی قصه</span><dl><div><dt>شروع</dt><dd>{plan.storyPath.beginning}</dd></div><div><dt>چالش</dt><dd>{plan.storyPath.challenge}</dd></div><div><dt>اوج</dt><dd>{plan.storyPath.climax}</dd></div><div><dt>فرجام</dt><dd>{plan.storyPath.resolution}</dd></div></dl></article>
-            </div>
-            <p className="story-maker__plan-note"><Icon name="lightbulb" size={18} aria-hidden="true" /> این انتخاب‌ها، مبنای ساخت سناریوی نهایی هستند؛ فعلاً فقط نقشه‌ی راه را می‌بینی و صحنه‌ها و دیالوگ‌ها هنوز ساخته نشده‌اند.</p>
-            <section className="story-maker__choices-section" aria-labelledby="story-choices-title">
-              <button id="story-choices-title" type="button" className={`story-maker__choices-toggle${isChoiceSummaryOpen ? ' is-open' : ''}`} onClick={toggleChoiceSummary} aria-expanded={isChoiceSummaryOpen} aria-controls="story-choices-summary">
-                <span>انتخاب‌های تو</span>
-                <span className="story-maker__choices-toggle-action">{isChoiceSummaryOpen ? 'بستن انتخاب‌ها' : 'مشاهدهٔ انتخاب‌ها'} <Icon name="chevron-down" size={18} aria-hidden="true" /></span>
-              </button>
-              {isChoiceSummaryMounted ? <div id="story-choices-summary" className={`story-maker__answer-summary-wrap${isChoiceSummaryOpen ? ' is-open' : ' is-closing'}`} aria-hidden={!isChoiceSummaryOpen}>
-                <div className="story-maker__answer-summary">{brief?.questions.map((question) => <div key={question.id}><small>{question.question}</small><strong>{briefAnswers[question.id] || 'به انتخاب دانوآ'}</strong></div>)}</div>
-              </div> : null}
-              <div className="story-maker__plan-actions"><div className="story-maker__plan-edits"><Button type="button" variant="secondary" onClick={openCharacterEditor} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>ویرایش نام شخصیت‌ها</Button><Button type="button" variant="secondary" onClick={() => setAnswerPickerOpen(true)} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>ویرایش جزئیات</Button><Button type="button" variant="secondary" onClick={() => { setImprovementError(''); setImprovementDialogOpen(true); }} startIcon={<Icon name="sparkle" size={17} aria-hidden="true" />}>داستان را بهترش کن</Button></div><Button type="button" size="lg" loading={isGenerating} onClick={() => void runScenarioGeneration()} endIcon={<Icon name="sparkle" size={19} aria-hidden="true" />}>اوکیه، سناریو رو بساز</Button></div>
-            </section>
           </> : null}
         </section>}
       </div> : <section className="story-maker__history" id="story-history-panel" role="tabpanel" aria-labelledby="story-history-tab">
