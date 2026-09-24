@@ -6,6 +6,7 @@ import Button from './Button';
 type Props = {
   open: boolean;
   title: string;
+  headerContent?: ReactNode;
   onClose: () => void;
   children: ReactNode;
   confirmText?: string;
@@ -17,7 +18,7 @@ type Props = {
   closeLabel?: string;
 };
 
-function Dialog({ open, title, onClose, children, confirmText, cancelText = 'انصراف', onConfirm, showFooter = true, panelClassName = '', dismissible = true, closeLabel = 'بستن پنجره' }: Props) {
+function Dialog({ open, title, headerContent, onClose, children, confirmText, cancelText = 'انصراف', onConfirm, showFooter = true, panelClassName = '', dismissible = true, closeLabel = 'بستن پنجره' }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
@@ -74,6 +75,7 @@ function Dialog({ open, title, onClose, children, confirmText, cancelText = 'ا�
     <div className="ds-dialog-overlay" role="presentation" onClick={dismissible ? onClose : undefined}>
       <div className={`ds-dialog-panel ${panelClassName}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(event) => event.stopPropagation()} ref={panelRef}>
         <div className="ds-dialog-header">
+          {headerContent ? <div className="ds-dialog-header-extra">{headerContent}</div> : null}
           <h2 id={titleId}>{title}</h2>
           {dismissible ? <Button
             type="button"

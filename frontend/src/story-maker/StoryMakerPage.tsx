@@ -20,6 +20,7 @@ const STORY_HISTORY_STORAGE_KEY = 'danoa-story-history-v1';
 const STORY_PENDING_STORAGE_KEY = 'danoa-story-pending-v1';
 const initialDraft: StoryDraft = { idea: '', heroName: '', companionName: '', mood: 'adventure', place: 'forest', customPlace: '', length: 'medium', customSceneCount: '', ending: 'happy', customEnding: '' };
 const storyDetailLabels: Record<string, string> = { age: 'گروه سنی', format: 'قالب داستان', duration: 'مدت داستان', location: 'محل رخداد', mood: 'حال‌وهوای داستان' };
+const durationPresetOptions = [5, 10, 15] as const;
 
 function discardLegacyFollowUpQuestions(source: StoryBrief | null | undefined): StoryBrief | null {
   if (!source) return null;
@@ -166,10 +167,29 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
   const ideaError = ideaTouched && !draft.idea.trim() ? 'اول ایده‌ی داستان را بنویس.' : '';
   const activeBriefQuestion = brief?.questions[briefQuestionIndex] || null;
   const isDurationQuestion = activeBriefQuestion?.id === 'duration';
+  const selectedDuration = briefAnswers.duration ? getDurationSeconds(briefAnswers.duration) : null;
+  const selectedDurationPreset = selectedDuration && durationPresetOptions.includes(selectedDuration as (typeof durationPresetOptions)[number]) ? selectedDuration : null;
+  const customDurationSelected = Boolean(selectedDuration && !selectedDurationPreset);
   const allowsCustomBriefAnswer = activeBriefQuestion?.id !== 'format';
   const isImprovementQuestion = isOptimizingIdea && Boolean(activeBriefQuestion) && briefQuestionIndex >= 5;
   const improvementQuestionCount = isOptimizingIdea ? Math.max(0, (brief?.questions.length || 0) - 5) : 0;
   const improvementQuestionNumber = isImprovementQuestion ? briefQuestionIndex - 4 : 0;
+  const briefDialogTitle = isPreparingBrief
+    ? 'در حال آماده‌سازی ایده'
+    : briefError
+      ? 'یک مشکل کوچولو پیش آمد'
+      : brief && activeBriefQuestion && !briefError
+        ? activeBriefQuestion.question
+        : editingQuestionId
+          ? 'ویرایش یک انتخاب'
+          : isOptimizingIdea
+            ? 'برای بهتر شدن داستان'
+            : 'سؤال داستان';
+  const briefProgress = brief && activeBriefQuestion && !briefError ? (
+    <div className="story-maker__brief-progress" role="progressbar" aria-valuemin={1} aria-valuemax={isImprovementQuestion ? improvementQuestionCount : brief.questions.length} aria-valuenow={isImprovementQuestion ? improvementQuestionNumber : briefQuestionIndex + 1} aria-valuetext={isImprovementQuestion ? `مرحله ${improvementQuestionNumber} از ${improvementQuestionCount}` : `مرحله ${briefQuestionIndex + 1} از ${brief.questions.length}`}>
+      <div aria-hidden="true">{(isImprovementQuestion ? brief.questions.slice(5) : brief.questions).map((question, index) => <i key={question.id} className={isImprovementQuestion ? (index < improvementQuestionNumber ? 'is-active' : '') : index <= briefQuestionIndex ? 'is-active' : ''} />)}</div>
+    </div>
+  ) : null;
 
   useEffect(() => {
     if (routeWorkspaceId || activeTab !== 'create' || flow !== 'idea') return;
@@ -734,25 +754,21 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
         </form>
       </Dialog>
 
-      <Dialog open={briefDialogOpen} title={isPreparingBrief ? 'در حال آماده‌سازی ایده' : briefError ? 'یک مشکل کوچولو پیش آمد' : editingQuestionId ? 'ویرایش یک انتخاب' : isOptimizingIdea ? 'حداکثر دو سؤال کوتاه برای بهتر شدن داستان' : 'انتخاب‌های مهم قصه'} onClose={isPreparingBrief ? cancelBrief : () => setBriefDialogOpen(false)} showFooter={false} panelClassName={`story-maker__brief-dialog${isPreparingBrief ? ' story-maker__processing-dialog' : ''}`}>
+      <Dialog open={briefDialogOpen} title={briefDialogTitle} headerContent={briefProgress} onClose={isPreparingBrief ? cancelBrief : () => setBriefDialogOpen(false)} showFooter={false} panelClassName={`story-maker__brief-dialog${isPreparingBrief ? ' story-maker__processing-dialog' : ''}`}>
         {isPreparingBrief ? <StoryProcessingCard stage={0} headline="داستانت داره آماده می‌شه" support="یک لحظه کوچولو…" onCancel={cancelBrief} /> : null}
         {briefError ? <div className="story-maker__dialog-error" role="alert"><Icon name="alert-triangle" size={22} aria-hidden="true" /><p>{briefError}</p><div className="story-maker__brief-actions"><Button type="button" variant="secondary" onClick={() => setBriefDialogOpen(false)}>بستن</Button><Button type="button" onClick={() => void startBrief()}>دوباره تلاش کن</Button></div></div> : null}
         {brief && activeBriefQuestion && !briefError ? (
           <div className="story-maker__brief-content">
-            <div className="story-maker__brief-intro"><span className="story-maker__brief-sparkle"><Icon name="sparkle" size={18} aria-hidden="true" /></span><div><strong>{editingQuestionId ? 'همین بخش را تغییر بده' : 'قصه‌ات دارد شکل می‌گیرد!'}</strong><p>{brief.summary}</p></div></div>
-            <div className="story-maker__brief-progress" aria-label={isImprovementQuestion ? `سؤال ${improvementQuestionNumber} از ${improvementQuestionCount}` : `سؤال ${briefQuestionIndex + 1} از ${brief.questions.length}`}><span>{isImprovementQuestion ? `سؤال ${improvementQuestionNumber} از ${improvementQuestionCount}` : `سؤال ${briefQuestionIndex + 1} از ${brief.questions.length}`}</span><div aria-hidden="true">{(isImprovementQuestion ? brief.questions.slice(5) : brief.questions).map((question, index) => <i key={question.id} className={isImprovementQuestion ? (index < improvementQuestionNumber ? 'is-active' : '') : index <= briefQuestionIndex ? 'is-active' : ''} />)}</div></div>
-            <section key={activeBriefQuestion.id} className="story-maker__brief-question story-maker__brief-question--active" aria-labelledby={`brief-question-${activeBriefQuestion.id}`} aria-live="polite">
-              <span>{isImprovementQuestion ? improvementQuestionNumber : briefQuestionIndex + 1}</span>
+            <section key={activeBriefQuestion.id} className="story-maker__brief-question story-maker__brief-question--active" aria-label={activeBriefQuestion.question} aria-live="polite">
               <div>
-                <h3 id={`brief-question-${activeBriefQuestion.id}`}>{activeBriefQuestion.question}</h3>
-                {activeBriefQuestion.hint ? <p>{activeBriefQuestion.hint}</p> : null}
                 {isDurationQuestion ? (
-                  <form className="story-maker__duration-input" onSubmit={(event) => { event.preventDefault(); applyAnswer(`${new Intl.NumberFormat('fa-IR').format(durationSeconds)} ثانیه`); }}>
-                    <div className="story-maker__duration-value"><output htmlFor="story-duration-range story-duration-number">{new Intl.NumberFormat('fa-IR').format(durationSeconds)}</output><span>ثانیه</span></div>
-                    <input id="story-duration-range" type="range" min="2" max="60" step="1" value={durationSeconds} onChange={(event) => setDurationSeconds(clampDuration(Number(event.target.value)))} aria-label="انتخاب مدت داستان بر حسب ثانیه" />
-                    <label className="story-maker__duration-number" htmlFor="story-duration-number"><span>یا دقیق تایپ کن</span><input id="story-duration-number" type="number" min="2" max="60" inputMode="numeric" value={durationSeconds} onChange={(event) => setDurationSeconds(clampDuration(Number(event.target.value)))} /><small>ثانیه</small></label>
-                    <Button type="submit" size="sm">ثبت و ادامه</Button>
-                  </form>
+                  <div className="story-maker__duration-picker">
+                    <div className="story-maker__duration-options" role="radiogroup" aria-label="انتخاب مدت داستان">
+                      {durationPresetOptions.map((seconds) => <button key={seconds} type="button" role="radio" aria-checked={selectedDurationPreset === seconds} className={selectedDurationPreset === seconds ? 'is-selected' : ''} onClick={() => applyAnswer(`${new Intl.NumberFormat('fa-IR').format(seconds)} ثانیه`)}><strong>{new Intl.NumberFormat('fa-IR').format(seconds)}</strong><span>ثانیه</span></button>)}
+                      <button type="button" role="radio" aria-checked={customAnswerOpen || customDurationSelected} className={customAnswerOpen || customDurationSelected ? 'is-selected' : ''} onClick={() => { setCustomAnswerOpen(true); setDurationSeconds(selectedDuration || 10); }}><strong>خودم می‌نویسم</strong><span>مدت دلخواه</span></button>
+                    </div>
+                    {customAnswerOpen ? <form className="story-maker__duration-custom" onSubmit={(event) => { event.preventDefault(); applyAnswer(`${new Intl.NumberFormat('fa-IR').format(durationSeconds)} ثانیه`); }}><label htmlFor="story-duration-number">مدت به ثانیه</label><input id="story-duration-number" type="number" min="2" max="60" inputMode="numeric" value={durationSeconds} onChange={(event) => setDurationSeconds(clampDuration(Number(event.target.value)))} autoFocus /><span>ثانیه</span><Button type="submit" size="sm">ثبت و ادامه</Button></form> : null}
+                  </div>
                 ) : (
                   <>
                     <div className="story-maker__brief-options" role="radiogroup" aria-label={activeBriefQuestion.question}>{activeBriefQuestion.options.map((option) => <button key={option} type="button" role="radio" aria-checked={briefAnswers[activeBriefQuestion.id] === option} className={briefAnswers[activeBriefQuestion.id] === option ? 'is-selected' : ''} onClick={() => applyAnswer(option)}>{option}{briefAnswers[activeBriefQuestion.id] === option ? <OptionCheck /> : null}</button>)}{allowsCustomBriefAnswer ? <button type="button" className={customAnswerOpen ? 'is-selected' : ''} onClick={() => { setCustomAnswerOpen(true); setCustomAnswer(briefAnswers[activeBriefQuestion.id] || ''); }}>خودم می‌نویسم</button> : null}</div>
@@ -762,7 +778,7 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
                 {briefValidationError ? <p className="story-maker__error" role="alert">{briefValidationError}</p> : null}
               </div>
             </section>
-            <div className="story-maker__brief-actions">{!editingQuestionId && briefQuestionIndex && !isImprovementQuestion ? <Button type="button" variant="secondary" onClick={() => setBriefQuestionIndex((index) => Math.max(0, index - 1))}>سؤال قبلی</Button> : <Button type="button" variant="secondary" onClick={() => setBriefDialogOpen(false)}>فعلاً بعداً</Button>}<span className="story-maker__brief-next-hint">{isImprovementQuestion ? 'یک گزینه انتخاب کن یا جواب خودت را بنویس.' : isDurationQuestion ? 'مدت دلخواهت را ثبت کن تا ادامه بدهیم.' : 'یک گزینه انتخاب کن تا ادامه بدهیم.'}</span></div>
+            <div className="story-maker__brief-actions">{!editingQuestionId && briefQuestionIndex && !isImprovementQuestion ? <Button type="button" variant="secondary" onClick={() => setBriefQuestionIndex((index) => Math.max(0, index - 1))}>سؤال قبلی</Button> : <Button type="button" variant="secondary" onClick={() => setBriefDialogOpen(false)}>فعلاً بعداً</Button>}<span className="story-maker__brief-next-hint">{isImprovementQuestion ? 'یک گزینه انتخاب کن یا جواب خودت را بنویس.' : isDurationQuestion ? 'یک زمان را انتخاب کن یا خودت واردش کن.' : 'یک گزینه انتخاب کن تا ادامه بدهیم.'}</span></div>
           </div>
         ) : null}
       </Dialog>
