@@ -493,8 +493,16 @@ html[data-color-mode='dark'] .story-maker__plan-banner p {
 .story-maker__plan-section-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.story-maker__plan-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .story-maker__plan-section-icon {
@@ -513,6 +521,120 @@ html[data-color-mode='dark'] .story-maker__plan-banner p {
   font-size: 1.08rem;
   font-weight: 850;
   color: var(--color-text);
+}
+
+.story-maker__plan-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Polished & Kid-Friendly Section Action Buttons */
+.story-maker__section-action-btn.ds-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 0 16px !important;
+  border-radius: 999px !important;
+  font-size: 0.82rem !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.01em;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  user-select: none;
+  touch-action: manipulation;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease !important;
+}
+
+.story-maker__section-action-btn.ds-button:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02) !important;
+}
+
+.story-maker__section-action-btn.ds-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.97) !important;
+}
+
+/* 1. Theme: Magic / Story Improvement (داستان را بهترش کن) */
+.story-maker__section-action-btn--magic.ds-button {
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%) !important;
+  border: 1.5px solid #d8b4fe !important;
+  color: #7c3aed !important;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.story-maker__section-action-btn--magic.ds-button svg {
+  color: #8b5cf6 !important;
+  filter: drop-shadow(0 1px 2px rgba(124, 58, 237, 0.3));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.story-maker__section-action-btn--magic.ds-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%) !important;
+  border-color: #c084fc !important;
+  color: #6b21a8 !important;
+  box-shadow: 0 5px 16px rgba(124, 58, 237, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.story-maker__section-action-btn--magic.ds-button:hover:not(:disabled) svg {
+  transform: rotate(18deg) scale(1.22);
+}
+
+/* 2. Theme: Characters (ویرایش نام شخصیت‌ها) */
+.story-maker__section-action-btn--characters.ds-button {
+  background: linear-gradient(135deg, #fffaf5 0%, #ffedd5 100%) !important;
+  border: 1.5px solid #fed7aa !important;
+  color: #c2410c !important;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.story-maker__section-action-btn--characters.ds-button svg {
+  color: #ea580c !important;
+  filter: drop-shadow(0 1px 2px rgba(234, 88, 12, 0.3));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.story-maker__section-action-btn--characters.ds-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%) !important;
+  border-color: #fb923c !important;
+  color: #9a3412 !important;
+  box-shadow: 0 5px 16px rgba(234, 88, 12, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.story-maker__section-action-btn--characters.ds-button:hover:not(:disabled) svg {
+  transform: rotate(-15deg) scale(1.22);
+}
+
+/* 3. Theme: World & Details (ویرایش جزئیات) */
+.story-maker__section-action-btn--world.ds-button {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  border: 1.5px solid #bae6fd !important;
+  color: #0369a1 !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.story-maker__section-action-btn--world.ds-button svg {
+  color: #0284c7 !important;
+  filter: drop-shadow(0 1px 2px rgba(2, 132, 199, 0.3));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.story-maker__section-action-btn--world.ds-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
+  border-color: #7dd3fc !important;
+  color: #075985 !important;
+  box-shadow: 0 5px 16px rgba(2, 132, 199, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.story-maker__section-action-btn--world.ds-button:hover:not(:disabled) svg {
+  transform: rotate(15deg) scale(1.22);
 }
 
 /* Narrative Path / Timeline */
@@ -791,21 +913,60 @@ html[data-color-mode='dark'] .story-maker__plan-banner p {
 .story-maker__plan-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 14px;
-  padding: clamp(16px, 2.2vw, 22px) clamp(20px, 2.8vw, 32px);
+  padding: clamp(20px, 2.8vw, 30px) clamp(20px, 2.8vw, 32px);
   border-top: 1px solid color-mix(in srgb, var(--color-border) 74%, transparent);
   background: color-mix(in srgb, var(--color-surface-2) 40%, var(--color-surface-container-lowest));
 }
 
-.story-maker__plan-edits {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.story-maker__plan-footer--center {
+  justify-content: center;
+  text-align: center;
 }
 
-.story-maker__generate-btn {
-  min-width: 200px;
+.story-maker__generate-btn.ds-button {
+  min-width: min(340px, 100%);
+  min-height: 52px !important;
+  height: 52px !important;
+  padding: 0 38px !important;
+  font-size: 1.12rem !important;
+  font-weight: 900 !important;
+  border-radius: 999px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.35) !important;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 60%, #5b21b6 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(109, 40, 217, 0.38), 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: -0.01em;
+}
+
+.story-maker__generate-btn.ds-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-20deg);
+  transition: 0.6s ease;
+  pointer-events: none;
+}
+
+.story-maker__generate-btn.ds-button:hover:not(:disabled)::after {
+  left: 150%;
+}
+
+.story-maker__generate-btn.ds-button:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 14px 34px rgba(109, 40, 217, 0.48), 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+}
+
+.story-maker__generate-btn.ds-button:active:not(:disabled) {
+  transform: translateY(-1px) scale(0.98) !important;
 }
 
 .story-maker__plan-loading { min-height: 360px; }
@@ -935,6 +1096,44 @@ html[data-color-mode='dark'] .story-maker__plan-note {
 html[data-color-mode='dark'] .story-maker__plan-footer {
   background: color-mix(in srgb, var(--color-surface-2) 50%, var(--color-surface-container-lowest));
 }
+html[data-color-mode='dark'] .story-maker__section-action-btn--magic.ds-button {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.22), rgba(109, 40, 217, 0.35)) !important;
+  border-color: rgba(192, 132, 252, 0.5) !important;
+  color: #e9d5ff !important;
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+html[data-color-mode='dark'] .story-maker__section-action-btn--magic.ds-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(109, 40, 217, 0.52)) !important;
+  border-color: #c084fc !important;
+  color: #ffffff !important;
+  box-shadow: 0 5px 18px rgba(124, 58, 237, 0.35) !important;
+}
+
+html[data-color-mode='dark'] .story-maker__section-action-btn--characters.ds-button {
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.22), rgba(194, 65, 12, 0.35)) !important;
+  border-color: rgba(251, 146, 60, 0.5) !important;
+  color: #fed7aa !important;
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+html[data-color-mode='dark'] .story-maker__section-action-btn--characters.ds-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.35), rgba(194, 65, 12, 0.52)) !important;
+  border-color: #fb923c !important;
+  color: #ffffff !important;
+  box-shadow: 0 5px 18px rgba(234, 88, 12, 0.35) !important;
+}
+
+html[data-color-mode='dark'] .story-maker__section-action-btn--world.ds-button {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.22), rgba(3, 105, 161, 0.35)) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  color: #bae6fd !important;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+html[data-color-mode='dark'] .story-maker__section-action-btn--world.ds-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.35), rgba(3, 105, 161, 0.52)) !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 5px 18px rgba(2, 132, 199, 0.35) !important;
+}
 
 @media (max-width: 600px) {
   .story-maker__idea-stage,
@@ -951,10 +1150,47 @@ html[data-color-mode='dark'] .story-maker__plan-footer {
   .story-maker__characters-grid { grid-template-columns: 1fr; gap: 10px; }
   .story-maker__world-body { flex-direction: column; align-items: stretch; gap: 12px; }
   .story-maker__answer-summary { grid-template-columns: 1fr; }
-  .story-maker__plan-footer { flex-direction: column-reverse; align-items: stretch; gap: 12px; }
-  .story-maker__plan-footer .story-maker__generate-btn { width: 100%; }
-  .story-maker__plan-edits { display: grid; width: 100%; grid-template-columns: 1fr; }
-  .story-maker__plan-edits .ds-button { width: 100%; }
+  .story-maker__plan-footer {
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 18px 16px !important;
+  }
+  .story-maker__plan-footer .story-maker__generate-btn.ds-button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    font-size: 1.02rem !important;
+    padding: 0 20px !important;
+  }
+  .story-maker__plan-section-head {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .story-maker__plan-section-title {
+    gap: 8px;
+  }
+  .story-maker__plan-section-title h2 {
+    font-size: 0.96rem;
+  }
+  .story-maker__plan-section-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+  }
+  .story-maker__section-action-btn.ds-button {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 0.76rem !important;
+    gap: 5px !important;
+  }
   .story-maker__custom-answer { align-items: stretch; flex-direction: column; }
   .story-maker__duration-options { gap: 7px; }
   .story-maker__duration-options button { min-height: 58px; padding-inline: 5px; }

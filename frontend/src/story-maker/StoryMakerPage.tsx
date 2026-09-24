@@ -712,8 +712,22 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
               {/* بخش ۲: مسیر کلی قصه (ضرب‌آهنگ روایی) */}
               <section className="story-maker__plan-section story-maker__plan-section--path" aria-labelledby="story-path-title">
                 <div className="story-maker__plan-section-head">
-                  <span className="story-maker__plan-section-icon" aria-hidden="true"><Icon name="story" size={18} /></span>
-                  <h2 id="story-path-title">مسیر کلی قصه</h2>
+                  <div className="story-maker__plan-section-title">
+                    <span className="story-maker__plan-section-icon" aria-hidden="true"><Icon name="story" size={18} /></span>
+                    <h2 id="story-path-title">مسیر کلی قصه</h2>
+                  </div>
+                  <div className="story-maker__plan-section-actions">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => { setImprovementError(''); setImprovementDialogOpen(true); }}
+                      startIcon={<Icon name="sparkle" size={15} aria-hidden="true" />}
+                      className="story-maker__section-action-btn story-maker__section-action-btn--magic"
+                    >
+                      داستان را بهترش کن
+                    </Button>
+                  </div>
                 </div>
                 <div className="story-maker__path-timeline">
                   <div className="story-maker__path-step story-maker__path-step--start">
@@ -740,8 +754,22 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
               {/* بخش ۳: شخصیت‌ها */}
               <section className="story-maker__plan-section story-maker__plan-section--characters" aria-labelledby="story-characters-title">
                 <div className="story-maker__plan-section-head">
-                  <span className="story-maker__plan-section-icon" aria-hidden="true"><Icon name="companion" size={18} /></span>
-                  <h2 id="story-characters-title">شخصیت‌ها</h2>
+                  <div className="story-maker__plan-section-title">
+                    <span className="story-maker__plan-section-icon" aria-hidden="true"><Icon name="companion" size={18} /></span>
+                    <h2 id="story-characters-title">شخصیت‌ها</h2>
+                  </div>
+                  <div className="story-maker__plan-section-actions">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={openCharacterEditor}
+                      startIcon={<Icon name="edit" size={15} aria-hidden="true" />}
+                      className="story-maker__section-action-btn story-maker__section-action-btn--characters"
+                    >
+                      ویرایش نام شخصیت‌ها
+                    </Button>
+                  </div>
                 </div>
                 <div className="story-maker__characters-grid">
                   {plan.characters.map((character) => (
@@ -761,8 +789,22 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
               {/* بخش ۴: دنیای داستان و مشخصات */}
               <section className="story-maker__plan-section story-maker__plan-section--world" aria-labelledby="story-world-title">
                 <div className="story-maker__plan-section-head">
-                  <span className="story-maker__plan-section-icon" aria-hidden="true"><Icon name="star" size={18} /></span>
-                  <h2 id="story-world-title">دنیای داستان و مشخصات</h2>
+                  <div className="story-maker__plan-section-title">
+                    <span className="story-maker__plan-section-icon" aria-hidden="true"><Icon name="star" size={18} /></span>
+                    <h2 id="story-world-title">دنیای داستان و مشخصات</h2>
+                  </div>
+                  <div className="story-maker__plan-section-actions">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setAnswerPickerOpen(true)}
+                      startIcon={<Icon name="edit" size={15} aria-hidden="true" />}
+                      className="story-maker__section-action-btn story-maker__section-action-btn--world"
+                    >
+                      ویرایش جزئیات
+                    </Button>
+                  </div>
                 </div>
                 <div className="story-maker__world-body">
                   <div className="story-maker__world-place">
@@ -787,25 +829,14 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
               </section>
 
                             {/* نوار عملیات نهایی درون فوتر کارت */}
-              <footer className="story-maker__plan-footer">
-                <div className="story-maker__plan-edits">
-                  <Button type="button" variant="secondary" onClick={openCharacterEditor} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>
-                    ویرایش نام شخصیت‌ها
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={() => setAnswerPickerOpen(true)} startIcon={<Icon name="edit" size={17} aria-hidden="true" />}>
-                    ویرایش جزئیات
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={() => { setImprovementError(''); setImprovementDialogOpen(true); }} startIcon={<Icon name="sparkle" size={17} aria-hidden="true" />}>
-                    داستان را بهترش کن
-                  </Button>
-                </div>
+              <footer className="story-maker__plan-footer story-maker__plan-footer--center">
                 <Button
                   type="button"
                   size="lg"
                   loading={isGenerating}
                   onClick={() => void runScenarioGeneration()}
                   endIcon={<Icon name="sparkle" size={19} aria-hidden="true" />}
-                  className="story-maker__generate-btn"
+                  className="story-maker__generate-btn story-maker__generate-btn--hero"
                 >
                   اوکیه، سناریو رو بساز
                 </Button>
