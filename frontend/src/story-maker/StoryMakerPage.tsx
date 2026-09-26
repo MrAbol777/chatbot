@@ -5,6 +5,7 @@ import { Button, Dialog, useNotification } from '../design-system/components';
 import Icon from '../components/Icon';
 import { clarifyStoryBrief, createStoryWorkspace, generateStoryScenario, getStoryWorkspace, listStoryWorkspaces, prepareStoryBrief, prepareStoryPreview, updateStoryWorkspace } from './storyMaker.api';
 import StoryEditorDialog from './StoryEditorDialog';
+import StoryWormGame from './StoryWormGame';
 import type { StoryAddedCharacter, StoryBrief, StoryContext, StoryDraft, StoryPlanPreview, StoryScenario, StoryVersion, StoryWorkspace, StoryWorkspaceStatus } from './storyMaker.types';
 import './StoryMakerPage.css';
 
@@ -933,8 +934,15 @@ export default function StoryMakerPage({ onBack, workspaceId: routeWorkspaceId =
         </div>
       </Dialog>
 
-      <Dialog open={scenarioDialogOpen} title={isGenerating ? 'دانوآ دارد سناریو را می‌سازد…' : scenarioError ? 'دوباره امتحان کنیم؟' : 'سناریوی تو آماده شد!'} onClose={closeScenarioDialog} closeLabel={isGenerating ? 'لغو ساخت سناریو' : 'بستن پنجره'} showFooter={false} panelClassName="story-maker__dialog">
-        {isGenerating ? <div className="story-maker__dialog-loading" role="status" aria-live="polite"><Icon name="spinner" size={30} aria-hidden="true" /><strong>داریم صحنه‌ها و دیالوگ‌ها را می‌چینیم…</strong><span>یک کوچولو صبر کن.</span></div> : null}
+      <Dialog
+        open={scenarioDialogOpen}
+        title={isGenerating ? '' : scenarioError ? 'دوباره امتحان کنیم؟' : 'سناریوی تو آماده شد!'}
+        onClose={closeScenarioDialog}
+        closeLabel={isGenerating ? 'لغو ساخت سناریو' : 'بستن پنجره'}
+        showFooter={false}
+        panelClassName={`story-maker__dialog${isGenerating ? ' story-maker__dialog--game' : ''}`}
+      >
+        {isGenerating ? <StoryWormGame onCancel={closeScenarioDialog} /> : null}
         {scenarioError ? <div className="story-maker__dialog-error" role="alert"><Icon name="alert-triangle" size={22} aria-hidden="true" /><p>{scenarioError}</p><Button type="button" onClick={() => void runScenarioGeneration()}>دوباره بساز</Button></div> : null}
         {scenario ? <><aside className="story-maker__character-handoff" aria-label="مرحله بعدی ساخت کاراکتر"><span><Icon name="family" size={20} aria-hidden="true" /></span><div><strong>قدم بعدی: طراحی کاراکترها</strong><p>سناریو را آماده به کارگاه ساخت کاراکتر می‌بریم؛ تحلیل فقط با تأیید تو شروع می‌شود.</p></div></aside><article className="story-maker__scenario" aria-label="سناریوی نهایی"><ReactMarkdown remarkPlugins={[remarkGfm]}>{scenario}</ReactMarkdown></article><div className="story-maker__dialog-actions"><Button type="button" className="story-maker__design-characters" onClick={startCharacterDesign} startIcon={<Icon name="family" size={18} aria-hidden="true" />}>طراحی کاراکترها</Button><div className="story-maker__dialog-secondary-actions">{scenarioStory ? <Button type="button" variant="secondary" onClick={() => { closeScenarioDialog(); setEditorOpen(true); }} startIcon={<Icon name="edit" size={18} aria-hidden="true" />}>ویرایش سناریو</Button> : null}<Button type="button" variant="secondary" onClick={() => void copyScenario()} startIcon={<Icon name="copy" size={18} aria-hidden="true" />}>کپی سناریو</Button><Button type="button" variant="ghost" onClick={closeScenarioDialog}>بستن</Button></div></div></> : null}
       </Dialog>

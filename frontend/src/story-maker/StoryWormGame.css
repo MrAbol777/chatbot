@@ -1,0 +1,292 @@
+/* Polished Interactive Worm Game (Kids Experience) */
+.story-worm-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 2px 0 10px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.story-worm-game__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-surface-2) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 3%, transparent);
+}
+
+.story-worm-game__tag {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  font-weight: 850;
+}
+
+.story-worm-game__tag-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.story-worm-game__stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.82rem;
+}
+
+.story-worm-game__score strong {
+  color: #ef4444;
+  font-size: 1rem;
+  font-weight: 900;
+  margin-inline-start: 2px;
+}
+
+.story-worm-game__highscore strong {
+  color: #f59e0b;
+  font-size: 0.96rem;
+  font-weight: 900;
+  margin-inline-start: 2px;
+}
+
+.story-worm-game__mute-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--color-surface-container-lowest) 80%, transparent);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--motion-ease-standard);
+}
+
+.story-worm-game__mute-btn:hover {
+  transform: scale(1.08);
+}
+
+.story-worm-game__mute-btn:active {
+  transform: scale(0.92);
+}
+
+.story-worm-game__caption {
+  text-align: center;
+  min-height: 24px;
+}
+
+.story-worm-game__caption p {
+  margin: 0;
+  color: #b45309;
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.5;
+  animation: story-worm-bounce 2s ease-in-out infinite;
+}
+
+@keyframes story-worm-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* Playground Board with Ambient Glow */
+.story-worm-game__board {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 14px 34px color-mix(in srgb, #10b981 16%, transparent),
+              0 0 0 2px color-mix(in srgb, #10b981 25%, var(--color-border));
+  background: #f8fafc;
+  cursor: grab;
+  touch-action: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.story-worm-game__board:active {
+  cursor: grabbing;
+  box-shadow: 0 18px 40px color-mix(in srgb, #10b981 22%, transparent),
+              0 0 0 2px #10b981;
+}
+
+.story-worm-game__canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 14;
+}
+
+.story-worm-game__overlay-hint {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 12px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  animation: story-worm-fade-pulse 1.8s ease-in-out infinite;
+}
+
+.story-worm-game__overlay-hint span {
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: #065f46;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  font-size: 0.77rem;
+  font-weight: 850;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes story-worm-fade-pulse {
+  0%, 100% { opacity: 0.75; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* Background AI progress indicator */
+.story-worm-game__scenario-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 400px;
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, #fff7ed 75%, var(--color-surface-container-lowest));
+  border: 1px solid color-mix(in srgb, #f97316 20%, var(--color-border));
+}
+
+.story-worm-game__scenario-status-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8rem;
+  font-weight: 750;
+  color: #9a3412;
+  text-align: center;
+}
+
+.story-worm-game__sparkle-icon {
+  animation: story-worm-spin-sparkle 2.4s linear infinite;
+  display: inline-block;
+}
+
+@keyframes story-worm-spin-sparkle {
+  0% { transform: rotate(0) scale(0.9); }
+  50% { transform: rotate(180deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(0.9); }
+}
+
+.story-worm-game__progress-line {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-border) 65%, transparent);
+  overflow: hidden;
+  position: relative;
+}
+
+.story-worm-game__progress-line i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 45%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f97316, #fb923c, #10b981);
+  animation: story-worm-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes story-worm-indeterminate {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(250%); }
+}
+
+.story-worm-game__footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.story-worm-game__cancel {
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color var(--motion-fast) var(--motion-ease-standard);
+}
+
+.story-worm-game__cancel:hover {
+  color: var(--color-danger);
+}
+
+/* Modal styling tweak when game is displayed */
+.story-maker__dialog--game.ds-dialog-panel {
+  width: min(520px, calc(100% - 24px));
+  padding: clamp(14px, 3.2vw, 24px);
+}
+
+.story-maker__dialog--game .ds-dialog-header {
+  min-height: 20px;
+  margin-bottom: 2px;
+  justify-content: flex-start;
+  border-bottom: 0;
+  padding: 0;
+}
+
+.story-maker__dialog--game .ds-dialog-header h2 {
+  display: none !important;
+}
+
+/* Dark Mode Overrides */
+html[data-color-mode='dark'] .story-worm-game__bar {
+  background: color-mix(in srgb, var(--color-surface-2) 90%, transparent);
+}
+
+html[data-color-mode='dark'] .story-worm-game__mute-btn {
+  background: var(--color-surface-container-lowest);
+}
+
+html[data-color-mode='dark'] .story-worm-game__board {
+  background: #0f172a;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45),
+              0 0 0 2px color-mix(in srgb, #10b981 35%, var(--color-border));
+}
+
+html[data-color-mode='dark'] .story-worm-game__caption p {
+  color: #fdba74;
+}
+
+html[data-color-mode='dark'] .story-worm-game__overlay-hint span {
+  color: #a7f3d0;
+  background: rgba(15, 23, 42, 0.85);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+html[data-color-mode='dark'] .story-worm-game__scenario-status {
+  background: color-mix(in srgb, #d56528 12%, var(--color-surface-2));
+  border-color: color-mix(in srgb, #d56528 25%, var(--color-border));
+}
+
+html[data-color-mode='dark'] .story-worm-game__scenario-status-head {
+  color: #fed7aa;
+}
