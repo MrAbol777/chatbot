@@ -941,6 +941,19 @@ html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa
   border-color: var(--color-border) !important;
 }
 
+@media (max-width: 767px) {
+  html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
+    border: 0 !important;
+    background: color-mix(in srgb, var(--mobile-shortcut-color, var(--color-primary)) 10%, var(--color-surface-container-low)) !important;
+  }
+
+  html[data-color-mode='dark'] .chat-shell.view-chat .danoa-composer-capsule .danoa-attach-circle,
+  html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-composer-capsule .danoa-attach-circle {
+    border: 0 !important;
+    background: transparent !important;
+  }
+}
+
 /* The sidebar brand is a logo, not an icon button. Keep the transparent
  * artwork visible directly on the dark sidebar instead of placing it inside
  * the legacy lavender tile. The collapsed rail keeps a subtle hover/focus

@@ -577,6 +577,7 @@ function ChatApp() {
   const conversationSearchInputRef = useRef<HTMLInputElement>(null);
   const conversationSearchToggleRef = useRef<HTMLButtonElement>(null);
   const chatSidebarToggleRef = useRef<HTMLButtonElement>(null);
+  const chatShellRef = useRef<HTMLDivElement>(null);
 
   const closeConversationSearch = () => {
     setConversationSearchOpen(false);
@@ -684,6 +685,51 @@ function ChatApp() {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = previousOverflow;
       chatSidebarToggleRef.current?.focus();
+    };
+  }, [currentView, sidebarOpen]);
+
+  useEffect(() => {
+    if (currentView !== 'chat') return;
+    const shell = chatShellRef.current;
+    if (!shell) return;
+
+    let swipeStart: { id: number; x: number; y: number; action: 'open' | 'close' } | null = null;
+    const handleTouchStart = (event: TouchEvent) => {
+      swipeStart = null;
+      if (!window.matchMedia('(max-width: 767px)').matches || event.touches.length !== 1) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
+      const target = event.target;
+      if (!(target instanceof Element) || target.closest('button, a, textarea, input, select, [contenteditable="true"], [role="dialog"], .danoa-composer-capsule')) return;
+
+      const touch = event.touches[0];
+      const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+      const action = sidebarOpen
+        ? target.closest('#chat-history-sidebar') ? 'close' : null
+        : touch.clientX >= viewportWidth / 2 ? 'open' : null;
+      if (!action) return;
+      swipeStart = { id: touch.identifier, x: touch.clientX, y: touch.clientY, action };
+    };
+    const handleTouchEnd = (event: TouchEvent) => {
+      if (!swipeStart) return;
+      const touch = Array.from(event.changedTouches).find((item) => item.identifier === swipeStart?.id);
+      const start = swipeStart;
+      swipeStart = null;
+      if (!touch) return;
+      const horizontal = touch.clientX - start.x;
+      const vertical = touch.clientY - start.y;
+      if (Math.abs(horizontal) < 80 || Math.abs(horizontal) < Math.abs(vertical) * 1.2) return;
+      if (start.action === 'open' && horizontal < 0) setSidebarOpen(true);
+      if (start.action === 'close' && horizontal > 0) setSidebarOpen(false);
+    };
+    const clearSwipe = () => { swipeStart = null; };
+
+    shell.addEventListener('touchstart', handleTouchStart, { passive: true });
+    shell.addEventListener('touchend', handleTouchEnd, { passive: true });
+    shell.addEventListener('touchcancel', clearSwipe, { passive: true });
+    return () => {
+      shell.removeEventListener('touchstart', handleTouchStart);
+      shell.removeEventListener('touchend', handleTouchEnd);
+      shell.removeEventListener('touchcancel', clearSwipe);
     };
   }, [currentView, sidebarOpen]);
 
@@ -3285,7 +3331,7 @@ notify.error(message);
   const currentPathname = window.location.pathname;
 
   return (
-    <div className={`app-shell chat-shell view-${currentView} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+    <div ref={chatShellRef} className={`app-shell chat-shell view-${currentView} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="bg-blob blob-pink" />
       <div className="bg-blob blob-orange" />
       <div className="bg-blob blob-yellow" />
