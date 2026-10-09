@@ -7455,9 +7455,11 @@ html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    column-gap: 7px !important;
+    row-gap: 4px !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -7465,18 +7467,20 @@ html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
-    width: 100% !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
     min-width: 0 !important;
-    min-height: 60px !important;
-    height: auto !important;
-    max-height: none !important;
-    padding: 9px 11px !important;
-    justify-content: flex-start !important;
-    gap: 9px !important;
-    border-radius: 17px !important;
-    white-space: normal !important;
-    background: color-mix(in srgb, var(--mobile-shortcut-color, #7c3aed) 7%, var(--color-surface-container-lowest, #fff)) !important;
-    border-color: color-mix(in srgb, var(--mobile-shortcut-color, #7c3aed) 22%, var(--color-border, #e2e8f0)) !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    max-height: 44px !important;
+    padding: 0 9px !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    border-radius: 999px !important;
+    white-space: nowrap !important;
+    background: color-mix(in srgb, var(--mobile-shortcut-color, #7c3aed) 3%, var(--color-surface-container-lowest, #fff)) !important;
+    border-color: color-mix(in srgb, var(--mobile-shortcut-color, #7c3aed) 18%, var(--color-border, #e2e8f0)) !important;
+    box-shadow: 0 2px 8px rgba(31, 24, 54, .035) !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--story { --mobile-shortcut-color: #cf5b25; }
@@ -7487,24 +7491,29 @@ html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card--all-tools { --mobile-shortcut-color: #55617d; }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    flex: 0 0 32px !important;
-    border-radius: 10px !important;
+    width: 17px !important;
+    height: 17px !important;
+    min-width: 17px !important;
+    flex: 0 0 17px !important;
+    border-radius: 0 !important;
     color: var(--mobile-shortcut-color, #7c3aed) !important;
-    background: color-mix(in srgb, var(--mobile-shortcut-color, #7c3aed) 13%, var(--color-surface-container-lowest, #fff)) !important;
+    background: transparent !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon svg {
-    width: 18px !important;
-    height: 18px !important;
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card .danoa-shortcut-icon {
+    color: color-mix(in srgb, var(--mobile-shortcut-color, #7c3aed) 75%, #fff) !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-title {
-    font-size: clamp(.81rem, 3.2vw, .9rem) !important;
+    color: var(--color-text, #1e1b2e) !important;
+    font-size: clamp(.76rem, 2.7vw, .84rem) !important;
     line-height: 1.35 !important;
-    white-space: normal !important;
+    white-space: nowrap !important;
     text-align: right !important;
   }
 
@@ -7548,13 +7557,49 @@ html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .
   }
 }
 
+@media (min-width: 360px) and (max-width: 767px) {
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row::before,
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row::after {
+    content: '';
+    display: block !important;
+    flex: 0 0 100% !important;
+    height: 0 !important;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row::before { order: 1 !important; }
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row::after { order: 3 !important; }
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:nth-child(-n + 3) { order: 0 !important; }
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:nth-child(n + 4):nth-child(-n + 5) { order: 2 !important; }
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card:nth-child(6) { order: 4 !important; }
+}
+
 @media (max-width: 380px) {
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcuts-row {
-    gap: 8px !important;
+    column-gap: 4px !important;
+    row-gap: 3px !important;
   }
 
   .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
-    padding-inline: 8px !important;
-    gap: 6px !important;
+    padding-inline: 6px !important;
+    gap: 4px !important;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon,
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+    min-width: 15px !important;
+    flex-basis: 15px !important;
+  }
+
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-title {
+    font-size: .75rem !important;
+  }
+}
+
+@media (max-width: 359px) {
+  .chat-shell.view-chat .chat-card.chat-card--empty .danoa-shortcut-card {
+    flex: 0 0 calc((100% - 6px) / 2) !important;
+    width: calc((100% - 6px) / 2) !important;
   }
 }

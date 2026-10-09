@@ -64,7 +64,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           aria-label="باز کردن پنل گفتگوها"
           title="باز کردن پنل گفتگوها"
         >
-          <Icon name={isDesktopLayout ? 'sidebar-open' : 'sidebar-panel'} size={22} aria-hidden="true" />
+          <Icon name={isDesktopLayout ? 'sidebar-open' : 'sidebar-panel'} size={isDesktopLayout ? 21 : 22} aria-hidden="true" />
         </button>
       ) : (
         <div className="danoa-header-spacer" aria-hidden="true" />

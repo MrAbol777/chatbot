@@ -166,7 +166,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
                       onSendMessage();
                     }
                   }}
-                  placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیام خود را بنویسید...'}
+                  placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیامت را بنویس...'}
                   aria-label="نوشتن پیام"
                 />
               </div>
