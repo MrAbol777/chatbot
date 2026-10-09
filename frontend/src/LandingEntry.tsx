@@ -1,7 +1,20 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { loadDanoaSession } from './auth/danoaSession';
+import { PUBLIC_ASSETS } from './config/publicAssets';
 
 const LandingPage = lazy(() => import('./Landing'));
+
+function LandingEntryLoader({ label }: { label: string }) {
+  return (
+    <main className="app-route-loading" role="status" aria-live="polite">
+      <span className="app-route-loading__visual" aria-hidden="true">
+        <span className="app-route-loading__brand"><img src={PUBLIC_ASSETS.danoaMark} alt="" /></span>
+        <span className="app-route-loading__spinner" />
+      </span>
+      <strong>{label}</strong>
+    </main>
+  );
+}
 
 const getStoredBearer = () => {
   try {
@@ -46,15 +59,11 @@ export default function LandingEntry() {
   }, []);
 
   if (!shouldShowLanding) {
-    return (
-      <main className="app-route-loading" role="status" aria-live="polite">
-        <strong>در حال بررسی حساب شما…</strong>
-      </main>
-    );
+    return <LandingEntryLoader label="در حال بررسی حساب شما…" />;
   }
 
   return (
-    <Suspense fallback={<main className="app-route-loading" role="status" aria-live="polite"><strong>در حال آماده‌سازی دانوآ…</strong></main>}>
+    <Suspense fallback={<LandingEntryLoader label="در حال آماده‌سازی دانوآ…" />}>
       <LandingPage />
     </Suspense>
   );

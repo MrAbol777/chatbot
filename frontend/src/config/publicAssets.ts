@@ -12,4 +12,5 @@ const publicAssetUrl = (path: string): string => {
 export const PUBLIC_ASSETS = Object.freeze({
   botAvatar: publicAssetUrl('brand/danoa-d-mark-192.png'),
   brandMark: publicAssetUrl('brand/danoa-d-mark-192.png'),
+  danoaMark: publicAssetUrl('brand/danoa-mark-192.png'),
 });

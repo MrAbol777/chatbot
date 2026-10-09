@@ -46,14 +46,13 @@
   z-index: 1;
   width: 68px;
   height: 68px;
-  filter: drop-shadow(0 14px 24px rgba(88, 28, 135, 0.2));
 }
 
-.app-route-loading__brand svg {
+.app-route-loading__brand img {
   display: block;
   width: 100%;
   height: 100%;
-  overflow: visible;
+  object-fit: contain;
 }
 
 .app-route-loading__spinner {

@@ -3521,7 +3521,7 @@ notify.error(message);
             starterIdeasOpen={starterIdeasOpen}
             onOpenStarterIdeas={openStarterIdeasFromHeader}
             onOpenStudio={openStudioFromChat}
-            noaBalanceText={noaWallet.wallet ? `${formatDecimalFa(noaWallet.wallet.availableBalance)} نوآ` : undefined}
+            noaBalance={noaWallet.wallet?.availableBalance}
             onOpenNoaWallet={handleOpenNoaWallet}
             profileName={profile?.name || 'ع'}
             onOpenSettings={handleOpenSettings}

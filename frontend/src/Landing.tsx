@@ -150,7 +150,7 @@ function FinalCtaSection() {
 
 function LandingFooter() {
   const scrollTo = (href: string) => document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  return <footer className="landing-footer"><div className="landing-footer-inner"><a className="landing-logo" href="/" aria-label="دانوآ - صفحه معرفی"><span className="landing-logo-mark" aria-hidden="true"><img src={PUBLIC_ASSETS.brandMark} alt="" /></span><span className="landing-logo-text">دانوآ</span></a><nav className="landing-footer-nav" aria-label="لینک‌های فوتر">{navLinks.map((link) => <a key={link.href} href={link.href} onClick={(event) => { event.preventDefault(); scrollTo(link.href); }}>{link.label}</a>)}</nav><span className="landing-footer-note"><Icon name="heart" /> ساخته‌شده برای خانواده‌های فارسی‌زبان</span></div><p className="landing-footer-copy">© ۱۴۰۴ دانوآ — همراه هوشمند کودکان فارسی‌زبان</p></footer>;
+  return <footer className="landing-footer"><div className="landing-footer-inner"><a className="landing-logo" href="/" aria-label="دانوآ - صفحه معرفی"><span className="landing-logo-mark" aria-hidden="true"><img src={PUBLIC_ASSETS.danoaMark} alt="" /></span><span className="landing-logo-text">دانوآ</span></a><nav className="landing-footer-nav" aria-label="لینک‌های فوتر">{navLinks.map((link) => <a key={link.href} href={link.href} onClick={(event) => { event.preventDefault(); scrollTo(link.href); }}>{link.label}</a>)}</nav><span className="landing-footer-note"><Icon name="heart" /> ساخته‌شده برای خانواده‌های فارسی‌زبان</span></div><p className="landing-footer-copy">© ۱۴۰۴ دانوآ — همراه هوشمند کودکان فارسی‌زبان</p></footer>;
 }
 
 function LandingPage() {

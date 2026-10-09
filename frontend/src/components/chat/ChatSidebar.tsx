@@ -83,7 +83,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         <div className="conversation-home-brand">
           {sidebarOpen ? (
             <span className="conversation-home-brand__mark" aria-hidden="true">
-              <img src={PUBLIC_ASSETS.brandMark} alt="" />
+              <img src={PUBLIC_ASSETS.danoaMark} alt="" />
             </span>
           ) : (
             <button
@@ -94,7 +94,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               title="باز کردن سایدبار"
               aria-expanded={sidebarOpen}
             >
-              <img src={PUBLIC_ASSETS.brandMark} alt="" />
+              <img src={PUBLIC_ASSETS.danoaMark} alt="" />
               <span className="conversation-home-brand__reopen-icon" aria-hidden="true">
                 <Icon name="chevron-left" size={20} />
               </span>

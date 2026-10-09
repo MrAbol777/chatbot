@@ -7603,3 +7603,137 @@ html[data-color-mode='dark'] .chat-shell.view-chat .chat-card.chat-card--empty .
     width: calc((100% - 6px) / 2) !important;
   }
 }
+
+/* Keep the approved transparent mark clear on the sidebar surface. */
+.chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__mark {
+  background: #eaddff !important;
+  box-shadow: none !important;
+}
+
+.chat-shell.view-chat .chat-history-sidebar .conversation-home-brand__mark img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+/* The balance is one wallet action, including its label and icon. */
+.chat-shell.view-chat .danoa-noa-pill {
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chat-shell.view-chat .danoa-noa-pill__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chat-shell.view-chat .danoa-noa-pill__amount {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: ltr;
+  text-align: left;
+}
+
+.chat-shell.view-chat .danoa-noa-pill__unit,
+.chat-shell.view-chat .danoa-noa-pill__icon {
+  flex: none;
+}
+
+.chat-shell.view-chat .danoa-noa-pill:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-top-bar__actions {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill {
+    display: inline-flex !important;
+    min-height: 44px;
+    height: 44px;
+    padding-inline: 10px;
+    max-width: min(52vw, 220px);
+    min-width: 0;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill__add {
+    display: none;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill__icon {
+    order: -1;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill__label {
+    flex: 0 1 auto;
+  }
+}
+
+@media (max-width: 359px) {
+  .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill__icon {
+    display: none;
+  }
+}
+
+/* Mobile chat controls float on the page without a visible header bar. */
+@media (max-width: 767px) {
+  .chat-shell.view-chat .top-bar.danoa-top-bar {
+    height: calc(72px + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(72px + env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(72px + env(safe-area-inset-top, 0px)) !important;
+    padding: env(safe-area-inset-top, 0px) 16px 0 !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    overflow: visible !important;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar > *:not(.visually-hidden) {
+    min-height: 0 !important;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-top-bar__title-wrap {
+    display: none !important;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .chat-sidebar-toggle {
+    flex: 0 0 48px !important;
+    width: 48px !important;
+    max-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border: 1px solid var(--color-border, #e7e2ee) !important;
+    border-radius: 50% !important;
+    background: var(--color-surface-container-low, #faf9fc) !important;
+    color: var(--color-text, #302b3b) !important;
+    box-shadow: 0 2px 9px rgba(31, 24, 54, .05) !important;
+  }
+
+  .chat-shell.view-chat .top-bar.danoa-top-bar > .danoa-top-bar__actions {
+    height: 48px !important;
+    min-height: 48px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  html[data-color-mode='dark'] .chat-shell.view-chat .top-bar.danoa-top-bar > .chat-sidebar-toggle.danoa-mobile-sidebar-btn {
+    background: var(--color-surface-container) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text) !important;
+  }
+}

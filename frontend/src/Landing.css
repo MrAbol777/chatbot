@@ -75,6 +75,7 @@
 .landing-logo { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; flex: 0 0 auto; font-size: 1.05rem; font-weight: 900; }
 .landing-logo-mark { width: 40px; height: 40px; display: grid; place-items: center; overflow: hidden; border-radius: 13px; background: var(--landing-primary); box-shadow: 0 6px 16px color-mix(in srgb, var(--landing-primary) 24%, transparent); }
 .landing-logo-mark img { width: 100%; height: 100%; display: block; object-fit: contain; padding: 3px; }
+.landing-footer .landing-logo-mark { background: #eaddff; box-shadow: none; }
 .landing-logo-text { letter-spacing: -0.02em; }
 .landing-nav { display: none; align-items: center; gap: 2px; }
 .landing-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 13px; border-radius: var(--landing-radius-pill); color: var(--landing-muted); font-size: .86rem; font-weight: 700; transition: color 180ms ease, background 180ms ease; }

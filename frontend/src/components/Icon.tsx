@@ -13,6 +13,7 @@ export type IconName =
   | 'sidebar'
   | 'sidebar-open'
   | 'sidebar-panel'
+  | 'menu-two-line'
   | 'send'
   | 'bell'
   | 'sparkle'
@@ -131,6 +132,9 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
 
     case 'sidebar-panel':
       return <svg {...commonProps}><rect x="2.75" y="3.5" width="18.5" height="17" rx="2.5" /><path d="M15.5 3.5v17" /></svg>;
+
+    case 'menu-two-line':
+      return <svg {...commonProps} strokeWidth="2.2"><path d="M4 8h16M4 16h11" /></svg>;
 
     case 'send':
       return <svg {...commonProps}><path d="M4.3 11.3 19.5 4.7c.9-.4 1.8.5 1.4 1.4l-6.6 15.2a1 1 0 0 1-1.9-.2l-1-5.7-5.7-1a1 1 0 0 1-.2-1.9Z" /></svg>;

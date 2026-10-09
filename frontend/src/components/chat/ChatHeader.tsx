@@ -1,5 +1,6 @@
 import React from 'react';
 import Icon from '../Icon';
+import { formatWalletBalanceExactFa } from '../../noa/decimal';
 
 interface ChatHeaderProps {
   sidebarOpen: boolean;
@@ -12,7 +13,7 @@ interface ChatHeaderProps {
   starterIdeasOpen?: boolean;
   onOpenStarterIdeas: () => void;
   onOpenStudio: () => void;
-  noaBalanceText?: string;
+  noaBalance?: string;
   onOpenNoaWallet: () => void;
   profileName?: string;
   onOpenSettings: () => void;
@@ -29,12 +30,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   starterIdeasOpen = false,
   onOpenStarterIdeas,
   onOpenStudio,
-  noaBalanceText,
+  noaBalance,
   onOpenNoaWallet,
   profileName = 'ع',
   onOpenSettings
 }) => {
   const showContextAction = sidebarOpen && isDesktopLayout && !conversationLoading;
+  const exactBalance = formatWalletBalanceExactFa(noaBalance);
   const contextAction = hasUserMessages
     ? {
         label: 'رفتن به استودیو',
@@ -64,7 +66,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           aria-label="باز کردن پنل گفتگوها"
           title="باز کردن پنل گفتگوها"
         >
-          <Icon name={isDesktopLayout ? 'sidebar-open' : 'sidebar-panel'} size={isDesktopLayout ? 21 : 22} aria-hidden="true" />
+          <Icon name={isDesktopLayout ? 'sidebar-open' : 'menu-two-line'} size={isDesktopLayout ? 21 : 24} aria-hidden="true" />
         </button>
       ) : (
         <div className="danoa-header-spacer" aria-hidden="true" />
@@ -101,23 +103,24 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
 
       <div className="danoa-top-bar__actions">
-        <div className="danoa-noa-pill" role="status" aria-label="اعتبار نوآ">
-          <button
-            type="button"
-            className="danoa-noa-pill__add"
-            onClick={onOpenNoaWallet}
-            aria-label="افزایش اعتبار نوآ"
-            title="افزایش اعتبار نوآ"
-          >
+        <button
+          type="button"
+          className="danoa-noa-pill"
+          onClick={onOpenNoaWallet}
+          aria-label={noaBalance ? `کیف پول نوآ، موجودی ${exactBalance} نوآ` : 'باز کردن کیف پول نوآ'}
+          title={noaBalance ? `موجودی ${exactBalance} نوآ — باز کردن کیف پول` : 'باز کردن کیف پول نوآ'}
+        >
+          <span className="danoa-noa-pill__add" aria-hidden="true">
             <Icon name="plus" size={13} aria-hidden="true" />
-          </button>
-          <span className="danoa-noa-pill__label" onClick={onOpenNoaWallet} style={{ cursor: 'pointer' }}>
-            {noaBalanceText || '— نوآ'}
           </span>
-          <span className="danoa-noa-pill__icon" aria-hidden="true" onClick={onOpenNoaWallet} style={{ cursor: 'pointer' }}>
+          <span className="danoa-noa-pill__label" aria-live="polite">
+            <bdi className="danoa-noa-pill__amount" dir="ltr">{exactBalance}</bdi>
+            <span className="danoa-noa-pill__unit">نوآ</span>
+          </span>
+          <span className="danoa-noa-pill__icon" aria-hidden="true">
             <Icon name="sparkles" size={15} />
           </span>
-        </div>
+        </button>
 
         <button
           type="button"

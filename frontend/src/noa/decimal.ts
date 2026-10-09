@@ -96,3 +96,32 @@ export function formatTomanFa(value: string | null | undefined): string {
   if (!value) return '—';
   return `${formatDecimalFa(value, 0)} تومان`;
 }
+
+function parseWalletBalance(value: string | null | undefined): {
+  negative: boolean;
+  whole: string;
+  fraction: string;
+} | null {
+  if (!value) return null;
+  const match = toAsciiDigits(value).trim().match(/^(-)?(\d+)(?:\.(\d+))?$/);
+  if (!match) return null;
+  const whole = match[2].replace(/^0+(?=\d)/, '') || '0';
+  const fraction = (match[3] || '').replace(/0+$/, '');
+  return {
+    negative: Boolean(match[1]) && (whole !== '0' || fraction !== ''),
+    whole,
+    fraction
+  };
+}
+
+function toPersianDigits(value: string): string {
+  return value.replace(/\d/g, (digit) => PERSIAN_DIGITS[Number(digit)]).replace('-', '−');
+}
+
+/** Exact, string-based balance for the wallet button's accessible name and tooltip. */
+export function formatWalletBalanceExactFa(value: string | null | undefined): string {
+  const balance = parseWalletBalance(value);
+  if (!balance) return '—';
+  const groupedWhole = balance.whole.replace(/\B(?=(\d{3})+(?!\d))/g, '٬');
+  return `${balance.negative ? '−' : ''}${toPersianDigits(groupedWhole)}${balance.fraction ? `٫${toPersianDigits(balance.fraction)}` : ''}`;
+}
