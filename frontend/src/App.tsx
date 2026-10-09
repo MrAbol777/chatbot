@@ -4082,15 +4082,15 @@ notify.error(message);
               </div>
 
               <div className="danoa-hero-heading-block">
-                <h1 className="danoa-hero-title">می‌خوای چه کاری انجام بدی؟</h1>
-                <p className="danoa-hero-subtitle">پیامت را بنویس یا یکی از ابزارها را انتخاب کن.</p>
+                <h1 className="danoa-hero-title"><span className="danoa-desktop-copy">می‌خوای چه کاری انجام بدی؟</span><span className="danoa-mobile-copy">امروز چی دوست داری بسازی؟</span></h1>
+                <p className="danoa-hero-subtitle"><span className="danoa-desktop-copy">پیامت را بنویس یا یکی از ابزارها را انتخاب کن.</span><span className="danoa-mobile-copy">یک سؤال بپرس یا یکی از ابزارها رو انتخاب کن.</span></p>
               </div>
 
               <section className="danoa-shortcuts-section" aria-label="ابزارهای خلاق دانوآ">
                 <div className="danoa-shortcuts-row">
                   <button type="button" className="danoa-shortcut-card danoa-shortcut-card--story" onClick={openStoryMaker}>
                     <div className="danoa-shortcut-icon danoa-shortcut-icon--story"><Icon name="story" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">سناریو نویسی ( داستان من )</strong><span className="danoa-shortcut-desc">یک ایده بده؛ سناریوی داستانی‌ات را بساز</span></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title"><span className="danoa-desktop-copy">سناریو نویسی ( داستان من )</span><span className="danoa-mobile-copy">داستان من</span></strong><span className="danoa-shortcut-desc">یک ایده بده؛ سناریوی داستانی‌ات را بساز</span></div>
                     <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
                   </button>
 
@@ -4102,7 +4102,7 @@ notify.error(message);
 
                   <button type="button" className="danoa-shortcut-card danoa-shortcut-card--storyboard" onClick={openStoryboardMaker}>
                     <div className="danoa-shortcut-icon danoa-shortcut-icon--storyboard"><Icon name="gallery" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">کارگاه صحنه‌سازی</strong><span className="danoa-shortcut-desc">داستانت را صحنه‌به‌صحنه تصویر کن</span></div>
+                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title"><span className="danoa-desktop-copy">کارگاه صحنه‌سازی</span><span className="danoa-mobile-copy">صحنه‌سازی</span></strong><span className="danoa-shortcut-desc">داستانت را صحنه‌به‌صحنه تصویر کن</span></div>
                     <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
                   </button>
 
