@@ -4129,7 +4129,7 @@ notify.error(message);
 
               <div className="danoa-hero-heading-block">
                 <h1 className="danoa-hero-title"><span className="danoa-desktop-copy">می‌خوای چه کاری انجام بدی؟</span><span className="danoa-mobile-copy">امروز چی دوست داری بسازی؟</span></h1>
-                <p className="danoa-hero-subtitle"><span className="danoa-desktop-copy">پیامت را بنویس یا یکی از ابزارها را انتخاب کن.</span><span className="danoa-mobile-copy">یک سؤال بپرس یا یکی از ابزارها رو انتخاب کن.</span></p>
+                <p className="danoa-hero-subtitle"><span className="danoa-desktop-copy">پیامت را بنویس یا یکی از ابزارها را انتخاب کن.</span><span className="danoa-mobile-copy">یک سؤال بپرس یا ابزاری انتخاب کن.</span></p>
               </div>
 
               <section className="danoa-shortcuts-section" aria-label="ابزارهای خلاق دانوآ">

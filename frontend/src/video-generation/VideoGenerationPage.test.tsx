@@ -64,7 +64,7 @@ describe('VideoGenerationPage submit, polling, resume, and cleanup', () => {
   it('uploads one reference image and automatically submits image-to-video', async () => {
     const user = userEvent.setup();
     vi.spyOn(videoGenerationService, 'uploadInputMedia').mockResolvedValue({ mediaId:'media-1', mimeType:'image/png', sizeBytes:5 });
-    const create = vi.spyOn(videoGenerationService, 'createVideoGeneration').mockResolvedValue({ generationId:'job-1', status:'queued', noaReservationId:'reservation-1', costNoa:'4.000000', unitPriceNoa:'0.800000', durationSeconds:'5', createdAt:'2026-07-20T10:00:00Z' });
+    const create = vi.spyOn(videoGenerationService, 'createVideoGeneration').mockResolvedValue({ generationId:'job-1', status:'queued', noaReservationId:'reservation-1', costNoa:'4.800000', unitPriceNoa:'0.800000', durationSeconds:'6', createdAt:'2026-07-20T10:00:00Z' });
     render(<VideoGenerationPage onBack={vi.fn()} />);
     await screen.findByRole('heading',{name:'ویدیوت چه حال‌وهوایی داشته باشد؟'});
     await user.click(screen.getByRole('radio',{name:/واقعی و سینمایی/}));
@@ -77,7 +77,7 @@ describe('VideoGenerationPage submit, polling, resume, and cleanup', () => {
     expect(screen.getByText('تصویر به ویدیو')).toBeInTheDocument();
     await user.click(screen.getByRole('button',{name:'ساخت ویدیو'}));
     await waitFor(() => expect(create).toHaveBeenCalledOnce());
-    expect(create.mock.calls[0][0]).toMatchObject({ mode:'image_to_video', mediaId:'media-1', resolution:'480p', duration:'5', styleKey:'cinematic' });
+    expect(create.mock.calls[0][0]).toMatchObject({ mode:'image_to_video', mediaId:'media-1', resolution:'480p', duration:'6', styleKey:'cinematic' });
   });
 
   it('opens the video gallery and selects a gallery card', async () => {

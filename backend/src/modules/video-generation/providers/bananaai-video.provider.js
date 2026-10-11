@@ -33,6 +33,17 @@ function bananaSubmissionError(code, message, outcome, details = {}) {
   return Object.assign(new Error(message), { code, safe: true, submissionOutcome: outcome, details });
 }
 
+function sanitizeProviderMessage(value) {
+  return String(value || '')
+    .replace(/Bearer\s+[^\s,;]+/gi, 'Bearer [REDACTED]')
+    .replace(/ba_live_[A-Za-z0-9_-]+/g, '[REDACTED_API_KEY]')
+    .replace(/https?:\/\/[^\s"'<>]+/gi, '[REDACTED_URL]')
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 400);
+}
+
 function createBananaProxyConfig(value) {
   const raw = String(value || '').trim();
   if (!raw) return undefined;
@@ -56,17 +67,26 @@ function classifyBananaSubmissionError(error) {
   const providerCode = validErrorEnvelope(body)
     ? String(body.error.code).trim().toLowerCase()
     : String(body?.code || body?.error?.code || '').trim().toLowerCase().slice(0, 80);
+  const providerMessage = sanitizeProviderMessage(validErrorEnvelope(body) ? body.error.message : body?.message || body?.error?.message);
+  const requestId = String(error?.response?.headers?.['x-request-id'] || error?.response?.headers?.['request-id'] || '').replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 100) || null;
   if (status === 409 && providerCode === 'idempotency_key_in_progress') {
     return bananaSubmissionError('VIDEO_PROVIDER_STATUS_UNKNOWN', 'BananaAI is still registering the idempotent request.', 'ambiguous', {
       status,
       providerCode,
+      ...(providerMessage ? { providerMessage } : {}),
+      ...(requestId ? { requestId } : {}),
       retryAfter: String(error?.response?.headers?.['retry-after'] || '').slice(0, 32) || null
     });
   }
   if (CONFIRMED_REJECTION_STATUSES.has(status)) {
     const rejectionCode = providerCode || 'confirmed_rejection';
     const code = REJECTION_CODES[rejectionCode] || 'VIDEO_PROVIDER_CONFIRMED_REJECTION';
-    return bananaSubmissionError(code, 'BananaAI rejected the request.', 'confirmed_rejected', { status, providerCode:rejectionCode });
+    return bananaSubmissionError(code, 'BananaAI rejected the request.', 'confirmed_rejected', {
+      status,
+      providerCode: rejectionCode,
+      ...(providerMessage ? { providerMessage } : {}),
+      ...(requestId ? { requestId } : {})
+    });
   }
   const transportCode = String(error?.code || '').toUpperCase();
   const code = status >= 500
@@ -76,7 +96,13 @@ function classifyBananaSubmissionError(error) {
       : ['ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH'].includes(transportCode)
         ? 'VIDEO_PROVIDER_NETWORK_ERROR'
         : 'VIDEO_PROVIDER_STATUS_UNKNOWN';
-  return bananaSubmissionError(code, 'BananaAI submission result is ambiguous.', 'ambiguous', { status: status || null, transportCode: transportCode || null });
+  return bananaSubmissionError(code, 'BananaAI submission result is ambiguous.', 'ambiguous', {
+    status: status || null,
+    transportCode: transportCode || null,
+    ...(providerCode ? { providerCode } : {}),
+    ...(providerMessage ? { providerMessage } : {}),
+    ...(requestId ? { requestId } : {})
+  });
 }
 
 function createBananaAiVideoProvider({
@@ -135,6 +161,9 @@ function createBananaAiVideoProvider({
     if (!BANANAAI_MODEL_IDS.includes(String(input?.providerModelId || ''))) throw fail('VIDEO_PROVIDER_MODEL_INVALID', 'مدل سرویس ویدیو معتبر نیست.', 503);
     if (!CAPABILITIES.includes(input?.capability)) throw fail('VIDEO_PROVIDER_CAPABILITY_INVALID', 'قابلیت سرویس ویدیو معتبر نیست.', 409);
     if (input.capability === 'video.image_to_video' && input.providerModelId !== BANANAAI_IMAGE_TO_VIDEO_MODEL_ID) throw fail('VIDEO_PROVIDER_MODEL_INVALID', 'مسیر ساخت ویدیو از تصویر فقط برای مدل Grok پیکربندی شده است.', 503);
+    if (input.capability === 'video.image_to_video' && (!Number.isInteger(Number(input.duration)) || Number(input.duration) < 6 || Number(input.duration) > 15)) {
+      throw fail('VIDEO_PROVIDER_DURATION_INVALID', 'مدت ویدیوی تصویر به ویدیو باید بین ۶ تا ۱۵ ثانیه باشد.', 422);
+    }
     if (!String(input?.prompt || '').trim()) throw fail('VIDEO_PROMPT_REQUIRED', 'متن درخواست الزامی است.');
     const promptLimit = input.capability === 'video.text_to_video' ? textPromptLimit : imagePromptLimit;
     if (String(input.prompt).length > promptLimit) throw bananaSubmissionError('VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG', SAFE_ERROR_MESSAGES.VIDEO_GENERATION_COMPILED_PROMPT_TOO_LONG, 'not_submitted', { promptLength: String(input.prompt).length, promptLimit });
@@ -218,4 +247,4 @@ function createBananaAiVideoProvider({
   };
 }
 
-module.exports = { createBananaAiVideoProvider, classifyBananaSubmissionError, validErrorEnvelope, REJECTION_CODES, SAFE_ERROR_MESSAGES };
+module.exports = { createBananaAiVideoProvider, classifyBananaSubmissionError, validErrorEnvelope, sanitizeProviderMessage, REJECTION_CODES, SAFE_ERROR_MESSAGES };

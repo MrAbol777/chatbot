@@ -250,6 +250,8 @@ async function applyGrokImageToVideoPinMigration(connection) {
 async function applyGrokImageToVideoOptionsMigration(connection) {
   const sql = fs.readFileSync(path.join(__dirname, '../migrations/037_grok_image_to_video_options.sql'), 'utf8');
   await connection.query(sql);
+  const durationSql = fs.readFileSync(path.join(__dirname, '../migrations/058_grok_image_to_video_duration_contract.sql'), 'utf8');
+  await connection.query(durationSql);
 }
 
 async function applyGrokTextToVideoMigration(connection) {
@@ -281,7 +283,7 @@ async function main() {
     await applyGrokImageToVideoOptionsMigration(connection);
     await applyGrokTextToVideoMigration(connection);
     await applyGrokTextToVideoOptionsMigration(connection);
-    console.log('Video generation migrations 026 through 048 applied locally.');
+    console.log('Video generation migrations 026 through 058 applied locally.');
   } finally { await connection.end(); }
 }
 if (require.main === module) {

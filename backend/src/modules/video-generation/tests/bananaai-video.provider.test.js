@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createBananaAiVideoProvider, classifyBananaSubmissionError } = require('../providers/bananaai-video.provider');
+const { createBananaAiVideoProvider, classifyBananaSubmissionError, sanitizeProviderMessage } = require('../providers/bananaai-video.provider');
 const { BANANAAI_VIDEO_MODEL_REGISTRATIONS, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID, BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY, BANANAAI_TEXT_TO_VIDEO_MODEL_KEY, BANANAAI_GROK_T2V_MAX_PROMPT_LENGTH } = require('../video-model.registry');
 
 function mockHttp({ postResult, getResult } = {}) {
@@ -72,7 +72,7 @@ test('BananaAI can use an explicit HTTPS proxy without exposing its credentials 
 test('BananaAI I2V sends an owned gateway URL as image_urls', async () => {
   const httpClient = mockHttp({ postResult: { status: 202, data: { id: 'task_i2v', status: 'pending' } } });
   const provider = createProvider(httpClient);
-  await provider.submit(input({ capability: 'video.image_to_video', providerInputUrl: 'https://media.example.test/api/video-provider-input/opaque' }));
+  await provider.submit(input({ capability: 'video.image_to_video', duration: 6, providerInputUrl: 'https://media.example.test/api/video-provider-input/opaque' }));
   assert.deepEqual(httpClient.calls[0][2].image_urls, ['https://media.example.test/api/video-provider-input/opaque']);
 });
 
@@ -83,7 +83,7 @@ test('the product registry keeps independent private Grok registrations for T2V 
   const t2v = active.find((model) => model.internalKey === BANANAAI_TEXT_TO_VIDEO_MODEL_KEY);
   assert.equal(i2v.providerModelId, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID);
   assert.equal(i2v.isPublic, false);
-  assert.deepEqual(i2v.allowedDurations, Array.from({ length: 15 }, (_, index) => index + 1));
+  assert.deepEqual(i2v.allowedDurations, Array.from({ length: 10 }, (_, index) => index + 6));
   assert.deepEqual(i2v.allowedResolutions, ['480p']);
   assert.equal(t2v.providerModelId, BANANAAI_IMAGE_TO_VIDEO_MODEL_ID);
   assert.equal(t2v.supportsImageToVideo, false);
@@ -96,7 +96,7 @@ test('the product registry keeps independent private Grok registrations for T2V 
 test('BananaAI refuses undocumented negative prompt and arbitrary missing I2V media', async () => {
   const provider = createProvider(mockHttp());
   await assert.rejects(provider.submit(input({ negativePrompt: 'blur' })), { code: 'VIDEO_PROVIDER_CAPABILITY_UNSUPPORTED' });
-  await assert.rejects(provider.submit(input({ capability: 'video.image_to_video' })), { code: 'VIDEO_INPUT_MEDIA_REQUIRED' });
+  await assert.rejects(provider.submit(input({ capability: 'video.image_to_video', duration: 6 })), { code: 'VIDEO_INPUT_MEDIA_REQUIRED' });
   await assert.rejects(provider.submit(input({ capability: 'video.image_to_video', providerModelId: 'seedance-2', providerInputUrl: 'https://media.example.test/input.jpg' })), { code: 'VIDEO_PROVIDER_MODEL_INVALID' });
 });
 
@@ -104,7 +104,7 @@ test('documented 4xx statuses are confirmed rejections even with malformed envel
   const confirmed = classifyBananaSubmissionError({ response: { status: 429, data: { error: { code: 'rate_limit_exceeded', message: 'fixture' } } } });
   assert.equal(confirmed.submissionOutcome, 'confirmed_rejected');
   assert.equal(confirmed.code, 'VIDEO_PROVIDER_RATE_LIMITED');
-  assert.deepEqual(confirmed.details, { status: 429, providerCode: 'rate_limit_exceeded' });
+  assert.deepEqual(confirmed.details, { status: 429, providerCode: 'rate_limit_exceeded', providerMessage: 'fixture' });
   const credits = classifyBananaSubmissionError({ response: { status: 403, data: { error: { code: 'insufficient_credits', message: 'fixture' } } } });
   assert.equal(credits.code, 'VIDEO_PROVIDER_INSUFFICIENT_CREDITS');
   const malformed = classifyBananaSubmissionError({ response: { status: 429, data: { message: 'fixture' } } });
@@ -117,11 +117,28 @@ test('documented 4xx statuses are confirmed rejections even with malformed envel
   assert.equal(timeout.code, 'VIDEO_PROVIDER_TIMEOUT');
 });
 
+test('confirmed provider rejections retain a bounded, sanitized diagnostic message and request ID', () => {
+  const rejected = classifyBananaSubmissionError({
+    response: {
+      status: 400,
+      data: { error: { code: 'invalid_request', message: 'Image URL https://danoa.ir/api/video-provider-input/signed-token is invalid; Bearer ba_live_secret' } },
+      headers: { 'x-request-id': 'provider-request-123' }
+    }
+  });
+  assert.deepEqual(rejected.details, {
+    status: 400,
+    providerCode: 'invalid_request',
+    providerMessage: 'Image URL [REDACTED_URL] is invalid; Bearer [REDACTED]',
+    requestId: 'provider-request-123'
+  });
+  assert.equal(sanitizeProviderMessage('x'.repeat(500)).length, 400);
+});
+
 test('validation status 422 is a confirmed rejection even with a non-standard error body', () => {
   const rejected = classifyBananaSubmissionError({ response: { status: 422, data: { message: 'duration is not supported' } } });
   assert.equal(rejected.submissionOutcome, 'confirmed_rejected');
   assert.equal(rejected.code, 'VIDEO_PROVIDER_CONFIRMED_REJECTION');
-  assert.deepEqual(rejected.details, { status: 422, providerCode: 'confirmed_rejection' });
+  assert.deepEqual(rejected.details, { status: 422, providerCode: 'confirmed_rejection', providerMessage: 'duration is not supported' });
 });
 
 test('an idempotency request still in progress remains ambiguous instead of becoming a confirmed rejection', () => {
@@ -134,7 +151,7 @@ test('an idempotency request still in progress remains ambiguous instead of beco
   });
   assert.equal(pending.submissionOutcome, 'ambiguous');
   assert.equal(pending.code, 'VIDEO_PROVIDER_STATUS_UNKNOWN');
-  assert.deepEqual(pending.details, { status:409,providerCode:'idempotency_key_in_progress',retryAfter:'3' });
+  assert.deepEqual(pending.details, { status:409,providerCode:'idempotency_key_in_progress',providerMessage:'still registering',retryAfter:'3' });
 });
 
 test('provider rejects an over-budget compiled prompt before making HTTP calls', async () => {

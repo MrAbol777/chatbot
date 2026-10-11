@@ -248,6 +248,16 @@ export default function VideoGenerationPage({ onBack, localDemoEnabled = import.
         onInsufficientBalance(getInsufficientBalanceDetails(error));
         return;
       }
+      if ((error as { code?: string }).code === 'VIDEO_GENERATION_OPTIONS_NOT_ALLOWED') {
+        // A page left open across a model/capability update may submit stale options.
+        // Refresh the contract and return to the form; activeCapability will clamp the
+        // stale duration/ratio/resolution before the user reviews the request again.
+        idempotencyKey.current = newIdempotencyKey();
+        await loadOptions();
+        setCreateStep('form');
+        setDetailError('تنظیمات مدل به‌روز شده است؛ گزینه‌های معتبر اعمال شدند. لطفاً درخواست را دوباره بازبینی کنید.');
+        return;
+      }
       setDetailError(error instanceof Error ? error.message : 'درخواست ثبت نشد. تنظیمات و اینترنت را بررسی کنید و دوباره تلاش کنید.');
     }
     finally { submitInFlightRef.current = false; setSubmitting(false); }

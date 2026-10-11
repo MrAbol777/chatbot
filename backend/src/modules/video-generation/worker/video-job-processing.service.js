@@ -166,14 +166,28 @@ function createVideoJobProcessingService({ repository, providerRegistry, config,
           const code = error?.code || 'VIDEO_PROVIDER_STATUS_UNKNOWN';
           const providerStatus = Number(error?.details?.status || 0) || null;
           const providerCode = typeof error?.details?.providerCode === 'string' ? error.details.providerCode.slice(0, 80) : null;
+          const providerMessage = typeof error?.details?.providerMessage === 'string' ? error.details.providerMessage.slice(0, 400) : null;
+          const providerRequestId = typeof error?.details?.requestId === 'string' ? error.details.requestId.slice(0, 100) : null;
           if (submissionStarted && error?.submissionOutcome !== 'confirmed_rejected' && error?.submissionOutcome !== 'not_submitted') {
             await repository.markSubmissionAmbiguous({ jobId: job.id, workerId, errorCode: code });
             await observeProviderOutcome({ providerKey: job.provider, capabilityKey: job.capability_key, success: false, latencyMs: submitStartedAt ? Date.now() - submitStartedAt : null });
-            log('video_submit_ambiguous', job, { errorCode: code, providerStatus, providerCode });
+            log('video_submit_ambiguous', job, {
+              errorCode: code,
+              providerStatus,
+              providerCode,
+              ...(providerMessage ? { providerMessage } : {}),
+              ...(providerRequestId ? { providerRequestId } : {})
+            });
             return { action: 'provider-status-unknown', errorCode: code };
           }
           const result = await repository.rejectSubmissionAndRoute({ jobId: job.id, workerId, errorCode: code, errorMessage: provider?.sanitizeError?.(error) || 'درخواست پیش از پذیرش Provider رد شد.' });
-          log(result.action === 'fallback-queued' ? 'video_fallback_queued' : 'video_submit_rejected', job, { errorCode: code, providerStatus, providerCode });
+          log(result.action === 'fallback-queued' ? 'video_fallback_queued' : 'video_submit_rejected', job, {
+            errorCode: code,
+            providerStatus,
+            providerCode,
+            ...(providerMessage ? { providerMessage } : {}),
+            ...(providerRequestId ? { providerRequestId } : {})
+          });
           return { ...result, errorCode: code };
         }
       }

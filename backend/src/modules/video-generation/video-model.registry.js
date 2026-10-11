@@ -34,9 +34,9 @@ const BANANAAI_IMAGE_TO_VIDEO_MODEL_ID = 'grok-imagine-video';
 const BANANAAI_IMAGE_TO_VIDEO_MODEL_KEY = 'bananaai_grok_imagine_video';
 const BANANAAI_TEXT_TO_VIDEO_MODEL_ID = 'grok-imagine-video';
 const BANANAAI_TEXT_TO_VIDEO_MODEL_KEY = 'bananaai_grok_imagine_video_t2v';
-// BananaAI's Grok Image-to-Video route accepts integer durations from 1s to 15s.
+// BananaAI's live Image-to-Video API contract requires 6–15 second requests.
 const BANANAAI_GROK_I2V_DURATIONS = Object.freeze(
-  Array.from({ length: 15 }, (_, index) => index + 1),
+  Array.from({ length: 10 }, (_, index) => index + 6),
 );
 const BANANAAI_GROK_I2V_ASPECT_RATIOS = Object.freeze(['16:9', '9:16', '1:1']);
 // 720p is intentionally withheld from the product while it is under review.
