@@ -699,13 +699,12 @@ function ChatApp() {
       if (!window.matchMedia('(max-width: 767px)').matches || event.touches.length !== 1) return;
       if (document.querySelector('[aria-modal="true"]')) return;
       const target = event.target;
-      if (!(target instanceof Element) || target.closest('button, a, textarea, input, select, [contenteditable="true"], [role="dialog"], .danoa-composer-capsule')) return;
+      if (!(target instanceof Element) || !shell.contains(target)) return;
 
       const touch = event.touches[0];
-      const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
       const action = sidebarOpen
         ? target.closest('#chat-history-sidebar') ? 'close' : null
-        : touch.clientX >= viewportWidth / 2 ? 'open' : null;
+        : 'open';
       if (!action) return;
       swipeStart = { id: touch.identifier, x: touch.clientX, y: touch.clientY, action };
     };
@@ -717,19 +716,19 @@ function ChatApp() {
       if (!touch) return;
       const horizontal = touch.clientX - start.x;
       const vertical = touch.clientY - start.y;
-      if (Math.abs(horizontal) < 80 || Math.abs(horizontal) < Math.abs(vertical) * 1.2) return;
+      if (Math.abs(horizontal) < 56 || Math.abs(horizontal) < Math.abs(vertical) * 1.25) return;
       if (start.action === 'open' && horizontal < 0) setSidebarOpen(true);
       if (start.action === 'close' && horizontal > 0) setSidebarOpen(false);
     };
     const clearSwipe = () => { swipeStart = null; };
 
-    shell.addEventListener('touchstart', handleTouchStart, { passive: true });
-    shell.addEventListener('touchend', handleTouchEnd, { passive: true });
-    shell.addEventListener('touchcancel', clearSwipe, { passive: true });
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    document.addEventListener('touchcancel', clearSwipe, { passive: true });
     return () => {
-      shell.removeEventListener('touchstart', handleTouchStart);
-      shell.removeEventListener('touchend', handleTouchEnd);
-      shell.removeEventListener('touchcancel', clearSwipe);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('touchcancel', clearSwipe);
     };
   }, [currentView, sidebarOpen]);
 

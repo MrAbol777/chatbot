@@ -1771,6 +1771,7 @@
 @media (max-width: 767px) {
   .chat-shell.view-chat {
     overscroll-behavior-y: contain;
+    touch-action: pan-y pinch-zoom;
   }
 
   .chat-shell.view-chat .messages-area {
