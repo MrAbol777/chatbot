@@ -68,7 +68,12 @@ export type IconName =
   | 'delete'
   | 'heart'
   | 'empty-chat'
-  | 'empty-video';
+  | 'empty-video'
+  | 'voice-wave'
+  | 'thumbs-up'
+  | 'thumbs-down'
+  | 'volume'
+  | 'speech-bubble';
 
 type IconProps = {
   name: IconName;
@@ -343,8 +348,47 @@ function Icon({ name, size = 24, className = '', ...svgProps }: IconProps) {
     case 'empty-chat':
       return <svg {...commonProps}><path d="M6.5 17.5 4 20V7.7C4 5.7 5.7 4 7.7 4h8.6C18.3 4 20 5.7 20 7.7v6.1c0 2-1.7 3.7-3.7 3.7H6.5Z" /><path d="M8 9h8M8 12.3h5.6" /></svg>;
 
-    case 'empty-video':
-      return <svg {...commonProps}><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 8h3v3H8zM13 8h3v3h-3zM8 13h3v3H8zM13 13h3v3h-3z" /></svg>;
+    case 'voice-wave':
+      return (
+        <svg {...commonProps} strokeWidth="2.6" strokeLinecap="round">
+          <line x1="6" y1="9.5" x2="6" y2="14.5" />
+          <line x1="10" y1="6" x2="10" y2="18" />
+          <line x1="14" y1="7.5" x2="14" y2="16.5" />
+          <line x1="18" y1="9.5" x2="18" y2="14.5" />
+        </svg>
+      );
+
+    case 'thumbs-up':
+      return (
+        <svg {...commonProps}>
+          <path d="M7 10v12" />
+          <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3" />
+        </svg>
+      );
+
+    case 'thumbs-down':
+      return (
+        <svg {...commonProps}>
+          <path d="M17 14V2" />
+          <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3" />
+        </svg>
+      );
+
+    case 'volume':
+      return (
+        <svg {...commonProps}>
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+        </svg>
+      );
+
+    case 'speech-bubble':
+      return (
+        <svg {...commonProps}>
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+        </svg>
+      );
 
     default:
       return null;

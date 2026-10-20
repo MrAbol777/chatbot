@@ -3570,6 +3570,7 @@ notify.error(message);
             onOpenNoaWallet={handleOpenNoaWallet}
             profileName={profile?.name || 'ع'}
             onOpenSettings={handleOpenSettings}
+            onCreateConversation={handleCreateConversation}
           />
       ) : null}
 
@@ -4118,55 +4119,43 @@ notify.error(message);
               <strong>در حال بارگذاری گفتگو...</strong>
             </div>
           ) : (
-            <div className="danoa-empty-hero">
-              <div className="danoa-hero-sparkles" aria-hidden="true">
-                <Icon name="sparkle" className="danoa-sparkle danoa-sparkle-1 danoa-sparkle__icon" aria-hidden="true" />
-                <Icon name="sparkle" className="danoa-sparkle danoa-sparkle-2 danoa-sparkle__icon" aria-hidden="true" />
-                <Icon name="sparkle" className="danoa-sparkle danoa-sparkle-3 danoa-sparkle__icon" aria-hidden="true" />
-                <Icon name="sparkle" className="danoa-sparkle danoa-sparkle-4 danoa-sparkle__icon" aria-hidden="true" />
+            <div className="danoa-empty-hero chatgpt-empty-hero">
+              <div className="chatgpt-hero-heading-block">
+                <h1 className="chatgpt-hero-title">امروز چطور می‌تونم کمکت کنم؟</h1>
               </div>
 
-              <div className="danoa-hero-heading-block">
-                <h1 className="danoa-hero-title"><span className="danoa-desktop-copy">می‌خوای چه کاری انجام بدی؟</span><span className="danoa-mobile-copy">امروز چی دوست داری بسازی؟</span></h1>
-                <p className="danoa-hero-subtitle"><span className="danoa-desktop-copy">پیامت را بنویس یا یکی از ابزارها را انتخاب کن.</span><span className="danoa-mobile-copy">یک سؤال بپرس یا ابزاری انتخاب کن.</span></p>
-              </div>
-
-              <section className="danoa-shortcuts-section" aria-label="ابزارهای خلاق دانوآ">
-                <div className="danoa-shortcuts-row">
-                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--story" onClick={openStoryMaker}>
-                    <div className="danoa-shortcut-icon danoa-shortcut-icon--story"><Icon name="story" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title"><span className="danoa-desktop-copy">سناریو نویسی ( داستان من )</span><span className="danoa-mobile-copy">داستان من</span></strong><span className="danoa-shortcut-desc">یک ایده بده؛ سناریوی داستانی‌ات را بساز</span></div>
-                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+              <section className="danoa-shortcuts-section chatgpt-shortcuts-section" aria-label="پیشنهادهای شروع سریع">
+                <div className="danoa-shortcuts-row chatgpt-shortcuts-grid">
+                  <button type="button" className="chatgpt-shortcut-pill" onClick={openImageStudioFromStudio}>
+                    <div className="chatgpt-shortcut-icon"><Icon name="studio-image" size={18} /></div>
+                    <div className="chatgpt-shortcut-copy">
+                      <strong className="chatgpt-shortcut-title">ساخت تصویر</strong>
+                      <span className="chatgpt-shortcut-sub">خلق تصویر از ایده‌ها</span>
+                    </div>
                   </button>
 
-                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--characters" onClick={openCharacterMaker}>
-                    <div className="danoa-shortcut-icon danoa-shortcut-icon--characters"><Icon name="family" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title"><span className="danoa-desktop-copy">ساخت شخصیت‌ها</span><span className="danoa-mobile-copy">شخصیت‌سازی</span></strong><span className="danoa-shortcut-desc">هویت تصویری ثابت برای شخصیت‌های داستانت</span></div>
-                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+                  <button type="button" className="chatgpt-shortcut-pill" onClick={openStoryMaker}>
+                    <div className="chatgpt-shortcut-icon"><Icon name="story" size={18} /></div>
+                    <div className="chatgpt-shortcut-copy">
+                      <strong className="chatgpt-shortcut-title">سناریو نویسی</strong>
+                      <span className="chatgpt-shortcut-sub">نگارش داستان و ایده</span>
+                    </div>
                   </button>
 
-                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--storyboard" onClick={openStoryboardMaker}>
-                    <div className="danoa-shortcut-icon danoa-shortcut-icon--storyboard"><Icon name="gallery" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title"><span className="danoa-desktop-copy">کارگاه صحنه‌سازی</span><span className="danoa-mobile-copy">صحنه‌سازی</span></strong><span className="danoa-shortcut-desc">داستانت را صحنه‌به‌صحنه تصویر کن</span></div>
-                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+                  <button type="button" className="chatgpt-shortcut-pill" onClick={openCharacterMaker}>
+                    <div className="chatgpt-shortcut-icon"><Icon name="family" size={18} /></div>
+                    <div className="chatgpt-shortcut-copy">
+                      <strong className="chatgpt-shortcut-title">شخصیت‌سازی</strong>
+                      <span className="chatgpt-shortcut-sub">خلق کاراکتر ثابت</span>
+                    </div>
                   </button>
 
-                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--image" onClick={openImageStudioFromStudio}>
-                    <div className="danoa-shortcut-icon danoa-shortcut-icon--image"><Icon name="studio-image" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت تصویر</strong><span className="danoa-shortcut-desc">خلق تصاویر از متن و ایده‌های شما</span></div>
-                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
-                  </button>
-
-                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--video" onClick={openVideoStudio}>
-                    <div className="danoa-shortcut-icon danoa-shortcut-icon--video"><Icon name="studio-video" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">ساخت ویدیو</strong><span className="danoa-shortcut-desc">تبدیل ایده‌ها به ویدیوهای جذاب</span></div>
-                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
-                  </button>
-
-                  <button type="button" className="danoa-shortcut-card danoa-shortcut-card--all-tools" onClick={openStudioFromChat}>
-                    <div className="danoa-shortcut-icon danoa-shortcut-icon--tools"><Icon name="briefcase" size={20} /></div>
-                    <div className="danoa-shortcut-text"><strong className="danoa-shortcut-title">همه‌ی ابزارها</strong><span className="danoa-shortcut-desc">همه‌ی ابزارهای خلاق دانوآ را ببین</span></div>
-                    <div className="danoa-shortcut-arrow"><Icon name="chevron-left" size={15} /></div>
+                  <button type="button" className="chatgpt-shortcut-pill" onClick={openVideoStudio}>
+                    <div className="chatgpt-shortcut-icon"><Icon name="studio-video" size={18} /></div>
+                    <div className="chatgpt-shortcut-copy">
+                      <strong className="chatgpt-shortcut-title">ساخت ویدیو</strong>
+                      <span className="chatgpt-shortcut-sub">متحرک‌سازی و جلوه‌ها</span>
+                    </div>
                   </button>
                 </div>
               </section>

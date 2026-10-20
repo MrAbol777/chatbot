@@ -6,8 +6,8 @@ export function readStoredColorMode(): ColorMode | null {
   if (typeof window === 'undefined') return null;
   try {
     const stored = window.localStorage.getItem(COLOR_MODE_STORAGE_KEY);
-    if (stored === 'light') {
-      return 'light';
+    if (stored === 'light' || stored === 'dark') {
+      return stored;
     }
   } catch (error) {
     console.warn('[colorMode] Failed to read stored color mode:', error);
@@ -18,37 +18,34 @@ export function readStoredColorMode(): ColorMode | null {
 export function getSystemColorMode(): ColorMode {
   if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
     try {
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
+      if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return 'light';
       }
     } catch {
-      // fallback to light
+      // fallback to dark
     }
   }
-  return 'light';
+  return 'dark';
 }
 
 export function getInitialColorMode(): ColorMode {
-  return 'light';
+  const stored = readStoredColorMode();
+  if (stored) return stored;
+  return 'dark';
 }
 
 export function applyColorMode(mode: ColorMode): void {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
-  // Dark mode is deliberately paused while the product is light-mode only.
-  // Coercing old callers/preferences here prevents a stale localStorage value
-  // from resurrecting an unreviewed interface.
-  const nextMode = mode === 'dark' ? 'light' : mode;
-  root.setAttribute('data-color-mode', nextMode);
-  root.style.colorScheme = nextMode;
+  root.setAttribute('data-color-mode', mode);
+  root.style.colorScheme = mode;
 }
 
 export function persistColorMode(mode: ColorMode): void {
-  const nextMode = mode === 'dark' ? 'light' : mode;
-  applyColorMode(nextMode);
+  applyColorMode(mode);
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(COLOR_MODE_STORAGE_KEY, nextMode);
+    window.localStorage.setItem(COLOR_MODE_STORAGE_KEY, mode);
   } catch (error) {
     console.warn('[colorMode] Failed to persist color mode to localStorage:', error);
   }

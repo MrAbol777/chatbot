@@ -92,44 +92,45 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           onRemoveAttachment={onRemoveAttachment}
         />
 
-        <div className={`composer-row danoa-composer-capsule ${isRecording ? 'recording' : ''} ${shouldShowSendAction ? 'has-action' : 'voice-action'}`}>
-          <div className="composer-actions danoa-composer-actions">
-            {isRecording ? (
-              <>
-                <button className="confirm-btn" type="button" onClick={onConfirmRecording} aria-label="ارسال پیام ضبط شده">
-                  تایید
-                </button>
-                <button className="cancel-btn" type="button" onClick={onCancelRecording} aria-label="لغو ضبط صدا">
-                  لغو
-                </button>
-              </>
-            ) : (
-              <button
-                className={`send-btn danoa-send-circle ${isSending ? 'show-stop' : shouldShowSendAction ? 'show-send' : 'show-mic'}`}
-                type="button"
-                onClick={isSending ? onStopResponse : shouldShowSendAction ? onSendMessage : onStartRecording}
-                aria-label={isSending ? 'توقف پاسخ' : shouldShowSendAction ? 'ارسال پیام' : 'شروع ضبط صدا'}
-                title={isSending ? 'توقف پاسخ' : shouldShowSendAction ? 'ارسال پیام' : 'شروع ضبط صدا'}
-                disabled={!isSending && shouldShowSendAction && !canSendMessage}
-              >
-                <span
-                  key={isSending ? 'stop' : shouldShowSendAction ? 'send' : 'mic'}
-                  className={`action-icon ${isSending ? 'action-icon-stop' : shouldShowSendAction ? 'action-icon-send' : 'action-icon-mic'}`}
-                  aria-hidden="true"
+        <div className={`composer-row danoa-composer-capsule chatgpt-composer-capsule ${isRecording ? 'recording' : ''} ${shouldShowSendAction ? 'has-action' : 'voice-action'}`}>
+          {/* Start (Left): Plus Attachment Button */}
+          {!isRecording ? (
+            <div className="attachment-rail chatgpt-attachment-rail">
+              <div className="attachment-box attachment-tools" ref={attachmentBoxRef}>
+                <button
+                  className={`attach-btn danoa-attach-circle chatgpt-plus-circle ${attachmentMenuOpen ? 'is-open' : ''}`}
+                  type="button"
+                  aria-label={attachmentMenuOpen ? 'بستن گزینه‌های پیوست' : 'باز کردن گزینه‌های پیوست'}
+                  title="افزودن پیوست"
+                  aria-haspopup="menu"
+                  aria-expanded={attachmentMenuOpen}
+                  aria-controls={ATTACHMENT_MENU_ID}
+                  onClick={onToggleAttachmentMenu}
                 >
-                  {isSending ? (
-                    <Icon name="stop" size={20} />
-                  ) : shouldShowSendAction ? (
-                    <Icon name="arrow-up" size={20} />
-                  ) : (
-                    <Icon name="mic" size={20} />
-                  )}
-                </span>
-              </button>
-            )}
-          </div>
+                  <Icon name="plus" size={20} aria-hidden="true" />
+                </button>
+                {attachmentMenuOpen ? (
+                  <div id={ATTACHMENT_MENU_ID} className="attachment-popup chatgpt-attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
+                    {ATTACHMENT_MENU_ITEMS.map((item) => (
+                      <button key={item.id} type="button" role="menuitem" onClick={onPickImage}>
+                        <span className="attachment-popup__icon" aria-hidden="true">
+                          <Icon name={item.icon} size="1.2em" />
+                        </span>
+                        <span className="attachment-popup__copy">
+                          <strong>{item.label}</strong>
+                          <small>{item.description}</small>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <input ref={imageInputRef} type="file" accept={imageAccept} multiple hidden onChange={onImageSelect} />
+              </div>
+            </div>
+          ) : null}
 
-          <div className={`composer-card danoa-composer-inner ${isRecording ? 'recording' : ''} ${canSendMessage ? 'ready' : ''}`}>
+          {/* Center: Textarea Message Field */}
+          <div className={`composer-card danoa-composer-inner chatgpt-composer-inner ${isRecording ? 'recording' : ''} ${canSendMessage ? 'ready' : ''}`}>
             <div className="composer-main">
               <div className="message-field">
                 <textarea
@@ -166,47 +167,72 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
                       onSendMessage();
                     }
                   }}
-                  placeholder={isRecording ? 'در حال ضبط صدا...' : 'پیامت را بنویس...'}
+                  placeholder={isRecording ? 'در حال ضبط صدا...' : 'از دانوآ بپرسید...'}
                   aria-label="نوشتن پیام"
                 />
               </div>
             </div>
           </div>
 
-          {!isRecording ? (
-            <div className="attachment-rail">
-              <div className="attachment-box attachment-tools" ref={attachmentBoxRef}>
-                <button
-                  className={`attach-btn danoa-attach-circle ${attachmentMenuOpen ? 'is-open' : ''}`}
-                  type="button"
-                  aria-label={attachmentMenuOpen ? 'بستن گزینه‌های پیوست' : 'باز کردن گزینه‌های پیوست'}
-                  title="افزودن پیوست"
-                  aria-haspopup="menu"
-                  aria-expanded={attachmentMenuOpen}
-                  aria-controls={ATTACHMENT_MENU_ID}
-                  onClick={onToggleAttachmentMenu}
-                >
-                  <Icon name="plus" size={20} aria-hidden="true" />
+          {/* End (Right): Actions (Recording / Stop / Send / Mic + Coral Voice Wave) */}
+          <div className="composer-actions danoa-composer-actions chatgpt-composer-actions">
+            {isRecording ? (
+              <div className="chatgpt-recording-actions">
+                <button className="confirm-btn chatgpt-confirm-btn" type="button" onClick={onConfirmRecording} aria-label="ارسال پیام ضبط شده">
+                  تایید
                 </button>
-                {attachmentMenuOpen ? (
-                  <div id={ATTACHMENT_MENU_ID} className="attachment-popup" role="menu" aria-label="گزینه‌های پیوست">
-                    {ATTACHMENT_MENU_ITEMS.map((item) => (
-                      <button key={item.id} type="button" role="menuitem" onClick={onPickImage}>
-                        <span className="attachment-popup__icon" aria-hidden="true">
-                          <Icon name={item.icon} size="1.2em" />
-                        </span>
-                        <span className="attachment-popup__copy">
-                          <strong>{item.label}</strong>
-                          <small>{item.description}</small>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                <input ref={imageInputRef} type="file" accept={imageAccept} multiple hidden onChange={onImageSelect} />
+                <button className="cancel-btn chatgpt-cancel-btn" type="button" onClick={onCancelRecording} aria-label="لغو ضبط صدا">
+                  لغو
+                </button>
               </div>
-            </div>
-          ) : null}
+            ) : isSending ? (
+              <button
+                className="send-btn danoa-send-circle chatgpt-send-circle show-stop"
+                type="button"
+                onClick={onStopResponse}
+                aria-label="توقف پاسخ"
+                title="توقف پاسخ"
+              >
+                <span className="action-icon action-icon-stop" aria-hidden="true">
+                  <Icon name="stop" size={18} />
+                </span>
+              </button>
+            ) : shouldShowSendAction ? (
+              <button
+                className="send-btn danoa-send-circle chatgpt-send-circle show-send"
+                type="button"
+                onClick={onSendMessage}
+                aria-label="ارسال پیام"
+                title="ارسال پیام"
+                disabled={!canSendMessage}
+              >
+                <span className="action-icon action-icon-send" aria-hidden="true">
+                  <Icon name="arrow-up" size={18} />
+                </span>
+              </button>
+            ) : (
+              <div className="chatgpt-idle-actions">
+                <button
+                  type="button"
+                  className="chatgpt-action-mic-btn"
+                  onClick={onStartRecording}
+                  aria-label="ورودی صوتی"
+                  title="شروع ضبط صدا"
+                >
+                  <Icon name="mic" size={20} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="chatgpt-coral-voice-btn"
+                  onClick={onStartRecording}
+                  aria-label="مکالمه صوتی دانوآ"
+                  title="شروع مکالمه صوتی"
+                >
+                  <Icon name="voice-wave" size={20} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {visibleMessagesCount === 0 ? (

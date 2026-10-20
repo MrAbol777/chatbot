@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Icon from '../Icon';
 import { ChatMessage } from '../../types';
 import { ImagePreviewState } from '../../types/chat.types';
 import { formatMessageTime } from '../../utils/chatMessages';
@@ -22,8 +23,59 @@ interface ChatMessageItemProps {
   botMessageRef?: React.Ref<HTMLDivElement>;
 }
 
+const CodeBlockComponent: React.FC<{
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}> = ({ inline, className, children, ...props }) => {
+  const [copied, setCopied] = useState(false);
+  const match = /language-(\w+)/.exec(className || '');
+  const lang = match ? match[1] : '';
+  const codeString = String(children).replace(/\n$/, '');
+
+  const handleCopy = useCallback(() => {
+    if (typeof navigator !== 'undefined') {
+      void navigator.clipboard.writeText(codeString);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    }
+  }, [codeString]);
+
+  if (inline) {
+    return (
+      <code className={`chatgpt-inline-code ${className || ''}`} {...props}>
+        {children}
+      </code>
+    );
+  }
+
+  return (
+    <div className="chatgpt-codeblock" dir="ltr">
+      <div className="chatgpt-codeblock__header">
+        <span className="chatgpt-codeblock__lang">{lang || 'code'}</span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="chatgpt-codeblock__copy-btn"
+          aria-label={copied ? 'کپی شد' : 'کپی کد'}
+        >
+          <Icon name={copied ? 'check' : 'copy'} size={13} aria-hidden="true" />
+          <span>{copied ? 'کپی شد' : 'کپی کد'}</span>
+        </button>
+      </div>
+      <pre className="chatgpt-codeblock__pre">
+        <code className={className} {...props}>
+          {children}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   message,
+  index: _index,
+  isLastAssistant,
   isSending,
   renderBotAvatar,
   onRetryStreamMessage,
@@ -35,10 +87,36 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   botMessageRef
 }) => {
   const isAssistant = message.role === 'assistant';
+  const [copied, setCopied] = useState(false);
+  const [liked, setLiked] = useState<boolean | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const handleCopyContent = useCallback(() => {
+    if (typeof navigator !== 'undefined' && message.content) {
+      void navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    }
+  }, [message.content]);
+
+  const handleSpeak = useCallback(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(message.content);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  }, [isSpeaking, message.content]);
 
   return (
     <div
-      className={`message-row ${message.role} ${message.streamStatus ? `stream-${message.streamStatus}` : ''} ${Array.isArray(message.images) && message.images.length > 0 ? 'has-images' : ''}`}
+      className={`message-row chatgpt-message-row ${message.role} ${message.streamStatus ? `stream-${message.streamStatus}` : ''} ${Array.isArray(message.images) && message.images.length > 0 ? 'has-images' : ''}`}
       data-clarity-mask="true"
       ref={(node) => {
         if (lastMessageRef && typeof lastMessageRef === 'function') {
@@ -57,11 +135,20 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     >
       {isAssistant ? renderBotAvatar() : null}
       {isAssistant ? (
-        <div className={`bubble markdown-body ${message.streamStatus === 'streaming' ? 'streaming-bubble' : ''}`}>
-          {message.content ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown> : null}
-          {message.streamStatus === 'streaming' ? <span className="stream-cursor" aria-label="در حال نوشتن" /> : null}
+        <div className={`bubble markdown-body chatgpt-assistant-body ${message.streamStatus === 'streaming' ? 'streaming-bubble' : ''}`}>
+          {message.content ? (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                code: CodeBlockComponent as any
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          ) : null}
+          {message.streamStatus === 'streaming' ? <span className="stream-cursor chatgpt-cursor" aria-label="در حال نوشتن" /> : null}
           {message.streamStatus === 'failed' ? (
-            <div className="stream-state stream-state-error" role="alert">
+            <div className="stream-state stream-state-error chatgpt-error-box" role="alert">
               <span>{message.streamError || 'پاسخ کامل نشد. دوباره تلاش کنیم؟'}</span>
               <button
                 type="button"
@@ -71,14 +158,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 aria-label="تلاش مجدد برای دریافت پاسخ"
                 title="تلاش مجدد"
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M20 11a8 8 0 1 0-2.35 5.65M20 5v6h-6" />
-                </svg>
+                <Icon name="retry" size={16} />
               </button>
             </div>
           ) : null}
           {message.streamStatus === 'cancelled' ? (
-            <div className="stream-state stream-state-cancelled">پاسخ با درخواست شما متوقف شد.</div>
+            <div className="stream-state stream-state-cancelled chatgpt-cancelled-box">پاسخ متوقف شد.</div>
           ) : null}
           {message.imageStudioRedirect ? (
             <button
@@ -111,11 +196,66 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               ))}
             </div>
           ) : null}
+
+          {/* ChatGPT Assistant Action Bar */}
+          {!message.streamStatus || message.streamStatus === 'completed' ? (
+            <div className="chatgpt-message-actions" role="toolbar" aria-label="عملیات پیام">
+              <button
+                type="button"
+                className={`chatgpt-action-btn ${copied ? 'is-active' : ''}`}
+                onClick={handleCopyContent}
+                title={copied ? 'کپی شد' : 'کپی متن'}
+                aria-label={copied ? 'کپی شد' : 'کپی متن'}
+              >
+                <Icon name={copied ? 'check' : 'copy'} size={15} />
+              </button>
+              <button
+                type="button"
+                className={`chatgpt-action-btn ${liked === true ? 'is-active' : ''}`}
+                onClick={() => setLiked(liked === true ? null : true)}
+                title="پاسخ مفید بود"
+                aria-label="پسندیدن پاسخ"
+              >
+                <Icon name="thumbs-up" size={15} />
+              </button>
+              <button
+                type="button"
+                className={`chatgpt-action-btn ${liked === false ? 'is-active' : ''}`}
+                onClick={() => setLiked(liked === false ? null : false)}
+                title="پاسخ مناسب نبود"
+                aria-label="نپسندیدن پاسخ"
+              >
+                <Icon name="thumbs-down" size={15} />
+              </button>
+              <button
+                type="button"
+                className={`chatgpt-action-btn ${isSpeaking ? 'is-speaking is-active' : ''}`}
+                onClick={handleSpeak}
+                title={isSpeaking ? 'توقف خواندن' : 'خواندن با صدا'}
+                aria-label={isSpeaking ? 'توقف خواندن' : 'خواندن با صدا'}
+              >
+                <Icon name="volume" size={15} />
+              </button>
+              {isLastAssistant ? (
+                <button
+                  type="button"
+                  className="chatgpt-action-btn"
+                  onClick={() => onRetryStreamMessage(message)}
+                  disabled={isSending}
+                  title="تولید مجدد پاسخ"
+                  aria-label="تولید مجدد پاسخ"
+                >
+                  <Icon name="retry" size={15} />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
           <span className="message-time">{formatMessageTime(message.timestamp)}</span>
         </div>
       ) : (
-        <div className="bubble">
-          {message.content ? <div>{message.content}</div> : null}
+        <div className="bubble chatgpt-user-bubble">
+          {message.content ? <div className="chatgpt-user-text">{message.content}</div> : null}
           {Array.isArray(message.images) && message.images.length > 0 ? (
             <div className="message-image-grid">
               {message.images.map((image: { url: string; alt?: string }, imageIndex: number) => (

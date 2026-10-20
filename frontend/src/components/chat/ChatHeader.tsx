@@ -17,6 +17,7 @@ interface ChatHeaderProps {
   onOpenNoaWallet: () => void;
   profileName?: string;
   onOpenSettings: () => void;
+  onCreateConversation?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -33,7 +34,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   noaBalance,
   onOpenNoaWallet,
   profileName = 'ع',
-  onOpenSettings
+  onOpenSettings,
+  onCreateConversation
 }) => {
   const showContextAction = sidebarOpen && isDesktopLayout && !conversationLoading;
   const exactBalance = formatWalletBalanceExactFa(noaBalance);
@@ -54,25 +56,49 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       };
 
   return (
-    <header className="top-bar danoa-top-bar" role="banner">
+    <header className="top-bar danoa-top-bar chatgpt-header" role="banner">
       <h1 className="visually-hidden">گفتگو با دستیار هوش مصنوعی دانوآ</h1>
 
-      {!sidebarOpen ? (
-        <button
-          ref={chatSidebarToggleRef}
-          className="header-action-btn chat-sidebar-toggle danoa-mobile-sidebar-btn"
-          onClick={onOpenSidebar}
-          type="button"
-          aria-label="باز کردن پنل گفتگوها"
-          title="باز کردن پنل گفتگوها"
-        >
-          <Icon name={isDesktopLayout ? 'sidebar-open' : 'menu-two-line'} size={isDesktopLayout ? 21 : 24} aria-hidden="true" />
-        </button>
-      ) : (
-        <div className="danoa-header-spacer" aria-hidden="true" />
-      )}
+      {/* Left section: Hamburger & Upgrade (or Model Selector on desktop) */}
+      <div className="chatgpt-header__start">
+        {!sidebarOpen ? (
+          <button
+            ref={chatSidebarToggleRef}
+            className="header-action-btn chat-sidebar-toggle chatgpt-icon-btn"
+            onClick={onOpenSidebar}
+            type="button"
+            aria-label="باز کردن پنل گفتگوها"
+            title="باز کردن پنل گفتگوها"
+          >
+            <Icon name={isDesktopLayout ? 'sidebar-open' : 'menu-two-line'} size={isDesktopLayout ? 20 : 20} aria-hidden="true" />
+          </button>
+        ) : (
+          <div className="danoa-header-spacer" aria-hidden="true" />
+        )}
 
-      <div className="danoa-top-bar__title-wrap">
+        {/* ChatGPT Upgrade Pill on Mobile */}
+        <button
+          type="button"
+          className="chatgpt-upgrade-pill"
+          onClick={onOpenNoaWallet}
+          aria-label="ارتقا به پلن دانوآ پرو"
+          title="ارتقا به پلن دانوآ پرو"
+        >
+          <Icon name="sparkles" size={15} className="chatgpt-upgrade-pill__sparkle" aria-hidden="true" />
+          <span className="chatgpt-upgrade-pill__text">Upgrade</span>
+        </button>
+
+        {/* Desktop Model Selector */}
+        {isDesktopLayout ? (
+          <div className="chatgpt-model-badge" title="مدل فعال دانوآ">
+            <span className="chatgpt-model-badge__text">دانوآ ۴o</span>
+            <Icon name="chevron-down" size={13} className="chatgpt-model-badge__chevron" aria-hidden="true" />
+          </div>
+        ) : null}
+      </div>
+
+      {/* Center: Context Action or Title */}
+      <div className="danoa-top-bar__title-wrap chatgpt-header__center">
         {showContextAction ? (
           <button
             key={contextAction.variant}
@@ -102,10 +128,23 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         )}
       </div>
 
-      <div className="danoa-top-bar__actions">
+      {/* Right section: New chat on mobile, Wallet & Profile on desktop */}
+      <div className="danoa-top-bar__actions chatgpt-header__end">
+        {/* Mobile New Chat Button */}
         <button
           type="button"
-          className="danoa-noa-pill"
+          className="header-action-btn chatgpt-icon-btn chatgpt-mobile-new-chat"
+          onClick={onCreateConversation || onOpenStarterIdeas}
+          aria-label="گفتگوی جدید"
+          title="گفتگوی جدید"
+        >
+          <Icon name="speech-bubble" size={20} aria-hidden="true" />
+        </button>
+
+        {/* Desktop Wallet & Profile */}
+        <button
+          type="button"
+          className="danoa-noa-pill chatgpt-desktop-only"
           onClick={onOpenNoaWallet}
           aria-label={noaBalance ? `کیف پول نوآ، موجودی ${exactBalance} نوآ` : 'باز کردن کیف پول نوآ'}
           title={noaBalance ? `موجودی ${exactBalance} نوآ — باز کردن کیف پول` : 'باز کردن کیف پول نوآ'}
@@ -124,7 +163,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
         <button
           type="button"
-          className="danoa-avatar-badge"
+          className="danoa-avatar-badge chatgpt-desktop-only"
           onClick={onOpenSettings}
           aria-label="تنظیمات حساب کاربری"
           title="تنظیمات حساب کاربری"
