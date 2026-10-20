@@ -2,7 +2,9 @@ const crypto = require('crypto');
 const {
   detectChatIntent,
   getSafeAlternativeMessage,
-  isUnsafeImagePrompt
+  isUnsafeImagePrompt,
+  looksLikeImageCreateRequest,
+  looksLikeImageEditRequest
 } = require('./intent.service');
 const { publicVisionErrorMessage } = require('../image-understanding/image-understanding.controller');
 const { NOA_ACTIONS } = require('../noa/noa.constants');
@@ -18,25 +20,20 @@ const normalizeIntentForChat = (intent) => (
     ? intent
     : 'chat'
 );
-const IMAGE_NOUN_PATTERN = /(?:عکس|تصویر|نقاشی|پوستر|بنر|والپیپر|image|photo|picture|poster)/i;
-const IMAGE_CREATE_PATTERN = /(?:بساز(?:ی|ید)?|بکش(?:ی|ید)?|بزن(?:ی|ید)?|طراحی\s*(?:کن|کنید)|تولید\s*(?:کن|کنم|کنید)|درست\s*(?:کن|کنید)|خلق\s*(?:کن|کنید)|make|generate|create|draw|render|paint)/i;
-const IMAGE_EDIT_PATTERN = /(?:ادیت|ویرایش|تغییر|عوض|جایگزین|حذف|پاک|اضافه|بذار|بزار|قرار\s*(?:بده|ده)|ترمیم|بهبود|واضح|کارتونی|پس\s*زمینه|رنگ(?:ش)?|موهاش|لباسش|نورش|قرمز|آبی|سبز|زرد|مشکی|سفید|بلندتر|کوتاهتر|background|edit|change|replace|remove|add|enhance|restore|recolor|transform|stylize)/i;
-
+// The studio redirect shares its edit/create heuristics with detectChatIntent so
+// the two gates cannot drift apart (see intent.service.js for the rules).
 const isImageStudioRequest = (message, imageContext = {}) => {
   const text = String(message || '').trim();
   if (!text) return false;
   if (/^\/imagine\s+\S/i.test(text)) return true;
 
-  const hasImageNoun = IMAGE_NOUN_PATTERN.test(text);
-  const hasAttachedOrPreviousImage = Boolean(
-    imageContext.hasCurrentImageAttachment ||
+  const hasAttachedImage = Boolean(imageContext.hasCurrentImageAttachment);
+  const hasImageContext = Boolean(
+    hasAttachedImage ||
     imageContext.hasPreviousUploadedImage ||
     imageContext.hasPreviousGeneratedImage
   );
-  return (
-    (hasImageNoun && IMAGE_CREATE_PATTERN.test(text)) ||
-    (IMAGE_EDIT_PATTERN.test(text) && (hasImageNoun || hasAttachedOrPreviousImage))
-  );
+  return looksLikeImageCreateRequest(text) || looksLikeImageEditRequest(text, { hasImageContext, hasAttachedImage });
 };
 const MAX_IMAGE_EDIT_INPUTS = 4;
 

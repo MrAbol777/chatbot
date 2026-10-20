@@ -3,10 +3,15 @@ const assert = require('node:assert/strict');
 
 const { isImageStudioRequest, normalizeIntentForChat } = require('./ai.controller');
 
-test('chat never dispatches image creation or edits to an image task', () => {
-  assert.equal(normalizeIntentForChat('image_generation'), 'chat');
-  assert.equal(normalizeIntentForChat('image_edit'), 'chat');
+test('final-action intents keep their own route and anything else falls back to chat', () => {
+  // Billing is applied once by the module that performs the action, so these
+  // intents must not be collapsed into plain chat.
+  assert.equal(normalizeIntentForChat('image_generation'), 'image_generation');
+  assert.equal(normalizeIntentForChat('image_edit'), 'image_edit');
+  assert.equal(normalizeIntentForChat('video_generation'), 'video_generation');
   assert.equal(normalizeIntentForChat('chat'), 'chat');
+  assert.equal(normalizeIntentForChat('something_else'), 'chat');
+  assert.equal(normalizeIntentForChat(undefined), 'chat');
 });
 
 test('image analysis remains on the image-understanding pipeline', () => {

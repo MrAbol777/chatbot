@@ -16,31 +16,19 @@ const IMAGE_GENERATION_KEYWORDS = [
   'imagine'
 ];
 
+// Explicit edit verbs. Attribute words (colour, background, hair...) are NOT listed
+// here: on their own they are ordinary vocabulary ("رنگ قرمز یعنی چی؟"), so they
+// only count through IMAGE_EDIT_PATTERNS below, which also require an edit verb.
 const IMAGE_EDIT_KEYWORDS = [
   'ادیت',
   'ویرایش',
   'تغییر بده',
   'عوض کن',
-  'رنگش',
-  'رنگش رو',
-  'رنگ لباس',
   'قرمز کن',
   'آبی کن',
-  'پس زمینه',
-  'پس‌زمینه',
-  'بک گراند',
-  'بک‌گراند',
-  'زمینه رو',
-  'نورش',
-  'موهاش',
-  'همینو',
-  'همین رو',
   'همین تصویر',
   'این عکس رو کارتونی',
   'این تصویر رو کارتونی',
-  'واقعی تر',
-  'واقعی‌تر',
-  'کارتونی',
   'edit image'
 ];
 
@@ -57,9 +45,6 @@ const IMAGE_UNDERSTANDING_KEYWORDS = [
   'این رو بخون',
   'این عکس رو بخون',
   'این تصویر رو بخون',
-  'توضیح بده',
-  'تحلیل کن',
-  'بررسی کن',
   'این طرح',
   'این عکس',
   'این تصویر',
@@ -111,6 +96,10 @@ const VISUAL_SUBJECT_KEYWORDS = [
   'ماشین'
 ];
 
+// Generic verbs that only mean "look at the picture" when a picture is attached
+// to this very message ("این سؤال رو توضیح بده" must stay a normal chat question).
+const GENERIC_ANALYSIS_KEYWORDS = ['توضیح بده', 'تحلیل کن', 'بررسی کن'];
+
 const IMAGE_CONTINUATION_PATTERN =
   /(?:(?:یکی|یه|یک)\s+(?:دیگه|دیگر)\s+(?:هم\s+)?(?:بساز|بکش|درست\s*کن|خلق\s*کن)|(?:دوباره|بازم|باز\s+هم)\s+(?:بساز|بکش|درست\s*کن|خلق\s*کن)|(?:مثل|شبیه)\s+(?:قبلی|همونی|همون)\s+(?:بساز|بکش|درست\s*کن))/i;
 
@@ -138,7 +127,75 @@ const normalize = (value) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const includesAny = (text, keywords) => keywords.some((keyword) => text.includes(keyword.toLowerCase()));
+// JS \b does not understand Persian, so word edges are the Arabic-script block.
+// ZWNJ (U+200C) is outside it on purpose: "خانه‌ی" still matches "خانه".
+const PERSIAN_LETTER = String.raw`؀-ۿ`;
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const wordPattern = (source) => `(?<![${PERSIAN_LETTER}A-Za-z])(?:${source})(?![${PERSIAN_LETTER}A-Za-z])`;
+const wordRegExp = (source) => new RegExp(wordPattern(source), 'i');
+const keywordRegExp = (keywords) =>
+  wordRegExp([...keywords].sort((a, b) => b.length - a.length).map((keyword) => escapeRegExp(keyword.toLowerCase())).join('|'));
+
+const includesAny = (text, keywords) => keywordRegExp(keywords).test(text);
+
+const IMAGE_NOUN_REGEXP = wordRegExp('(?:عکس|تصویر|نقاشی|طرح|لوگو|پوستر|بنر|والپیپر|آواتار)(?:ی|ش|شو|ها|های)?|image|photo|picture|poster');
+// Work on text, not pictures: "متن رو ویرایش کن", "یه داستان درباره فضا بساز".
+const TEXT_WORK_REGEXP = wordRegExp('(?:متن|نوشته|مقاله|انشا|جمله|داستان|قصه|شعر|معما|جوک|نامه|ایمیل|خلاصه|سناریو|فیلمنامه|کپشن|کد|برنامه|تکلیف|مسئله|سوال|سؤال)(?:ی|ش|شو|ها|های|م)?');
+// Knowledge questions ("چرا آسمان آبیه؟") are chat unless a picture is mentioned.
+const QUESTION_START_REGEXP = new RegExp(`^(?:چرا|چطور|چطوری|چگونه|چی|چه|کی|کجا|آیا|چند|کدوم|کدام|یعنی)(?![${PERSIAN_LETTER}])`);
+
+const EDIT_ATTRIBUTE = String.raw`رنگ|پس\s*زمینه|پس‌زمینه|بک\s*گراند|بک‌گراند|زمینه|نور|لباس|مو|موها|چشم|چشم‌ها|صورت|چهره`;
+const EDIT_COLOR = 'قرمز|آبی|سبز|زرد|مشکی|سفید|نارنجی|بنفش|صورتی|طلایی|نقره‌ای';
+const EDIT_VERB = String.raw`(?:کن|بکن|کنی|کنید|عوض\s*کن|عوض|تغییر\s*بده|تغییر|بهتر\s*کن)`;
+const GAP = String.raw`(?:\s+[^\s؟?.!،]+)`;
+const AFTER_VERB = `(?![${PERSIAN_LETTER}])`;
+// Each pattern needs an edit verb close to the thing being edited. A bare "بده"
+// is deliberately not an edit verb ("توضیح بده", "نشون بده").
+const IMAGE_EDIT_PATTERNS = [
+  new RegExp(`${wordPattern(`(?:${EDIT_ATTRIBUTE})(?:ش|شو|اش|هاش|هایش)?`)}(?:\\s+(?:رو|را))?${GAP}{0,3}?\\s+${EDIT_VERB}${AFTER_VERB}`, 'i'),
+  new RegExp(`${wordPattern(`(?:${EDIT_COLOR})(?:ش|شو)?`)}(?:\\s+(?:رو|را))?${GAP}{0,1}\\s+(?:کن|بکن|کنی|کنید)${AFTER_VERB}`, 'i'),
+  new RegExp(`${wordPattern(String.raw`(?:واقعی(?:‌|\s)?تر|کارتونی|انیمیشنی)`)}(?:\\s+(?:رو|را))?\\s*(?:کن|بکن|بده|بساز)${AFTER_VERB}`, 'i')
+];
+const SAME_IMAGE_EDIT_PATTERN = new RegExp(`${wordPattern(String.raw`همین(?:و|\s*رو|\s*را)`)}${GAP}{0,3}\\s+(?:کن|عوض\\s*کن|تغییر\\s*بده)${AFTER_VERB}`, 'i');
+
+// Generic verbs ("اضافه کن", "حذف کن", "بذار") are only edits when the picture is
+// unmistakable: attached to this message or named in it. "یه مثال اضافه کن" after an
+// earlier image is still plain chat.
+const STRONG_CONTEXT_EDIT_VERBS = [
+  'بذار', 'بزار', 'قرار بده', 'اضافه کن', 'حذف کن', 'پاک کن', 'جایگزین کن',
+  'ترمیم کن', 'بهبود بده', 'واضح کن', 'بلندتر کن', 'کوتاه‌تر کن', 'کوتاهتر کن'
+];
+const IMAGE_CREATE_REGEXP = wordRegExp(String.raw`(?:بساز|بکش|بزن|طراحی\s*کن|تولید\s*کن|درست\s*کن|خلق\s*کن)(?:ی|ید)?|make|generate|create|draw|render|paint`);
+
+const hasImageNoun = (text) => IMAGE_NOUN_REGEXP.test(text);
+const looksLikeImageCreateRequest = (message) => {
+  const text = normalize(message);
+  return Boolean(text) && hasImageNoun(text) && IMAGE_CREATE_REGEXP.test(text);
+};
+const isTextWorkRequest = (text) => {
+  const normalized = normalize(text);
+  return TEXT_WORK_REGEXP.test(normalized) && !hasImageNoun(normalized);
+};
+
+/**
+ * Is this message asking to modify a picture? A picture must be in play (attached,
+ * recently generated/uploaded, or named in the message); without one, words like
+ * "آبی" or "مو" are just vocabulary.
+ */
+const looksLikeImageEditRequest = (message, { hasImageContext = false, hasAttachedImage = false } = {}) => {
+  const text = normalize(message);
+  const lower = text.toLowerCase();
+  if (!text) return false;
+  const namesImage = hasImageNoun(text);
+  if (!hasImageContext && !namesImage) return false;
+  if (!namesImage && (isTextWorkRequest(text) || QUESTION_START_REGEXP.test(text))) return false;
+  if ((namesImage || hasAttachedImage) && includesAny(lower, STRONG_CONTEXT_EDIT_VERBS)) return true;
+  return (
+    includesAny(lower, IMAGE_EDIT_KEYWORDS) ||
+    IMAGE_EDIT_PATTERNS.some((pattern) => pattern.test(text)) ||
+    (hasImageContext && SAME_IMAGE_EDIT_PATTERN.test(text))
+  );
+};
 
 const isUnsafeImagePrompt = (message) => {
   const text = normalize(message);
@@ -189,10 +246,9 @@ async function detectChatIntent({ message, hasAttachedImages = false, hasRecentI
     return { intent: 'image_generation', confidence: 'high', source: 'command' };
   }
 
-  const wantsEdit =
-    includesAny(lower, IMAGE_EDIT_KEYWORDS) ||
-    /(?:رنگ|پس\s*زمینه|پس‌زمینه|بک\s*گراند|بک‌گراند|زمینه|نور|لباس|مو|چشم|صورت).*(?:کن|بده|عوض|تغییر|بهتر)/i.test(text) ||
-    /(?:قرمز|آبی|سبز|زرد|مشکی|سفید|واقعی(?:‌|\s)?تر|کارتونی).*(?:کن|بده)/i.test(text);
+  // Editing needs a picture in play (attached, recent, or named in the message);
+  // see looksLikeImageEditRequest for why bare colour/attribute words don't count.
+  const wantsEdit = looksLikeImageEditRequest(text, { hasImageContext, hasAttachedImage: hasAttachedImages });
   if (wantsEdit) {
     return {
       intent: 'image_edit',
@@ -201,11 +257,16 @@ async function detectChatIntent({ message, hasAttachedImages = false, hasRecentI
     };
   }
 
+  // A picture attached to this message makes "توضیح بده" an image question. A
+  // picture merely seen earlier in the conversation does not: the user must point
+  // at it ("این عکس ...") or the sentence stays an ordinary chat question.
   const wantsUnderstanding =
     hasImageContext &&
-    (includesAny(lower, IMAGE_UNDERSTANDING_KEYWORDS) ||
-      /(?:عکس|تصویر|طرح|بنر|پوستر|استوری).*(?:چیه|چیست|بخون|بخوان|توضیح|تحلیل|بررسی|می‌بینی|میبینی|متن|ایراد|خوبه)/i.test(text) ||
-      /(?:این|اینو|این رو).*(?:چیه|بخون|بخوان|توضیح|تحلیل|بررسی)/i.test(text));
+    ((hasAttachedImages && includesAny(lower, GENERIC_ANALYSIS_KEYWORDS)) ||
+      includesAny(lower, IMAGE_UNDERSTANDING_KEYWORDS) ||
+      new RegExp(`${wordPattern('عکس|تصویر|طرح|بنر|پوستر|استوری')}(?:\s+[^\s؟?.!،]+){0,4}?\s+(?:چیه|چیست|بخون|بخوان|توضیح|تحلیل|بررسی|می‌بینی|میبینی|متن|ایراد|خوبه)`, 'i').test(text) ||
+      (hasAttachedImages &&
+        new RegExp(`${wordPattern('این|اینو|این\s*رو')}(?:\s+[^\s؟?.!،]+){0,1}\s+(?:چیه|بخون|بخوان|توضیح|تحلیل|بررسی)`, 'i').test(text)));
   if (wantsUnderstanding) {
     return { intent: 'image_understanding', confidence: 'high', source: hasAttachedImages ? 'attached_image_understanding' : 'recent_image_understanding' };
   }
@@ -214,8 +275,10 @@ async function detectChatIntent({ message, hasAttachedImages = false, hasRecentI
     return { intent: 'chat', confidence: 'high', source: 'negative_keyword' };
   }
 
-  const hasImageWord = /عکس|تصویر|image|photo|picture/i.test(text);
-  const hasCreationWord = /بساز|بکش|طراحی کن|نقاشی کن|درست کن|خلق کن|generate|create|draw|paint|imagine/i.test(text);
+  const hasImageWord = hasImageNoun(text);
+  const hasCreationWord = wordRegExp(String.raw`بساز|بکش|طراحی\s*کن|نقاشی\s*کن|درست\s*کن|خلق\s*کن|generate|create|draw|paint|imagine`).test(text);
+  // "یه داستان درباره فضا بساز" asks for writing, not a picture of space.
+  const isTextWork = isTextWorkRequest(text);
   const hasVisualSubject = includesAny(lower, VISUAL_SUBJECT_KEYWORDS);
   const hasVisualDescriptor = VISUAL_DESCRIPTOR_PATTERN.test(text);
   const asksForVisualSubject =
@@ -231,9 +294,10 @@ async function detectChatIntent({ message, hasAttachedImages = false, hasRecentI
 
   if (
     hasCreationWord &&
+    !isTextWork &&
     (
       hasVisualSubject ||
-      /کاراکتر|شخصیت|لوگو|پوستر|آواتار|گربه|سگ|خرگوش|پرنده|اسب|ماهی|ربات|ماشین|قلعه|خانه|شهر|فضا|فضایی|سیاره|ستاره|کهکشان|سفینه|میوه|منظره|wallpaper|poster|avatar|logo|character|cat|dog|rabbit|bird|horse|fish|robot|car|castle|house|city|space|alien|planet|star|galaxy|spaceship|fruit|landscape/i.test(text)
+      wordRegExp('کاراکتر|شخصیت|لوگو|پوستر|آواتار|گربه|سگ|خرگوش|پرنده|اسب|ماهی|ربات|ماشین|قلعه|خانه|شهر|فضا|فضایی|سیاره|ستاره|کهکشان|سفینه|میوه|منظره|wallpaper|poster|avatar|logo|character|cat|dog|rabbit|bird|horse|fish|robot|car|castle|house|city|space|alien|planet|star|galaxy|spaceship|fruit|landscape').test(text)
     )
   ) {
     return { intent: 'image_generation', confidence: 'medium', source: 'creative_keyword' };
@@ -284,5 +348,7 @@ async function detectChatIntent({ message, hasAttachedImages = false, hasRecentI
 module.exports = {
   detectChatIntent,
   getSafeAlternativeMessage,
-  isUnsafeImagePrompt
+  isUnsafeImagePrompt,
+  looksLikeImageCreateRequest,
+  looksLikeImageEditRequest
 };
