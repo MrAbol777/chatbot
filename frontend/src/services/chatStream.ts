@@ -178,3 +178,40 @@ export const postChatStream = async (
 
   return { kind: 'stream', done: doneEvent };
 };
+
+const authJsonHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('chat_auth_token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
+
+export const postChatFeedback = async (turnId: string, rating: 'up' | 'down' | null): Promise<void> => {
+  const response = await safeFetch('/api/chat/feedback', {
+    method: 'POST',
+    headers: authJsonHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ turnId, rating })
+  });
+  if (!response.ok) throw new Error('ثبت بازخورد انجام نشد.');
+};
+
+/** Best-effort: any failure simply means no suggestion chips are shown. */
+export const fetchChatFollowups = async (turnId: string): Promise<string[]> => {
+  try {
+    const response = await fetch('/api/chat/followups', {
+      method: 'POST',
+      headers: authJsonHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ turnId })
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data?.suggestions)
+      ? data.suggestions.filter((item: unknown): item is string => typeof item === 'string' && item.trim().length > 0).slice(0, 3)
+      : [];
+  } catch {
+    return [];
+  }
+};

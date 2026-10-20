@@ -19,9 +19,10 @@ export const ATTACHMENT_MENU_ITEMS: ReadonlyArray<{
 ];
 
 export const SUGGESTION_PROMPTS: Array<{ label: string; prompt: string; icon: IconName }> = [
-  { label: 'ایده برای تحقیق', prompt: 'به من در تحقیق یک ایده کمک کن', icon: 'edit' },
-  { label: 'خلاصه‌سازی مقاله', prompt: 'خلاصه این مقاله را بنویس', icon: 'file-text' },
-  { label: 'ایدهٔ محتوا', prompt: 'ایده‌هایی برای محتوا بده', icon: 'lightbulb' }
+  { label: 'یه داستان بساز', prompt: 'یه داستان کوتاه و هیجان‌انگیز برام بساز', icon: 'book' },
+  { label: 'کمک در تکلیف', prompt: 'می‌خوام توی تکلیفم کمکم کنی', icon: 'edit' },
+  { label: 'یه چیز جالب بگو', prompt: 'یه چیز جالب و عجیب درباره‌ی دنیا بهم بگو', icon: 'sparkles' },
+  { label: 'ایده برای پروژه', prompt: 'برای پروژه‌ی مدرسه‌م چند تا ایده‌ی باحال بده', icon: 'lightbulb' }
 ];
 
 interface ChatInputBarProps {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatWalletBalanceExactFa } from './decimal';
+import { formatWalletBalanceCompactFa, formatWalletBalanceExactFa } from './decimal';
 
 describe('wallet balance in the chat header', () => {
   it('keeps the exact balance for the tooltip and accessible name', () => {
@@ -19,5 +19,17 @@ describe('wallet balance in the chat header', () => {
   it('shows a placeholder when the wallet has not loaded', () => {
     expect(formatWalletBalanceExactFa(undefined)).toBe('—');
     expect(formatWalletBalanceExactFa('invalid')).toBe('—');
+  });
+});
+
+describe('formatWalletBalanceCompactFa', () => {
+  it('keeps small balances readable and shortens large ones', () => {
+    expect(formatWalletBalanceCompactFa('99.944000')).toBe('۹۹٫۹۴');
+    expect(formatWalletBalanceCompactFa('100.000000')).toBe('۱۰۰');
+    expect(formatWalletBalanceCompactFa('12345.5')).toBe('۱۲٬۳۴۵');
+    expect(formatWalletBalanceCompactFa('7866666654.606003')).toBe('۷٫۸ میلیارد');
+    expect(formatWalletBalanceCompactFa('2500000')).toBe('۲٫۵ میلیون');
+    expect(formatWalletBalanceCompactFa('-5.5')).toBe('−۵٫۵');
+    expect(formatWalletBalanceCompactFa(undefined)).toBe('—');
   });
 });

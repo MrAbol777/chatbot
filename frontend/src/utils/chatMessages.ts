@@ -113,9 +113,38 @@ export const formatConversationDate = (value: string): string => {
   return new Intl.DateTimeFormat('fa-IR', { month: 'short', day: 'numeric' }).format(date);
 };
 
+// Field names of the internal "conversation document" used for memory. A few old
+// replies were saved with that document pasted in as the answer. Three or more
+// distinct field names together do not occur in normal prose.
+const INTERNAL_DOCUMENT_FIELDS = [
+  'conversation id',
+  'conversation objective',
+  'current topic',
+  'user requirements',
+  'confirmed facts',
+  'open tasks',
+  'active references',
+  'important entities',
+  'last exchange',
+  'uncertainties'
+];
+
+export const INTERNAL_DOCUMENT_NOTICE = 'این پاسخ درست ذخیره نشده بود. دوباره بپرس تا جواب تازه بگیری.';
+
+export const isInternalDocumentLeak = (content: string | undefined): boolean => {
+  const text = String(content || '').toLowerCase();
+  if (!text) return false;
+  const hits = INTERNAL_DOCUMENT_FIELDS.filter((field) => text.includes(field)).length;
+  return hits >= 3;
+};
+
+/** What to show for a message. Display only: stored content is never rewritten. */
+export const getDisplayContent = (message: Pick<ChatMessage, 'role' | 'content'>): string =>
+  message.role === 'assistant' && isInternalDocumentLeak(message.content) ? INTERNAL_DOCUMENT_NOTICE : message.content;
+
 export const getConversationPreview = (conversation: Conversation): string => {
   const lastMessage = [...conversation.messages].reverse().find((message) => message.content.trim());
-  return lastMessage?.content.trim() || `${new Intl.NumberFormat('fa-IR').format(conversation.messages.length)} پیام`;
+  return (lastMessage ? getDisplayContent(lastMessage).trim() : '') || `${new Intl.NumberFormat('fa-IR').format(conversation.messages.length)} پیام`;
 };
 
 export const formatMessageTime = (value: string): string => {

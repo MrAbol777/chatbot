@@ -125,3 +125,21 @@ export function formatWalletBalanceExactFa(value: string | null | undefined): st
   const groupedWhole = balance.whole.replace(/\B(?=(\d{3})+(?!\d))/g, '٬');
   return `${balance.negative ? '−' : ''}${toPersianDigits(groupedWhole)}${balance.fraction ? `٫${toPersianDigits(balance.fraction)}` : ''}`;
 }
+
+/** Short balance for tight UI (header pill). The exact value stays in the tooltip and accessible name. */
+export function formatWalletBalanceCompactFa(value: string | null | undefined): string {
+  const balance = parseWalletBalance(value);
+  if (!balance) return '—';
+  const sign = balance.negative ? '−' : '';
+  const wholeNumber = Number(balance.whole);
+  if (wholeNumber >= 1_000_000_000) {
+    return `${sign}${formatDecimalFa(String(Math.floor((wholeNumber / 1_000_000_000) * 10) / 10), 1)} میلیارد`;
+  }
+  if (wholeNumber >= 1_000_000) {
+    return `${sign}${formatDecimalFa(String(Math.floor((wholeNumber / 1_000_000) * 10) / 10), 1)} میلیون`;
+  }
+  const grouped = toPersianDigits(balance.whole.replace(/\B(?=(\d{3})+(?!\d))/g, '٬'));
+  // Fractions only matter for small balances; keep at most two digits.
+  const fraction = wholeNumber < 1000 ? balance.fraction.slice(0, 2).replace(/0+$/, '') : '';
+  return `${sign}${grouped}${fraction ? `٫${toPersianDigits(fraction)}` : ''}`;
+}

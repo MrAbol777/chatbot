@@ -1,0 +1,1088 @@
+/*
+ * Chat shell: header, empty state, messages and composer.
+ *
+ * One token set (--cx-*) drives both color modes, so nothing in this file may
+ * hardcode a surface or text color. Layout follows the familiar modern-chat
+ * pattern (round icon buttons, a calm header, a large capsule composer) while
+ * the palette stays Danua: violet primary, coral voice action, Persian-first
+ * RTL ordering.
+ *
+ * Loaded after ChatExperience.css and theme/colorMode.css. The shared prefix
+ * `html[data-color-mode] .chat-shell.view-chat` matches the specificity of the
+ * legacy dark-mode overrides, so source order decides and this layer wins.
+ */
+
+/* ---------- 1. Tokens ---------------------------------------------------- */
+html[data-color-mode] .chat-shell.view-chat {
+  --cx-bg: #ffffff;
+  --cx-surface: #ffffff;
+  --cx-surface-hover: #f7f4fd;
+  --cx-sunken: #f4f0fb;
+  --cx-border: #e6e0f2;
+  --cx-border-strong: #cdbfe8;
+  --cx-hairline: rgba(76, 29, 149, 0.07);
+  --cx-text: #1c1830;
+  --cx-text-2: #4b4560;
+  --cx-muted: #7a7490;
+  --cx-primary: #630ed4;
+  --cx-primary-hover: #5409b3;
+  --cx-primary-soft: #f1e9ff;
+  --cx-on-primary: #ffffff;
+  --cx-accent: #f97552;
+  --cx-accent-hover: #ee6139;
+  --cx-focus-ring: rgba(124, 58, 237, 0.22);
+  --cx-shadow-sm: 0 1px 2px rgba(31, 24, 54, 0.05);
+  --cx-shadow-composer: 0 10px 30px rgba(76, 29, 149, 0.1), 0 1px 3px rgba(76, 29, 149, 0.06);
+  --cx-code-bg: #f6f3fc;
+  --cx-code-head: #ece6f8;
+  --cx-code-text: #2a2340;
+  --cx-disabled-bg: #ece8f5;
+  --cx-disabled-fg: #a9a2bf;
+  --cx-page-mobile: #ffffff;
+}
+
+html[data-color-mode='dark'] .chat-shell.view-chat {
+  --cx-bg: #16131f;
+  --cx-surface: #1f1b2c;
+  --cx-surface-hover: #292439;
+  --cx-sunken: #2a2540;
+  --cx-border: rgba(255, 255, 255, 0.1);
+  --cx-border-strong: rgba(255, 255, 255, 0.22);
+  --cx-hairline: rgba(255, 255, 255, 0.07);
+  --cx-text: #f1eefb;
+  --cx-text-2: #cbc5dd;
+  --cx-muted: #9a93b3;
+  --cx-primary: #a78bfa;
+  --cx-primary-hover: #c4b5fd;
+  --cx-primary-soft: rgba(167, 139, 250, 0.16);
+  --cx-on-primary: #1a1030;
+  --cx-accent: #f97552;
+  --cx-accent-hover: #fa8466;
+  --cx-focus-ring: rgba(167, 139, 250, 0.3);
+  --cx-shadow-sm: none;
+  --cx-shadow-composer: 0 10px 32px rgba(0, 0, 0, 0.4);
+  --cx-code-bg: #0f0d16;
+  --cx-code-head: #1c1829;
+  --cx-code-text: #ece8f8;
+  --cx-disabled-bg: rgba(255, 255, 255, 0.1);
+  --cx-disabled-fg: rgba(255, 255, 255, 0.38);
+  --cx-page-mobile: #0f0d16;
+}
+
+/* ---------- 2. Page surfaces --------------------------------------------- */
+html[data-color-mode] .chat-shell.view-chat {
+  background: var(--cx-bg) !important;
+  color: var(--cx-text) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chat-card,
+html[data-color-mode] .chat-shell.view-chat .chat-card.chat-card--empty {
+  background: transparent !important;
+}
+
+@media (max-width: 767px) {
+  html[data-color-mode] .chat-shell.view-chat,
+  html[data-color-mode] .chat-shell.view-chat .messages-area {
+    background: var(--cx-page-mobile) !important;
+  }
+}
+
+/* Conversation sidebar follows the same tokens (dark mode only needs help). */
+html[data-color-mode='dark'] .chat-shell.view-chat .sidebar.conversation-home.chat-history-sidebar {
+  background: var(--cx-surface) !important;
+  border-inline-end: 1px solid var(--cx-border) !important;
+  color: var(--cx-text) !important;
+}
+
+/* ---------- 3. Header ---------------------------------------------------- */
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header {
+  min-height: 56px !important;
+  height: 56px !important;
+  max-height: 56px !important;
+  padding: 0 16px !important;
+  background: var(--cx-bg) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--cx-hairline) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  z-index: 30 !important;
+  direction: rtl !important;
+}
+
+.chatgpt-header__start,
+.chatgpt-header__end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chatgpt-header__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Round icon buttons (sidebar toggle, new chat) */
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-icon-btn {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  flex: 0 0 40px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: var(--cx-surface) !important;
+  border: 1px solid var(--cx-border) !important;
+  color: var(--cx-text) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: var(--cx-shadow-sm) !important;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-icon-btn:hover {
+  background: var(--cx-surface-hover) !important;
+  border-color: var(--cx-border-strong) !important;
+  color: var(--cx-text) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-icon-btn:active {
+  transform: scale(0.96);
+}
+
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-icon-btn:focus-visible,
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upgrade-pill:focus-visible {
+  outline: 2px solid var(--cx-primary) !important;
+  outline-offset: 2px !important;
+}
+
+/* Upgrade pill: soft violet, opens the wallet */
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upgrade-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 9999px !important;
+  background: var(--cx-primary-soft) !important;
+  border: 1px solid transparent !important;
+  color: var(--cx-primary) !important;
+  font-family: inherit !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  transition: background-color 160ms ease, border-color 160ms ease !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upgrade-pill:hover {
+  background: var(--cx-primary-soft) !important;
+  border-color: color-mix(in srgb, var(--cx-primary) 35%, transparent) !important;
+  transform: none !important;
+}
+
+.chatgpt-upgrade-pill__sparkle {
+  color: currentColor !important;
+  display: flex;
+  align-items: center;
+}
+
+.chatgpt-upgrade-pill__text {
+  letter-spacing: 0;
+}
+
+/* Brand label (Danua has a single model, so there is nothing to select) */
+.chatgpt-model-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 4px;
+  color: var(--cx-text);
+  font-size: 1.02rem;
+  font-weight: 800;
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-icon-btn.chatgpt-mobile-new-chat {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header {
+    background: var(--cx-page-mobile) !important;
+    border-bottom: 0 !important;
+    padding: env(safe-area-inset-top, 0px) 14px 0 !important;
+    height: calc(60px + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(60px + env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(60px + env(safe-area-inset-top, 0px)) !important;
+    overflow: visible !important;
+  }
+
+  html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-icon-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    flex-basis: 44px !important;
+  }
+
+  html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upgrade-pill {
+    height: 40px !important;
+  }
+
+  /* Wallet pill and avatar live in the sidebar on phones. */
+  html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-desktop-only,
+  html[data-color-mode] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill.chatgpt-desktop-only {
+    display: none !important;
+  }
+
+  .chatgpt-header__center,
+  .chatgpt-header__center .danoa-top-bar__title {
+    display: none !important;
+  }
+
+  .chatgpt-header__end {
+    margin-inline-start: auto;
+  }
+}
+
+/* ---------- 4. Empty state ---------------------------------------------- */
+.chatgpt-empty-hero {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: auto !important;
+  width: 100% !important;
+  max-width: 768px !important;
+  padding: 40px 16px 20px !important;
+  text-align: center !important;
+}
+
+.chatgpt-hero-heading-block {
+  margin-bottom: 28px !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-hero-title {
+  font-size: clamp(1.5rem, 3.8vw, 2rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.4 !important;
+  color: var(--cx-text) !important;
+  margin: 0 !important;
+  letter-spacing: 0 !important;
+}
+
+.chatgpt-shortcuts-section {
+  width: 100% !important;
+  max-width: 680px !important;
+}
+
+/* Also carries the legacy `danoa-shortcuts-row` class, whose phone rules turn it
+   into a wrapping flex row; the doubled selector keeps this a stable 2x2 grid. */
+html[data-color-mode] .chat-shell.view-chat .chat-card .danoa-shortcuts-row.chatgpt-shortcuts-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chat-card .danoa-shortcuts-row.chatgpt-shortcuts-grid::before,
+html[data-color-mode] .chat-shell.view-chat .chat-card .danoa-shortcuts-row.chatgpt-shortcuts-grid::after {
+  content: none !important;
+  display: none !important;
+}
+
+@media (max-width: 540px) {
+  html[data-color-mode] .chat-shell.view-chat .chat-card .danoa-shortcuts-row.chatgpt-shortcuts-grid {
+    gap: 10px !important;
+  }
+
+  /* Icon above text so two cards fit side by side on a phone */
+  html[data-color-mode] .chat-shell.view-chat .chatgpt-shortcut-pill {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    padding: 14px !important;
+  }
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-shortcut-pill {
+  background: var(--cx-surface) !important;
+  border: 1px solid var(--cx-border) !important;
+  border-radius: 16px !important;
+  padding: 12px 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  text-align: right !important;
+  direction: rtl !important;
+  cursor: pointer !important;
+  color: var(--cx-text) !important;
+  font-family: inherit !important;
+  box-shadow: var(--cx-shadow-sm) !important;
+  flex: initial !important;
+  width: auto !important;
+  min-width: 0 !important;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-shortcut-pill:hover {
+  background: var(--cx-surface-hover) !important;
+  border-color: var(--cx-border-strong) !important;
+  transform: translateY(-1px) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-shortcut-pill:focus-visible {
+  outline: 2px solid var(--cx-primary) !important;
+  outline-offset: 2px !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-shortcut-icon {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 12px !important;
+  background: var(--cx-primary-soft) !important;
+  color: var(--cx-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.chatgpt-shortcut-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 0;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-shortcut-title {
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  color: var(--cx-text) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-shortcut-sub {
+  font-size: 0.76rem !important;
+  color: var(--cx-muted) !important;
+}
+
+/* ---------- 5. Messages -------------------------------------------------- */
+.chatgpt-message-row {
+  width: 100% !important;
+  max-width: 768px !important;
+  margin: 0 auto !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* Assistant: no bubble, clean text column */
+html[data-color-mode] .chat-shell.view-chat .message-row.assistant .bubble.chatgpt-assistant-body {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 2px 0 !important;
+  max-width: 100% !important;
+  color: var(--cx-text) !important;
+  font-size: 0.98rem !important;
+  line-height: 1.85 !important;
+  font-weight: 400 !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .message-row.assistant .bot-avatar {
+  display: none !important;
+}
+
+/* The bubble inherits `pre-wrap`, which turns the newlines markdown puts between
+   blocks into blank lines. Collapse them at the container and keep soft line
+   breaks inside paragraphs and list items. */
+html[data-color-mode] .chat-shell.view-chat .bubble.chatgpt-assistant-body {
+  white-space: normal !important;
+}
+
+.chatgpt-assistant-body p,
+.chatgpt-assistant-body li,
+.chatgpt-assistant-body blockquote {
+  white-space: pre-wrap;
+}
+
+.chatgpt-assistant-body > :first-child {
+  margin-top: 0;
+}
+
+.chatgpt-assistant-body p {
+  margin: 0 0 0.85em;
+}
+
+.chatgpt-assistant-body h1,
+.chatgpt-assistant-body h2,
+.chatgpt-assistant-body h3,
+.chatgpt-assistant-body h4 {
+  margin: 1.2em 0 0.5em;
+  line-height: 1.5;
+  font-weight: 800;
+  color: var(--cx-text);
+}
+
+.chatgpt-assistant-body h1 { font-size: 1.25rem; }
+.chatgpt-assistant-body h2 { font-size: 1.12rem; }
+.chatgpt-assistant-body h3,
+.chatgpt-assistant-body h4 { font-size: 1.02rem; }
+
+.chatgpt-assistant-body ul,
+.chatgpt-assistant-body ol {
+  margin: 0 0 0.85em;
+  padding-inline-start: 1.5em;
+}
+
+.chatgpt-assistant-body li {
+  margin: 0.25em 0;
+}
+
+.chatgpt-assistant-body ol {
+  list-style-type: persian;
+}
+
+.chatgpt-assistant-body li::marker {
+  color: var(--cx-primary);
+}
+
+.chatgpt-assistant-body strong {
+  font-weight: 800;
+  color: var(--cx-text);
+}
+
+.chatgpt-assistant-body a {
+  color: var(--cx-primary);
+  text-underline-offset: 3px;
+}
+
+.chatgpt-assistant-body blockquote {
+  margin: 0 0 0.85em;
+  padding: 2px 14px;
+  border-inline-start: 3px solid var(--cx-primary-soft);
+  color: var(--cx-text-2);
+}
+
+.chatgpt-assistant-body table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.chatgpt-assistant-body th,
+.chatgpt-assistant-body td {
+  padding: 8px 10px;
+  border: 1px solid var(--cx-border);
+  text-align: start;
+}
+
+.chatgpt-assistant-body th {
+  background: var(--cx-sunken);
+  font-weight: 700;
+}
+
+.chatgpt-assistant-body hr {
+  border: 0;
+  border-top: 1px solid var(--cx-border);
+  margin: 1.2em 0;
+}
+
+/* User: soft rounded bubble */
+html[data-color-mode] .chat-shell.view-chat .message-row.user {
+  justify-content: flex-end !important;
+  display: flex !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .message-row.user .bubble.chatgpt-user-bubble {
+  background: var(--cx-sunken) !important;
+  color: var(--cx-text) !important;
+  border: none !important;
+  border-radius: 22px !important;
+  padding: 10px 18px !important;
+  max-width: min(82%, 580px) !important;
+  font-size: 0.98rem !important;
+  line-height: 1.7 !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+.chatgpt-user-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+html[data-color-mode] .chat-shell.view-chat .message-row .message-time {
+  color: var(--cx-muted) !important;
+  font-size: 0.7rem !important;
+  opacity: 0.8;
+}
+
+.chatgpt-error-box,
+.chatgpt-cancelled-box {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  background: var(--cx-sunken);
+  color: var(--cx-text-2);
+}
+
+.chatgpt-error-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, #e5484d 40%, transparent);
+}
+
+/* Action toolbar */
+.chatgpt-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+  opacity: 0.9;
+  transition: opacity 140ms ease;
+}
+
+.chatgpt-message-actions:hover,
+.chatgpt-message-actions:focus-within {
+  opacity: 1;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--cx-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-action-btn:hover {
+  background: var(--cx-sunken);
+  color: var(--cx-text);
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-action-btn:focus-visible {
+  outline: 2px solid var(--cx-primary);
+  outline-offset: 1px;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-action-btn.is-active {
+  color: var(--cx-primary) !important;
+  background: var(--cx-primary-soft) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Follow-up suggestions */
+.chat-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  direction: rtl;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chat-followup-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 6px 16px;
+  background: var(--cx-surface);
+  border: 1px solid var(--cx-border);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--cx-primary);
+  cursor: pointer;
+  animation: chat-followup-in 220ms ease both;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chat-followup-chip:hover {
+  background: var(--cx-primary-soft);
+  border-color: color-mix(in srgb, var(--cx-primary) 45%, transparent);
+}
+
+html[data-color-mode] .chat-shell.view-chat .chat-followup-chip:focus-visible {
+  outline: 2px solid var(--cx-primary);
+  outline-offset: 2px;
+}
+
+@keyframes chat-followup-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Code */
+.chatgpt-codeblock {
+  margin: 14px 0;
+  border-radius: 12px;
+  border: 1px solid var(--cx-border);
+  background: var(--cx-code-bg);
+  overflow: hidden;
+  direction: ltr;
+  text-align: left;
+}
+
+.chatgpt-codeblock__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 14px;
+  background: var(--cx-code-head);
+  border-bottom: 1px solid var(--cx-border);
+}
+
+.chatgpt-codeblock__lang {
+  font-size: 0.74rem;
+  color: var(--cx-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-transform: lowercase;
+}
+
+.chatgpt-codeblock__copy-btn {
+  background: transparent;
+  border: none;
+  color: var(--cx-muted);
+  font-family: inherit;
+  font-size: 0.74rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.chatgpt-codeblock__copy-btn:hover {
+  color: var(--cx-text);
+  background: var(--cx-sunken);
+}
+
+.chatgpt-codeblock__pre {
+  margin: 0 !important;
+  padding: 14px !important;
+  background: transparent !important;
+  overflow-x: auto;
+  font-size: 0.86rem !important;
+  line-height: 1.6 !important;
+  color: var(--cx-code-text) !important;
+}
+
+/* Legacy markdown rules center <pre>/<code>; code must stay left-aligned and scroll. */
+html[data-color-mode] .chat-shell.view-chat .chatgpt-codeblock pre,
+html[data-color-mode] .chat-shell.view-chat .chatgpt-codeblock code {
+  text-align: left !important;
+  direction: ltr !important;
+  white-space: pre !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace !important;
+  background: transparent !important;
+  color: var(--cx-code-text) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-inline-code {
+  background: var(--cx-sunken) !important;
+  color: var(--cx-text) !important;
+  padding: 2px 6px !important;
+  border-radius: 6px !important;
+  font-size: 0.88em !important;
+  direction: ltr !important;
+  unicode-bidi: isolate;
+}
+
+/* ---------- 6. Composer -------------------------------------------------- */
+html[data-color-mode] .chat-shell.view-chat .input-area.danoa-input-area {
+  padding: 8px 16px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+@media (max-width: 767px) {
+  html[data-color-mode] .chat-shell.view-chat .input-area.danoa-input-area {
+    padding: 6px 12px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+.danoa-input-shell {
+  width: min(100%, 768px) !important;
+  max-width: 768px !important;
+  margin: 0 auto !important;
+}
+
+/* RTL order: attach (right) · text (fills) · voice / send (left) */
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule.chatgpt-composer-capsule {
+  display: flex !important;
+  align-items: center !important;
+  direction: rtl !important;
+  min-height: 56px !important;
+  padding: 6px 8px !important;
+  gap: 4px !important;
+  background: var(--cx-surface) !important;
+  border: 1px solid var(--cx-border) !important;
+  border-radius: 28px !important;
+  box-shadow: var(--cx-shadow-composer) !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule.chatgpt-composer-capsule:focus-within {
+  border-color: var(--cx-primary) !important;
+  box-shadow: 0 0 0 4px var(--cx-focus-ring), var(--cx-shadow-composer) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .attachment-rail {
+  order: 0 !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .danoa-composer-inner {
+  order: 1 !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 4px !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .danoa-composer-actions {
+  order: 2 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  max-height: none !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-idle-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .danoa-composer-inner .message-field textarea,
+html[data-color-mode] .chat-shell.view-chat .chatgpt-composer-inner textarea {
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  resize: none !important;
+  color: var(--cx-text) !important;
+  caret-color: var(--cx-primary) !important;
+  font-family: inherit !important;
+  font-size: 1rem !important;
+  line-height: 1.6 !important;
+  text-align: start !important;
+  padding: 9px 6px !important;
+  min-height: 40px !important;
+  max-height: 160px !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-composer-inner textarea::placeholder {
+  color: var(--cx-muted) !important;
+  opacity: 1 !important;
+}
+
+/* Circle buttons share one footprint */
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-plus-circle,
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-action-mic-btn {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  flex: 0 0 40px !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--cx-text-2) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  transition: background-color 140ms ease, color 140ms ease !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-plus-circle:hover,
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-plus-circle.is-open,
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-action-mic-btn:hover {
+  background: var(--cx-sunken) !important;
+  color: var(--cx-primary) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-plus-circle:focus-visible,
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-action-mic-btn:focus-visible,
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-coral-voice-btn:focus-visible,
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-send-circle:focus-visible {
+  outline: 2px solid var(--cx-primary) !important;
+  outline-offset: 2px !important;
+}
+
+/* Voice: coral, the one warm accent against the violet UI */
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-coral-voice-btn {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  flex: 0 0 40px !important;
+  border-radius: 50% !important;
+  background: var(--cx-accent) !important;
+  border: none !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--cx-accent) 38%, transparent) !important;
+  transition: transform 140ms ease, background-color 140ms ease !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-coral-voice-btn:hover {
+  background: var(--cx-accent-hover) !important;
+  transform: scale(1.05) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-coral-voice-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* Send / stop: filled violet */
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-send-circle {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  flex: 0 0 40px !important;
+  border-radius: 50% !important;
+  background: var(--cx-primary) !important;
+  color: var(--cx-on-primary) !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--cx-primary) 32%, transparent) !important;
+  transition: transform 140ms ease, background-color 140ms ease !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-send-circle svg {
+  color: var(--cx-on-primary) !important;
+  stroke: currentColor !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-send-circle:hover:not(:disabled) {
+  background: var(--cx-primary-hover) !important;
+  transform: scale(1.05) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-send-circle:disabled {
+  background: var(--cx-disabled-bg) !important;
+  color: var(--cx-disabled-fg) !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-send-circle:disabled svg {
+  color: var(--cx-disabled-fg) !important;
+}
+
+/* The menu anchors to the capsule itself, not to the "+" button: with multi-line
+   text the button sits mid-height and a button-anchored menu covers the text. */
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule.chatgpt-composer-capsule {
+  position: relative !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .attachment-rail,
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .attachment-box {
+  position: static !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-attachment-popup {
+  position: absolute !important;
+  top: auto !important;
+  bottom: calc(100% + 10px) !important;
+  right: 0 !important;
+  left: auto !important;
+  inset-inline-start: auto !important;
+  inset-inline-end: auto !important;
+  width: min(240px, calc(100vw - 32px)) !important;
+  z-index: 40 !important;
+}
+
+/* Voice recording: confirm / cancel */
+.chatgpt-recording-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-confirm-btn,
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-cancel-btn {
+  min-width: 68px !important;
+  min-height: 40px !important;
+  padding: 0 16px !important;
+  border: 1px solid transparent !important;
+  border-radius: 999px !important;
+  font-family: inherit !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  transition: background-color 140ms ease, border-color 140ms ease !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-confirm-btn {
+  background: var(--cx-primary) !important;
+  color: var(--cx-on-primary) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-confirm-btn:hover {
+  background: var(--cx-primary-hover) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-cancel-btn {
+  background: var(--cx-sunken) !important;
+  color: var(--cx-text) !important;
+  border-color: var(--cx-border) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-cancel-btn:hover {
+  background: var(--cx-surface-hover) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-confirm-btn:focus-visible,
+html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-cancel-btn:focus-visible {
+  outline: 2px solid var(--cx-primary) !important;
+  outline-offset: 2px !important;
+}
+
+/* Attachment menu surface */
+html[data-color-mode] .chat-shell.view-chat .chatgpt-attachment-popup {
+  background: var(--cx-surface) !important;
+  border: 1px solid var(--cx-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--cx-shadow-composer) !important;
+  color: var(--cx-text) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-attachment-popup button {
+  color: var(--cx-text) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-attachment-popup button:hover {
+  background: var(--cx-surface-hover) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .chatgpt-attachment-popup small {
+  color: var(--cx-muted) !important;
+}
+
+/* Starter chips under the composer */
+html[data-color-mode] .chat-shell.view-chat .danoa-suggestion-chip {
+  background: var(--cx-surface) !important;
+  border: 1px solid var(--cx-border) !important;
+  color: var(--cx-text-2) !important;
+  font-family: inherit !important;
+  font-size: 0.82rem !important;
+  min-height: 36px !important;
+  padding: 6px 14px !important;
+  box-shadow: none !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-suggestion-chip svg {
+  color: var(--cx-primary) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-suggestion-chip:hover {
+  background: var(--cx-primary-soft) !important;
+  border-color: color-mix(in srgb, var(--cx-primary) 40%, transparent) !important;
+  color: var(--cx-primary) !important;
+}
+
+html[data-color-mode] .chat-shell.view-chat .danoa-disclaimer {
+  color: var(--cx-muted) !important;
+  font-size: 0.72rem !important;
+  text-align: center !important;
+  margin-top: 8px !important;
+  opacity: 0.9 !important;
+}
+
+@media (max-width: 767px) {
+  html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule.chatgpt-composer-capsule {
+    min-height: 56px !important;
+    border-radius: 28px !important;
+  }
+
+  html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-plus-circle,
+  html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-action-mic-btn,
+  html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-coral-voice-btn,
+  html[data-color-mode] .chat-shell.view-chat .danoa-composer-capsule .chatgpt-send-circle {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    flex-basis: 42px !important;
+  }
+
+  /* 16px keeps iOS from zooming the page when the field is focused */
+  html[data-color-mode] .chat-shell.view-chat .chatgpt-composer-inner textarea {
+    font-size: 16px !important;
+  }
+
+  html[data-color-mode] .chat-shell.view-chat .danoa-disclaimer {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-followup-chip,
+  html[data-color-mode] .chat-shell.view-chat .chat-followup-chip {
+    animation: none;
+  }
+
+  html[data-color-mode] .chat-shell.view-chat * {
+    transition-duration: 0.01ms !important;
+  }
+}

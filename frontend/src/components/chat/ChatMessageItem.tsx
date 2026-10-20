@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import Icon from '../Icon';
 import { ChatMessage } from '../../types';
 import { ImagePreviewState } from '../../types/chat.types';
-import { formatMessageTime } from '../../utils/chatMessages';
+import { formatMessageTime, getDisplayContent } from '../../utils/chatMessages';
 import MessageImage from './MessageImage';
 import InsufficientBalanceNotice from '../InsufficientBalanceNotice';
 
@@ -15,6 +15,7 @@ interface ChatMessageItemProps {
   isSending: boolean;
   renderBotAvatar: () => React.ReactNode;
   onRetryStreamMessage: (message: ChatMessage) => void;
+  onFeedback: (message: ChatMessage, rating: 'up' | 'down' | null) => void;
   onOpenStudio: () => void;
   onOpenNoaWallet: () => void;
   onSendMessage: (text?: string) => void;
@@ -79,6 +80,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   isSending,
   renderBotAvatar,
   onRetryStreamMessage,
+  onFeedback,
   onOpenStudio,
   onOpenNoaWallet,
   onSendMessage,
@@ -87,17 +89,18 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   botMessageRef
 }) => {
   const isAssistant = message.role === 'assistant';
+  const displayContent = getDisplayContent(message);
   const [copied, setCopied] = useState(false);
-  const [liked, setLiked] = useState<boolean | null>(null);
+  const feedback = message.feedback ?? null;
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const handleCopyContent = useCallback(() => {
-    if (typeof navigator !== 'undefined' && message.content) {
-      void navigator.clipboard.writeText(message.content);
+    if (typeof navigator !== 'undefined' && displayContent) {
+      void navigator.clipboard.writeText(displayContent);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     }
-  }, [message.content]);
+  }, [displayContent]);
 
   const handleSpeak = useCallback(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -107,12 +110,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       return;
     }
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(message.content);
+    const utterance = new SpeechSynthesisUtterance(displayContent);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     setIsSpeaking(true);
     window.speechSynthesis.speak(utterance);
-  }, [isSpeaking, message.content]);
+  }, [isSpeaking, displayContent]);
 
   return (
     <div
@@ -136,14 +139,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       {isAssistant ? renderBotAvatar() : null}
       {isAssistant ? (
         <div className={`bubble markdown-body chatgpt-assistant-body ${message.streamStatus === 'streaming' ? 'streaming-bubble' : ''}`}>
-          {message.content ? (
+          {displayContent ? (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 code: CodeBlockComponent as any
               }}
             >
-              {message.content}
+              {displayContent}
             </ReactMarkdown>
           ) : null}
           {message.streamStatus === 'streaming' ? <span className="stream-cursor chatgpt-cursor" aria-label="در حال نوشتن" /> : null}
@@ -211,8 +214,9 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               </button>
               <button
                 type="button"
-                className={`chatgpt-action-btn ${liked === true ? 'is-active' : ''}`}
-                onClick={() => setLiked(liked === true ? null : true)}
+                className={`chatgpt-action-btn ${feedback === 'up' ? 'is-active' : ''}`}
+                onClick={() => onFeedback(message, feedback === 'up' ? null : 'up')}
+                aria-pressed={feedback === 'up'}
                 title="پاسخ مفید بود"
                 aria-label="پسندیدن پاسخ"
               >
@@ -220,8 +224,9 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               </button>
               <button
                 type="button"
-                className={`chatgpt-action-btn ${liked === false ? 'is-active' : ''}`}
-                onClick={() => setLiked(liked === false ? null : false)}
+                className={`chatgpt-action-btn ${feedback === 'down' ? 'is-active' : ''}`}
+                onClick={() => onFeedback(message, feedback === 'down' ? null : 'down')}
+                aria-pressed={feedback === 'down'}
                 title="پاسخ مناسب نبود"
                 aria-label="نپسندیدن پاسخ"
               >
@@ -248,6 +253,21 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                   <Icon name="retry" size={15} />
                 </button>
               ) : null}
+            </div>
+          ) : null}
+
+          {isLastAssistant && !isSending && message.streamStatus === 'completed' && message.followups?.length ? (
+            <div className="chat-followups" role="group" aria-label="ادامه‌ی گفتگو">
+              {message.followups.map((text) => (
+                <button
+                  key={text}
+                  type="button"
+                  className="chat-followup-chip"
+                  onClick={() => onSendMessage(text)}
+                >
+                  {text}
+                </button>
+              ))}
             </div>
           ) : null}
 

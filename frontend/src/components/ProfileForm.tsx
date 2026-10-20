@@ -7,7 +7,7 @@ type ProfileFormProps = {
   profileFormName: string;
   profileFormAge: string;
   profileFormErrors: { name?: string; age?: string };
-  /** Retained temporarily for callers compiled against the former theme switch. */
+  /** The appearance switch is shown only when a caller supplies a change handler. */
   colorMode?: 'light' | 'dark';
   onColorModeChange?: (mode: 'light' | 'dark') => void;
   onNameChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -23,6 +23,8 @@ function ProfileForm({
   profileFormName,
   profileFormAge,
   profileFormErrors,
+  colorMode = 'light',
+  onColorModeChange,
   onNameChange,
   onAgeChange,
   onSave,
@@ -87,6 +89,26 @@ function ProfileForm({
           helperText="شماره همراه حساب در زمان ورود ثبت شده است."
         />
       </div>
+
+      {onColorModeChange ? (
+        <div className="profile-form-appearance" role="radiogroup" aria-label="ظاهر برنامه">
+          <span className="profile-form-appearance__label">ظاهر برنامه</span>
+          <div className="profile-form-appearance__options">
+            {([['light', 'روشن'], ['dark', 'تیره']] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                role="radio"
+                aria-checked={colorMode === mode}
+                className={`profile-form-appearance__option${colorMode === mode ? ' is-selected' : ''}`}
+                onClick={() => onColorModeChange(mode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {userId ? (
         <div className="profile-form-id">

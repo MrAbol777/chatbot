@@ -4,6 +4,7 @@ import './ChatExperience.css';
 import './components/AppShellState.css';
 import './PageExperience.css';
 import './theme/colorMode.css';
+import './ChatShell.css';
 import { ChatMessage, Conversation, UserProfile } from './types';
 import { PUBLIC_ASSETS } from './config/publicAssets';
 import {
@@ -16,7 +17,7 @@ import InsufficientBalanceDialog from './components/InsufficientBalanceDialog';
 import type { IconName } from './components/Icon';
 import ProfileForm from './components/ProfileForm';
 import StarterIdeasDialog from './components/chat/StarterIdeasDialog';
-import { persistColorMode } from './theme/colorMode';
+import { applyColorMode, persistColorMode, readStoredColorMode, type ColorMode } from './theme/colorMode';
 import NoaWalletPanel from './noa/NoaWalletPanel';
 import { formatDecimalFa } from './noa/decimal';
 import { fetchPendingNoaNotifications } from './noa/noa.service';
@@ -52,7 +53,9 @@ import {
   createDefaultPersonality,
   normalizePersonality,
   updatePersonalityFromMessage,
-  postChatStream
+  postChatStream,
+  postChatFeedback,
+  fetchChatFollowups
 } from './services/chatStream';
 import { buildImageDownloadName } from './components/chat/MessageImage';
 import { loadProfile, PROFILE_KEY, resolveAuthenticatedProfile, type AppProfile } from './appSession';
@@ -602,7 +605,13 @@ function ChatApp() {
   const [profileFormAge, setProfileFormAge] = useState('');
   const [profileFormErrors, setProfileFormErrors] = useState<{ name?: string; age?: string }>({});
   // The user-facing theme is light-only until dark mode receives its own review.
-  useEffect(() => { persistColorMode('light'); }, []);
+  // Light is the default; a mode the user chose in settings is respected afterwards.
+  const [colorMode, setColorMode] = useState<ColorMode>(() => readStoredColorMode() ?? 'light');
+  useEffect(() => { applyColorMode(colorMode); }, [colorMode]);
+  const handleColorModeChange = (mode: ColorMode) => {
+    persistColorMode(mode);
+    setColorMode(mode);
+  };
   const [, setTheme] = useState<'energy' | 'calm'>('energy');
   const { notify, confirm } = useNotification();
 
@@ -2225,7 +2234,9 @@ function ChatApp() {
               imageStudioRedirect: Boolean(event.imageStudioRedirect),
               turnId: payload.turnId,
               attemptId: payload.attemptId,
-              retryPayload
+              retryPayload,
+              feedback: null,
+              followups: undefined
             };
             return {
               ...item,
@@ -2249,6 +2260,19 @@ function ChatApp() {
           // One bounded refetch covers a title that finished just after the NDJSON stream;
           // it is deliberately not a polling loop.
           window.setTimeout(() => { void refreshConversationTitle(retryPayload.conversationId); }, 3500);
+          if ((event.intent || 'chat') === 'chat' && !event.imageStudioRedirect) {
+            void fetchChatFollowups(payload.turnId).then((followups) => {
+              if (followups.length === 0) return;
+              updateConversation(retryPayload.conversationId, (item) => ({
+                ...item,
+                messages: item.messages.map((entry) =>
+                  entry.id === assistantMessageId && entry.attemptId === event.attemptId
+                    ? { ...entry, followups }
+                    : entry
+                )
+              }));
+            });
+          }
         } else if (event.type === 'title' && event.title?.trim()) {
           updateConversation(retryPayload.conversationId, (item) => ({ ...item, title: event.title!.trim() }));
         } else if (event.type === 'error') {
@@ -2286,6 +2310,22 @@ function ChatApp() {
     if (!active) return;
     active.stoppedByUser = true;
     active.controller.abort();
+  };
+
+  const handleMessageFeedback = (message: ChatMessage, rating: 'up' | 'down' | null) => {
+    const conversationId = activeConversationId;
+    const turnId = message.turnId || (message.id?.endsWith('-assistant') ? message.id.slice(0, -'-assistant'.length) : '');
+    if (!conversationId || !turnId) return;
+    const previous = message.feedback ?? null;
+    const applyRating = (value: 'up' | 'down' | null) => updateConversation(conversationId, (item) => ({
+      ...item,
+      messages: item.messages.map((entry) => entry.id === message.id ? { ...entry, feedback: value } : entry)
+    }));
+    applyRating(rating);
+    postChatFeedback(turnId, rating).catch(() => {
+      applyRating(previous);
+      notify.warning('بازخورد ثبت نشد. دوباره تلاش کن.');
+    });
   };
 
   const handleRetryStreamMessage = async (failedMessage: ChatMessage) => {
@@ -3811,6 +3851,8 @@ notify.error(message);
                   onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات با موفقیت ذخیره شد'); }}
                   onDeleteAll={handleDeleteAllConversations}
                   onLogout={handleLogout}
+                  colorMode={colorMode}
+                  onColorModeChange={handleColorModeChange}
                   showAccountActions={false}
                 />
               </div>
@@ -3984,6 +4026,8 @@ notify.error(message);
                 onSave={() => { handleSaveProfileSettings(); notify.success('تغییرات ذخیره شد'); }}
                 onDeleteAll={handleDeleteAllConversations}
                 onLogout={handleLogout}
+                colorMode={colorMode}
+                onColorModeChange={handleColorModeChange}
               />
 
               <div className="modal-buttons">
@@ -4101,6 +4145,7 @@ notify.error(message);
                 isSending={isSending}
                 renderBotAvatar={renderBotAvatar}
                 onRetryStreamMessage={(msg) => void handleRetryStreamMessage(msg)}
+                onFeedback={handleMessageFeedback}
                 onOpenStudio={openStudioFromChat}
                 onOpenNoaWallet={handleOpenNoaWallet}
                 onSendMessage={(val) => void handleSendMessage(val)}
@@ -4121,7 +4166,9 @@ notify.error(message);
           ) : (
             <div className="danoa-empty-hero chatgpt-empty-hero">
               <div className="chatgpt-hero-heading-block">
-                <h1 className="chatgpt-hero-title">امروز چطور می‌تونم کمکت کنم؟</h1>
+                <h1 className="chatgpt-hero-title">
+                  {profile?.name?.trim() ? `سلام ${profile.name.trim().split(/\s+/)[0]}! امروز چی بسازیم؟` : 'سلام! امروز چی بسازیم؟'}
+                </h1>
               </div>
 
               <section className="danoa-shortcuts-section chatgpt-shortcuts-section" aria-label="پیشنهادهای شروع سریع">

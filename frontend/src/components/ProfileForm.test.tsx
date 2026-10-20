@@ -36,4 +36,16 @@ describe('ProfileForm', () => {
     expect(onAgeChange).toHaveBeenCalledTimes(1);
     expect(onSave).toHaveBeenCalledTimes(1);
   });
+  it('offers an appearance switch only when a change handler is supplied', () => {
+    const onColorModeChange = vi.fn();
+    render(<ProfileForm {...defaultProps} colorMode="light" onColorModeChange={onColorModeChange} />);
+
+    const group = screen.getByRole('radiogroup', { name: 'ظاهر برنامه' });
+    expect(group).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'روشن' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'تیره' })).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'تیره' }));
+    expect(onColorModeChange).toHaveBeenCalledWith('dark');
+  });
 });

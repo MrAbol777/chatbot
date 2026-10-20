@@ -1,6 +1,6 @@
 import React from 'react';
 import Icon from '../Icon';
-import { formatWalletBalanceExactFa } from '../../noa/decimal';
+import { formatWalletBalanceCompactFa, formatWalletBalanceExactFa } from '../../noa/decimal';
 
 interface ChatHeaderProps {
   sidebarOpen: boolean;
@@ -39,6 +39,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const showContextAction = sidebarOpen && isDesktopLayout && !conversationLoading;
   const exactBalance = formatWalletBalanceExactFa(noaBalance);
+  const compactBalance = formatWalletBalanceCompactFa(noaBalance);
   const contextAction = hasUserMessages
     ? {
         label: 'رفتن به استودیو',
@@ -76,7 +77,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <div className="danoa-header-spacer" aria-hidden="true" />
         )}
 
-        {/* ChatGPT Upgrade Pill on Mobile */}
+        {/* Upgrade pill: opens the wallet where plans and credit top-ups live */}
         <button
           type="button"
           className="chatgpt-upgrade-pill"
@@ -85,15 +86,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           title="ارتقا به پلن دانوآ پرو"
         >
           <Icon name="sparkles" size={15} className="chatgpt-upgrade-pill__sparkle" aria-hidden="true" />
-          <span className="chatgpt-upgrade-pill__text">Upgrade</span>
+          <span className="chatgpt-upgrade-pill__text">ارتقا</span>
         </button>
 
-        {/* Desktop Model Selector */}
+        {/* Desktop brand label (there is a single Danua model, so no selector) */}
         {isDesktopLayout ? (
-          <div className="chatgpt-model-badge" title="مدل فعال دانوآ">
-            <span className="chatgpt-model-badge__text">دانوآ ۴o</span>
-            <Icon name="chevron-down" size={13} className="chatgpt-model-badge__chevron" aria-hidden="true" />
-          </div>
+          <span className="chatgpt-model-badge">دانوآ</span>
         ) : null}
       </div>
 
@@ -153,7 +151,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <Icon name="plus" size={13} aria-hidden="true" />
           </span>
           <span className="danoa-noa-pill__label" aria-live="polite">
-            <bdi className="danoa-noa-pill__amount" dir="ltr">{exactBalance}</bdi>
+            <bdi className="danoa-noa-pill__amount" dir="ltr">{compactBalance}</bdi>
             <span className="danoa-noa-pill__unit">نوآ</span>
           </span>
           <span className="danoa-noa-pill__icon" aria-hidden="true">

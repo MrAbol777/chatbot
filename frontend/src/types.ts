@@ -27,6 +27,8 @@ export interface ChatMessage {
   turnId?: string;
   attemptId?: string;
   streamError?: string;
+  feedback?: 'up' | 'down' | null;
+  followups?: string[];
   imageStudioRedirect?: boolean;
   billingError?: {
     kind: 'insufficient_balance';
