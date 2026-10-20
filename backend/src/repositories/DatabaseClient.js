@@ -197,6 +197,20 @@ class DatabaseClient {
       `);
 
       await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS app_chat_feedback (
+          user_id VARCHAR(191) NOT NULL,
+          turn_id VARCHAR(64) NOT NULL,
+          conversation_id VARCHAR(191) NOT NULL,
+          rating ENUM('up', 'down') NOT NULL,
+          created_at DATETIME NOT NULL,
+          updated_at DATETIME NOT NULL,
+          PRIMARY KEY (user_id, turn_id),
+          INDEX idx_chat_feedback_rating (rating, created_at),
+          INDEX idx_chat_feedback_conversation (user_id, conversation_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+
+      await this.pool.query(`
         CREATE TABLE IF NOT EXISTS app_chat_attempts (
           attempt_id VARCHAR(64) PRIMARY KEY,
           turn_id VARCHAR(64) NOT NULL,

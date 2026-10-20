@@ -595,6 +595,8 @@ function createApp({ repositories, runtimeConfig }) {
     conversationsRepository: repositories.conversations,
     chatMessagesRepository: repositories.chatMessages,
     chatTurnsRepository: repositories.chatTurns,
+    chatFeedbackRepository: repositories.chatFeedback,
+    db: repositories.db,
     noaBillingService,
     jwt,
     jwtSecret: authJwtSecret,
