@@ -164,18 +164,19 @@ html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-ico
 }
 
 html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-icon-btn:focus-visible,
-html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upgrade-pill:focus-visible {
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .danoa-noa-pill:focus-visible {
   outline: 2px solid var(--cx-primary) !important;
   outline-offset: 2px !important;
 }
 
-/* Upgrade pill: soft violet, opens the wallet */
-html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upgrade-pill {
+/* Wallet pill: soft violet, shows the balance and opens the wallet */
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .danoa-noa-pill {
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
-  height: 38px !important;
-  padding: 0 14px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 12px !important;
   border-radius: 9999px !important;
   background: var(--cx-primary-soft) !important;
   border: 1px solid transparent !important;
@@ -189,20 +190,17 @@ html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upg
   transition: background-color 160ms ease, border-color 160ms ease !important;
 }
 
-html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upgrade-pill:hover {
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .danoa-noa-pill:hover {
   background: var(--cx-primary-soft) !important;
   border-color: color-mix(in srgb, var(--cx-primary) 35%, transparent) !important;
-  transform: none !important;
 }
 
-.chatgpt-upgrade-pill__sparkle {
-  color: currentColor !important;
-  display: flex;
-  align-items: center;
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .danoa-noa-pill :is(.danoa-noa-pill__label, .danoa-noa-pill__unit, .danoa-noa-pill__amount, .danoa-noa-pill__icon, .danoa-noa-pill__add) {
+  color: inherit !important;
 }
 
-.chatgpt-upgrade-pill__text {
-  letter-spacing: 0;
+html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .danoa-noa-pill__add {
+  background: color-mix(in srgb, var(--cx-primary) 14%, transparent) !important;
 }
 
 /* Brand label (Danua has a single model, so there is nothing to select) */
@@ -242,13 +240,14 @@ html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upg
     flex-basis: 44px !important;
   }
 
-  html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upgrade-pill {
-    height: 40px !important;
+  html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .danoa-noa-pill {
+    height: 44px !important;
+    min-height: 44px !important;
+    max-width: 46vw !important;
   }
 
-  /* Wallet pill and avatar live in the sidebar on phones. */
-  html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-desktop-only,
-  html[data-color-mode] .chat-shell.view-chat .top-bar.danoa-top-bar .danoa-noa-pill.chatgpt-desktop-only {
+  /* The profile avatar lives in the sidebar on phones; the wallet pill stays. */
+  html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-desktop-only {
     display: none !important;
   }
 
@@ -257,8 +256,10 @@ html[data-color-mode] .chat-shell.view-chat .top-bar.chatgpt-header .chatgpt-upg
     display: none !important;
   }
 
+  /* Wallet pill beside "new chat", with "new chat" on the outer edge */
   .chatgpt-header__end {
     margin-inline-start: auto;
+    flex-direction: row-reverse;
   }
 }
 

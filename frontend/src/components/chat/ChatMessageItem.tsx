@@ -35,7 +35,8 @@ const CodeBlockComponent: React.FC<{
   const codeString = String(children).replace(/\n$/, '');
 
   const handleCopy = useCallback(() => {
-    if (typeof navigator !== 'undefined') {
+    // `navigator.clipboard` is undefined on plain-HTTP pages (e.g. phone testing on the LAN).
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
       void navigator.clipboard.writeText(codeString);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
@@ -95,7 +96,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const handleCopyContent = useCallback(() => {
-    if (typeof navigator !== 'undefined' && displayContent) {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && displayContent) {
       void navigator.clipboard.writeText(displayContent);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);

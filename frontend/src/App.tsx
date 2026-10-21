@@ -5,6 +5,7 @@ import './components/AppShellState.css';
 import './PageExperience.css';
 import './theme/colorMode.css';
 import './ChatShell.css';
+import { randomUuid } from './utils/randomId';
 import { ChatMessage, Conversation, UserProfile } from './types';
 import { PUBLIC_ASSETS } from './config/publicAssets';
 import {
@@ -2333,7 +2334,7 @@ function ChatApp() {
     if (!profile || !failedMessage.turnId || !retryPayload || isSending || sendInFlightRef.current) return;
     sendInFlightRef.current = true;
     setIsSending(true);
-    const attemptId = `attempt-${crypto.randomUUID()}`;
+    const attemptId = `attempt-${randomUuid()}`;
     try {
       await executeStreamingChat({
         payload: {
@@ -2503,8 +2504,8 @@ function ChatApp() {
         });
       }
 
-      const turnId = `turn-${crypto.randomUUID()}`;
-      const attemptId = `attempt-${crypto.randomUUID()}`;
+      const turnId = `turn-${randomUuid()}`;
+      const attemptId = `attempt-${randomUuid()}`;
       const retryPayload: NonNullable<ChatMessage['retryPayload']> = {
         message: content,
         imageIds: uploadedImageIds,

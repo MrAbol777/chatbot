@@ -32,6 +32,7 @@ const { createDirectSceneVideoRouter } = require('./modules/direct-scene-video/d
 const { createImageGenerationRouter } = require('./modules/image-generation/image-generation.routes');
 const { createImageToImageRouter } = require('./modules/image-to-image/image-to-image.routes');
 const { createAuthMiddleware } = require('./modules/image-generation/auth.middleware');
+const { isDevelopmentOrigin } = require('./bootstrap/dev-origins');
 const { createImageUnderstandingRouter } = require('./modules/image-understanding/image-understanding.routes');
 const { createIntentRouterService } = require('./modules/intent-router/intent-router.service');
 const { createInputOptimizerService } = require('./modules/input-optimizer/input-optimizer.service');
@@ -362,7 +363,8 @@ function createApp({ repositories, runtimeConfig }) {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      if (!isProduction && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      // Development only: localhost and private LAN addresses (phone testing via the Vite network URL).
+      if (!isProduction && isDevelopmentOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error('CORS blocked for this origin'), false);

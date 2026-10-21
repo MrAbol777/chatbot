@@ -71,3 +71,27 @@ describe('ChatHeader contextual action', () => {
     expect(screen.queryByText('ایده برای شروع')).not.toBeInTheDocument();
   });
 });
+
+describe('ChatHeader wallet entry point', () => {
+  it('has a single wallet button showing the compact balance, and no separate upgrade button', async () => {
+    const user = userEvent.setup();
+    const onOpenNoaWallet = vi.fn();
+    renderHeader({ noaBalance: '7866666654.606003', onOpenNoaWallet });
+
+    expect(screen.queryByText('ارتقا')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ارتقا/ })).not.toBeInTheDocument();
+
+    const wallet = screen.getByRole('button', { name: /کیف پول نوآ/ });
+    expect(wallet).toHaveTextContent('۷٫۸ میلیارد');
+    // The exact value stays available to assistive tech and the tooltip.
+    expect(wallet).toHaveAttribute('aria-label', expect.stringContaining('۷٬۸۶۶٬۶۶۶٬۶۵۴٫۶۰۶۰۰۳'));
+
+    await user.click(wallet);
+    expect(onOpenNoaWallet).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the wallet button on phone-sized layouts', () => {
+    renderHeader({ isDesktopLayout: false, sidebarOpen: false, noaBalance: '100' });
+    expect(screen.getByRole('button', { name: /کیف پول نوآ/ })).toBeInTheDocument();
+  });
+});
